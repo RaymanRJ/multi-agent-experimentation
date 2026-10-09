@@ -1,0 +1,28 @@
+# Secrets — this repo is public
+.env
+.env.*
+!.env.example
+
+# Business material lives outside this repo; belt and braces
+*.pptx
+*.potx
+
+# Minecraft server data (large, binary, machine-specific)
+world/
+world_nether/
+world_the_end/
+logs/
+*.jar
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# Agent run artifacts
+runs/
+*.log
+
+# macOS
+.DS_Store
