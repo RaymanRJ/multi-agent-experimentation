@@ -74,6 +74,9 @@ async function main(): Promise<void> {
 
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
   bot.pathfinder.setMovements(new Movements(bot));
+  // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
+  // immediately reports an empty world.
+  await bot.waitForChunksToLoad();
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
 
   const ctx: SkillContext = {
