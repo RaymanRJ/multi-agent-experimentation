@@ -97,11 +97,11 @@ async function main(): Promise<void> {
     });
 
     const startedAt = Date.now();
-    const decision = await policy.decide(observation, SKILLS);
+    const { decision, calls } = await policy.decide(observation, SKILLS);
     const decisionMs = Date.now() - startedAt;
 
     if (!decision) {
-      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: null, decisionMs });
+      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: null, decisionMs, calls });
       console.log(`[${agentName}] policy ended the episode`);
       break;
     }
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
     const skill = findSkill(decision.skill);
     if (!skill) {
       const result = { status: "failed" as const, reason: `no such skill: ${decision.skill}` };
-      runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs });
+      runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls });
       recentEvents.push(result.reason);
       continue;
     }
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
-    runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs });
+    runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls });
   }
 
   stopping = true;

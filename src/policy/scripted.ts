@@ -1,4 +1,4 @@
-import type { Decision, Observation, Policy, Skill } from "../types.js";
+import type { Decision, Observation, Policy, PolicyOutput, Skill } from "../types.js";
 
 /**
  * No model in the loop. Runs a fixed sequence, then ends the episode.
@@ -16,7 +16,7 @@ export class ScriptedPolicy implements Policy {
     { skill: "wait", args: { seconds: 3 }, rationale: "fixed plan: pause so the result is visible" },
   ];
 
-  async decide(_observation: Observation, _skills: Skill[]): Promise<Decision | null> {
-    return this.plan[this.index++] ?? null;
+  async decide(_observation: Observation, _skills: Skill[]): Promise<PolicyOutput> {
+    return { decision: this.plan[this.index++] ?? null, calls: [] };
   }
 }

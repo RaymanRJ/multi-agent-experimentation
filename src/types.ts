@@ -71,16 +71,36 @@ export interface Decision {
   rationale?: string;
 }
 
-/** Returning null ends the episode. */
+/**
+ * One metered model call. Cost is derived from these after the fact, against a
+ * pricing table — never estimated at call time.
+ */
+export interface ModelCall {
+  backend: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  ms: number;
+  /** Raw model output, kept so an episode can be replayed without re-calling. */
+  text: string;
+}
+
+export interface PolicyOutput {
+  /** Null ends the episode. */
+  decision: Decision | null;
+  /** Every model call made to reach this decision, retries included. Empty for ScriptedPolicy. */
+  calls: ModelCall[];
+}
+
 export interface Policy {
   name: string;
-  decide(observation: Observation, skills: Skill[]): Promise<Decision | null>;
+  decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput>;
 }
 
 /** One model provider. Ollama is OpenAI-compatible and shares that adapter. */
 export interface Backend {
   name: string;
-  complete(system: string, user: string): Promise<string>;
+  complete(system: string, user: string): Promise<ModelCall>;
 }
 
 export interface LoggedStep {
@@ -91,4 +111,5 @@ export interface LoggedStep {
   result: SkillResult | null;
   /** Milliseconds spent waiting on the policy — the metered part. */
   decisionMs: number;
+  calls: ModelCall[];
 }
