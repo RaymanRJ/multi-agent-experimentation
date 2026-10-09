@@ -74,6 +74,7 @@ docker compose exec mc rcon-cli difficulty peaceful   # live scenario toggle
 npm install
 npm run agent -- --scenario sandbox --brain scripted  # no model in the loop
 npm run agent -- --scenario survival --brain ollama   # free local brain
+./start.sh --check                                    # check Docker / Ollama / model setup, start nothing
 npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
 npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes

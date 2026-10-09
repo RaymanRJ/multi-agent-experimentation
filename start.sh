@@ -22,6 +22,7 @@ Options:
                       explore   travel far, picking up useful things
                     Without --goal, each scenario uses its own goal.
   --steps N         Decisions each agent makes before stopping (default 12)
+  --check           Only check this machine's setup (Docker, Ollama, the model); start nothing
   -h, --help        Show this help
 
 Brains: the free local model always runs. Claude and GPT also run when
@@ -41,11 +42,13 @@ HELP
 SCENARIO="${SCENARIO:-sandbox}"
 STEPS="${STEPS:-12}"
 GOAL="${GOAL:-}"
+CHECK_ONLY=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --scenario) SCENARIO="${2:?--scenario needs a value}"; shift 2 ;;
     --steps)    STEPS="${2:?--steps needs a value}"; shift 2 ;;
     --goal)     GOAL="${2:?--goal needs a value}"; shift 2 ;;
+    --check)    CHECK_ONLY=true; shift ;;
     -h|--help)  usage; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 1 ;;
   esac
@@ -65,24 +68,79 @@ get_var() {
   printf '%s' "$val"
 }
 
-say "Checking Docker"
-command -v docker >/dev/null 2>&1 || fail "Docker is not installed. Get Docker Desktop: https://www.docker.com/products/docker-desktop/"
-docker info >/dev/null 2>&1 || fail "Docker is installed but not running. Start Docker Desktop and re-run."
-echo "Docker is running."
+# Which machine are we on? The install hints and one Linux-only check depend on it.
+case "$(uname -s)" in
+  Darwin) PLATFORM=mac ;;
+  Linux)  if grep -qi microsoft /proc/version 2>/dev/null; then PLATFORM=wsl; else PLATFORM=linux; fi ;;
+  MINGW*|MSYS*|CYGWIN*) PLATFORM=gitbash ;;
+  *) PLATFORM=other ;;
+esac
 
-say "Checking Ollama (the free local brain; it must run natively, not in Docker)"
-command -v ollama >/dev/null 2>&1 || fail "Ollama is not installed. Run:  brew install ollama && brew services start ollama"
-curl -fsS --max-time 3 http://localhost:11434/api/tags >/dev/null 2>&1 \
-  || fail "Ollama is installed but not answering on :11434. Run:  brew services start ollama"
+docker_hint() {
+  case "$PLATFORM" in
+    linux) echo "Install Docker Engine: https://docs.docker.com/engine/install/ (then: sudo systemctl start docker)" ;;
+    *)     echo "Install Docker Desktop: https://www.docker.com/products/docker-desktop/" ;;
+  esac
+}
+ollama_install_hint() {
+  case "$PLATFORM" in
+    mac)   echo "brew install ollama && brew services start ollama" ;;
+    linux) echo "curl -fsSL https://ollama.com/install.sh | sh   (it starts as a background service)" ;;
+    wsl)   echo "install Ollama on Windows from https://ollama.com/download, start it, and enable WSL mirrored networking so this shell can reach it at localhost:11434" ;;
+    *)     echo "install Ollama from https://ollama.com/download and start it" ;;
+  esac
+}
+
+OLLAMA_API="http://localhost:11434"
+
+say "Checking Docker"
+command -v docker >/dev/null 2>&1 || fail "Docker is not installed. $(docker_hint)"
+docker info >/dev/null 2>&1 || fail "Docker is installed but not running. Start it and re-run."
+echo "Docker is running."
+[ "$PLATFORM" = gitbash ] && echo "Note: Git Bash is untested. If anything misbehaves, run this from WSL2 instead."
+
+say "Checking Ollama (the free local brain; it runs on this machine, not in Docker)"
+# Talk to Ollama's API rather than its CLI, so this also works when Ollama runs
+# where this shell can't see the command (e.g. on the Windows side of WSL).
+curl -fsS --max-time 3 "$OLLAMA_API/api/tags" >/dev/null 2>&1 \
+  || fail "Ollama is not answering on $OLLAMA_API. To install and start it:  $(ollama_install_hint)"
+
+if [ "$PLATFORM" = linux ]; then
+  # On Linux, Ollama listens on 127.0.0.1 only by default. The agents run in
+  # containers, which are not "localhost" to the host, so every decision fails.
+  if command -v ss >/dev/null 2>&1; then
+    listen="$(ss -ltnH 'sport = :11434' 2>/dev/null | awk '{print $4}')"
+    if [ -n "$listen" ] && ! printf '%s\n' "$listen" | grep -qvE '^(127\.0\.0\.1|\[::1\]):'; then
+      fail "Ollama only accepts connections from this machine, so the agents (in Docker) can't reach it.
+Make it listen for containers too, then re-run:
+  sudo systemctl edit ollama     # add these two lines, save:
+      [Service]
+      Environment=\"OLLAMA_HOST=0.0.0.0\"
+  sudo systemctl restart ollama
+This also exposes Ollama to your network; block port 11434 in your firewall if that matters."
+    fi
+  else
+    echo "Note: could not check which address Ollama listens on ('ss' not found)."
+  fi
+fi
+
 MODEL="$(get_var OLLAMA_MODEL)"; MODEL="${MODEL:-qwen3:4b-instruct}"
-installed="$(ollama list | awk 'NR>1 {print $1}')"
-if printf '%s\n' "$installed" | grep -qxF -e "$MODEL" -e "$MODEL:latest"; then
+if curl -fsS --max-time 5 "$OLLAMA_API/api/tags" | grep -qE "\"name\":\"$MODEL(:latest)?\""; then
   echo "Model $MODEL is already downloaded."
+elif [ "$CHECK_ONLY" = true ]; then
+  echo "Model $MODEL is not downloaded yet; ./start.sh will download it (a few GB, one time)."
 else
   echo "Downloading model $MODEL (one time, a few GB)..."
-  ollama pull "$MODEL"
+  curl -fsS -X POST "$OLLAMA_API/api/pull" -d "{\"model\":\"$MODEL\",\"stream\":false}" >/dev/null \
+    || fail "Downloading $MODEL failed. Check the model name and your connection."
+  echo "Downloaded $MODEL."
 fi
 export OLLAMA_MODEL="$MODEL"
+
+if [ "$CHECK_ONLY" = true ]; then
+  say "Setup looks good ($PLATFORM). Run ./start.sh to begin."
+  exit 0
+fi
 
 say "Starting the Minecraft server (first start can take a couple of minutes)"
 docker compose up -d mc

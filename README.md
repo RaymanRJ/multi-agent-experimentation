@@ -155,7 +155,7 @@ Early. Scaffolding in progress — see commit history.
 
 > Requires Docker running, Node 25+, and (for the free agent) Ollama installed.
 
-**One command** (needs Docker Desktop and Ollama: `brew install ollama && brew services start ollama`):
+**One command** (needs Docker and Ollama; `./start.sh --check` tells you what's missing):
 
 ```bash
 cp .env.example .env        # optional: add API keys to also start the Claude / GPT agents
@@ -168,6 +168,23 @@ It checks Docker and Ollama, pulls the model if missing, starts the server, then
 :3009 gpt). Claude and GPT start only if their key is set. Ollama stays on the host (Metal GPU);
 containers reach it at `host.docker.internal:11434`. To join yourself, use Minecraft Java 1.21.1
 at `localhost`.
+
+### On Linux, Windows, or an Intel Mac
+
+Developed on an Apple Silicon Mac; other platforms are expected to work but are less tested.
+Run `./start.sh --check` first; it checks the setup without starting anything.
+
+| | Docker | Ollama (local model) | Notes |
+|---|---|---|---|
+| **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
+| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
+| **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run `./start.sh` from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
+| **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
+
+Without a GPU, expect several seconds to half a minute per decision from the local model. Use a
+non-thinking model (the default `qwen3:4b-instruct`): reasoning models are too slow for the
+120-second decision timeout on CPU. Linux machines with an NVIDIA GPU can instead run Ollama in a
+container: `docker compose --profile ollama-docker up -d ollama` (untested).
 
 Manual path:
 
