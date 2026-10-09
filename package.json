@@ -6,6 +6,7 @@
   "description": "Several AI agents in one shared world, each driven by a different model.",
   "scripts": {
     "agent": "tsx src/agent.ts",
+    "minds": "tsx src/minds.ts",
     "typecheck": "tsc --noEmit",
     "try": "tsx src/try.ts",
     "test": "tsx --test \"src/**/*.test.ts\""
