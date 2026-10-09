@@ -64,6 +64,9 @@ piece built against it simultaneously. This has already bitten this project's pl
 ## Commands
 
 ```bash
+./start.sh [--scenario survival --steps 20]   # everything: mc + minds :3010 + agents (ollama stays on host)
+./stop.sh [--all]               # stop agents + minds; --all also stops mc
+
 docker compose up -d            # Paper server on :25565
 docker compose logs -f mc       # server console
 docker compose exec mc rcon-cli difficulty peaceful   # live scenario toggle

@@ -1,0 +1,13 @@
+node_modules
+world
+world_nether
+world_the_end
+runs
+.env
+.env.*
+!.env.example
+.claude
+.git
+docs/screenshots
+*.pptx
+*.log
