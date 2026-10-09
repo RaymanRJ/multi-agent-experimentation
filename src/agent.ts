@@ -43,6 +43,11 @@ function buildPolicy(brain: string): Policy {
   }
 }
 
+/** Narrates in game chat so watchers can follow each agent. Chat caps at 256 chars. */
+function say(bot: mineflayer.Bot, message: string): void {
+  bot.chat(message.length > 250 ? `${message.slice(0, 247)}...` : message);
+}
+
 async function main(): Promise<void> {
   const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
   const maxSteps = Number(argv["steps"]);
@@ -82,6 +87,7 @@ async function main(): Promise<void> {
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
+  say(bot, `online — brain: ${policy.name}`);
 
   // `--view` serves this bot's view of the world in a browser. Pass a port
   // (`--view 3008`) to watch several agents at once. It observes only — no
@@ -128,6 +134,7 @@ async function main(): Promise<void> {
     }
 
     console.log(`[${agentName}] step ${step}: ${decision.skill}(${JSON.stringify(decision.args)})`);
+    say(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
     const result = await skill.run(ctx, decision.args);
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
