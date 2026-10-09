@@ -1,0 +1,37 @@
+services:
+  mc:
+    image: itzg/minecraft-server
+    container_name: mae-mc
+    ports:
+      - "25565:25565"      # minecraft
+      - "25575:25575"      # rcon — scenario toggles
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.1"
+      MEMORY: 2G
+
+      # Required for headless agents: skips the Mojang ownership check.
+      # Consequence: NEVER expose this server to the internet. LAN only.
+      ONLINE_MODE: "FALSE"
+
+      MODE: survival
+      DIFFICULTY: peaceful          # scenario runner overrides this at runtime
+      LEVEL_SEED: "multiagent"      # fixed seed so runs are comparable
+      VIEW_DISTANCE: "8"            # keep RAM down on a 16GB machine
+      SIMULATION_DISTANCE: "6"
+      SPAWN_PROTECTION: "0"
+      MAX_PLAYERS: "10"
+
+      ENABLE_RCON: "TRUE"
+      RCON_PASSWORD: "devpassword"
+      OVERRIDE_SERVER_PROPERTIES: "TRUE"
+    volumes:
+      - ./world:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 90s

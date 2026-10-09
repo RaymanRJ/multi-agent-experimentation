@@ -1,0 +1,23 @@
+{
+  "name": "multi-agent-experimentation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Several AI agents in one shared world, each driven by a different model.",
+  "scripts": {
+    "agent": "tsx src/agent.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8",
+    "mineflayer": "^4.23.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "rcon-client": "^4.2.4"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

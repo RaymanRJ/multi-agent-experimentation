@@ -1,0 +1,82 @@
+import type { Bot } from "mineflayer";
+import type { Observation, ScenarioName } from "./types.js";
+
+const NEARBY_RADIUS = 24;
+const INTERESTING = [
+  "_log", "_planks", "coal_ore", "iron_ore", "copper_ore", "diamond_ore",
+  "stone", "water", "crafting_table", "furnace",
+];
+
+function isInteresting(name: string): boolean {
+  return INTERESTING.some((fragment) => name.includes(fragment));
+}
+
+export function countInventory(bot: Bot): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const item of bot.inventory.items()) {
+    counts[item.name] = (counts[item.name] ?? 0) + item.count;
+  }
+  return counts;
+}
+
+/**
+ * Compresses world state into something a model can read cheaply.
+ *
+ * Only blocks matching INTERESTING are counted, and only within NEARBY_RADIUS.
+ * A full block dump would be both enormous and useless.
+ */
+export function observe(
+  bot: Bot,
+  opts: { step: number; scenario: ScenarioName; goal: string; recentEvents: string[] },
+): Observation {
+  const position = bot.entity.position;
+
+  const nearbyBlocks: Record<string, number> = {};
+  const matching = Object.values(bot.registry.blocksByName)
+    .filter((block) => isInteresting(block.name))
+    .map((block) => block.id);
+
+  const found = bot.findBlocks({
+    matching,
+    maxDistance: NEARBY_RADIUS,
+    count: 256,
+  });
+  for (const point of found) {
+    const block = bot.blockAt(point);
+    if (block) nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
+  }
+
+  const hostiles: Array<{ name: string; distance: number }> = [];
+  const otherAgents: string[] = [];
+  for (const entity of Object.values(bot.entities)) {
+    if (!entity || entity === bot.entity) continue;
+    const distance = entity.position.distanceTo(position);
+    if (entity.type === "hostile" && distance <= NEARBY_RADIUS) {
+      hostiles.push({ name: entity.name ?? "unknown", distance: Math.round(distance) });
+    }
+    if (entity.type === "player" && entity.username) otherAgents.push(entity.username);
+  }
+  hostiles.sort((a, b) => a.distance - b.distance);
+
+  const timeOfDay = bot.time.timeOfDay;
+
+  return {
+    step: opts.step,
+    scenario: opts.scenario,
+    goal: opts.goal,
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
+      z: Math.round(position.z),
+    },
+    health: Math.round(bot.health),
+    food: Math.round(bot.food),
+    timeOfDay,
+    isDay: timeOfDay < 12000,
+    inventory: countInventory(bot),
+    nearbyBlocks,
+    hostiles: hostiles.slice(0, 5),
+    otherAgents,
+    recentEvents: opts.recentEvents.slice(-6),
+  };
+}
