@@ -35,3 +35,110 @@ services:
       timeout: 5s
       retries: 40
       start_period: 90s
+
+  # ---- Node side: minds panel + agents. `mc` above is unchanged. ----
+
+  minds:
+    build: .
+    image: mae-node
+    container_name: mae-minds
+    command: ["npm", "run", "minds"]
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./runs:/app/runs
+    restart: unless-stopped
+
+  # Agents are opt-in: plain `docker compose up -d` still starts only mc.
+  #   docker compose --profile agents up -d agent-ollama
+  # They run one episode and stop (restart: "no").
+  # Keys come from .env / the shell only. Never put them in this file.
+  agent-ollama:
+    profiles: ["agents"]
+    build: .
+    image: mae-node
+    container_name: mae-agent-ollama
+    command: ["npm", "run", "agent", "--", "--brain", "ollama", "--name", "agent_ollama",
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3007"]
+    ports: ["3007:3007"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MC_HOST: mc
+      OLLAMA_URL: http://host.docker.internal:11434/v1   # Ollama runs natively on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"              # needed on Linux; harmless on Mac
+    volumes:
+      - ./runs:/app/runs
+    depends_on:
+      mc:
+        condition: service_healthy
+    restart: "no"
+
+  agent-claude:
+    profiles: ["agents"]
+    build: .
+    image: mae-node
+    container_name: mae-agent-claude
+    command: ["npm", "run", "agent", "--", "--brain", "claude", "--name", "agent_claude",
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3008"]
+    ports: ["3008:3008"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MC_HOST: mc
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./runs:/app/runs
+    depends_on:
+      mc:
+        condition: service_healthy
+    restart: "no"
+
+  agent-gpt:
+    profiles: ["agents"]
+    build: .
+    image: mae-node
+    container_name: mae-agent-gpt
+    command: ["npm", "run", "agent", "--", "--brain", "gpt", "--name", "agent_gpt",
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3009"]
+    ports: ["3009:3009"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MC_HOST: mc
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ./runs:/app/runs
+    depends_on:
+      mc:
+        condition: service_healthy
+    restart: "no"
+
+  # OPTIONAL, Linux + NVIDIA hosts ONLY. NOT for Mac: Docker on macOS cannot use Metal,
+  # so this would run on CPU and be unusably slow. On a Mac use the Homebrew service
+  # (`brew install ollama && brew services start ollama`) instead.
+  #   docker compose --profile ollama-docker up -d ollama
+  # then point agents at it with OLLAMA_URL=http://ollama:11434/v1
+  ollama:
+    profiles: ["ollama-docker"]
+    image: ollama/ollama
+    container_name: mae-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama:

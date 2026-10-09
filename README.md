@@ -155,6 +155,22 @@ Early. Scaffolding in progress — see commit history.
 
 > Requires Docker running, Node 25+, and (for the free agent) Ollama installed.
 
+**One command** (needs Docker Desktop and Ollama: `brew install ollama && brew services start ollama`):
+
+```bash
+cp .env.example .env        # optional: add API keys to also start the Claude / GPT agents
+./start.sh                  # or: ./start.sh --scenario survival --steps 20
+./stop.sh                   # stops agents + minds panel; ./stop.sh --all also stops Minecraft
+```
+
+It checks Docker and Ollama, pulls the model if missing, starts the server, then the minds panel
+(http://localhost:3010) and one agent per available brain (viewers on :3007 ollama, :3008 claude,
+:3009 gpt). Claude and GPT start only if their key is set. Ollama stays on the host (Metal GPU);
+containers reach it at `host.docker.internal:11434`. To join yourself, use Minecraft Java 1.21.1
+at `localhost`.
+
+Manual path:
+
 ```bash
 cp .env.example .env        # API keys optional — the local agent needs none
 docker compose up -d        # Paper server on :25565
