@@ -68,3 +68,15 @@ test("buildMind uses latest step and call", () => {
   assert.equal(m.secondsSinceLast, 18);
   assert.equal(buildMind("a", [], 0, 0), null);
 });
+
+test("buildMind - a failed last step keeps the brain identity from earlier calls", () => {
+  const call = { backend: "ollama", model: "qwen3:4b", inputTokens: 1, outputTokens: 1, ms: 1, text: "" };
+  const base = { observation: {} as never, decisionMs: 120000, at: new Date(0).toISOString() };
+  const steps = [
+    { ...base, step: 1, decision: { skill: "explore", args: {} }, result: { status: "success" as const }, calls: [call] },
+    { ...base, step: 2, decision: null, result: { status: "failed" as const, reason: "timed out" }, calls: [] },
+  ];
+  const mind = buildMind("agent_ollama", steps, 0, 0)!;
+  assert.strictEqual(mind.backend, "ollama");
+  assert.strictEqual(mind.model, "qwen3:4b");
+});

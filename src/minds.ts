@@ -103,15 +103,19 @@ export function buildMind(name: string, steps: LoggedStep[], mtimeMs: number, no
   const last = steps[steps.length - 1];
   if (!last) return null;
   const allCalls = steps.flatMap((s) => s.calls ?? []);
-  const latestCall = last.calls?.[0];
+  // Identity comes from any call in the run: a step that timed out or failed
+  // has no calls, and must not make a model-driven agent look scripted.
+  const anyCall = allCalls[allCalls.length - 1];
+  // Reasoning comes from the step's final attempt — the one that decided.
+  const latestCall = last.calls?.[last.calls.length - 1];
   const total = sumCost(allCalls);
   const lastAt = Date.parse(last.at);
   // Last log line time; the file's mtime is the fallback and a floor.
   const lastMs = Number.isNaN(lastAt) ? mtimeMs : Math.max(lastAt, mtimeMs);
   return {
     name,
-    backend: latestCall?.backend ?? "scripted",
-    model: latestCall?.model ?? "scripted",
+    backend: anyCall?.backend ?? "scripted",
+    model: anyCall?.model ?? "scripted",
     step: last.step,
     decision: last.decision
       ? { skill: last.decision.skill, args: last.decision.args ?? {}, rationale: last.decision.rationale }
