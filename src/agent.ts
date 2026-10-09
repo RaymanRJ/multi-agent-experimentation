@@ -8,6 +8,8 @@ import { RunLog } from "./log.js";
 import { SCENARIOS, applyScenario } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
+import { LLMPolicy } from "./policy/llm.js";
+import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import type { Policy, ScenarioName, SkillContext } from "./types.js";
 
 const { pathfinder, Movements } = pathfinderPkg;
@@ -16,7 +18,7 @@ loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
   string: ["scenario", "brain", "name"],
-  default: { scenario: "sandbox", brain: "scripted", name: "agent_scripted", steps: 12 },
+  default: { scenario: "sandbox", brain: "scripted", steps: 12 },
 });
 
 const scenarioName = argv["scenario"] as ScenarioName;
@@ -30,17 +32,18 @@ function buildPolicy(brain: string): Policy {
   switch (brain) {
     case "scripted":
       return new ScriptedPolicy();
-    // Model-backed policies land once the Backend adapters exist. The local
-    // (Ollama) brain needs no API key; the cloud brains stay dormant until one
-    // is present in the environment.
+    case "claude":
+    case "gpt":
+    case "ollama":
+      return new LLMPolicy(createBackend(brain as BrainName));
     default:
-      console.error(`unknown brain "${brain}" — only "scripted" is wired up so far`);
+      console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
       process.exit(1);
   }
 }
 
 async function main(): Promise<void> {
-  const agentName = String(argv["name"]);
+  const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
   const maxSteps = Number(argv["steps"]);
   const policy = buildPolicy(String(argv["brain"]));
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
