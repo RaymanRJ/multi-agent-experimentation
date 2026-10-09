@@ -42,7 +42,7 @@ export const sleep: Skill = {
     "Sleep through the night in a bed: finds a bed within 32 blocks (or places one from your inventory), walks to it and sleeps " +
     "until morning or until woken. Takes no arguments. Only works at night. Fails with `it is daytime — can only sleep at night`, " +
     "`no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
-    "Returns whether you woke naturally and your health after.",
+    "The night is only skipped when every player is asleep; otherwise this fails and says so.",
   args: {},
 
   async run(ctx: SkillContext): Promise<SkillResult> {
@@ -100,10 +100,18 @@ export const sleep: Skill = {
         // already awake
       }
       return {
-        status: "success",
-        detail: { slept: true, wokeNaturally: false, note: "got up after 90s; morning did not arrive", health: bot.health },
+        status: "failed",
+        reason: `got up after 90s and it is still night — the night only passes when every player in the world is asleep`,
+        detail: { slept: true, health: bot.health },
       };
     }
-    return { status: "success", detail: { slept: true, wokeNaturally: true, health: bot.health, isDay: bot.time.isDay } };
+    if (!bot.time.isDay) {
+      return {
+        status: "failed",
+        reason: `woke before morning — the night only passes when every player in the world is asleep, or something woke you`,
+        detail: { slept: true, health: bot.health },
+      };
+    }
+    return { status: "success", detail: { slept: true, health: bot.health } };
   },
 };

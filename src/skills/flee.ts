@@ -79,7 +79,14 @@ export const flee: Skill = {
     }
 
     const detail = report();
-    if (detail.hostilesWithin12 === 0 || detail.distanceCovered >= distance) return { status: "success", detail };
+    if (detail.hostilesWithin12 === 0) return { status: "success", detail };
+    if (detail.distanceCovered >= distance) {
+      return {
+        status: "success",
+        reason: `ran ${detail.distanceCovered} blocks but still being chased — ${detail.hostilesWithin12} hostile(s) within 12 blocks`,
+        detail,
+      };
+    }
     return {
       status: "failed",
       reason: `ran ${detail.distanceCovered} blocks but ${detail.hostilesWithin12} hostile(s) are still within ${SAFE_RADIUS} blocks`,
