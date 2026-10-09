@@ -28,7 +28,11 @@ flowchart TB
         C["<b>Agent C</b><br/>Node.js + mineflayer"]
     end
 
-    SKILLS["<b>Skill Library</b> — the only actions an agent may take<br/>navigate · gather · craft · build · flee<br/><i>mineflayer-pathfinder</i>"]
+    subgraph ACTION["HOW AN AGENT ACTS — two distinct layers"]
+        SKILLS["<b>Skill Library</b> — our code<br/>gather_wood(10) · build_shelter() · flee_from(mob)<br/>goal-level · fallible · returns a structured result"]
+        MF["<b>mineflayer</b> + <b>mineflayer-pathfinder</b> — third-party<br/>bot.dig() · bot.placeBlock() · bot.craft() · goto(x,y,z)<br/>single mechanical operations"]
+        SKILLS -->|"composed from"| MF
+    end
 
     subgraph BRAINS["THE BRAINS — metered, consulted rarely"]
         direction LR
@@ -39,15 +43,12 @@ flowchart TB
 
     VIEW["<b>Observers</b><br/>prismarine-viewer (browser, free)<br/>Minecraft Java client (optional, paid)"]
 
-    A <-->|"Minecraft protocol"| PAPER
-    B <-->|"Minecraft protocol"| PAPER
-    C <-->|"Minecraft protocol"| PAPER
-
-    RCON -.->|"difficulty / gamerules"| PAPER
-
     A --> SKILLS
     B --> SKILLS
     C --> SKILLS
+
+    MF <-->|"Minecraft protocol"| PAPER
+    RCON -.->|"difficulty / gamerules"| PAPER
 
     A -.->|"what should I do next?"| CLAUDE
     B -.->|"what should I do next?"| GPT
@@ -60,11 +61,19 @@ flowchart TB
     classDef world fill:#f8fafc,stroke:#475569,color:#0f172a
     class LOCAL free
     class CLAUDE,GPT paid
-    class PAPER,RCON,VIEW,SKILLS world
+    classDef ours fill:#fef3c7,stroke:#b45309,color:#78350f
+    class PAPER,RCON,VIEW,MF world
+    class SKILLS ours
 ```
 
-**Only the dotted lines cost money.** Everything else — the world, the bodies, the skills — runs
-locally for free, and that is where almost all of the work happens.
+**Only the dotted lines cost money.** Everything else runs locally for free.
+
+The amber box is the part we write. Mineflayer supplies *primitives* — break one block, place one
+block, walk to a coordinate. A **skill** is a goal: `gather_wood(10)` must find a reachable tree,
+break every log in the trunk, collect the drops, widen its search if there are none, give up
+cleanly if a mob interrupts, and report back `{status, reason}` so the model can replan. That gap
+is where the engineering lives, and it is what lets the model say "gather wood" instead of
+issuing four hundred individual dig commands.
 
 ---
 

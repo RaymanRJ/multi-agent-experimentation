@@ -35,7 +35,10 @@ Three layers. Only the third costs money.
 
 Key interfaces, which should be treated as contracts:
 
-- `Skill` — the finite vocabulary of actions an agent may take. Nothing happens that isn't here.
+- `Skill` — the finite vocabulary of **goals** an agent may pursue. Nothing happens that isn't
+  here. Skills are our code, composed from mineflayer primitives; mineflayer is not the skill
+  layer. A skill is responsible for retries, giving up, and returning a structured result the
+  model can replan against.
 - `Observation` — what an agent is told about its situation. Deliberately compressed; see below.
 - `Policy` — decides the next goal. `ScriptedPolicy` (no model) and `LLMPolicy` implement it.
 - `Backend` — one model provider. Ollama is OpenAI-compatible, so it shares the OpenAI adapter
