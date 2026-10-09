@@ -1,4 +1,6 @@
 import pathfinderPkg from "mineflayer-pathfinder";
+import type { Block } from "prismarine-block";
+import type { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, threatened, withTimeout } from "./util.js";
@@ -9,12 +11,32 @@ const SEARCH_RADII = [32, 64, 128];
 const TRAVEL_TIMEOUT_MS = 30_000;
 const DIG_TIMEOUT_MS = 20_000;
 const MAX_TRUNK_HEIGHT = 12;
+const MAX_FAILED_TREES = 5;
 
 function logsHeld(ctx: SkillContext): number {
   const inventory = countInventory(ctx.bot);
   return Object.entries(inventory)
     .filter(([name]) => name.endsWith("_log"))
     .reduce((total, [, count]) => total + count, 0);
+}
+
+/**
+ * Walks down from any log to the bottom of its trunk, and returns that base only
+ * if it stands on solid ground. Logs left floating by an earlier felling are out
+ * of reach and would otherwise be picked over and over.
+ */
+function groundedTrunkBase(ctx: SkillContext, point: Vec3): Block | null {
+  let base = ctx.bot.blockAt(point);
+  while (base) {
+    const below = ctx.bot.blockAt(base.position.offset(0, -1, 0));
+    if (!below) return null;
+    if (below.name.endsWith("_log")) {
+      base = below;
+      continue;
+    }
+    return below.boundingBox === "block" && !below.name.endsWith("_leaves") ? base : null;
+  }
+  return null;
 }
 
 /**
@@ -43,6 +65,9 @@ export const gatherWood: Skill = {
       .map((block) => block.id);
 
     let treesFelled = 0;
+    // Without this, findBlock keeps returning the same nearest unbreakable log forever.
+    const skipped = new Set<string>();
+    const key = (position: Vec3) => `${position.x},${position.y},${position.z}`;
 
     while (logsHeld(ctx) < wanted) {
       if (ctx.shouldStop()) {
@@ -58,10 +83,24 @@ export const gatherWood: Skill = {
         };
       }
 
+      if (skipped.size >= MAX_FAILED_TREES) {
+        return {
+          status: "failed",
+          reason: `gave up after ${skipped.size} trees could not be reached or broken`,
+          detail: { gathered: logsHeld(ctx) - startedWith, treesFelled },
+        };
+      }
+
       // Widen the search rather than giving up at the first empty radius.
-      let trunkBase = null;
+      let trunkBase: Block | null = null;
       for (const radius of SEARCH_RADII) {
-        trunkBase = ctx.bot.findBlock({ matching: logIds, maxDistance: radius });
+        for (const point of ctx.bot.findBlocks({ matching: logIds, maxDistance: radius, count: 64 })) {
+          const base = groundedTrunkBase(ctx, point);
+          if (base && !skipped.has(key(base.position))) {
+            trunkBase = base;
+            break;
+          }
+        }
         if (trunkBase) break;
       }
       if (!trunkBase) {
@@ -81,7 +120,7 @@ export const gatherWood: Skill = {
         );
       } catch (error) {
         ctx.log(`could not reach tree at ${x},${y},${z}: ${(error as Error).message}`);
-        // The tree is unreachable; blacklisting is overkill, another loop picks a different one.
+        skipped.add(key(trunkBase.position));
         continue;
       }
 
@@ -101,7 +140,8 @@ export const gatherWood: Skill = {
       }
 
       if (felled === 0) {
-        ctx.log("reached a tree but could not break any of it");
+        ctx.log(`reached a tree at ${x},${y},${z} but could not break any of it`);
+        skipped.add(key(trunkBase.position));
         continue;
       }
       treesFelled++;
