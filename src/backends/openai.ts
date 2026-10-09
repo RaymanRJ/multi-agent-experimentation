@@ -34,10 +34,11 @@ export class OpenAIBackend implements Backend {
   async complete(system: string, user: string): Promise<ModelCall> {
     const startMs = Date.now();
 
+    const timeoutMs = this.name === "ollama" ? 120_000 : 60_000;
     const controller = new AbortController();
     const timeoutId = setTimeout(
-      () => controller.abort(),
-      this.name === "ollama" ? 120_000 : 60_000,
+      () => controller.abort(new Error(`${this.name} gave no answer within ${timeoutMs / 1000}s`)),
+      timeoutMs,
     );
 
     try {

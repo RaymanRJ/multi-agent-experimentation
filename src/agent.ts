@@ -107,6 +107,8 @@ async function main(): Promise<void> {
     shouldStop: () => stopping,
   };
 
+  let policyFailures = 0;
+
   for (let step = 1; step <= maxSteps; step++) {
     const observation = observe(bot, {
       step,
@@ -116,7 +118,25 @@ async function main(): Promise<void> {
     });
 
     const startedAt = Date.now();
-    const { decision, calls } = await policy.decide(observation, SKILLS);
+    let output;
+    try {
+      output = await policy.decide(observation, SKILLS);
+      policyFailures = 0;
+    } catch (error) {
+      // A slow or unreachable model must not end the run. Log the failed step,
+      // let the world tick on, and ask again — the timeout is itself data.
+      const reason = `the brain failed to decide: ${error instanceof Error ? error.message : String(error)}`;
+      const decisionMs = Date.now() - startedAt;
+      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: { status: "failed", reason }, decisionMs, calls: [] });
+      console.error(`[${agentName}] step ${step}: ${reason}`);
+      if (++policyFailures >= 3) {
+        console.error(`[${agentName}] giving up after 3 failed decisions in a row`);
+        break;
+      }
+      await bot.waitForTicks(100);
+      continue;
+    }
+    const { decision, calls } = output;
     const decisionMs = Date.now() - startedAt;
 
     if (!decision) {
