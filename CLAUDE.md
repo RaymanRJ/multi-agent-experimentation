@@ -71,6 +71,8 @@ docker compose exec mc rcon-cli difficulty peaceful   # live scenario toggle
 npm install
 npm run agent -- --scenario sandbox --brain scripted  # no model in the loop
 npm run agent -- --scenario survival --brain ollama   # free local brain
+npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
+npm run agent -- --brain claude --view 3008           # one port per agent to watch several
 ```
 
 ## Hard constraints

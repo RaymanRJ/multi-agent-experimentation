@@ -1,6 +1,7 @@
 import minimist from "minimist";
 import mineflayer from "mineflayer";
 import pathfinderPkg from "mineflayer-pathfinder";
+import { mineflayer as startViewer } from "prismarine-viewer";
 
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
@@ -81,6 +82,15 @@ async function main(): Promise<void> {
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
+
+  // `--view` serves this bot's view of the world in a browser. Pass a port
+  // (`--view 3008`) to watch several agents at once. It observes only — no
+  // extra player joins the world.
+  if (argv["view"] !== undefined && argv["view"] !== false) {
+    const port = argv["view"] === true ? 3007 : Number(argv["view"]);
+    startViewer(bot, { port, firstPerson: false, viewDistance: 6 });
+    console.log(`[${agentName}] viewer at http://localhost:${port}`);
+  }
 
   const ctx: SkillContext = {
     bot,
