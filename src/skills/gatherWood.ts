@@ -40,6 +40,21 @@ function groundedTrunkBase(ctx: SkillContext, point: Vec3): Block | null {
 }
 
 /**
+ * True when solid terrain sits above the trunk — a log underground or under an
+ * overhang. Nearest-first search otherwise picks buried logs deep below the
+ * surface, which the pathfinder can never reach.
+ */
+function underCover(ctx: SkillContext, base: Block): boolean {
+  for (let height = 1; height <= 24; height++) {
+    const block = ctx.bot.blockAt(base.position.offset(0, height, 0));
+    if (!block) return false;
+    if (block.name.endsWith("_log") || block.name.endsWith("_leaves") || block.boundingBox === "empty") continue;
+    return true;
+  }
+  return false;
+}
+
+/**
  * Illustrates what a skill is, as distinct from a mineflayer primitive.
  *
  * mineflayer gives you bot.dig(block) — break one block. Getting ten logs means
@@ -51,14 +66,24 @@ function groundedTrunkBase(ctx: SkillContext, point: Vec3): Block | null {
 export const gatherWood: Skill = {
   name: "gather_wood",
   description:
-    "Collect logs from nearby trees. Takes `count` — how many logs you want in total. " +
-    "Fails if there are no trees within range or a hostile interrupts.",
+    "Collect logs from nearby trees. Takes `count` — the total number of logs you want in your inventory. " +
+    "If you already have that many, it returns at once without gathering. " +
+    "Fails if there are no reachable trees nearby or a hostile interrupts.",
   args: { count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
     const target = Math.max(1, Math.min(64, asNumber(rawArgs["count"], 10)));
     const startedWith = logsHeld(ctx);
-    const wanted = startedWith + target;
+    // `count` is a total, as the description tells the model. Treating it as
+    // "this many more" let a model that already had plenty loop forever.
+    const wanted = target;
+    if (startedWith >= wanted) {
+      return {
+        status: "success",
+        reason: `you already have ${startedWith} logs, at least the ${wanted} asked for — no need to gather more`,
+        detail: { gathered: 0, totalLogs: startedWith },
+      };
+    }
 
     const logIds = Object.values(ctx.bot.registry.blocksByName)
       .filter((block) => block.name.endsWith("_log"))
@@ -86,7 +111,7 @@ export const gatherWood: Skill = {
       if (skipped.size >= MAX_FAILED_TREES) {
         return {
           status: "failed",
-          reason: `gave up after ${skipped.size} trees could not be reached or broken`,
+          reason: `gave up after ${skipped.size} trees here could not be reached or broken — explore to find trees somewhere else`,
           detail: { gathered: logsHeld(ctx) - startedWith, treesFelled },
         };
       }
@@ -96,7 +121,7 @@ export const gatherWood: Skill = {
       for (const radius of SEARCH_RADII) {
         for (const point of ctx.bot.findBlocks({ matching: logIds, maxDistance: radius, count: 64 })) {
           const base = groundedTrunkBase(ctx, point);
-          if (base && !skipped.has(key(base.position))) {
+          if (base && !skipped.has(key(base.position)) && !underCover(ctx, base)) {
             trunkBase = base;
             break;
           }
@@ -106,7 +131,7 @@ export const gatherWood: Skill = {
       if (!trunkBase) {
         return {
           status: "failed",
-          reason: `no trees within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks`,
+          reason: `no reachable trees within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — explore to find some`,
           detail: { gathered: logsHeld(ctx) - startedWith },
         };
       }

@@ -2,6 +2,7 @@ import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { threatened, withTimeout } from "./util.js";
+import { craft } from "./craft.js";
 
 const PLACE_TIMEOUT_MS = 8_000;
 const MAX_FAILED_CELLS = 4;
@@ -19,6 +20,23 @@ function materials(ctx: SkillContext): Record<string, number> {
     if (isBuildingBlock(name)) found[name] = count;
   }
   return found;
+}
+
+/**
+ * Turns held logs (any wood) into planks until the shelter is covered. Planks
+ * are the obvious material, and asking the model to craft them as a separate
+ * step tangled it in log types: "oak_planks" needs oak logs specifically.
+ */
+async function planksFromLogs(ctx: SkillContext, shortfall: number): Promise<number> {
+  let made = 0;
+  for (const [name, count] of Object.entries(countInventory(ctx.bot))) {
+    if (made >= shortfall || !name.endsWith("_log")) continue;
+    const planks = Math.min(count * 4, Math.ceil((shortfall - made) / 4) * 4);
+    const result = await craft.run(ctx, { item: name.replace(/_log$/, "_planks"), count: planks });
+    if (result.status === "success") made += planks;
+    else ctx.log(`could not turn ${name} into planks: ${result.reason ?? result.status}`);
+  }
+  return made;
 }
 
 const FACES: Vec3[] = [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1), new Vec3(0, 1, 0)];
@@ -58,8 +76,9 @@ export const buildShelter: Skill = {
   description:
     "Build a small enclosed hut around where you are standing: a 3x3 interior, 2 blocks high, with a roof " +
     "and a 2-high doorway on the south side, using planks, cobblestone, stone, dirt or similar blocks from " +
-    "inventory. Needs about 43 building blocks (any mix; fewer if natural walls already exist) and tells " +
-    "you the exact shortfall if you have too few. Stand on reasonably flat open ground first. " +
+    "inventory. Needs about 43 building blocks (any mix; fewer if natural walls already exist). Logs in your " +
+    "inventory are turned into planks automatically (1 log = 4 planks, so 11 logs is enough on its own). " +
+    "Tells you the exact shortfall if you have too few. Stand on reasonably flat open ground first. " +
     "You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
   args: {},
 
@@ -90,12 +109,14 @@ export const buildShelter: Skill = {
 
     const needsBlock = (offset: Vec3) => bot.blockAt(cellAt(offset))?.boundingBox !== "block";
     const required = [...walls, ...roof].filter(needsBlock).length;
+    const blocksHeld = () => Object.values(materials(ctx)).reduce((a, b) => a + b, 0);
+    if (blocksHeld() < required) await planksFromLogs(ctx, required - blocksHeld());
     const held = materials(ctx);
-    const available = Object.values(held).reduce((a, b) => a + b, 0);
+    const available = blocksHeld();
     if (available < required) {
       return {
         status: "failed",
-        reason: `need ${required - available} more building blocks (planks, cobblestone or dirt): shelter needs ${required}, I have ${available}`,
+        reason: `need ${required - available} more building blocks: shelter needs ${required}, I have ${available} after turning my logs into planks — gather about ${Math.ceil((required - available) / 4)} more logs`,
         detail: { required, available, materials: held },
       };
     }
@@ -171,6 +192,7 @@ export const buildShelter: Skill = {
     const doorBlocked = door.some((offset) => !needsBlock(offset));
     return {
       status: "success",
+      reason: "the shelter is finished and you are standing inside it — there is no need to build it again",
       detail: {
         position: { x: center.x, y: center.y, z: center.z },
         interior: "3x3",

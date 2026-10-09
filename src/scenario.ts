@@ -50,11 +50,12 @@ export const SCENARIOS: Record<ScenarioName, Scenario> = {
  */
 export const GOALS: Record<string, string> = {
   shelter:
-    "Build a shelter. Gather wood, craft it into planks (about 11 logs is enough), then build the shelter. " +
+    "Build a shelter. It needs 11 logs in your inventory (the shelter turns them into planks itself). " +
+    "If you have fewer than 11 logs, gather wood; once you have 11 or more, build the shelter. " +
     "Once it is built, end the episode.",
   tools:
-    "Craft a stone pickaxe. Gather wood, craft a wooden pickaxe, use it to mine stone, then craft the stone pickaxe. " +
-    "Once you have it, end the episode.",
+    "Craft a stone pickaxe. Check your inventory and do the first step you have not done yet: " +
+    "gather a few logs, craft a wooden_pickaxe, mine 3 stone, craft a stone_pickaxe. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
   explore: "Explore as far as you can, and gather anything useful you find on the way.",
 };

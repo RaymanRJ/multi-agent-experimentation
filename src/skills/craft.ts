@@ -250,21 +250,27 @@ async function produce(
   if (total(recheck) > 0) return recheck;
 
   ctx.log(`crafting ${plan.times}x ${itemName(bot, id)}`);
-  const before = have(bot, id);
-  await withTimeout(
-    plan.recipe.requiresTable && table
-      ? craftAtTable(bot, plan.recipe, plan.times, table)
-      : bot.craft(plan.recipe, plan.times, undefined),
-    CRAFT_TIMEOUT_MS,
-    `crafting ${itemName(bot, id)}`,
-  );
-  // The inventory update trails the craft call; later steps read the real count.
-  for (let tick = 0; tick < 40 && have(bot, id) < before + plan.recipe.result.count * plan.times; tick++) {
-    await bot.waitForTicks(1);
+  if (plan.recipe.requiresTable && table) {
+    const before = have(bot, id);
+    await withTimeout(craftAtTable(bot, plan.recipe, plan.times, table), CRAFT_TIMEOUT_MS, `crafting ${itemName(bot, id)}`);
+    await settle(bot, id, before + plan.recipe.result.count * plan.times);
+  } else {
+    // bot.craft(recipe, n) with n > 1 loses items on this server: asked for 6x
+    // planks, it consumed 3 logs and delivered 3 planks. One craft per call,
+    // each confirmed in the inventory before the next, is slower but exact.
+    for (let n = 0; n < plan.times; n++) {
+      const before = have(bot, id);
+      await withTimeout(bot.craft(plan.recipe, 1, undefined), CRAFT_TIMEOUT_MS, `crafting ${itemName(bot, id)}`);
+      await settle(bot, id, before + plan.recipe.result.count);
+    }
   }
-  // Let the server's slot updates land so the next craft sees the true inventory.
-  await bot.waitForTicks(10);
   return null;
+}
+
+/** Waits for the server's inventory update to show `expected` of the item, then a little longer. */
+async function settle(bot: Bot, id: number, expected: number): Promise<void> {
+  for (let tick = 0; tick < 40 && have(bot, id) < expected; tick++) await bot.waitForTicks(1);
+  await bot.waitForTicks(5);
 }
 
 function describeMissing(missing: Missing): string {
