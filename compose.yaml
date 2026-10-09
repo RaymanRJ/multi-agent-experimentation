@@ -67,6 +67,7 @@ services:
     environment:
       MC_HOST: mc
       OLLAMA_URL: http://host.docker.internal:11434/v1   # Ollama runs natively on the host
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-instruct}
     extra_hosts:
       - "host.docker.internal:host-gateway"              # needed on Linux; harmless on Mac
     volumes:

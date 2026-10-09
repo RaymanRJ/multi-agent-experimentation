@@ -48,7 +48,7 @@ export function createBackend(brain: BrainName): Backend {
     }
 
     case "ollama": {
-      const model = env("OLLAMA_MODEL", "qwen3:4b");
+      const model = env("OLLAMA_MODEL", "qwen3:4b-instruct");
       const baseURL = env("OLLAMA_URL", "http://localhost:11434/v1");
       return new OpenAIBackend({
         name: "ollama",

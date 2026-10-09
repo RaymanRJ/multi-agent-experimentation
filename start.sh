@@ -38,7 +38,7 @@ say "Checking Ollama (the free local brain; it must run natively, not in Docker)
 command -v ollama >/dev/null 2>&1 || fail "Ollama is not installed. Run:  brew install ollama && brew services start ollama"
 curl -fsS --max-time 3 http://localhost:11434/api/tags >/dev/null 2>&1 \
   || fail "Ollama is installed but not answering on :11434. Run:  brew services start ollama"
-MODEL="$(get_var OLLAMA_MODEL)"; MODEL="${MODEL:-qwen3:4b}"
+MODEL="$(get_var OLLAMA_MODEL)"; MODEL="${MODEL:-qwen3:4b-instruct}"
 installed="$(ollama list | awk 'NR>1 {print $1}')"
 if printf '%s\n' "$installed" | grep -qxF -e "$MODEL" -e "$MODEL:latest"; then
   echo "Model $MODEL is already downloaded."
