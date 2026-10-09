@@ -59,7 +59,7 @@ services:
     image: mae-node
     container_name: mae-agent-ollama
     command: ["npm", "run", "agent", "--", "--brain", "ollama", "--name", "agent_ollama",
-              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3007"]
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--goal", "${GOAL:-}", "--view", "3007"]
     ports: ["3007:3007"]
     env_file:
       - path: .env
@@ -83,7 +83,7 @@ services:
     image: mae-node
     container_name: mae-agent-claude
     command: ["npm", "run", "agent", "--", "--brain", "claude", "--name", "agent_claude",
-              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3008"]
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--goal", "${GOAL:-}", "--view", "3008"]
     ports: ["3008:3008"]
     env_file:
       - path: .env
@@ -104,7 +104,7 @@ services:
     image: mae-node
     container_name: mae-agent-gpt
     command: ["npm", "run", "agent", "--", "--brain", "gpt", "--name", "agent_gpt",
-              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--view", "3009"]
+              "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-12}", "--goal", "${GOAL:-}", "--view", "3009"]
     ports: ["3009:3009"]
     env_file:
       - path: .env

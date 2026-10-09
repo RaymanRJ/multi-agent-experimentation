@@ -1,20 +1,56 @@
 #!/usr/bin/env bash
-# One command to run the whole experiment:  ./start.sh [--scenario sandbox|survival] [--steps N]
+# One command to run the whole experiment:
+#   ./start.sh [--scenario sandbox|survival] [--steps N] [--goal shelter|tools|gather|explore|"any sentence"]
 # Starts Minecraft + the minds panel + one agent per available brain.
 set -euo pipefail
 cd "$(dirname "$0")"
 
+usage() {
+  cat <<'HELP'
+Start the experiment: Minecraft, the minds panel, and one AI agent per available brain.
+
+Usage:  ./start.sh [options]
+
+Options:
+  --scenario NAME   World rules. One of:
+                      sandbox   peaceful: no mobs, no hunger (default)
+                      survival  normal difficulty: mobs at night, hunger
+  --goal GOAL       What the agents try to do. A preset name, or any sentence in quotes:
+                      shelter   gather wood, make planks, build a shelter
+                      tools     work up to a stone pickaxe
+                      gather    collect as much wood and stone as possible
+                      explore   travel far, picking up useful things
+                    Without --goal, each scenario uses its own goal.
+  --steps N         Decisions each agent makes before stopping (default 12)
+  -h, --help        Show this help
+
+Brains: the free local model always runs. Claude and GPT also run when
+ANTHROPIC_API_KEY / OPENAI_API_KEY are set (in the environment or .env).
+
+Examples:
+  ./start.sh
+  ./start.sh --scenario survival --goal shelter
+  ./start.sh --goal "Mine 10 stone, then build a shelter" --steps 20
+
+Watch:  minds panel http://localhost:3010 · 3D views http://localhost:3007 (local), 3008 (Claude), 3009 (GPT)
+Stop:   ./stop.sh          (agents and panel; Minecraft keeps running)
+        ./stop.sh --all    (everything)
+HELP
+}
+
 SCENARIO="${SCENARIO:-sandbox}"
 STEPS="${STEPS:-12}"
+GOAL="${GOAL:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --scenario) SCENARIO="${2:?--scenario needs a value}"; shift 2 ;;
     --steps)    STEPS="${2:?--steps needs a value}"; shift 2 ;;
-    -h|--help)  echo "usage: ./start.sh [--scenario sandbox|survival] [--steps N]"; exit 0 ;;
+    --goal)     GOAL="${2:?--goal needs a value}"; shift 2 ;;
+    -h|--help)  usage; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 1 ;;
   esac
 done
-export SCENARIO STEPS
+export SCENARIO STEPS GOAL
 
 say()  { printf '\n==> %s\n' "$*"; }
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -74,7 +110,7 @@ else
   echo "  gpt     : skipped (no OPENAI_API_KEY)"
 fi
 
-say "Starting minds panel and agents (scenario=$SCENARIO, steps=$STEPS)"
+say "Starting minds panel and agents (scenario=$SCENARIO, steps=$STEPS, goal=${GOAL:-scenario default})"
 docker compose --profile agents up -d --build --no-deps --force-recreate minds "${SERVICES[@]}"
 
 say "Ready"

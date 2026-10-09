@@ -43,6 +43,38 @@ export const SCENARIOS: Record<ScenarioName, Scenario> = {
   },
 };
 
+/**
+ * Preset goals for `--goal <name>`. The scenario sets the world rules; the goal
+ * sets what the agents are asked to do, so any goal works in either scenario.
+ * Written for the model: it names the steps the skill library can carry out.
+ */
+export const GOALS: Record<string, string> = {
+  shelter:
+    "Build a shelter. Gather wood, craft it into planks (about 11 logs is enough), then build the shelter. " +
+    "Once it is built, end the episode.",
+  tools:
+    "Craft a stone pickaxe. Gather wood, craft a wooden pickaxe, use it to mine stone, then craft the stone pickaxe. " +
+    "Once you have it, end the episode.",
+  gather: "Gather as much wood and stone as you can.",
+  explore: "Explore as far as you can, and gather anything useful you find on the way.",
+};
+
+/**
+ * `--goal` takes a preset name or the goal text itself. A single word that is
+ * not a preset is almost certainly a typo, so it is rejected rather than sent
+ * to the model as the goal.
+ */
+export function resolveGoal(scenario: Scenario, goal: string | undefined): string {
+  const value = goal?.trim();
+  if (!value) return scenario.goal;
+  const preset = GOALS[value.toLowerCase()];
+  if (preset) return preset;
+  if (!/\s/.test(value)) {
+    throw new Error(`unknown goal "${value}" — use one of ${Object.keys(GOALS).join(", ")}, or a sentence in quotes`);
+  }
+  return value;
+}
+
 export async function applyScenario(
   scenario: Scenario,
   opts: { host: string; port: number; password: string },

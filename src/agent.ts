@@ -6,7 +6,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
 import { RunLog } from "./log.js";
-import { SCENARIOS, applyScenario } from "./scenario.js";
+import { SCENARIOS, applyScenario, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
@@ -18,7 +18,7 @@ const { pathfinder, Movements } = pathfinderPkg;
 loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
-  string: ["scenario", "brain", "name"],
+  string: ["scenario", "brain", "name", "goal"],
   default: { scenario: "sandbox", brain: "scripted", steps: 12 },
 });
 
@@ -26,6 +26,14 @@ const scenarioName = argv["scenario"] as ScenarioName;
 const scenario = SCENARIOS[scenarioName];
 if (!scenario) {
   console.error(`unknown scenario "${scenarioName}" — expected sandbox or survival`);
+  process.exit(1);
+}
+
+let goal: string;
+try {
+  goal = resolveGoal(scenario, argv["goal"]);
+} catch (error) {
+  console.error((error as Error).message);
   process.exit(1);
 }
 
@@ -56,6 +64,7 @@ async function main(): Promise<void> {
   const runLog = new RunLog(runId, agentName);
 
   console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} -> ${runLog.file}`);
+  console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {
     host: env("MC_HOST", "localhost"),
@@ -113,7 +122,7 @@ async function main(): Promise<void> {
     const observation = observe(bot, {
       step,
       scenario: scenario.name,
-      goal: scenario.goal,
+      goal,
       recentEvents,
     });
 
