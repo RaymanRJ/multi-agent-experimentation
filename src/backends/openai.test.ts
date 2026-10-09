@@ -113,3 +113,22 @@ test("Unknown model - NaN cost", () => {
   const cost = costUSD(call);
   assert(Number.isNaN(cost));
 });
+
+test("OpenAIBackend - keeps a separate reasoning field as a <think> block", async () => {
+  const backend = new OpenAIBackend({ name: "ollama", model: "qwen3:4b", apiKey: "", baseURL: "http://localhost:11434/v1" });
+  const originalFetch = globalThis.fetch;
+  (globalThis as any).fetch = async () =>
+    new Response(
+      JSON.stringify({
+        choices: [{ message: { content: '{"skill":"wait"}', reasoning: "inventory is empty" } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+      { status: 200 },
+    );
+  try {
+    const result = await backend.complete("System", "User");
+    assert.strictEqual(result.text, '<think>inventory is empty</think>\n{"skill":"wait"}');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

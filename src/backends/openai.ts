@@ -1,7 +1,7 @@
 import type { Backend, ModelCall } from "../types.js";
 
 interface OpenAIResponse {
-  choices: Array<{ message: { content: string } }>;
+  choices: Array<{ message: { content: string; reasoning?: string } }>;
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -72,7 +72,12 @@ export class OpenAIBackend implements Backend {
       const data = (await response.json()) as OpenAIResponse;
       const ms = Date.now() - startMs;
 
-      const text = data.choices[0]?.message.content ?? "";
+      // Reasoning models served by Ollama (qwen3) return their chain of thought
+      // in a separate field. Keep it in the logged text, wrapped the way the
+      // model would inline it, so the run log holds what was paid for.
+      const message = data.choices[0]?.message;
+      const reasoning = message?.reasoning ? `<think>${message.reasoning}</think>\n` : "";
+      const text = reasoning + (message?.content ?? "");
 
       return {
         backend: this.name,
