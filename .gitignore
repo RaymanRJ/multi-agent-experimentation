@@ -26,3 +26,6 @@ runs/
 
 # macOS
 .DS_Store
+
+# Throwaway test servers (scripts/test-server.sh)
+test-worlds/
