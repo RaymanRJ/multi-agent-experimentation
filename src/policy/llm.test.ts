@@ -152,7 +152,7 @@ test("full memory: history grows as alternating turns", async () => {
 
 test("full memory: oldest pairs are trimmed to the budget, latest turn kept", async () => {
   const b = fakeBackend([`${wait}}`]);
-  const p = new LLMPolicy(b, { memory: "full", comms: false });
+  const p = new LLMPolicy(b, { memory: "full", comms: false, historyTokens: FULL_MEMORY_TOKEN_BUDGET });
   const big = (n: number) => ({ step: n, pad: "x".repeat(4000) }) as unknown as Observation; // ~1000 tokens each
   for (let i = 1; i <= 6; i++) await p.decide(big(i), skills);
   const system = buildSystemPrompt(skills, { memory: "full", comms: false });
@@ -165,6 +165,20 @@ test("full memory: oldest pairs are trimmed to the budget, latest turn kept", as
   assert.equal(last.length % 2, 1);
   assert.match(last[last.length - 1]!.content, /"step":6/);
   assert.equal(last[0]!.role, "user");
+});
+
+test("full memory: the budget is small for the local model and large for cloud models", async () => {
+  const big = (n: number) => ({ step: n, pad: "x".repeat(4000) }) as unknown as Observation; // ~1000 tokens each
+  const local = { ...fakeBackend([`${wait}}`]), name: "ollama" };
+  const cloud = fakeBackend([`${wait}}`]);
+  const pl = new LLMPolicy(local, { memory: "full", comms: false });
+  const pc = new LLMPolicy(cloud, { memory: "full", comms: false });
+  for (let i = 1; i <= 6; i++) {
+    await pl.decide(big(i), skills);
+    await pc.decide(big(i), skills);
+  }
+  assert.ok(local.sent[5]!.length <= 5, `local kept ${local.sent[5]!.length} turns`);
+  assert.equal(cloud.sent[5]!.length, 11); // nothing trimmed at ~6000 tokens
 });
 
 test("full memory: retry is real back-and-forth but failures stay out of history", async () => {
