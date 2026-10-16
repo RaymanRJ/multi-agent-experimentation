@@ -1,6 +1,5 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Block } from "prismarine-block";
-import prismarineItem from "prismarine-item";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
@@ -164,57 +163,56 @@ function bestPlan(
 }
 
 /**
- * bot.craft at a table fills the grid by picking up a whole stack and then trading
- * it for the next ingredient's stack; Paper rejects that when the cursor still holds
- * leftovers, and rolls the whole craft back. So fill the grid one ingredient at a
- * time, returning leftovers to their slot before touching the next.
+ * Root cause of the flaky table crafts: mineflayer's bot.craft (and the hand-rolled
+ * click sequence that replaced it) fires a burst of window clicks without waiting for the
+ * server. Each click carries a stateId that is stale by the time the next one is sent,
+ * so Paper applies the click and then pushes the full window back; that late push
+ * overwrites the client's model mid-sequence, the next click is chosen from the wrong
+ * model, and the grid ends up half-filled with the wrong items ("ingredient X not found
+ * in window", or a result nobody collected). The fix is to not build the grid by hand:
+ * ask the server to fill it (the recipe-book "place recipe" packet, one atomic step),
+ * then take the result with a single shift-click.
  */
-async function craftAtTable(bot: Bot, recipe: Recipe, times: number, table: Block): Promise<void> {
-  const Item = prismarineItem(bot.registry);
-  await bot.waitForTicks(5);
-  const window = await bot.openBlock(table);
-  const syncWindow = (w: typeof window) => (bot as unknown as { _syncWindow(w: typeof window): Promise<void> })._syncWindow(w);
+type Window = NonNullable<Bot["currentWindow"]>;
+
+async function waitFor(check: () => boolean, ticks: number, bot: Bot): Promise<boolean> {
+  for (let tick = 0; tick < ticks && !check(); tick++) await bot.waitForTicks(1);
+  return check();
+}
+
+/** Crafts one batch of `recipe` in `window` (the player inventory, or an open crafting table). */
+async function craftInWindow(bot: Bot, recipe: Recipe, window: Window): Promise<void> {
+  const resultName = itemName(bot, recipe.result.id);
+  const recipeId = `minecraft:${resultName}`;
+  (bot._client as unknown as { write(name: string, params: object): void }).write("craft_recipe_request", {
+    windowId: window.id,
+    recipe: recipeId,
+    makeAll: false,
+  });
+  // The server fills the grid, and the result slot lights up once it has.
+  const filled = await waitFor(() => window.slots[0]?.type === recipe.result.id, 40, bot);
+  if (!filled) throw new Error(`the server did not fill the crafting grid for ${recipeId}`);
+  await bot.clickWindow(0, 0, 1);
+}
+
+/** One craft at a time (bot.craft with n > 1 loses items on this server), verified in the inventory. */
+async function craftOnce(bot: Bot, recipe: Recipe, table: Block | null): Promise<void> {
+  const id = recipe.result.id;
+  const before = have(bot, id);
+  const expected = before + recipe.result.count;
+  const window = table ? await bot.openBlock(table) : bot.inventory;
   try {
-    for (let n = 0; n < times; n++) {
-      const cells: Array<{ slot: number; id: number }> = [];
-      if (recipe.inShape) {
-        recipe.inShape.forEach((row, y) =>
-          row.forEach((ingredient, x) => {
-            if (ingredient.id !== -1) cells.push({ slot: 1 + x + 3 * y, id: ingredient.id });
-          }),
-        );
-      } else {
-        (recipe.ingredients ?? []).forEach((ingredient, i) => cells.push({ slot: 1 + i, id: ingredient.id }));
-      }
-      for (const cell of cells) {
-        // Trust the array index, not Item.slot, which can be stale after the window changes.
-        let sourceSlot = -1;
-        for (let i = window.inventoryStart; i < window.inventoryEnd; i++) {
-          if (window.slots[i]?.type === cell.id) {
-            sourceSlot = i;
-            break;
-          }
-        }
-        if (sourceSlot < 0) {
-          const held = window.slots.map((s, i) => (s ? `${i}:${s.name}x${s.count}` : "")).filter(Boolean).join(" ");
-          throw new Error(`ingredient ${bot.registry.items[cell.id]?.name} not found in window [${held}] cells=${JSON.stringify(cells)} shape=${JSON.stringify(recipe.inShape)}`);
-        }
-        // Clicks are not acknowledged; without a sync, late server slot updates overwrite our model mid-sequence.
-        const click = async (slot: number, button: number) => {
-          await bot.clickWindow(slot, button, 0);
-          await syncWindow(window);
-        };
-        await click(sourceSlot, 0);
-        await click(cell.slot, 1);
-        if (window.selectedItem) await click(sourceSlot, 0);
-      }
-      window.updateSlot(0, new Item(recipe.result.id, recipe.result.count, recipe.result.metadata ?? undefined));
-      await bot.putAway(0);
-      for (let slot = 1; slot <= 9; slot++) window.updateSlot(slot, null as never);
-    }
     await bot.waitForTicks(2);
+    await craftInWindow(bot, recipe, window);
+    await settle(bot, id, expected);
   } finally {
-    await bot.closeWindow(window);
+    if (table) await bot.closeWindow(window);
+  }
+  const got = have(bot, id) - before;
+  if (got < recipe.result.count) {
+    throw new Error(
+      `the server did not deliver the ${itemName(bot, id)} (expected +${recipe.result.count}, inventory changed by ${got})`,
+    );
   }
 }
 
@@ -250,19 +248,9 @@ async function produce(
   if (total(recheck) > 0) return recheck;
 
   ctx.log(`crafting ${plan.times}x ${itemName(bot, id)}`);
-  if (plan.recipe.requiresTable && table) {
-    const before = have(bot, id);
-    await withTimeout(craftAtTable(bot, plan.recipe, plan.times, table), CRAFT_TIMEOUT_MS, `crafting ${itemName(bot, id)}`);
-    await settle(bot, id, before + plan.recipe.result.count * plan.times);
-  } else {
-    // bot.craft(recipe, n) with n > 1 loses items on this server: asked for 6x
-    // planks, it consumed 3 logs and delivered 3 planks. One craft per call,
-    // each confirmed in the inventory before the next, is slower but exact.
-    for (let n = 0; n < plan.times; n++) {
-      const before = have(bot, id);
-      await withTimeout(bot.craft(plan.recipe, 1, undefined), CRAFT_TIMEOUT_MS, `crafting ${itemName(bot, id)}`);
-      await settle(bot, id, before + plan.recipe.result.count);
-    }
+  const useTable = plan.recipe.requiresTable && table ? table : null;
+  for (let n = 0; n < plan.times; n++) {
+    await withTimeout(craftOnce(bot, plan.recipe, useTable), CRAFT_TIMEOUT_MS, `crafting ${itemName(bot, id)}`);
   }
   return null;
 }
@@ -284,34 +272,95 @@ function planksHint(missing: Missing): string {
     : "";
 }
 
-/** Puts a held block next to the bot on solid ground. Returns the placed block. */
-async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
-  const bot = ctx.bot;
-  const held = bot.inventory.items().find((item) => item.name === name);
-  if (!held) return null;
-  await bot.equip(held, "hand");
+const PLACE_REACH = 4.2;
+const PLACE_RADIUS = 4;
 
+function isOpen(block: Block | null): boolean {
+  return block !== null && block.boundingBox === "empty" && block.name !== "water" && block.name !== "lava";
+}
+
+/** Cells near the bot where a block could stand on solid ground, nearest first. */
+function placementSpots(bot: Bot): Vec3[] {
   const feet = bot.entity.position.floored();
-  const offsets: Array<[number, number]> = [];
-  for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (dx !== 0 || dz !== 0) offsets.push([dx, dz]);
-  offsets.sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) - (Math.abs(b[0]) + Math.abs(b[1])));
+  const eye = bot.entity.position.offset(0, 1.6, 0);
+  const spots: Array<{ cell: Vec3; distance: number }> = [];
+  for (let dx = -PLACE_RADIUS; dx <= PLACE_RADIUS; dx++) {
+    for (let dz = -PLACE_RADIUS; dz <= PLACE_RADIUS; dz++) {
+      if (dx === 0 && dz === 0) continue; // the bot's own column
+      for (const dy of [0, -1, 1]) {
+        const cell = feet.offset(dx, dy, dz);
+        const distance = eye.distanceTo(cell.offset(0.5, 0.5, 0.5));
+        if (distance > PLACE_REACH) continue;
+        if (!isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
+        if (bot.blockAt(cell.offset(0, -1, 0))?.boundingBox !== "block") continue;
+        spots.push({ cell, distance });
+      }
+    }
+  }
+  return spots.sort((a, b) => a.distance - b.distance).map((spot) => spot.cell);
+}
 
-  for (const [dx, dz] of offsets) {
-    const cell = feet.offset(dx, 0, dz);
-    const target = bot.blockAt(cell);
-    const ground = bot.blockAt(cell.offset(0, -1, 0));
-    const above = bot.blockAt(cell.offset(0, 1, 0));
-    if (!target || !ground || !above) continue;
-    if (target.boundingBox !== "empty" || above.boundingBox !== "empty") continue;
-    if (ground.boundingBox !== "block") continue;
+async function tryPlaceHere(ctx: SkillContext, name: string): Promise<Block | null> {
+  const bot = ctx.bot;
+  for (const cell of placementSpots(bot)) {
+    const held = bot.inventory.items().find((item) => item.name === name);
+    if (!held) return null;
     try {
-      await bot.placeBlock(ground, new Vec3(0, 1, 0));
+      await bot.equip(held, "hand");
+      await bot.placeBlock(bot.blockAt(cell.offset(0, -1, 0))!, new Vec3(0, 1, 0));
     } catch (error) {
       ctx.log(`could not place ${name} at ${cell.x},${cell.y},${cell.z}: ${(error as Error).message}`);
-      continue;
+      await bot.waitForTicks(3);
     }
     const placed = bot.blockAt(cell);
     if (placed && placed.name === name) return placed;
+  }
+  return null;
+}
+
+/** Spots to walk to when nothing next to the bot works: open ground 3-8 blocks away, nearest first. */
+function relocationTargets(bot: Bot): Vec3[] {
+  const feet = bot.entity.position.floored();
+  const found: Array<{ cell: Vec3; distance: number }> = [];
+  for (let dx = -8; dx <= 8; dx++) {
+    for (let dz = -8; dz <= 8; dz++) {
+      const distance = Math.hypot(dx, dz);
+      if (distance < 3 || distance > 8) continue;
+      for (const dy of [0, -1, 1, -2, 2]) {
+        const cell = feet.offset(dx, dy, dz);
+        if (!isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
+        if (bot.blockAt(cell.offset(0, -1, 0))?.boundingBox !== "block") continue;
+        found.push({ cell, distance });
+        break;
+      }
+    }
+  }
+  return found.sort((a, b) => a.distance - b.distance).map((spot) => spot.cell);
+}
+
+/**
+ * Puts a held block on solid ground within reach: tries every open spot within reach
+ * of where the bot stands (forests are cluttered, so the nearest cells are often
+ * trunks or leaves), and if none works walks to open ground nearby and tries again.
+ */
+async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
+  const bot = ctx.bot;
+  const here = await tryPlaceHere(ctx, name);
+  if (here) return here;
+
+  const tried: Vec3[] = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const target = relocationTargets(bot).find((cell) => tried.every((t) => t.distanceTo(cell) > 3));
+    if (!target) break;
+    tried.push(target);
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(target.x, target.y, target.z)), TRAVEL_TIMEOUT_MS, "walking to open ground");
+    } catch (error) {
+      ctx.log(`could not walk to open ground at ${target.x},${target.y},${target.z}: ${(error as Error).message}`);
+      continue;
+    }
+    const placed = await tryPlaceHere(ctx, name);
+    if (placed) return placed;
   }
   return null;
 }
@@ -354,7 +403,7 @@ async function ensureTable(
   }
 
   const placed = await placeNearby(ctx, "crafting_table");
-  if (!placed) return { error: "no clear flat ground next to me to place a crafting_table" };
+  if (!placed) return { error: "could not place a crafting_table: no open ground within reach here or on the three open spots I walked to — move somewhere clearer" };
   return { table: placed };
 }
 
