@@ -1,5 +1,5 @@
 import type { Bot } from "mineflayer";
-import type { Observation, ScenarioName } from "./types.js";
+import type { Message, Observation, ScenarioName } from "./types.js";
 
 const NEARBY_RADIUS = 24;
 const INTERESTING = [
@@ -27,7 +27,16 @@ export function countInventory(bot: Bot): Record<string, number> {
  */
 export function observe(
   bot: Bot,
-  opts: { step: number; scenario: ScenarioName; goal: string; recentEvents: string[] },
+  opts: {
+    step: number;
+    scenario: ScenarioName;
+    goal: string;
+    recentEvents: string[];
+    /** Present only when comms are on. */
+    messages?: Message[];
+    /** Present only when memory is plan or full. */
+    plan?: string;
+  },
 ): Observation {
   const position = bot.entity.position;
 
@@ -60,7 +69,7 @@ export function observe(
 
   const timeOfDay = bot.time.timeOfDay;
 
-  return {
+  const observation: Observation = {
     step: opts.step,
     scenario: opts.scenario,
     goal: opts.goal,
@@ -79,4 +88,7 @@ export function observe(
     otherAgents,
     recentEvents: opts.recentEvents.slice(-6),
   };
+  if (opts.messages) observation.messages = opts.messages;
+  if (opts.plan) observation.plan = opts.plan;
+  return observation;
 }

@@ -5,21 +5,22 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
+import { attachComms, narrate, speak } from "./comms.js";
 import { RunLog } from "./log.js";
 import { SCENARIOS, applyScenario, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
-import type { Policy, ScenarioName, SkillContext } from "./types.js";
+import type { Backend, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
 
 const { pathfinder, Movements } = pathfinderPkg;
 
 loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
-  string: ["scenario", "brain", "name", "goal"],
-  default: { scenario: "sandbox", brain: "scripted", steps: 12 },
+  string: ["scenario", "brain", "name", "goal", "memory", "comms", "episode"],
+  default: { scenario: "sandbox", brain: "scripted", steps: 12, memory: "plan", comms: "on" },
 });
 
 const scenarioName = argv["scenario"] as ScenarioName;
@@ -37,6 +38,23 @@ try {
   process.exit(1);
 }
 
+const memory = String(argv["memory"] || "plan") as MemoryMode;
+if (!["none", "plan", "full"].includes(memory)) {
+  console.error(`unknown --memory "${memory}" — expected none, plan or full`);
+  process.exit(1);
+}
+const commsArg = String(argv["comms"] || "on");
+if (!["on", "off"].includes(commsArg)) {
+  console.error(`unknown --comms "${commsArg}" — expected on or off`);
+  process.exit(1);
+}
+const comms = commsArg === "on";
+const config: RunConfig = {
+  episode: String(argv["episode"] || `ep-${new Date().toISOString().replace(/[:.]/g, "-")}`),
+  memory,
+  comms,
+};
+
 function buildPolicy(brain: string): Policy {
   switch (brain) {
     case "scripted":
@@ -44,16 +62,15 @@ function buildPolicy(brain: string): Policy {
     case "claude":
     case "gpt":
     case "ollama":
-      return new LLMPolicy(createBackend(brain as BrainName));
+      // TODO: drop the cast once the memory branch merges (LLMPolicy then accepts options).
+      return new (LLMPolicy as unknown as new (backend: Backend, options: { memory: MemoryMode; comms: boolean }) => Policy)(
+        createBackend(brain as BrainName),
+        { memory, comms },
+      );
     default:
       console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
       process.exit(1);
   }
-}
-
-/** Narrates in game chat so watchers can follow each agent. Chat caps at 256 chars. */
-function say(bot: mineflayer.Bot, message: string): void {
-  bot.chat(message.length > 250 ? `${message.slice(0, 247)}...` : message);
 }
 
 async function main(): Promise<void> {
@@ -63,7 +80,7 @@ async function main(): Promise<void> {
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
 
-  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} -> ${runLog.file}`);
+  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {
@@ -82,6 +99,9 @@ async function main(): Promise<void> {
   bot.loadPlugin(pathfinder);
 
   const recentEvents: string[] = [];
+  const buffer = attachComms(bot, agentName, comms);
+  let lastPlan: string | undefined;
+  let stepEvents: string[] = [];
   let stopping = false;
 
   bot.on("kicked", (reason) => console.error(`[${agentName}] kicked: ${reason}`));
@@ -96,7 +116,7 @@ async function main(): Promise<void> {
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
-  say(bot, `online — brain: ${policy.name}`);
+  narrate(bot, `online — brain: ${policy.name}`);
 
   // `--view` serves this bot's view of the world in a browser. Pass a port
   // (`--view 3008`) to watch several agents at once. It observes only — no
@@ -111,6 +131,7 @@ async function main(): Promise<void> {
     bot,
     log: (message) => {
       recentEvents.push(message);
+      stepEvents.push(message);
       console.log(`[${agentName}]   ${message}`);
     },
     shouldStop: () => stopping,
@@ -124,7 +145,10 @@ async function main(): Promise<void> {
       scenario: scenario.name,
       goal,
       recentEvents,
+      ...(buffer ? { messages: buffer.snapshot() } : {}),
+      ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
     });
+    stepEvents = [];
 
     const startedAt = Date.now();
     let output;
@@ -136,7 +160,7 @@ async function main(): Promise<void> {
       // let the world tick on, and ask again — the timeout is itself data.
       const reason = `the brain failed to decide: ${error instanceof Error ? error.message : String(error)}`;
       const decisionMs = Date.now() - startedAt;
-      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: { status: "failed", reason }, decisionMs, calls: [] });
+      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: { status: "failed", reason }, decisionMs, calls: [], config });
       console.error(`[${agentName}] step ${step}: ${reason}`);
       if (++policyFailures >= 3) {
         console.error(`[${agentName}] giving up after 3 failed decisions in a row`);
@@ -145,11 +169,12 @@ async function main(): Promise<void> {
       await bot.waitForTicks(100);
       continue;
     }
-    const { decision, calls } = output;
+    const { decision, calls, system } = output;
+    const extra = { config, ...(system ? { system } : {}) };
     const decisionMs = Date.now() - startedAt;
 
     if (!decision) {
-      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: null, decisionMs, calls });
+      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: null, decisionMs, calls, ...extra });
       console.log(`[${agentName}] policy ended the episode`);
       break;
     }
@@ -157,18 +182,20 @@ async function main(): Promise<void> {
     const skill = findSkill(decision.skill);
     if (!skill) {
       const result = { status: "failed" as const, reason: `no such skill: ${decision.skill}` };
-      runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls });
+      runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls, ...extra });
       recentEvents.push(result.reason);
       continue;
     }
 
     console.log(`[${agentName}] step ${step}: ${decision.skill}(${JSON.stringify(decision.args)})`);
-    say(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
+    narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
+    lastPlan = decision.plan ?? lastPlan;
+    if (buffer && decision.say?.text) speak(bot, buffer, decision.say.to, decision.say.text);
     const result = await skill.run(ctx, decision.args);
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
-    runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls });
+    runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls, events: stepEvents, ...extra });
   }
 
   stopping = true;
