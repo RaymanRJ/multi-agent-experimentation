@@ -590,59 +590,35 @@ function formatSurvivedNight(survived: boolean | "unknown"): string {
 }
 
 function printTable(summaries: RunSummary[]) {
-  // Columns: agent, brain, scenario, steps, furthest, howEnded, deaths, goalMet, nightReached, survivedNight, decisions, median, p90, calls, retries, tokensIn, tokensOut, cost
-  const rows: string[] = [];
-
-  // Header
-  const headers = [
-    "Agent",
-    "Brain",
-    "Scenario",
-    "Steps",
-    "Furthest",
-    "Ended",
-    "Deaths",
-    "Goal",
-    "Night",
-    "Survived",
-    "Decisions",
-    "Median(ms)",
-    "P90(ms)",
-    "Calls",
-    "Retries",
-    "TokenIn",
-    "TokenOut",
-    "Cost(USD)",
+  // [header, value, right-aligned?] — widths come from the data, so nothing is cut off.
+  const columns: Array<[string, (s: RunSummary) => string, boolean]> = [
+    ["Agent", (s) => s.agentName || "", false],
+    ["Brain", (s) => s.brain || "", false],
+    ["Scenario", (s) => s.scenario || "", false],
+    ["Steps", (s) => String(s.stepsLogged), true],
+    ["Furthest", (s) => s.furthestMilestone || "-", false],
+    ["Ended", (s) => s.howEnded || "", false],
+    ["Deaths", (s) => String(s.deaths), true],
+    ["Goal", (s) => formatGoalMet(s.goalMet), false],
+    ["Night", (s) => (s.nightReached ? "yes" : "no"), false],
+    ["Survived", (s) => formatSurvivedNight(s.survivedNight), false],
+    ["Decisions", (s) => String(s.decisions), true],
+    ["Median(ms)", (s) => String(s.decisionMsMedian || 0), true],
+    ["P90(ms)", (s) => String(s.decisionMsP90 || 0), true],
+    ["Calls", (s) => String(s.totalModelCalls), true],
+    ["Retries", (s) => String(s.retries), true],
+    ["TokenIn", (s) => String(s.tokensIn), true],
+    ["TokenOut", (s) => String(s.tokensOut), true],
+    ["Cost(USD)", (s) => formatCost(s.costUSD), true],
   ];
-  rows.push(headers.join(" | "));
-  rows.push(headers.map((h) => "-".repeat(h.length)).join("-+-"));
+  const cells = summaries.map((s) => columns.map(([, value]) => value(s)));
+  const widths = columns.map(([header], i) => Math.max(header.length, ...cells.map((row) => row[i]!.length)));
+  const line = (row: string[]) =>
+    row.map((cell, i) => (columns[i]![2] ? cell.padStart(widths[i]!) : cell.padEnd(widths[i]!))).join(" | ");
 
-  for (const s of summaries) {
-    const furthest = s.furthestMilestone || "-";
-    const row = [
-      (s.agentName || "").slice(0, 12).padEnd(12),
-      (s.brain || "").slice(0, 16).padEnd(16),
-      (s.scenario || "").slice(0, 8).padEnd(8),
-      String(s.stepsLogged).padStart(5),
-      String(furthest).padEnd(14),
-      (s.howEnded || "").slice(0, 12).padEnd(12),
-      String(s.deaths).padStart(6),
-      formatGoalMet(s.goalMet).padEnd(4),
-      (s.nightReached ? "yes" : "no").padEnd(5),
-      formatSurvivedNight(s.survivedNight).padEnd(8),
-      String(s.decisions).padStart(9),
-      String(s.decisionMsMedian || 0).padStart(10),
-      String(s.decisionMsP90 || 0).padStart(7),
-      String(s.totalModelCalls).padStart(5),
-      String(s.retries).padStart(7),
-      String(s.tokensIn).padStart(7),
-      String(s.tokensOut).padStart(8),
-      formatCost(s.costUSD).padStart(10),
-    ];
-    rows.push(row.join(" | "));
-  }
-
-  console.log(rows.join("\n"));
+  console.log(
+    [line(columns.map(([header]) => header)), widths.map((w) => "-".repeat(w)).join("-+-"), ...cells.map(line)].join("\n"),
+  );
 }
 
 main().catch((err) => {
