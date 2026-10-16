@@ -7,6 +7,7 @@ import { craft } from "./craft.js";
 const PLACE_TIMEOUT_MS = 8_000;
 const MAX_FAILED_CELLS = 4;
 const MAX_PASSES = 6;
+const PLACE_ATTEMPTS = 3;
 
 const SOLID_EXACT = new Set(["cobblestone", "dirt", "stone", "cobbled_deepslate", "andesite", "diorite", "granite"]);
 
@@ -137,32 +138,45 @@ export const buildShelter: Skill = {
         if (!needsBlock(offset)) continue;
         const cell = cellAt(offset);
 
-        // Any solid neighbour will do as the thing to click against.
-        let reference: ReturnType<typeof bot.blockAt> = null;
-        let face = new Vec3(0, 0, 0);
+        // Every solid neighbour is a possible thing to click against; the server may refuse one
+        // face (line of sight, a late block update) and accept another, so try them all.
+        const references: Array<{ block: NonNullable<ReturnType<typeof bot.blockAt>>; face: Vec3 }> = [];
         for (const direction of FACES) {
           const candidate = bot.blockAt(cell.plus(direction));
-          if (candidate && candidate.boundingBox === "block") {
-            reference = candidate;
-            face = direction.scaled(-1);
-            break;
-          }
+          if (candidate && candidate.boundingBox === "block") references.push({ block: candidate, face: direction.scaled(-1) });
         }
-        if (!reference) {
+        if (references.length === 0) {
           stillRemaining.push(offset); // a neighbour may be placed later this pass
           continue;
         }
 
-        const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
-        if (!stack) {
+        if (!bot.inventory.items().some((item) => isBuildingBlock(item.name))) {
           return { status: "failed", reason: "ran out of building blocks part-way through", detail: { placed, required } };
         }
-        try {
-          await bot.equip(stack, "hand");
-          await withTimeout(bot.placeBlock(reference, face), PLACE_TIMEOUT_MS, "placing block");
+        let done = false;
+        let lastError = "";
+        for (let attempt = 0; attempt < PLACE_ATTEMPTS && !done; attempt++) {
+          for (const { block, face } of references) {
+            const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+            if (!stack) break;
+            try {
+              await bot.equip(stack, "hand");
+              await withTimeout(bot.placeBlock(block, face), PLACE_TIMEOUT_MS, "placing block");
+              done = true;
+            } catch (error) {
+              lastError = (error as Error).message;
+              // The block update can arrive after mineflayer gave up waiting for it.
+              await bot.waitForTicks(4);
+              done = !needsBlock(offset);
+            }
+            if (done) break;
+          }
+          if (!done) await bot.waitForTicks(10 * (attempt + 1));
+        }
+        if (done) {
           placed++;
-        } catch (error) {
-          ctx.log(`could not place at ${cell.x},${cell.y},${cell.z}: ${(error as Error).message}`);
+        } else {
+          ctx.log(`could not place at ${cell.x},${cell.y},${cell.z}: ${lastError}`);
           failed.add(key(offset));
           if (failed.size >= MAX_FAILED_CELLS) {
             return {
