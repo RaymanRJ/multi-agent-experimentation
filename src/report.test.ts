@@ -738,3 +738,23 @@ test("the logs milestone counts any kind of wood", () => {
   assert.equal(s.milestones.logs?.step, 2);
   assert.equal(s.milestones.logs?.gameTicks, 200);
 });
+
+test("a milestone reached on the final step counts, via inventoryAfter", () => {
+  const s = summarizeRun(
+    [
+      {
+        step: 1,
+        at: "2026-10-16T00:00:00.000Z",
+        observation: { step: 1, scenario: "sandbox", goal: "x", isDay: true, timeOfDay: 0, inventory: { cobblestone: 3 }, recentEvents: [] },
+        decision: { skill: "craft", args: { item: "stone_pickaxe", count: 1 } },
+        result: { status: "success" },
+        decisionMs: 1,
+        calls: [],
+        inventoryAfter: { stone_pickaxe: 1 },
+        ended: "goal met",
+      } as unknown as LoggedStep,
+    ],
+    "runs/2026-x-agent_a.jsonl",
+  );
+  assert.equal(s.furthestMilestone, "stone_pickaxe");
+});

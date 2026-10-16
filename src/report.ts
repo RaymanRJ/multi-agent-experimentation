@@ -430,25 +430,30 @@ function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<M
     // Logs written since the agent records world age use it: exact, and sleeping can't skip it.
     const ticksAt = typeof step.ticks === "number" ? step.ticks : cumulativeGameTicks;
 
+    // What the bot held at any point in this step: before the decision, and after the skill
+    // (inventoryAfter, in newer logs) — otherwise the final step's result would never count.
+    const held: Record<string, number> = { ...(obs.inventory ?? {}) };
+    for (const [name, n] of Object.entries(step.inventoryAfter ?? {})) held[name] = Math.max(held[name] ?? 0, n);
+
     // Check milestones in order. Any wood counts (oak_log, dark_oak_log, birch_log, ...).
-    if (!result.logs && Object.entries(obs.inventory ?? {}).some(([name, n]) => name.endsWith("_log") && n > 0)) {
+    if (!result.logs && Object.entries(held).some(([name, n]) => name.endsWith("_log") && n > 0)) {
       result.logs = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
     }
 
     if (!result.wooden_pickaxe) {
-      if (obs.inventory?.wooden_pickaxe) {
+      if (held["wooden_pickaxe"]) {
         result.wooden_pickaxe = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }
 
     if (!result.stone) {
-      if (obs.inventory?.cobblestone) {
+      if (held["cobblestone"]) {
         result.stone = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }
 
     if (!result.stone_pickaxe) {
-      if (obs.inventory?.stone_pickaxe) {
+      if (held["stone_pickaxe"]) {
         result.stone_pickaxe = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }

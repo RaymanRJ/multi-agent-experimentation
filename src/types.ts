@@ -165,6 +165,8 @@ export interface LoggedStep {
   config?: RunConfig;
   /** World age in ticks since the run's first observation. Sleeping does not skip it. */
   ticks?: number;
+  /** Inventory once the step's skill finished — observations are taken before, so the last result is otherwise lost. */
+  inventoryAfter?: Record<string, number>;
   /** Set on the last line of a run: why it stopped. */
   ended?: EndReason;
 }

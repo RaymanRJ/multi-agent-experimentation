@@ -199,7 +199,7 @@ async function main(): Promise<void> {
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
-      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, config, ticks: elapsedTicks(), ...(ended ? { ended } : {}) });
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
     };
 
     const startedAt = Date.now();
