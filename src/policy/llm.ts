@@ -24,7 +24,7 @@ export class LLMPolicy implements Policy {
       const user = lastError
         ? `${baseUser}\n\nYour previous reply was invalid: ${lastError}\nReply again with ONLY the JSON object.`
         : baseUser;
-      const call = await this.backend.complete(system, user);
+      const call = await this.backend.complete(system, [{ role: "user", content: user }]);
       calls.push(call);
 
       const parsed = parseDecision(call.text, skills);

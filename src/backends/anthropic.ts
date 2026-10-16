@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Backend, ModelCall } from "../types.js";
+import type { Backend, ChatTurn, ModelCall } from "../types.js";
 
 /** The subset of the SDK client this backend uses — lets tests inject a fake. */
 export type MessagesClient = Pick<Anthropic, "messages">;
@@ -25,7 +25,7 @@ export class AnthropicBackend implements Backend {
     this.client = client ?? new Anthropic({ apiKey, timeout: 60_000 });
   }
 
-  async complete(system: string, user: string): Promise<ModelCall> {
+  async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
     const startMs = Date.now();
 
     // Models with always-on thinking return thinking blocks alongside the
@@ -34,7 +34,7 @@ export class AnthropicBackend implements Backend {
       model: this.model,
       max_tokens: 4096,
       system,
-      messages: [{ role: "user", content: user }],
+      messages: turns,
     });
 
     const text = response.content
@@ -49,6 +49,7 @@ export class AnthropicBackend implements Backend {
       outputTokens: response.usage.output_tokens,
       ms: Date.now() - startMs,
       text,
+      request: turns,
     };
   }
 }

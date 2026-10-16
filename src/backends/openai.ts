@@ -1,4 +1,4 @@
-import type { Backend, ModelCall } from "../types.js";
+import type { Backend, ChatTurn, ModelCall } from "../types.js";
 
 interface OpenAIResponse {
   choices: Array<{ message: { content: string; reasoning?: string } }>;
@@ -31,7 +31,7 @@ export class OpenAIBackend implements Backend {
     this.baseURL = baseURL;
   }
 
-  async complete(system: string, user: string): Promise<ModelCall> {
+  async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
     const startMs = Date.now();
 
     const timeoutMs = this.name === "ollama" ? 120_000 : 60_000;
@@ -54,7 +54,7 @@ export class OpenAIBackend implements Backend {
             model: this.model,
             messages: [
               { role: "system", content: system },
-              { role: "user", content: user },
+              ...turns,
             ],
           }),
           signal: controller.signal,
@@ -87,6 +87,7 @@ export class OpenAIBackend implements Backend {
         outputTokens: data.usage.completion_tokens,
         ms,
         text,
+        request: turns,
       };
     } finally {
       clearTimeout(timeoutId);

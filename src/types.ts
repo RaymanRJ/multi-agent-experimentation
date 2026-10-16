@@ -7,6 +7,25 @@ import type { Bot } from "mineflayer";
 export type ScenarioName = "sandbox" | "survival";
 
 /**
+ * How much of its own past a model brain sees. An experiment setting, not a
+ * fixed design choice — runs are compared across it.
+ *   none — the current observation only
+ *   plan — also the plan it wrote on its previous decision (fixed size)
+ *   full — the whole exchange as chat turns, trimmed to fit the context
+ */
+export type MemoryMode = "none" | "plan" | "full";
+
+/** One chat message between agents (or from a human in the world). */
+export interface Message {
+  from: string;
+  /** An agent's name, or "all". */
+  to: string;
+  text: string;
+  /** Seconds before the observation was taken. */
+  ageSeconds: number;
+}
+
+/**
  * What an agent is told about its situation.
  *
  * Deliberately small. The temptation is to hand the model everything the bot can
@@ -27,6 +46,10 @@ export interface Observation {
   hostiles: Array<{ name: string; distance: number }>;
   otherAgents: string[];
   recentEvents: string[];
+  /** Recent messages heard and sent, oldest first. Absent when comms are off. */
+  messages?: Message[];
+  /** The plan this agent wrote on its previous decision. Only with memory "plan" or "full". */
+  plan?: string;
 }
 
 export type SkillStatus = "success" | "failed" | "aborted";
@@ -69,6 +92,10 @@ export interface Decision {
   skill: string;
   args: Record<string, unknown>;
   rationale?: string;
+  /** Said while starting the skill — talking costs no extra step or model call. */
+  say?: { to: string; text: string };
+  /** The model's plan for its next few decisions, fed back with memory "plan" or "full". */
+  plan?: string;
 }
 
 /**
@@ -83,6 +110,18 @@ export interface ModelCall {
   ms: number;
   /** Raw model output, kept so an episode can be replayed without re-calling. */
   text: string;
+  /** Exactly what was sent. The system prompt is logged once per step in LoggedStep.system. */
+  request?: ChatTurn[];
+  /** Reasoning the provider returned separately from the answer (Claude thinking, Ollama reasoning). */
+  thinking?: string;
+  /** Why generation stopped, as the provider reports it (e.g. "end_turn", "max_tokens", "length"). */
+  stopReason?: string;
+  requestId?: string;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export interface PolicyOutput {
@@ -90,6 +129,8 @@ export interface PolicyOutput {
   decision: Decision | null;
   /** Every model call made to reach this decision, retries included. Empty for ScriptedPolicy. */
   calls: ModelCall[];
+  /** The system prompt used, so the agent loop can log it. Absent for ScriptedPolicy. */
+  system?: string;
 }
 
 export interface Policy {
@@ -97,10 +138,14 @@ export interface Policy {
   decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput>;
 }
 
-/** One model provider. Ollama is OpenAI-compatible and shares that adapter. */
+/**
+ * One model provider. Ollama is OpenAI-compatible and shares that adapter.
+ * `turns` is a single user turn for memory "none"/"plan", or the running
+ * conversation (alternating, ending with a user turn) for memory "full".
+ */
 export interface Backend {
   name: string;
-  complete(system: string, user: string): Promise<ModelCall>;
+  complete(system: string, turns: ChatTurn[]): Promise<ModelCall>;
 }
 
 export interface LoggedStep {
@@ -112,4 +157,17 @@ export interface LoggedStep {
   /** Milliseconds spent waiting on the policy — the metered part. */
   decisionMs: number;
   calls: ModelCall[];
+  /** Everything the skill reported while running, unabridged (observations keep only the last few). */
+  events?: string[];
+  /** The system prompt sent to the model on this step, if any. */
+  system?: string;
+  /** Run settings, repeated on every line so any line stands alone. */
+  config?: RunConfig;
+}
+
+export interface RunConfig {
+  /** Shared by every agent launched together, so their logs can be merged into one episode. */
+  episode: string;
+  memory: MemoryMode;
+  comms: boolean;
 }

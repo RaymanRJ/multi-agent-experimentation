@@ -28,7 +28,7 @@ test("AnthropicBackend - request shape and token parsing", async () => {
     ),
   });
 
-  const result = await backend.complete("You are helpful", "Hi");
+  const result = await backend.complete("You are helpful", [{ role: "user", content: "Hi" }]);
 
   assert.strictEqual(seen[0].model, "claude-haiku-4-5");
   assert.strictEqual(seen[0].system, "You are helpful");
@@ -54,7 +54,7 @@ test("AnthropicBackend - ignores thinking blocks, joins text blocks", async () =
     }),
   });
 
-  const result = await backend.complete("System", "User");
+  const result = await backend.complete("System", [{ role: "user", content: "User" }]);
   assert.strictEqual(result.text, '{"skill":"wait"}');
 });
 
@@ -66,7 +66,7 @@ test("AnthropicBackend - API errors propagate", async () => {
     client: fakeClient(new Error("401 invalid x-api-key")),
   });
 
-  await assert.rejects(() => backend.complete("System", "User"), /401/);
+  await assert.rejects(() => backend.complete("System", [{ role: "user", content: "User" }]), /401/);
 });
 
 test("Claude pricing - haiku", () => {

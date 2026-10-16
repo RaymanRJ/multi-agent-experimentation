@@ -10,8 +10,8 @@ function fakeBackend(texts: string[]): Backend & { users: string[] } {
   return {
     name: "fake",
     users,
-    async complete(_system, user): Promise<ModelCall> {
-      users.push(user);
+    async complete(_system, turns): Promise<ModelCall> {
+      users.push(turns.at(-1)!.content);
       const text = texts[Math.min(i++, texts.length - 1)]!;
       return { backend: "fake", model: "fake-1", inputTokens: 10, outputTokens: 5, ms: 1, text };
     },

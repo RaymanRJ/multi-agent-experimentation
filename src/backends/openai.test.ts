@@ -35,7 +35,7 @@ test("OpenAIBackend - successful request", async () => {
   };
 
   try {
-    const result = await backend.complete("You are helpful", "Hi");
+    const result = await backend.complete("You are helpful", [{ role: "user", content: "Hi" }]);
     assert(fetchCalled);
     assert.strictEqual(result.backend, "gpt");
     assert.strictEqual(result.model, "gpt-4.1-mini");
@@ -64,7 +64,7 @@ test("OpenAIBackend - non-2xx response", async () => {
 
   try {
     await assert.rejects(async () => {
-      await backend.complete("You are helpful", "Hi");
+      await backend.complete("You are helpful", [{ role: "user", content: "Hi" }]);
     });
   } finally {
     globalThis.fetch = originalFetch;
@@ -126,7 +126,7 @@ test("OpenAIBackend - keeps a separate reasoning field as a <think> block", asyn
       { status: 200 },
     );
   try {
-    const result = await backend.complete("System", "User");
+    const result = await backend.complete("System", [{ role: "user", content: "User" }]);
     assert.strictEqual(result.text, '<think>inventory is empty</think>\n{"skill":"wait"}');
   } finally {
     globalThis.fetch = originalFetch;
