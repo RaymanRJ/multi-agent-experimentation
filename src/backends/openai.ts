@@ -1,7 +1,8 @@
 import type { Backend, ChatTurn, ModelCall } from "../types.js";
 
 interface OpenAIResponse {
-  choices: Array<{ message: { content: string; reasoning?: string } }>;
+  id?: string;
+  choices: Array<{ message: { content: string; reasoning?: string }; finish_reason?: string | null }>;
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -76,7 +77,8 @@ export class OpenAIBackend implements Backend {
       // Reasoning models served by Ollama (qwen3) return their chain of thought
       // in a separate field. Keep it in the logged text, wrapped the way the
       // model would inline it, so the run log holds what was paid for.
-      const message = data.choices[0]?.message;
+      const choice = data.choices[0];
+      const message = choice?.message;
       const reasoning = message?.reasoning ? `<think>${message.reasoning}</think>\n` : "";
       const text = reasoning + (message?.content ?? "");
 
@@ -88,6 +90,9 @@ export class OpenAIBackend implements Backend {
         ms,
         text,
         request: turns,
+        ...(message?.reasoning && { thinking: message.reasoning }),
+        ...(choice?.finish_reason && { stopReason: choice.finish_reason }),
+        ...(data.id && { requestId: data.id }),
       };
     } finally {
       clearTimeout(timeoutId);

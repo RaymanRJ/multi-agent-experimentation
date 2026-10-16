@@ -132,3 +132,35 @@ test("OpenAIBackend - keeps a separate reasoning field as a <think> block", asyn
     globalThis.fetch = originalFetch;
   }
 });
+
+test("OpenAIBackend - captures thinking, finish_reason, id, request and multi-turn history", async () => {
+  const backend = new OpenAIBackend({ name: "ollama", model: "qwen3:4b", apiKey: "", baseURL: "http://x/v1" });
+  const originalFetch = globalThis.fetch;
+  let sent: any;
+  (globalThis as any).fetch = async (_url: string, options: RequestInit) => {
+    sent = JSON.parse(options.body as string);
+    return new Response(
+      JSON.stringify({
+        id: "chatcmpl-9",
+        choices: [{ message: { content: "{}", reasoning: "hmm" }, finish_reason: "length" }],
+        usage: { prompt_tokens: 1, completion_tokens: 1 },
+      }),
+      { status: 200 },
+    );
+  };
+  try {
+    const turns = [
+      { role: "user" as const, content: "a" },
+      { role: "assistant" as const, content: "b" },
+      { role: "user" as const, content: "c" },
+    ];
+    const r = await backend.complete("S", turns);
+    assert.deepStrictEqual(sent.messages, [{ role: "system", content: "S" }, ...turns]);
+    assert.strictEqual(r.thinking, "hmm");
+    assert.strictEqual(r.stopReason, "length");
+    assert.strictEqual(r.requestId, "chatcmpl-9");
+    assert.deepStrictEqual(r.request, turns);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
