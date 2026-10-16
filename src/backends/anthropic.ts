@@ -42,6 +42,12 @@ export class AnthropicBackend implements Backend {
       .map((block) => block.text)
       .join("");
 
+    // Thinking is kept (separately from the answer) so the log shows what was paid for.
+    const thinking = response.content
+      .filter((block): block is Anthropic.ThinkingBlock => block.type === "thinking")
+      .map((block) => block.thinking)
+      .join("");
+
     return {
       backend: this.name,
       model: this.model,
@@ -50,6 +56,9 @@ export class AnthropicBackend implements Backend {
       ms: Date.now() - startMs,
       text,
       request: turns,
+      ...(thinking && { thinking }),
+      ...(response.stop_reason && { stopReason: response.stop_reason }),
+      ...(response.id && { requestId: response.id }),
     };
   }
 }

@@ -1,35 +1,98 @@
-import type { Backend, Decision, ModelCall, Observation, Policy, PolicyOutput, Skill } from "../types.js";
+import type {
+  Backend,
+  ChatTurn,
+  Decision,
+  MemoryMode,
+  ModelCall,
+  Observation,
+  Policy,
+  PolicyOutput,
+  Skill,
+} from "../types.js";
 
 const MAX_ATTEMPTS = 3;
+
+/**
+ * Token budget for system prompt + conversation in memory "full", estimated as
+ * chars / 4. Ollama's default context window is 4096 tokens and the model also
+ * needs room to answer (and to think), so we stop at ~3000 and leave ~1000 for
+ * output. Roughly: the system prompt plus one observation is ~1000, so this
+ * keeps only the last one or two decision pairs on a local model. The latest
+ * user turn is always kept, even if it alone exceeds the budget.
+ */
+export const FULL_MEMORY_TOKEN_BUDGET = 3000;
+
+/** Longest plan and spoken message we keep; longer ones are cut, not rejected. */
+export const MAX_PLAN_CHARS = 200;
+export const MAX_SAY_CHARS = 200;
+const MAX_SAY_TO_CHARS = 40;
+
+export interface LLMPolicyOptions {
+  memory: MemoryMode;
+  comms: boolean;
+}
+
+const DEFAULT_OPTIONS: LLMPolicyOptions = { memory: "plan", comms: true };
+
+export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
 /**
  * The model picks a goal (a skill + args); it is never in the control loop.
  * Bad model output is retried with the error fed back, then degraded to a
  * short `wait` — it never throws. Backend (network) errors propagate.
+ *
+ * With memory "full" the policy instance holds the running conversation
+ * (user = observation, assistant = the valid reply), trimmed to fit the
+ * context. Failed attempts are shown to the model during the retry but never
+ * enter the long-term history.
  */
 export class LLMPolicy implements Policy {
   readonly name: string;
+  private readonly options: LLMPolicyOptions;
+  private history: ChatTurn[] = [];
 
-  constructor(private readonly backend: Backend) {
+  constructor(private readonly backend: Backend, options: Partial<LLMPolicyOptions> = {}) {
     this.name = `llm:${backend.name}`;
+    this.options = { ...DEFAULT_OPTIONS, ...options };
   }
 
   async decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput> {
-    const system = buildSystemPrompt(skills);
-    const baseUser = JSON.stringify(observation);
+    const { memory } = this.options;
+    const system = buildSystemPrompt(skills, this.options);
+    const user: ChatTurn = { role: "user", content: JSON.stringify(observation) };
+    const base: ChatTurn[] =
+      memory === "full" ? trimHistory(system, this.history, user) : [user];
     const calls: ModelCall[] = [];
+    const retryTurns: ChatTurn[] = [];
     let lastError = "";
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const user = lastError
-        ? `${baseUser}\n\nYour previous reply was invalid: ${lastError}\nReply again with ONLY the JSON object.`
-        : baseUser;
-      const call = await this.backend.complete(system, [{ role: "user", content: user }]);
+      // Without full memory a retry is the same single user turn plus the error.
+      const turns = memory === "full" || retryTurns.length === 0 ? [...base, ...retryTurns] : retryTurns;
+      const call = await this.backend.complete(system, turns);
       calls.push(call);
 
-      const parsed = parseDecision(call.text, skills);
-      if (parsed.ok) return { decision: parsed.decision, calls };
+      const parsed = parseDecision(call.text, skills, this.options);
+      if (parsed.ok) {
+        if (memory === "full") {
+          // Keep the trimmed history plus this exchange. The assistant turn is
+          // the reply without its reasoning, which would only eat context.
+          this.history = [...base.slice(0, -1), user, { role: "assistant", content: cleanText(call.text) }];
+        }
+        return { decision: parsed.decision, calls, system };
+      }
       lastError = parsed.error;
+
+      if (memory === "full") {
+        // Real back-and-forth: the bad reply, then the error.
+        retryTurns.push(
+          { role: "assistant", content: cleanText(call.text) || "(empty reply)" },
+          { role: "user", content: retryMessage(lastError) },
+        );
+      } else {
+        retryTurns.length = 0;
+        retryTurns.push({ role: "user", content: `${user.content}\n\n${retryMessage(lastError)}` });
+      }
     }
 
     return {
@@ -39,24 +102,66 @@ export class LLMPolicy implements Policy {
         rationale: `fallback: model gave no valid decision after ${MAX_ATTEMPTS} attempts (${lastError})`,
       },
       calls,
+      system,
     };
   }
 }
 
-export function buildSystemPrompt(skills: Skill[]): string {
+function retryMessage(error: string): string {
+  return `Your previous reply was invalid: ${error}\nReply again with ONLY the JSON object.`;
+}
+
+/**
+ * History plus the new user turn, with the oldest user/assistant pairs dropped
+ * until system + turns fit FULL_MEMORY_TOKEN_BUDGET. Always keeps `latest`.
+ */
+function trimHistory(system: string, history: ChatTurn[], latest: ChatTurn): ChatTurn[] {
+  let kept = history;
+  const size = (turns: ChatTurn[]) =>
+    estimateTokens(system) + turns.reduce((n, t) => n + estimateTokens(t.content), 0);
+  while (kept.length >= 2 && size([...kept, latest]) > FULL_MEMORY_TOKEN_BUDGET) kept = kept.slice(2);
+  return [...kept, latest];
+}
+
+export function buildSystemPrompt(
+  skills: Skill[],
+  options: LLMPolicyOptions = DEFAULT_OPTIONS,
+): string {
   const lines = skills.map((s) => `- ${s.name}(${JSON.stringify(s.args)}): ${s.description}`);
+  const fields = ['"skill": string', '"args": object', '"rationale": string'];
+  const extra: string[] = [];
+  if (options.memory !== "none") {
+    fields.push('"plan": string');
+    extra.push(
+      `"plan" is a short plan (at most ${MAX_PLAN_CHARS} characters) for your next few decisions. ` +
+        'It is shown back to you as "plan" in your next observation, so use it to stay on course.',
+    );
+  }
+  if (options.comms) {
+    fields.push('"say": {"to": string, "text": string} (optional)');
+    extra.push(
+      "Other agents share this world. \"messages\" in the observation are what you recently heard and said. " +
+        'Include "say" to talk: "to" is an agent name or "all". Speaking is free — it happens alongside your skill, ' +
+        "with no extra step. Keep messages short and useful (coordinate who does what, share findings); no chatter. " +
+        'Omit "say" when you have nothing worth saying.',
+    );
+  }
+  if (options.memory === "full") {
+    extra.push("The conversation so far is your memory; older turns may be dropped.");
+  }
   return [
     "You control a Minecraft agent by choosing its next high-level goal. You are given its observation as JSON.",
     "Skills (args spec: name -> type):",
     ...lines,
-    'Reply with ONLY a JSON object: {"skill": string, "args": object, "rationale": string}.',
+    `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,
+    ...extra,
     'To end the episode reply {"skill": "done"}.',
   ].join("\n");
 }
 
 type Parsed = { ok: true; decision: Decision | null } | { ok: false; error: string };
 
-function parseDecision(text: string, skills: Skill[]): Parsed {
+function parseDecision(text: string, skills: Skill[], options: LLMPolicyOptions): Parsed {
   const json = extractJsonObject(cleanText(text));
   if (json === null) return { ok: false, error: "no JSON object found" };
 
@@ -101,6 +206,21 @@ function parseDecision(text: string, skills: Skill[]): Parsed {
 
   const decision: Decision = { skill: name, args };
   if (typeof obj["rationale"] === "string") decision.rationale = obj["rationale"];
+  // plan and say are extras: malformed ones are dropped, never an error.
+  if (options.memory !== "none") {
+    const plan = obj["plan"];
+    if (typeof plan === "string" && plan.trim()) decision.plan = plan.trim().slice(0, MAX_PLAN_CHARS);
+  }
+  if (options.comms) {
+    const say = obj["say"];
+    if (typeof say === "object" && say !== null && !Array.isArray(say)) {
+      const { to, text: said } = say as Record<string, unknown>;
+      if (typeof said === "string" && said.trim()) {
+        const target = typeof to === "string" && to.trim() ? to.trim() : "all";
+        decision.say = { to: target.slice(0, MAX_SAY_TO_CHARS), text: said.trim().slice(0, MAX_SAY_CHARS) };
+      }
+    }
+  }
   return { ok: true, decision };
 }
 

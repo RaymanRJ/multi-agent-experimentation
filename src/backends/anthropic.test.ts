@@ -39,23 +39,47 @@ test("AnthropicBackend - request shape and token parsing", async () => {
   assert.strictEqual(result.text, "Hello");
 });
 
-test("AnthropicBackend - ignores thinking blocks, joins text blocks", async () => {
+test("AnthropicBackend - keeps thinking apart from text, joins text blocks", async () => {
   const backend = new AnthropicBackend({
     name: "claude",
     model: "claude-opus-5-5",
     apiKey: "unused",
     client: fakeClient({
       content: [
-        { type: "thinking", thinking: "", signature: "x" },
+        { type: "thinking", thinking: "weighing options", signature: "x" },
         { type: "text", text: '{"skill":' },
         { type: "text", text: '"wait"}' },
       ],
       usage: { input_tokens: 100, output_tokens: 50 },
+      stop_reason: "end_turn",
+      id: "msg_123",
     }),
   });
 
   const result = await backend.complete("System", [{ role: "user", content: "User" }]);
   assert.strictEqual(result.text, '{"skill":"wait"}');
+  assert.strictEqual(result.thinking, "weighing options");
+  assert.strictEqual(result.stopReason, "end_turn");
+  assert.strictEqual(result.requestId, "msg_123");
+  assert.deepStrictEqual(result.request, [{ role: "user", content: "User" }]);
+});
+
+test("AnthropicBackend - sends multi-turn history in order", async () => {
+  const seen: any[] = [];
+  const backend = new AnthropicBackend({
+    name: "claude",
+    model: "claude-haiku-4-5",
+    apiKey: "unused",
+    client: fakeClient({ content: [{ type: "text", text: "ok" }], usage: { input_tokens: 1, output_tokens: 1 } }, seen),
+  });
+  const turns = [
+    { role: "user" as const, content: "a" },
+    { role: "assistant" as const, content: "b" },
+    { role: "user" as const, content: "c" },
+  ];
+  const result = await backend.complete("S", turns);
+  assert.deepStrictEqual(seen[0].messages, turns);
+  assert.strictEqual(result.thinking, undefined);
 });
 
 test("AnthropicBackend - API errors propagate", async () => {
