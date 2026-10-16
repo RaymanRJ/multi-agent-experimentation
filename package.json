@@ -9,6 +9,7 @@
     "minds": "tsx src/minds.ts",
     "typecheck": "tsc --noEmit",
     "try": "tsx src/try.ts",
+    "report": "tsx src/report.ts",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
