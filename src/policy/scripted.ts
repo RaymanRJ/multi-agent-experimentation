@@ -20,8 +20,8 @@ const MAX_EXPLORES = 10;
 /** Stone is often far from spawn, so it earns more search trips than wood does. */
 const MAX_STONE_FAILS = 5;
 const HOLD_SECONDS = 30;
-const MAX_HOLDS = 10;
-const MAX_DECISIONS = 80;
+/** Generous: holding through a full day is ~40 waits. The run's time budget normally ends it first. */
+const MAX_DECISIONS = 150;
 
 const FOODS = new Set([
   "bread", "apple", "carrot", "potato", "baked_potato", "melon_slice", "sweet_berries", "cookie",
@@ -53,7 +53,8 @@ function sum(inventory: Record<string, number>, test: (name: string) => boolean)
  *      night and holding a bed -> sleep.
  *   2. progression from inventory: logs -> wooden_pickaxe -> 3 cobblestone ->
  *      stone_pickaxe -> logs for a shelter -> build_shelter.
- *   3. hold: wait in the shelter until it is clearly day, then end the episode.
+ *   3. hold: wait in the shelter until the run's time budget ends the episode. It does
+ *      not end the episode itself, so in survival it faces the night like any brain.
  * A skill that fails is retried after an explore (new trees/stone/ground); after
  * MAX_STAGE_FAILS consecutive failures that stage is abandoned, and caps on
  * explores, attempts and total decisions guarantee the policy terminates.
@@ -74,7 +75,6 @@ export class ScriptedPolicy implements Policy {
   private explores = 0;
   private fleeStreak = 0;
   private shelterBuilt = false;
-  private holds = 0;
   private decisions = 0;
   /** A craft that reported success: if the item is not in the next inventory, the success was phantom. */
   private expectItem: { item: string; key: string } | null = null;
@@ -226,11 +226,8 @@ export class ScriptedPolicy implements Policy {
     return this.hold(o);
   }
 
-  /** Wait quietly; end once it is clearly day (or the hold cap is hit). */
-  private hold(o: Observation): Decision | null {
-    const clearDay = o.isDay && o.timeOfDay < 11000;
-    if (this.holds >= MAX_HOLDS || (this.holds >= 2 && clearDay)) return null;
-    this.holds++;
-    return this.go("wait", { seconds: HOLD_SECONDS }, "holding in safety until morning");
+  /** Wait quietly in safety; the time budget ends the run. */
+  private hold(_o: Observation): Decision | null {
+    return this.go("wait", { seconds: HOLD_SECONDS }, "holding in safety until the run ends");
   }
 }

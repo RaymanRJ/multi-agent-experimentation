@@ -122,7 +122,7 @@ test("stone that cannot be found is skipped; the plan moves on to wood", async (
   assert.equal(d.skill, "gather_wood");
 });
 
-test("a short shelter asks for more wood, then builds; then holds and ends in daylight", async () => {
+test("a short shelter asks for more wood, then builds; then holds until the run ends", async () => {
   const p = new ScriptedPolicy();
   const inv = { oak_log: 11, stone_pickaxe: 1 };
   let d = (await next(p, obs({ inventory: inv })))!;
@@ -140,7 +140,7 @@ test("a short shelter asks for more wood, then builds; then holds and ends in da
   d = (await next(p, after(d, "success", { isDay: false, timeOfDay: 16000 })))!;
   assert.equal(d.skill, "wait");
   d = (await next(p, after(d, "success", { isDay: true, timeOfDay: 2000 })))!;
-  assert.equal(d, null);
+  assert.equal(d.skill, "wait"); // morning too: the time budget, not the policy, ends the run
 });
 
 test("always terminates, even when every skill fails forever", async () => {
