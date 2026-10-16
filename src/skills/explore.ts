@@ -94,7 +94,7 @@ export const explore: Skill = {
 
       const danger = threatened(ctx);
       if (danger) {
-        ctx.bot.pathfinder.stop();
+        ctx.bot.pathfinder.setGoal(null);
         return { status: "aborted", reason: `stopped exploring because ${danger}`, detail: report() };
       }
 
@@ -115,7 +115,7 @@ export const explore: Skill = {
           "exploring",
         );
       } catch (error) {
-        ctx.bot.pathfinder.stop();
+        ctx.bot.pathfinder.setGoal(null);
         ctx.log(`explore leg toward ${target.x},${target.z} failed: ${(error as Error).message}`);
         failedLegs++;
       }

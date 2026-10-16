@@ -66,7 +66,7 @@ export const flee: Skill = {
       try {
         await withTimeout(ctx.bot.pathfinder.goto(new goals.GoalXZ(tx, tz)), LEG_TIMEOUT_MS, "fleeing");
       } catch (error) {
-        ctx.bot.pathfinder.stop();
+        ctx.bot.pathfinder.setGoal(null);
         ctx.log(`flee leg toward ${tx},${tz} failed: ${(error as Error).message}`);
         if (++failedLegs >= MAX_FAILED_LEGS) {
           return {

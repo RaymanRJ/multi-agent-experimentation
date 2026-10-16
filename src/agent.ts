@@ -6,6 +6,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
 import { attachComms, narrate, speak } from "./comms.js";
+import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
 import { SCENARIOS, applyScenario, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -73,6 +74,16 @@ function buildPolicy(brain: string): Policy {
   }
 }
 
+/** The slice of world state the interrupt triggers compare, taken straight from the bot. */
+function snapshot(bot: mineflayer.Bot): WorldSnapshot {
+  const hostiles: WorldSnapshot["hostiles"] = [];
+  for (const entity of Object.values(bot.entities)) {
+    if (!entity || entity.type !== "hostile") continue;
+    hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance: entity.position.distanceTo(bot.entity.position) });
+  }
+  return { health: bot.health, hostiles, timeOfDay: bot.time.timeOfDay };
+}
+
 async function main(): Promise<void> {
   const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
   const maxSteps = Number(argv["steps"]);
@@ -103,6 +114,25 @@ async function main(): Promise<void> {
   let lastPlan: string | undefined;
   let stepEvents: string[] = [];
   let stopping = false;
+  // Set while a skill runs; the first trigger that fires stores its reason here and
+  // flips shouldStop(), so the skill aborts at its next check.
+  let watch: Watch | null = null;
+  let interruptReason: string | null = null;
+
+  const checkInterrupts = () => {
+    if (!watch || interruptReason) return;
+    const reason = watch.check(snapshot(bot));
+    if (!reason) return;
+    interruptReason = reason;
+    console.log(`[${agentName}]   ${reason}`);
+    // setGoal(null), not stop(): stop() latches and would instantly cancel the next skill's first goto.
+    // Skills only look at shouldStop() between actions; cancel whatever is in flight
+    // (walking, digging) so the abort lands promptly.
+    bot.pathfinder.setGoal(null);
+    bot.stopDigging();
+  };
+  bot.on("physicsTick", checkInterrupts);
+  bot.on("health", checkInterrupts);
 
   bot.on("kicked", (reason) => console.error(`[${agentName}] kicked: ${reason}`));
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
@@ -134,7 +164,7 @@ async function main(): Promise<void> {
       stepEvents.push(message);
       console.log(`[${agentName}]   ${message}`);
     },
-    shouldStop: () => stopping,
+    shouldStop: () => stopping || interruptReason !== null,
   };
 
   let policyFailures = 0;
@@ -191,7 +221,16 @@ async function main(): Promise<void> {
     narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
     lastPlan = decision.plan ?? lastPlan;
     if (buffer && decision.say?.text) speak(bot, buffer, decision.say.to, decision.say.text);
-    const result = await skill.run(ctx, decision.args);
+    interruptReason = null;
+    watch = createWatch(snapshot(bot), SUPPRESSED[skill.name] ?? []);
+    let result = await skill.run(ctx, decision.args);
+    watch = null;
+    if (interruptReason && !stopping) {
+      // Tell the model why, in place of the skill's generic "the run is ending".
+      if (result.status === "aborted") result = { ...result, reason: interruptReason };
+      recentEvents.push(interruptReason);
+      stepEvents.push(interruptReason);
+    }
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
