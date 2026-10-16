@@ -8,7 +8,11 @@ export const wait: Skill = {
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
     const seconds = Math.max(1, Math.min(60, asNumber(rawArgs["seconds"], 5)));
-    await ctx.bot.waitForTicks(seconds * 20);
+    // In short slices so an interrupt (damage, a mob arriving) ends the wait promptly.
+    for (let waited = 0; waited < seconds * 20; waited += 10) {
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { waited: Math.round(waited / 20) } };
+      await ctx.bot.waitForTicks(10);
+    }
     return { status: "success", detail: { seconds } };
   },
 };
