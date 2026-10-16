@@ -127,7 +127,18 @@ interface Plan {
   missing: Missing;
 }
 
-/** The recipe for `id` that is closest to being makeable. Ties prefer no table. */
+/**
+ * Stone variants that make the same tools as cobblestone but only turn up deep
+ * underground or in the Nether. When nothing is held, "need 3 more cobbled_deepslate"
+ * sends a model hunting for the wrong block, so ties prefer recipes without them.
+ */
+const RARE_INGREDIENTS = new Set(["cobbled_deepslate", "blackstone"]);
+
+function rareCount(bot: Bot, recipe: Recipe): number {
+  return recipe.delta.filter((entry) => entry.count < 0 && RARE_INGREDIENTS.has(itemName(bot, entry.id))).length;
+}
+
+/** The recipe for `id` that is closest to being makeable. Ties prefer common ingredients, then no table. */
 function bestPlan(
   bot: Bot,
   id: number,
@@ -153,10 +164,12 @@ function bestPlan(
   for (const recipe of onlyPreferredWood(bot, forward)) {
     const times = timesFor(recipe, count);
     const missing = missingFor(bot, recipe, times, depth, tableOk, chain);
+    const tie = best !== null && total(missing) === total(best.missing);
     const better =
       !best ||
       total(missing) < total(best.missing) ||
-      (total(missing) === total(best.missing) && best.recipe.requiresTable && !recipe.requiresTable);
+      (tie && rareCount(bot, recipe) < rareCount(bot, best.recipe)) ||
+      (tie && rareCount(bot, recipe) === rareCount(bot, best.recipe) && best.recipe.requiresTable && !recipe.requiresTable);
     if (better) best = { recipe, times, missing };
   }
   return best;
