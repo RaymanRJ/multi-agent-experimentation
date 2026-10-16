@@ -109,7 +109,8 @@ test("deaths: count multiple distinct death events", () => {
     }),
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
-  assert.equal(summary.deaths, 2, "should count 'you died' and 'respawned' as distinct");
+  // Step 1: new=["you died"]=1, Step 2: overlap at "you died", new=["respawned"]=1, Step 3: overlap at "respawned", new=["you died"]=1
+  assert.equal(summary.deaths, 3, "counts 'you died' and 'respawned' events across steps");
 });
 
 test("goalMet: shelter met when build_shelter succeeds", () => {
@@ -567,6 +568,96 @@ test("milestones: survived_night milestone reached after night with no deaths", 
   const summary = summarizeRun(steps, "test-run.jsonl");
   assert.ok(summary.milestones.survived_night);
   assert.equal(summary.furthestMilestone, "survived_night");
+});
+
+test("deaths: two distinct death events in different steps", () => {
+  const steps: LoggedStep[] = [
+    makeStep({
+      step: 1,
+      observation: makeObservation({ recentEvents: ["you died"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+    makeStep({
+      step: 2,
+      observation: makeObservation({ recentEvents: ["you died", "other"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+    makeStep({
+      step: 3,
+      observation: makeObservation({ recentEvents: ["you died", "other", "you died"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  // Step 1: new=["you died"]=1, Step 2: overlap=1, new=["other"]=0, Step 3: overlap=2, new=["you died"]=1
+  assert.equal(summary.deaths, 2);
+});
+
+test("deaths: same death visible across 3 windows counts as 1", () => {
+  const steps: LoggedStep[] = [
+    makeStep({
+      step: 1,
+      observation: makeObservation({ recentEvents: ["you died"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+    makeStep({
+      step: 2,
+      observation: makeObservation({ recentEvents: ["you died", "other"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+    makeStep({
+      step: 3,
+      observation: makeObservation({ recentEvents: ["you died", "other", "explore start"] }),
+      decision: { skill: "explore", args: {} },
+      result: { status: "success" },
+    }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  // Step 1: new events = ["you died"] = 1 (matches "died")
+  // Step 2: prev=["you died"], current=["you died","other"], overlap=1, new=["other"] = 0
+  // Step 3: prev=["you died","other"], current=["you died","other","explore start"], overlap=2, new=["explore start"] = 0
+  // Total deaths: 1
+  assert.equal(summary.deaths, 1);
+});
+
+test("deaths: multiple death events in window", () => {
+  const steps: LoggedStep[] = [
+    makeStep({
+      step: 1,
+      observation: makeObservation({ recentEvents: ["you died", "other", "you died"] }),
+      decision: { skill: "wait", args: {} },
+      result: { status: "success" },
+    }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  // Step 1: new = ["you died", "other", "you died"] = 2 events matching "died"
+  assert.equal(summary.deaths, 2);
+});
+
+test("deaths: 6+ new events (full window shift)", () => {
+  const steps: LoggedStep[] = [
+    makeStep({
+      step: 1,
+      observation: makeObservation({ recentEvents: ["event1", "event2", "event3", "event4", "event5", "you died"] }),
+      decision: { skill: "explore", args: {} },
+      result: { status: "success" },
+    }),
+    makeStep({
+      step: 2,
+      observation: makeObservation({ recentEvents: ["new1", "new2", "new3", "new4", "new5", "you died"] }),
+      decision: { skill: "respawn", args: {} },
+      result: { status: "success" },
+    }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  // Step 1: all new, count 1 death
+  // Step 2: no overlap (all 6 events are new), count 1 death
+  assert.equal(summary.deaths, 2);
 });
 
 test("milestones: gameTicks accumulates with timeOfDay wrapping at 24000", () => {

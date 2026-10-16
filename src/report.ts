@@ -44,6 +44,62 @@ export interface RunSummary {
 }
 
 /**
+ * Compute new events per step by aligning consecutive recentEvents windows.
+ * recentEvents is a rolling window of the last ~6 events. To dedupe, find the
+ * largest overlap between the previous window and current window, then new events
+ * are everything after that overlap.
+ *
+ * KNOWN LIMITS (documented for cost reasoning):
+ * - If 6+ events occur in one step, the window can't show them all; only the
+ *   most recent 6 are captured (earlier events in that step are lost).
+ * - Window alignment can be ambiguous when strings are identical (e.g., "you died"
+ *   repeated). We prefer the largest overlap (undercounts deaths in that edge case)
+ *   rather than the smallest overlap (which would overcount).
+ *
+ * Returns: array of arrays, one per step, containing the new events for that step.
+ */
+function newEventsPerStep(steps: LoggedStep[]): string[][] {
+  const result: string[][] = [];
+  let prevWindow: string[] = [];
+
+  for (const step of steps) {
+    const obs = step?.observation;
+    const currentWindow = (obs?.recentEvents && Array.isArray(obs.recentEvents)) ? obs.recentEvents : [];
+
+    if (prevWindow.length === 0) {
+      // First step: all events are new
+      result.push([...currentWindow]);
+    } else {
+      // Find the largest k such that the last k entries of prevWindow
+      // equal the first k entries of currentWindow (prefer largest overlap)
+      let overlapSize = 0;
+      const maxK = Math.min(prevWindow.length, currentWindow.length);
+      for (let k = maxK; k >= 1; k--) {
+        let match = true;
+        for (let i = 0; i < k; i++) {
+          if (prevWindow[prevWindow.length - k + i] !== currentWindow[i]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          overlapSize = k;
+          break; // Found the largest overlap, stop searching
+        }
+      }
+
+      // New events are everything after the overlap
+      const newEvents = currentWindow.slice(overlapSize);
+      result.push(newEvents);
+    }
+
+    prevWindow = [...currentWindow];
+  }
+
+  return result;
+}
+
+/**
  * Summarize a sequence of LoggedSteps into a RunSummary.
  *
  * howEnded detection:
@@ -51,9 +107,7 @@ export interface RunSummary {
  * - "brain failed": last 3 steps all have decision null with result.status "failed"
  * - otherwise: "step limit / stopped"
  *
- * Deaths are deduped by tracking the last seen death event index,
- * since recentEvents is a rolling 6-event window and the same death
- * event would appear on multiple consecutive steps.
+ * Deaths are counted from new events per step (deduplicated by window alignment).
  *
  * goalMet:
  * - "shelter": met if any build_shelter step has result.status "success"
@@ -124,20 +178,13 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
-  // Deaths: track unique death events. Since recentEvents is a rolling 6-event window,
-  // the same death event appears across multiple steps. Dedupe by tracking which
-  // unique event strings we've already seen.
+  // Deaths: count from new events per step (deduplicated by window alignment)
   let deaths = 0;
-  const seenDeathEvents = new Set<string>();
-  for (const step of steps) {
-    if (step.observation && step.observation.recentEvents) {
-      for (const event of step.observation.recentEvents) {
-        if (event.includes("died") || event.includes("respawned")) {
-          if (!seenDeathEvents.has(event)) {
-            seenDeathEvents.add(event);
-            deaths++;
-          }
-        }
+  const newEvents = newEventsPerStep(steps);
+  for (const eventList of newEvents) {
+    for (const event of eventList) {
+      if (event.includes("died") || event.includes("respawned")) {
+        deaths++;
       }
     }
   }
@@ -278,7 +325,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   const costUsdValue: number | "unknown" = unknownModel ? "unknown" : totalCost;
 
   // Compute milestones
-  const milestones = computeMilestones(steps);
+  const milestones = computeMilestones(steps, newEvents);
   const milestonesOrder: MilestoneName[] = ["logs", "wooden_pickaxe", "stone", "stone_pickaxe", "shelter", "survived_night"];
   let furthestMilestone: MilestoneName | null = null;
   for (const name of milestonesOrder) {
@@ -319,7 +366,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
  * Compute milestones reached during the run.
  * Milestones are tracked in order: logs → wooden_pickaxe → stone → stone_pickaxe → shelter → survived_night
  */
-function computeMilestones(steps: LoggedStep[]): Record<MilestoneName, MilestoneData | null> {
+function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<MilestoneName, MilestoneData | null> {
   const result: Record<MilestoneName, MilestoneData | null> = {
     logs: null,
     wooden_pickaxe: null,
@@ -405,25 +452,21 @@ function computeMilestones(steps: LoggedStep[]): Record<MilestoneName, Milestone
 
     if (!result.survived_night) {
       // survived_night is true when nightReached && deaths === 0 && day comes again
-      // Check all observations so far to compute this
       let nightReached = false;
       let deaths = 0;
-      const seenDeathEvents = new Set<string>();
+      // Count deaths from new events up to this step
       for (let j = 0; j <= i; j++) {
-        const checkObs = steps[j]?.observation;
-        if (!checkObs) continue;
-        if (!checkObs.isDay) {
-          nightReached = true;
-        }
-        if (checkObs.recentEvents) {
-          for (const event of checkObs.recentEvents) {
+        const eventList = newEvents[j];
+        if (eventList) {
+          for (const event of eventList) {
             if (event.includes("died") || event.includes("respawned")) {
-              if (!seenDeathEvents.has(event)) {
-                seenDeathEvents.add(event);
-                deaths++;
-              }
+              deaths++;
             }
           }
+        }
+        const checkObs = steps[j]?.observation;
+        if (checkObs && !checkObs.isDay) {
+          nightReached = true;
         }
       }
 
