@@ -8,6 +8,7 @@
  */
 import minimist from "minimist";
 import mineflayer from "mineflayer";
+import "./protocolFix.js"; // patches a minecraft-data bug; must load before any bot is created
 import pathfinderPkg from "mineflayer-pathfinder";
 
 import { env, loadEnv } from "./env.js";
