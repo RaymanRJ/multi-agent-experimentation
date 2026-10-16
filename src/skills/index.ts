@@ -1,3 +1,4 @@
+import "./protocolFix.js"; // side effect: must run before any bot is created
 import type { Skill } from "../types.js";
 import { gatherWood } from "./gatherWood.js";
 import { wait } from "./wait.js";
