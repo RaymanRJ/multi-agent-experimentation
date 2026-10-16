@@ -427,31 +427,34 @@ function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<M
 
     const wallMs = new Date(step.at).getTime() - firstDate;
 
-    // Check milestones in order
-    if (!result.logs && obs.inventory?.oak_log) {
-      result.logs = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+    // Logs written since the agent records world age use it: exact, and sleeping can't skip it.
+    const ticksAt = typeof step.ticks === "number" ? step.ticks : cumulativeGameTicks;
+
+    // Check milestones in order. Any wood counts (oak_log, dark_oak_log, birch_log, ...).
+    if (!result.logs && Object.entries(obs.inventory ?? {}).some(([name, n]) => name.endsWith("_log") && n > 0)) {
+      result.logs = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
     }
 
     if (!result.wooden_pickaxe) {
       if (obs.inventory?.wooden_pickaxe) {
-        result.wooden_pickaxe = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+        result.wooden_pickaxe = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }
 
     if (!result.stone) {
       if (obs.inventory?.cobblestone) {
-        result.stone = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+        result.stone = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }
 
     if (!result.stone_pickaxe) {
       if (obs.inventory?.stone_pickaxe) {
-        result.stone_pickaxe = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+        result.stone_pickaxe = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
       }
     }
 
     if (!result.shelter && step.decision?.skill === "build_shelter" && step.result?.status === "success") {
-      result.shelter = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+      result.shelter = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
     }
 
     if (!result.survived_night) {
@@ -483,7 +486,7 @@ function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<M
             for (let k = j + 1; k <= i; k++) {
               const dayObs = steps[k]?.observation;
               if (dayObs && dayObs.isDay) {
-                result.survived_night = { step: step.step, gameTicks: cumulativeGameTicks, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
+                result.survived_night = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
                 break;
               }
             }

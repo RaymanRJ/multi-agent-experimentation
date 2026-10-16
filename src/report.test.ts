@@ -720,3 +720,21 @@ test("howEnded uses the end reason the agent recorded", () => {
   const s = summarizeRun([{ ...base, step: 1 }, { ...base, step: 2, ended: "time budget" }], "runs/2026-x-agent_a.jsonl");
   assert.equal(s.howEnded, "time budget");
 });
+
+test("the logs milestone counts any kind of wood", () => {
+  const step = (n: number, inventory: Record<string, number>) =>
+    ({
+      step: n,
+      at: "2026-10-16T00:00:00.000Z",
+      observation: { step: n, scenario: "sandbox", goal: "x", isDay: true, timeOfDay: 0, inventory, recentEvents: [] },
+      decision: { skill: "gather_wood", args: { count: 5 } },
+      result: { status: "success" },
+      decisionMs: 1,
+      calls: [],
+      ticks: n * 100,
+    }) as unknown as LoggedStep;
+  const s = summarizeRun([step(1, {}), step(2, { dark_oak_log: 11 })], "runs/2026-x-agent_a.jsonl");
+  assert.equal(s.furthestMilestone, "logs");
+  assert.equal(s.milestones.logs?.step, 2);
+  assert.equal(s.milestones.logs?.gameTicks, 200);
+});
