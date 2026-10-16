@@ -260,7 +260,7 @@ test("survivedNight: false when night reached but deaths > 0", () => {
   assert.equal(summary.survivedNight, false);
 });
 
-test("survivedNight: false when night reached but day never comes again", () => {
+test("survivedNight: unknown when the run ends during the night without a death", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
@@ -277,7 +277,7 @@ test("survivedNight: false when night reached but day never comes again", () => 
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
   assert.equal(summary.nightReached, true);
-  assert.equal(summary.survivedNight, false);
+  assert.equal(summary.survivedNight, "unknown");
 });
 
 test("retries: count calls beyond the first per step", () => {

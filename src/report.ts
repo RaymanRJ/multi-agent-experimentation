@@ -133,8 +133,9 @@ function newEventsPerStep(steps: LoggedStep[]): string[][] {
  *
  * survivedNight:
  * - true: nightReached && deaths === 0 && a later observation has isDay true
- * - false: nightReached && (deaths > 0 || never daylight again)
- * - "unknown": nightReached never occurs
+ * - false: nightReached && deaths > 0
+ * - "unknown": night never came, or the run ended during the night without a death
+ *   (ending in the dark is not dying — it just leaves the question open)
  *
  * Milestones are reached in order: logs → wooden_pickaxe → stone → stone_pickaxe → shelter → survived_night
  * Each milestone records the step, accumulated game ticks, wall-clock time, decision count, tokens, and cost.
@@ -285,9 +286,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
             break;
           }
         }
-        if (survivedNight === "unknown") {
-          survivedNight = false; // Night reached, no deaths, but never saw day again
-        }
+        // Night reached, no deaths, but the run ended before daylight: stays "unknown".
       } else {
         survivedNight = false;
       }
