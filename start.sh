@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One command to run the whole experiment:
-#   ./start.sh [--scenario sandbox|survival] [--steps N] [--goal shelter|tools|gather|explore|"any sentence"]
+#   ./start.sh [--scenario sandbox|survival] [--steps N] [--memory none|plan|full] [--comms on|off] [--goal shelter|tools|gather|explore|"any sentence"]
 # Starts Minecraft + the minds panel + one agent per available brain.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -23,7 +23,15 @@ Options:
                     Without --goal, each scenario uses its own goal.
   --steps N         Decisions each agent makes before stopping (default 12)
   --check           Only check this machine's setup (Docker, Ollama, the model); start nothing
+  --memory MODE     How much of its own past a model agent sees:
+                      none   the current observation only
+                      plan   also the plan it wrote last decision (default)
+                      full   the whole exchange, trimmed to fit
+  --comms on|off    Whether agents can message each other in chat (default on)
   -h, --help        Show this help
+
+Each launch gets one episode ID shared by all agents, so their logs merge into one run.
+Scripted agents ignore --memory and --comms but still log them.
 
 Brains: the free local model always runs. Claude and GPT also run when
 ANTHROPIC_API_KEY / OPENAI_API_KEY are set (in the environment or .env).
@@ -49,11 +57,16 @@ while [ $# -gt 0 ]; do
     --steps)    STEPS="${2:?--steps needs a value}"; shift 2 ;;
     --goal)     GOAL="${2:?--goal needs a value}"; shift 2 ;;
     --check)    CHECK_ONLY=true; shift ;;
+    --memory)   MEMORY="${2:?--memory needs a value}"; shift 2 ;;
+    --comms)    COMMS="${2:?--comms needs a value}"; shift 2 ;;
     -h|--help)  usage; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 1 ;;
   esac
 done
-export SCENARIO STEPS GOAL
+case "$MEMORY" in none|plan|full) ;; *) echo "--memory must be none, plan or full" >&2; exit 1 ;; esac
+case "$COMMS" in on|off) ;; *) echo "--comms must be on or off" >&2; exit 1 ;; esac
+EPISODE="ep-$(date -u +%Y%m%dT%H%M%SZ)"   # one per launch, shared by every agent
+export SCENARIO STEPS GOAL MEMORY COMMS EPISODE
 
 say()  { printf '\n==> %s\n' "$*"; }
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -168,7 +181,7 @@ else
   echo "  gpt     : skipped (no OPENAI_API_KEY)"
 fi
 
-say "Starting minds panel and agents (scenario=$SCENARIO, steps=$STEPS, goal=${GOAL:-scenario default})"
+say "Starting minds panel and agents (scenario=$SCENARIO, steps=$STEPS, memory=$MEMORY, comms=$COMMS, episode=$EPISODE, goal=${GOAL:-scenario default})"
 docker compose --profile agents up -d --build --no-deps --force-recreate minds "${SERVICES[@]}"
 
 say "Ready"
