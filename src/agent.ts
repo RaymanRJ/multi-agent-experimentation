@@ -5,7 +5,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 
 import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
-import { attachComms, narrate, speak } from "./comms.js";
+import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
 import { GOAL_CHECKS, SCENARIOS, applyScenario, presetName, resolveGoal } from "./scenario.js";
@@ -77,13 +77,18 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
 }
 
 /** The slice of world state the interrupt triggers compare, taken straight from the bot. */
-function snapshot(bot: mineflayer.Bot): WorldSnapshot {
+function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null): WorldSnapshot {
   const hostiles: WorldSnapshot["hostiles"] = [];
   for (const entity of Object.values(bot.entities)) {
     if (!entity || entity.type !== "hostile") continue;
     hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance: entity.position.distanceTo(bot.entity.position) });
   }
-  return { health: bot.health, hostiles, timeOfDay: bot.time.timeOfDay };
+  return {
+    health: bot.health,
+    hostiles,
+    timeOfDay: bot.time.timeOfDay,
+    ...(buffer ? { directed: buffer.directed, lastDirected: buffer.lastDirected } : {}),
+  };
 }
 
 async function main(): Promise<void> {
@@ -125,6 +130,7 @@ async function main(): Promise<void> {
 
   const recentEvents: string[] = [];
   const buffer = attachComms(bot, agentName, comms);
+  const activities = trackActivity(bot, agentName);
   let lastPlan: string | undefined;
   let stepEvents: string[] = [];
   let stopping = false;
@@ -135,7 +141,7 @@ async function main(): Promise<void> {
 
   const checkInterrupts = () => {
     if (!watch || interruptReason) return;
-    const reason = watch.check(snapshot(bot));
+    const reason = watch.check(snapshot(bot, buffer));
     if (!reason) return;
     interruptReason = reason;
     console.log(`[${agentName}]   ${reason}`);
@@ -202,6 +208,7 @@ async function main(): Promise<void> {
       scenario: scenario.name,
       goal,
       recentEvents,
+      activities,
       ...(buffer ? { messages: buffer.snapshot() } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
     });
@@ -270,7 +277,7 @@ async function main(): Promise<void> {
     lastPlan = decision.plan ?? lastPlan;
     if (buffer && decision.say?.text) speak(bot, buffer, decision.say.to, decision.say.text);
     interruptReason = null;
-    watch = createWatch(snapshot(bot), SUPPRESSED[skill.name] ?? []);
+    watch = createWatch(snapshot(bot, buffer), SUPPRESSED[skill.name] ?? []);
     let result = await skill.run(ctx, decision.args);
     watch = null;
     if (interruptReason && !stopping) {

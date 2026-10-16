@@ -61,6 +61,9 @@ interface Stored {
 /** The last few messages heard and sent, oldest first. */
 export class MessageBuffer {
   private readonly items: Stored[] = [];
+  /** Messages addressed to this agent by name, ever — the interrupt watches this grow. */
+  directed = 0;
+  lastDirected: { from: string; text: string } | null = null;
 
   constructor(
     private readonly self: string,
@@ -73,6 +76,10 @@ export class MessageBuffer {
     const { to, text } = parseSpeech(line);
     if (!text) return false;
     this.push({ from, to, text, at: now });
+    if (to.toLowerCase() === this.self.toLowerCase()) {
+      this.directed++;
+      this.lastDirected = { from, text };
+    }
     return true;
   }
 
@@ -108,6 +115,28 @@ export function attachComms(bot: Bot, self: string, enabled: boolean): MessageBu
     buffer.hear(username, message);
   });
   return buffer;
+}
+
+/** "[act] gather_wood({"count":10}) — rationale" -> "gather_wood({"count":10})"; null if not a skill line. */
+export function parseActivity(line: string): string | null {
+  if (!isNarration(line)) return null;
+  const match = /^([a-z_]+\([^)]*\))/.exec(line.slice(NARRATION_PREFIX.length));
+  return match ? match[1]!.slice(0, 60) : null;
+}
+
+/**
+ * What each other agent last announced it was doing. Always on: narration is
+ * what a watcher sees, so it is a sighting, not a message — observe() shows it
+ * only for agents within sight.
+ */
+export function trackActivity(bot: Bot, self: string): Map<string, string> {
+  const doing = new Map<string, string>();
+  bot.on("chat", (username: string, message: string) => {
+    if (username === self) return;
+    const activity = parseActivity(message);
+    if (activity) doing.set(username, activity);
+  });
+  return doing;
 }
 
 export function narrate(bot: Bot, text: string): void {

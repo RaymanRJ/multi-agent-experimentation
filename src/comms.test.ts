@@ -45,3 +45,21 @@ test("buffer keeps the last 8, oldest first, with ages", () => {
   assert.equal(snap[7]!.to, "a");
   assert.equal(snap[7]!.from, "b");
 });
+
+test("parseActivity reads the skill from a narration line, nothing else", async () => {
+  const { parseActivity } = await import("./comms.js");
+  assert.equal(parseActivity('[act] gather_wood({"count":10}) — need logs'), 'gather_wood({"count":10})');
+  assert.equal(parseActivity("[act] online — brain: llm:ollama"), null);
+  assert.equal(parseActivity("@agent_a I'll take stone"), null);
+});
+
+test("only messages addressed to this agent by name count as directed", async () => {
+  const { MessageBuffer } = await import("./comms.js");
+  const b = new MessageBuffer("agent_a");
+  b.hear("agent_b", "everyone: trees to the north");
+  b.hear("agent_b", "@agent_c you mine");
+  assert.equal(b.directed, 0);
+  b.hear("agent_b", "@agent_a can you mine the stone?");
+  assert.equal(b.directed, 1);
+  assert.deepEqual(b.lastDirected, { from: "agent_b", text: "can you mine the stone?" });
+});

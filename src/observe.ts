@@ -2,6 +2,8 @@ import type { Bot } from "mineflayer";
 import type { Message, Observation, ScenarioName } from "./types.js";
 
 const NEARBY_RADIUS = 24;
+/** How far away you can tell what another agent is doing. */
+export const SIGHT_RADIUS = 32;
 const INTERESTING = [
   "_log", "_planks", "coal_ore", "iron_ore", "copper_ore", "diamond_ore",
   "stone", "water", "crafting_table", "furnace",
@@ -36,6 +38,8 @@ export function observe(
     messages?: Message[];
     /** Present only when memory is plan or full. */
     plan?: string;
+    /** What other agents last announced doing (see trackActivity); shown only within sight. */
+    activities?: Map<string, string>;
   },
 ): Observation {
   const position = bot.entity.position;
@@ -56,14 +60,17 @@ export function observe(
   }
 
   const hostiles: Array<{ name: string; distance: number }> = [];
-  const otherAgents: string[] = [];
+  const otherAgents: Observation["otherAgents"] = [];
   for (const entity of Object.values(bot.entities)) {
     if (!entity || entity === bot.entity) continue;
     const distance = entity.position.distanceTo(position);
     if (entity.type === "hostile" && distance <= NEARBY_RADIUS) {
       hostiles.push({ name: entity.name ?? "unknown", distance: Math.round(distance) });
     }
-    if (entity.type === "player" && entity.username) otherAgents.push(entity.username);
+    if (entity.type === "player" && entity.username) {
+      const doing = distance <= SIGHT_RADIUS ? opts.activities?.get(entity.username) : undefined;
+      otherAgents.push({ name: entity.username, distance: Math.round(distance), ...(doing ? { doing } : {}) });
+    }
   }
   hostiles.sort((a, b) => a.distance - b.distance);
 
@@ -85,7 +92,7 @@ export function observe(
     inventory: countInventory(bot),
     nearbyBlocks,
     hostiles: hostiles.slice(0, 5),
-    otherAgents,
+    otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };
   if (opts.messages) observation.messages = opts.messages;

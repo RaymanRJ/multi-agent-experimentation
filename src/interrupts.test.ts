@@ -72,3 +72,18 @@ test("suppressing one trigger leaves the others", () => {
   assert.equal(w.check({ ...calm, health: 10 }), null);
   assert.match(w.check({ ...calm, hostiles: [zombie(3)] })!, /came within/);
 });
+
+test("a message addressed to the agent interrupts once; one already waiting at the start does not", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  const watch = createWatch({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "old" } });
+  assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "old" } }), null);
+  const reason = watch.check({ ...base, directed: 2, lastDirected: { from: "agent_b", text: "can you mine the stone?" } });
+  assert.match(reason ?? "", /agent_b said to you: "can you mine the stone\?"/);
+  assert.equal(watch.check({ ...base, directed: 3, lastDirected: { from: "agent_b", text: "again" } }), null);
+});
+
+test("flee, eat and sleep are not interrupted by messages", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED["flee"]);
+  assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "hi" } }), null);
+});

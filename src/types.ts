@@ -44,7 +44,12 @@ export interface Observation {
   inventory: Record<string, number>;
   nearbyBlocks: Record<string, number>;
   hostiles: Array<{ name: string; distance: number }>;
-  otherAgents: string[];
+  /**
+   * Other players the bot can see. `doing` is their current skill, read from their
+   * narration — only within sight (SIGHT_RADIUS), since it is something you see, not
+   * a message. Present with comms on or off.
+   */
+  otherAgents: Array<{ name: string; distance: number; doing?: string }>;
   recentEvents: string[];
   /** Recent messages heard and sent, oldest first. Absent when comms are off. */
   messages?: Message[];

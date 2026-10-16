@@ -20,9 +20,18 @@ export interface WorldSnapshot {
   health: number;
   hostiles: Hostile[];
   timeOfDay: number;
+  /** Messages ever addressed to this agent by name (absent with comms off). */
+  directed?: number;
+  lastDirected?: { from: string; text: string } | null;
 }
 
-export type Trigger = "damage" | "hostile" | "night";
+/**
+ * "message" is the social counterpart of "hostile": someone wants something from
+ * this agent now. Only a message addressed to it by name counts — mere proximity of
+ * another agent never interrupts (agents working side by side would thrash), and
+ * messages to everyone wait for the next decision.
+ */
+export type Trigger = "damage" | "hostile" | "night" | "message";
 
 /** A hostile at or inside this many blocks is a threat worth stopping for. */
 export const HOSTILE_RADIUS = 6;
@@ -40,9 +49,9 @@ export const NIGHT_START = 12000;
  *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
-  flee: ["damage", "hostile", "night"],
-  eat: ["damage", "hostile", "night"],
-  sleep: ["damage", "hostile", "night"],
+  flee: ["damage", "hostile", "night", "message"],
+  eat: ["damage", "hostile", "night", "message"],
+  sleep: ["damage", "hostile", "night", "message"],
 };
 
 export interface Watch {
@@ -54,6 +63,7 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
   const off = new Set(suppressed);
   const startDistance = new Map(start.hostiles.map((h) => [h.id, h.distance]));
   const startedDay = start.timeOfDay < NIGHT_START;
+  const startDirected = start.directed ?? 0;
   // Damage is a drop from the highest health seen, so healing then being hit again counts.
   let peakHealth = start.health;
   let fired = false;
@@ -77,6 +87,10 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
 
     if (!off.has("night") && startedDay && now.timeOfDay >= NIGHT_START) {
       return "interrupted: night is falling";
+    }
+
+    if (!off.has("message") && (now.directed ?? 0) > startDirected && now.lastDirected) {
+      return `interrupted: ${now.lastDirected.from} said to you: "${now.lastDirected.text.slice(0, 120)}"`;
     }
     return null;
   }

@@ -155,7 +155,7 @@ export function buildSystemPrompt(
       "Other agents share this world. \"messages\" in the observation are what you recently heard and said. " +
         'Include "say" to talk: "to" is an agent name or "all". Speaking is free — it happens alongside your skill, ' +
         "with no extra step. Keep messages short and useful (coordinate who does what, share findings); no chatter. " +
-        'Omit "say" when you have nothing worth saying.',
+        'Omit "say" when you have nothing worth saying. If someone addresses you by name, your current skill is paused so you can answer.',
     );
   }
   if (options.memory === "full") {
@@ -163,6 +163,8 @@ export function buildSystemPrompt(
   }
   return [
     "You control a Minecraft agent by choosing its next high-level goal. You are given its observation as JSON.",
+    '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell. ' +
+      "Use it to avoid duplicating their work.",
     "Skills (args spec: name -> type):",
     ...lines,
     `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,
