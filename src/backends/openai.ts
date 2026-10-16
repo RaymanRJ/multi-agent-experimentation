@@ -1,4 +1,5 @@
 import type { Backend, ChatTurn, ModelCall } from "../types.js";
+import { BrainError, classify } from "./errors.js";
 
 interface OpenAIResponse {
   id?: string;
@@ -60,15 +61,29 @@ export class OpenAIBackend implements Backend {
           }),
           signal: controller.signal,
         },
-      );
+      ).catch((error: unknown) => {
+        // Timeouts and refused connections: the provider may well answer next time.
+        const reason = controller.signal.aborted ? controller.signal.reason : error;
+        throw new BrainError(`${this.name}: ${reason instanceof Error ? reason.message : String(reason)}`, "transient", undefined, undefined, controller.signal.aborted);
+      });
 
       if (!response.ok) {
         const text = await response.text();
         const excerpt =
           text.length > 200 ? text.substring(0, 200) + "..." : text;
-        throw new Error(
-          `HTTP ${response.status}: ${excerpt}`,
-        );
+        let body: { error?: { code?: string; type?: string; message?: string } | string } = {};
+        try {
+          body = JSON.parse(text);
+        } catch {
+          // not JSON; the excerpt is the message
+        }
+        const err = typeof body.error === "object" ? body.error : undefined;
+        throw classify(this.name, response.status, {
+          code: err?.code ?? null,
+          type: err?.type ?? null,
+          message: `HTTP ${response.status}: ${err?.message ?? (typeof body.error === "string" ? body.error : excerpt)}`,
+          retryAfter: response.headers.get("retry-after"),
+        });
       }
 
       const data = (await response.json()) as OpenAIResponse;

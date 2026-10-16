@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Backend, ChatTurn, ModelCall } from "../types.js";
+import { BrainError, classify } from "./errors.js";
 
 /** The subset of the SDK client this backend uses — lets tests inject a fake. */
 export type MessagesClient = Pick<Anthropic, "messages">;
@@ -22,7 +23,8 @@ export class AnthropicBackend implements Backend {
   }) {
     this.name = name;
     this.model = model;
-    this.client = client ?? new Anthropic({ apiKey, timeout: 60_000 });
+    // maxRetries 0: withRetries() owns retrying, so a rate limit is not retried twice over.
+    this.client = client ?? new Anthropic({ apiKey, timeout: 60_000, maxRetries: 0 });
   }
 
   async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
@@ -30,12 +32,25 @@ export class AnthropicBackend implements Backend {
 
     // Models with always-on thinking return thinking blocks alongside the
     // answer; only the text block is the decision.
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      system,
-      messages: turns,
-    });
+    const response = await this.client.messages
+      .create({
+        model: this.model,
+        max_tokens: 4096,
+        system,
+        messages: turns,
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Anthropic.APIError && error.status !== undefined) {
+          throw classify(this.name, error.status, {
+            type: error.type,
+            message: error.message,
+            retryAfter: error.headers?.get("retry-after") ?? null,
+          });
+        }
+        // Connection errors and timeouts carry no status.
+        const timedOut = error instanceof Anthropic.APIConnectionTimeoutError;
+        throw new BrainError(`${this.name}: ${error instanceof Error ? error.message : String(error)}`, "transient", undefined, undefined, timedOut);
+      });
 
     const text = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === "text")

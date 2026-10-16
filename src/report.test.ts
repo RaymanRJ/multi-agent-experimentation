@@ -758,3 +758,26 @@ test("a milestone reached on the final step counts, via inventoryAfter", () => {
   );
   assert.equal(s.furthestMilestone, "stone_pickaxe");
 });
+
+test("a run whose brain became unavailable is invalid, and so is the rest of its episode", async () => {
+  const { markEpisodes } = await import("./report.js");
+  const line = (episode: string, ended?: string) =>
+    ({
+      step: 1,
+      at: "2026-10-16T00:00:00.000Z",
+      observation: { step: 1, scenario: "sandbox", goal: "x", isDay: true, timeOfDay: 0, inventory: {}, recentEvents: [] },
+      decision: null,
+      result: { status: "failed", reason: "x" },
+      decisionMs: 1,
+      calls: [],
+      config: { episode, memory: "plan", comms: true },
+      ...(ended ? { ended } : {}),
+    }) as unknown as LoggedStep;
+  const runs = [
+    summarizeRun([line("ep1", "brain unavailable")], "runs/2026-a-agent_claude.jsonl"),
+    summarizeRun([line("ep1", "time budget")], "runs/2026-a-agent_ollama.jsonl"),
+    summarizeRun([line("ep2", "time budget")], "runs/2026-b-agent_ollama.jsonl"),
+  ];
+  markEpisodes(runs);
+  assert.deepEqual(runs.map((r) => r.validity), ["brain unavailable", "episode incomplete", "valid"]);
+});

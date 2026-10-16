@@ -2,6 +2,7 @@ import type { Backend } from "../types.js";
 import { env } from "../env.js";
 import { OpenAIBackend } from "./openai.js";
 import { AnthropicBackend } from "./anthropic.js";
+import { withRetries } from "./errors.js";
 
 /** The model-backed brains. `scripted` is not here — it needs no backend. */
 export type BrainName = "claude" | "gpt" | "ollama";
@@ -14,6 +15,10 @@ export const BRAINS: BrainName[] = ["claude", "gpt", "ollama"];
  * environment only, never from a default.
  */
 export function createBackend(brain: BrainName): Backend {
+  return withRetries(createRawBackend(brain));
+}
+
+function createRawBackend(brain: BrainName): Backend {
   switch (brain) {
     case "claude": {
       const apiKey = env("ANTHROPIC_API_KEY", "");

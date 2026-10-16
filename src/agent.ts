@@ -14,7 +14,8 @@ import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import { costUSD } from "./backends/pricing.js";
-import type { EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
+import { BrainError, preflight } from "./backends/errors.js";
+import type { Backend, EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
 
 const { pathfinder, Movements } = pathfinderPkg;
 
@@ -59,14 +60,16 @@ const config: RunConfig = {
   comms,
 };
 
-function buildPolicy(brain: string): Policy {
+function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
     case "scripted":
-      return new ScriptedPolicy();
+      return { policy: new ScriptedPolicy() };
     case "claude":
     case "gpt":
-    case "ollama":
-      return new LLMPolicy(createBackend(brain as BrainName), { memory, comms });
+    case "ollama": {
+      const backend = createBackend(brain as BrainName);
+      return { policy: new LLMPolicy(backend, { memory, comms }), backend };
+    }
     default:
       console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
       process.exit(1);
@@ -89,7 +92,16 @@ async function main(): Promise<void> {
   const maxTicks = Number(argv["ticks"]);
   const budgetUSD = Number(argv["budget-usd"]);
   const goalCheck = GOAL_CHECKS[presetName(goal) ?? ""];
-  const policy = buildPolicy(String(argv["brain"]));
+  const { policy, backend } = buildPolicy(String(argv["brain"]));
+  if (backend) {
+    // Find a bad key or an empty account now, not ten minutes into an episode.
+    try {
+      await preflight(backend);
+    } catch (error) {
+      console.error(`[${agentName}] brain ${backend.name} is not usable, not starting: ${(error as Error).message}`);
+      process.exit(3);
+    }
+  }
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
 
@@ -212,7 +224,11 @@ async function main(): Promise<void> {
       // let the world tick on, and ask again — the timeout is itself data.
       const reason = `the brain failed to decide: ${error instanceof Error ? error.message : String(error)}`;
       console.error(`[${agentName}] step ${step}: ${reason}`);
-      if (++policyFailures >= 3) {
+      if (error instanceof BrainError && error.kind === "fatal") {
+        // No credits, no quota, bad key: retrying cannot help, and it is not the model failing.
+        console.error(`[${agentName}] brain unavailable — ending the run`);
+        ended = "brain unavailable";
+      } else if (++policyFailures >= 3) {
         console.error(`[${agentName}] giving up after 3 failed decisions in a row`);
         ended = "brain failed";
       }

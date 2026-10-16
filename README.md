@@ -197,6 +197,14 @@ npm run agent -- --scenario sandbox --brain scripted   # no model; proves the lo
 
 Never commit `.env`. This repo is public.
 
+**Paid brains and credits.** `--budget-usd` (default $1.00) stops one run before it overspends, but
+the real guard against a surprise bill is a monthly spend limit in the Anthropic and OpenAI
+consoles — set one when you create a key. Each model agent makes one tiny call before joining the
+world, so a bad key or an empty account stops it at startup with the provider's message. If credits
+run out mid-run, the run ends as `brain unavailable` (no retries) and `npm run report` marks it, and
+every other agent in that episode, as not comparable. Rate limits and overloads are retried with
+backoff instead.
+
 ## Licence
 
 MIT

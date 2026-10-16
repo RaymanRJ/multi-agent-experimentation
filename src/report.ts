@@ -41,6 +41,22 @@ export interface RunSummary {
   costUSD: number | "unknown";
   milestones: Record<MilestoneName, MilestoneData | null>;
   furthestMilestone: MilestoneName | null;
+  /** Shared by agents launched together; null for logs older than episode IDs. */
+  episode: string | null;
+  /**
+   * Whether this run can be compared. "brain unavailable" (no credits, bad key) is the
+   * provider's failure, not the model's; "episode incomplete" means another agent in the
+   * same episode lost its brain, so this run played a world with one agent missing.
+   */
+  validity: "valid" | "brain unavailable" | "episode incomplete";
+}
+
+/** Flags every other run in an episode where some agent's brain became unavailable. */
+export function markEpisodes(summaries: RunSummary[]): void {
+  const broken = new Set(summaries.filter((s) => s.validity === "brain unavailable" && s.episode).map((s) => s.episode));
+  for (const s of summaries) {
+    if (s.validity === "valid" && s.episode && broken.has(s.episode)) s.validity = "episode incomplete";
+  }
 }
 
 /**
@@ -363,6 +379,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     costUSD: costUsdValue,
     milestones,
     furthestMilestone,
+    episode: steps[0]?.config?.episode ?? null,
+    validity: howEnded === "brain unavailable" ? "brain unavailable" : "valid",
   };
 }
 
@@ -578,6 +596,8 @@ async function main() {
     return;
   }
 
+  markEpisodes(summaries);
+
   if (jsonOutput) {
     console.log(JSON.stringify(summaries, null, 2));
   } else {
@@ -610,6 +630,7 @@ function printTable(summaries: RunSummary[]) {
     ["Steps", (s) => String(s.stepsLogged), true],
     ["Furthest", (s) => s.furthestMilestone || "-", false],
     ["Ended", (s) => s.howEnded || "", false],
+    ["Valid", (s) => (s.validity === "valid" ? "yes" : `no: ${s.validity}`), false],
     ["Deaths", (s) => String(s.deaths), true],
     ["Goal", (s) => formatGoalMet(s.goalMet), false],
     ["Night", (s) => (s.nightReached ? "yes" : "no"), false],

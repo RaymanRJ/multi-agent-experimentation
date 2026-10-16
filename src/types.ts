@@ -177,6 +177,7 @@ export type EndReason =
   | "time budget"     // the in-game time budget ran out
   | "cost budget"     // paid model calls reached the dollar cap
   | "brain failed"    // three failed decisions in a row
+  | "brain unavailable" // the provider refused for good: no credits, quota, bad key — not the model's fault
   | "step limit";     // the safety cap on decisions
 
 export interface RunConfig {
