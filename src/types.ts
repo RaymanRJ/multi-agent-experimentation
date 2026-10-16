@@ -163,7 +163,19 @@ export interface LoggedStep {
   system?: string;
   /** Run settings, repeated on every line so any line stands alone. */
   config?: RunConfig;
+  /** World age in ticks since the run's first observation. Sleeping does not skip it. */
+  ticks?: number;
+  /** Set on the last line of a run: why it stopped. */
+  ended?: EndReason;
 }
+
+export type EndReason =
+  | "goal met"        // a deterministic check on a preset goal passed
+  | "model ended"     // the policy returned no decision ("done")
+  | "time budget"     // the in-game time budget ran out
+  | "cost budget"     // paid model calls reached the dollar cap
+  | "brain failed"    // three failed decisions in a row
+  | "step limit";     // the safety cap on decisions
 
 export interface RunConfig {
   /** Shared by every agent launched together, so their logs can be merged into one episode. */

@@ -159,7 +159,7 @@ Early. Scaffolding in progress — see commit history.
 
 ```bash
 cp .env.example .env        # optional: add API keys to also start the Claude / GPT agents
-./start.sh                  # or: ./start.sh --scenario survival --steps 20
+./start.sh                  # or: ./start.sh --scenario survival --goal shelter --ticks 12000
 ./stop.sh                   # stops agents + minds panel; ./stop.sh --all also stops Minecraft
 ```
 

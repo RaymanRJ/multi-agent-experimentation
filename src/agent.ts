@@ -4,16 +4,17 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { mineflayer as startViewer } from "prismarine-viewer";
 
 import { env, loadEnv } from "./env.js";
-import { observe } from "./observe.js";
+import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak } from "./comms.js";
 import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
-import { SCENARIOS, applyScenario, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, SCENARIOS, applyScenario, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
-import type { Backend, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
+import { costUSD } from "./backends/pricing.js";
+import type { EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
 
 const { pathfinder, Movements } = pathfinderPkg;
 
@@ -21,7 +22,9 @@ loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
   string: ["scenario", "brain", "name", "goal", "memory", "comms", "episode"],
-  default: { scenario: "sandbox", brain: "scripted", steps: 12, memory: "plan", comms: "on" },
+  // A run ends on its goal, the model saying "done", or the in-game time budget
+  // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
+  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on" },
 });
 
 const scenarioName = argv["scenario"] as ScenarioName;
@@ -63,11 +66,7 @@ function buildPolicy(brain: string): Policy {
     case "claude":
     case "gpt":
     case "ollama":
-      // TODO: drop the cast once the memory branch merges (LLMPolicy then accepts options).
-      return new (LLMPolicy as unknown as new (backend: Backend, options: { memory: MemoryMode; comms: boolean }) => Policy)(
-        createBackend(brain as BrainName),
-        { memory, comms },
-      );
+      return new LLMPolicy(createBackend(brain as BrainName), { memory, comms });
     default:
       console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
       process.exit(1);
@@ -87,6 +86,9 @@ function snapshot(bot: mineflayer.Bot): WorldSnapshot {
 async function main(): Promise<void> {
   const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
   const maxSteps = Number(argv["steps"]);
+  const maxTicks = Number(argv["ticks"]);
+  const budgetUSD = Number(argv["budget-usd"]);
+  const goalCheck = GOAL_CHECKS[presetName(goal) ?? ""];
   const policy = buildPolicy(String(argv["brain"]));
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
@@ -146,6 +148,18 @@ async function main(): Promise<void> {
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
+
+  // The budget is world age, not time of day: sleeping skips the clock, not the age.
+  const startAge = bot.time.age;
+  const elapsedTicks = () => bot.time.age - startAge;
+  let timeUp = false;
+  bot.on("physicsTick", () => {
+    if (timeUp || elapsedTicks() < maxTicks) return;
+    timeUp = true;
+    stopping = true; // running skills see shouldStop() and bail
+    console.log(`[${agentName}] time budget of ${maxTicks} ticks used up`);
+  });
+  let spentUSD = 0;
   narrate(bot, `online — brain: ${policy.name}`);
 
   // `--view` serves this bot's view of the world in a browser. Pass a port
@@ -168,8 +182,9 @@ async function main(): Promise<void> {
   };
 
   let policyFailures = 0;
+  let ended: EndReason | undefined;
 
-  for (let step = 1; step <= maxSteps; step++) {
+  for (let step = 1; !ended; step++) {
     const observation = observe(bot, {
       step,
       scenario: scenario.name,
@@ -179,6 +194,13 @@ async function main(): Promise<void> {
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
     });
     stepEvents = [];
+    const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended">) => {
+      // Checked last, so a goal met or a model "done" on the final step wins.
+      if (!ended && timeUp) ended = "time budget";
+      if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
+      if (!ended && step >= maxSteps) ended = "step limit";
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, config, ticks: elapsedTicks(), ...(ended ? { ended } : {}) });
+    };
 
     const startedAt = Date.now();
     let output;
@@ -189,31 +211,41 @@ async function main(): Promise<void> {
       // A slow or unreachable model must not end the run. Log the failed step,
       // let the world tick on, and ask again — the timeout is itself data.
       const reason = `the brain failed to decide: ${error instanceof Error ? error.message : String(error)}`;
-      const decisionMs = Date.now() - startedAt;
-      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: { status: "failed", reason }, decisionMs, calls: [], config });
       console.error(`[${agentName}] step ${step}: ${reason}`);
       if (++policyFailures >= 3) {
         console.error(`[${agentName}] giving up after 3 failed decisions in a row`);
-        break;
+        ended = "brain failed";
       }
-      await bot.waitForTicks(100);
+      write({ decision: null, result: { status: "failed", reason }, decisionMs: Date.now() - startedAt, calls: [] });
+      if (!ended) await bot.waitForTicks(100);
       continue;
     }
     const { decision, calls, system } = output;
-    const extra = { config, ...(system ? { system } : {}) };
     const decisionMs = Date.now() - startedAt;
+    for (const call of calls) {
+      const cost = costUSD(call);
+      if (Number.isFinite(cost)) spentUSD += cost; // unknown cloud models show as "unknown" in the report
+    }
+    const extra = { calls, decisionMs, ...(system ? { system } : {}) };
 
     if (!decision) {
-      runLog.write({ step, at: new Date().toISOString(), observation, decision: null, result: null, decisionMs, calls, ...extra });
       console.log(`[${agentName}] policy ended the episode`);
+      ended = "model ended";
+      write({ decision: null, result: null, ...extra });
+      break;
+    }
+
+    if (timeUp) {
+      // The budget ran out while the model was deciding; don't start a skill that would abort at once.
+      write({ decision, result: { status: "aborted", reason: "the time budget ran out" }, ...extra });
       break;
     }
 
     const skill = findSkill(decision.skill);
     if (!skill) {
       const result = { status: "failed" as const, reason: `no such skill: ${decision.skill}` };
-      runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls, ...extra });
       recentEvents.push(result.reason);
+      write({ decision, result, events: [], ...extra });
       continue;
     }
 
@@ -234,9 +266,14 @@ async function main(): Promise<void> {
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
-    runLog.write({ step, at: new Date().toISOString(), observation, decision, result, decisionMs, calls, events: stepEvents, ...extra });
+    if (goalCheck?.({ skill: decision.skill, status: result.status, inventory: countInventory(bot) })) {
+      console.log(`[${agentName}] goal met`);
+      ended = "goal met";
+    }
+    write({ decision, result, events: stepEvents, ...extra });
   }
 
+  console.log(`[${agentName}] ended: ${ended} after ${elapsedTicks()} ticks, $${spentUSD.toFixed(4)}`);
   stopping = true;
   console.log(`[${agentName}] done — log at ${runLog.file}`);
   bot.quit();

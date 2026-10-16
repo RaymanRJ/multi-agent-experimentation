@@ -56,6 +56,12 @@ piece built against it simultaneously. This has already bitten this project's pl
 - **Log every decision.** Persist each `(observation → goal)` pair. This gives episode replay
   without re-burning API calls, and it is the source of the cost numbers.
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
+  Reset the world (`scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
+  not `LEVEL_SEED` — the world was unseeded until that was fixed.
+- **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
+  says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
+  paid models; `--steps` is only a safety cap. Tokens and wall-clock are recorded, never limits —
+  tokenizers differ between providers and wall-clock measures the hardware.
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
@@ -64,7 +70,7 @@ piece built against it simultaneously. This has already bitten this project's pl
 ## Commands
 
 ```bash
-./start.sh [--scenario survival --steps 20]   # everything: mc + minds :3010 + agents (ollama stays on host)
+./start.sh [--scenario survival --ticks 12000]  # everything: mc + minds :3010 + agents (ollama stays on host)
 ./stop.sh [--all]               # stop agents + minds; --all also stops mc
 
 docker compose up -d            # Paper server on :25565
@@ -79,6 +85,12 @@ npm run agent -- --brain ollama --view                # watch in a browser at lo
 npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
 npm run agent -- --brain claude --view 3008           # one port per agent to watch several
+npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
+npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
+
+scripts/reset-world.sh                                # regenerate the main world from its seed
+scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)
+MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
 ```
 
 ## Hard constraints

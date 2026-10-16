@@ -61,6 +61,22 @@ export const GOALS: Record<string, string> = {
 };
 
 /**
+ * Deterministic "is the goal met?" checks for preset goals, run after each skill.
+ * Open-ended goals (gather, explore, the scenario defaults) have none: they run
+ * until the model ends them or the time budget does. Keyed by goal, never by
+ * scenario — the same goal ends the same way in either world.
+ */
+export const GOAL_CHECKS: Record<string, (after: { skill: string; status: string; inventory: Record<string, number> }) => boolean> = {
+  shelter: ({ skill, status }) => skill === "build_shelter" && status === "success",
+  tools: ({ inventory }) => (inventory["stone_pickaxe"] ?? 0) > 0,
+};
+
+/** The preset name for a resolved goal text, if it is one. */
+export function presetName(goal: string): string | undefined {
+  return Object.keys(GOALS).find((name) => GOALS[name] === goal);
+}
+
+/**
  * `--goal` takes a preset name or the goal text itself. A single word that is
  * not a preset is almost certainly a typo, so it is rejected rather than sent
  * to the model as the goal.

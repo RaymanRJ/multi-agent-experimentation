@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One command to run the whole experiment:
-#   ./start.sh [--scenario sandbox|survival] [--steps N] [--memory none|plan|full] [--comms on|off] [--goal shelter|tools|gather|explore|"any sentence"]
+#   ./start.sh [--scenario sandbox|survival] [--ticks N] [--memory none|plan|full] [--comms on|off] [--goal shelter|tools|gather|explore|"any sentence"]
 # Starts Minecraft + the minds panel + one agent per available brain.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -21,7 +21,10 @@ Options:
                       gather    collect as much wood and stone as possible
                       explore   travel far, picking up useful things
                     Without --goal, each scenario uses its own goal.
-  --steps N         Decisions each agent makes before stopping (default 12)
+  --ticks N         In-game time budget per run, in ticks (default 24000 = one full day, ~20 min).
+                    A run also ends when its goal is met or the model says it is done.
+  --budget-usd N    Stop a paid agent once its model calls cost this much (default 1.00)
+  --steps N         Safety cap on decisions per agent (default 200)
   --check           Only check this machine's setup (Docker, Ollama, the model); start nothing
   --memory MODE     How much of its own past a model agent sees:
                       none   the current observation only
@@ -39,7 +42,7 @@ ANTHROPIC_API_KEY / OPENAI_API_KEY are set (in the environment or .env).
 Examples:
   ./start.sh
   ./start.sh --scenario survival --goal shelter
-  ./start.sh --goal "Mine 10 stone, then build a shelter" --steps 20
+  ./start.sh --goal "Mine 10 stone, then build a shelter" --ticks 12000
 
 Watch:  minds panel http://localhost:3010 · 3D views http://localhost:3007 (local), 3008 (Claude), 3009 (GPT)
 Stop:   ./stop.sh          (agents and panel; Minecraft keeps running)
@@ -48,25 +51,31 @@ HELP
 }
 
 SCENARIO="${SCENARIO:-sandbox}"
-STEPS="${STEPS:-12}"
+STEPS="${STEPS:-200}"
+TICKS="${TICKS:-24000}"
+BUDGET_USD="${BUDGET_USD:-1.00}"
 GOAL="${GOAL:-}"
+AGENT_MEMORY="${AGENT_MEMORY:-plan}"
+AGENT_COMMS="${AGENT_COMMS:-on}"
 CHECK_ONLY=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --scenario) SCENARIO="${2:?--scenario needs a value}"; shift 2 ;;
     --steps)    STEPS="${2:?--steps needs a value}"; shift 2 ;;
+    --ticks)    TICKS="${2:?--ticks needs a value}"; shift 2 ;;
+    --budget-usd) BUDGET_USD="${2:?--budget-usd needs a value}"; shift 2 ;;
     --goal)     GOAL="${2:?--goal needs a value}"; shift 2 ;;
     --check)    CHECK_ONLY=true; shift ;;
-    --memory)   MEMORY="${2:?--memory needs a value}"; shift 2 ;;
-    --comms)    COMMS="${2:?--comms needs a value}"; shift 2 ;;
+    --memory)   AGENT_MEMORY="${2:?--memory needs a value}"; shift 2 ;;
+    --comms)    AGENT_COMMS="${2:?--comms needs a value}"; shift 2 ;;
     -h|--help)  usage; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 1 ;;
   esac
 done
-case "$MEMORY" in none|plan|full) ;; *) echo "--memory must be none, plan or full" >&2; exit 1 ;; esac
-case "$COMMS" in on|off) ;; *) echo "--comms must be on or off" >&2; exit 1 ;; esac
+case "$AGENT_MEMORY" in none|plan|full) ;; *) echo "--memory must be none, plan or full" >&2; exit 1 ;; esac
+case "$AGENT_COMMS" in on|off) ;; *) echo "--comms must be on or off" >&2; exit 1 ;; esac
 EPISODE="ep-$(date -u +%Y%m%dT%H%M%SZ)"   # one per launch, shared by every agent
-export SCENARIO STEPS GOAL MEMORY COMMS EPISODE
+export SCENARIO STEPS TICKS BUDGET_USD GOAL AGENT_MEMORY AGENT_COMMS EPISODE
 
 say()  { printf '\n==> %s\n' "$*"; }
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -181,7 +190,7 @@ else
   echo "  gpt     : skipped (no OPENAI_API_KEY)"
 fi
 
-say "Starting minds panel and agents (scenario=$SCENARIO, steps=$STEPS, memory=$MEMORY, comms=$COMMS, episode=$EPISODE, goal=${GOAL:-scenario default})"
+say "Starting minds panel and agents (scenario=$SCENARIO, ticks=$TICKS, memory=$AGENT_MEMORY, comms=$AGENT_COMMS, episode=$EPISODE, goal=${GOAL:-scenario default})"
 docker compose --profile agents up -d --build --no-deps --force-recreate minds "${SERVICES[@]}"
 
 say "Ready"

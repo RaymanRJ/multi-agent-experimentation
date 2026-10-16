@@ -707,3 +707,16 @@ test("milestones: gameTicks accumulates with timeOfDay wrapping at 24000", () =>
   assert.equal(summary.milestones.logs?.step, 2);
   assert.equal(summary.milestones.logs?.gameTicks, 10000);
 });
+
+test("howEnded uses the end reason the agent recorded", () => {
+  const base = {
+    at: "2026-10-16T00:00:00.000Z",
+    observation: { step: 1, scenario: "sandbox", goal: "x", isDay: true, timeOfDay: 0, inventory: {}, recentEvents: [] },
+    decision: { skill: "wait", args: { seconds: 1 } },
+    result: { status: "success" },
+    decisionMs: 1,
+    calls: [],
+  } as unknown as LoggedStep;
+  const s = summarizeRun([{ ...base, step: 1 }, { ...base, step: 2, ended: "time budget" }], "runs/2026-x-agent_a.jsonl");
+  assert.equal(s.howEnded, "time budget");
+});

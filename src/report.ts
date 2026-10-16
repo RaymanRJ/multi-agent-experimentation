@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import minimist from "minimist";
-import type { LoggedStep, SkillStatus } from "./types.js";
+import type { EndReason, LoggedStep, SkillStatus } from "./types.js";
 import { GOALS, SCENARIOS } from "./scenario.js";
 import { costUSD } from "./backends/pricing.js";
 
@@ -24,7 +24,7 @@ export interface RunSummary {
   goal: string;
   goalName: string; // preset key, "scenario default", or "custom"
   stepsLogged: number;
-  howEnded: "policy ended" | "brain failed" | "step limit / stopped";
+  howEnded: EndReason | "policy ended" | "step limit / stopped";
   skillCounts: Record<string, { success: number; failed: number; aborted: number }>;
   deaths: number;
   goalMet: boolean | "n/a";
@@ -190,8 +190,12 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   }
 
   // howEnded
-  let howEnded: "policy ended" | "brain failed" | "step limit / stopped" = "step limit / stopped";
-  if (steps.length > 0) {
+  // Logs written since the agent records `ended` say it directly; older ones are inferred.
+  let howEnded: RunSummary["howEnded"] = "step limit / stopped";
+  const recorded = steps[steps.length - 1]?.ended;
+  if (recorded) {
+    howEnded = recorded;
+  } else if (steps.length > 0) {
     const last = steps[steps.length - 1];
     if (last && last.decision === null && last.result === null) {
       howEnded = "policy ended";
