@@ -22,6 +22,8 @@ const MAX_SKILL_MS = 6 * 60_000;
 const DIGGERS = ["stone_pickaxe", "wooden_pickaxe", "golden_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
 const PRECIOUS = new Set(["iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"]);
 const KEEP_USES = 16;
+/** A block slower than this to dig with the held pickaxe gets the best tool instead. */
+const SLOW_DIG_MS = 3000;
 const HEADINGS: Array<{ name: string; dx: number; dz: number }> = [
   { name: "north", dx: 0, dz: -1 },
   { name: "east", dx: 1, dz: 0 },
@@ -61,8 +63,6 @@ function usesLeft(item: { maxDurability?: number; durabilityUsed?: number }): nu
  * no pickaxe at all, or only an iron (or better) one that is being saved for ore.
  */
 async function equipDigger(bot: Bot): Promise<string | null> {
-  const held = bot.heldItem;
-  if (held && DIGGERS.includes(held.name) && !(PRECIOUS.has(held.name) && usesLeft(held) <= KEEP_USES)) return null;
   const candidates = bot.inventory
     .items()
     .filter((item) => DIGGERS.includes(item.name))
@@ -70,7 +70,7 @@ async function equipDigger(bot: Bot): Promise<string | null> {
     .sort((a, b) => DIGGERS.indexOf(a.name) - DIGGERS.indexOf(b.name) || usesLeft(a) - usesLeft(b));
   const usable = candidates.find((item) => !(PRECIOUS.has(item.name) && usesLeft(item) <= KEEP_USES));
   if (usable) {
-    await bot.equip(usable, "hand");
+    if (bot.heldItem?.slot !== usable.slot) await bot.equip(usable, "hand");
     return null;
   }
   const saved = candidates[0];
@@ -91,7 +91,14 @@ async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
   for (let round = 0; round < 4; round++) {
     const solid = cells.map((cell) => bot.blockAt(cell)).filter((block) => block && block.boundingBox !== "empty");
     if (solid.length === 0) return;
-    for (const block of solid) await withTimeout(bot.dig(block!), DIG_TIMEOUT_MS, `digging ${block!.name}`);
+    for (const block of solid) {
+      // Ore a cheap pickaxe can't harvest (redstone, diamond) takes it ages; use the right tool for that block.
+      if (bot.digTime(block!) > SLOW_DIG_MS) {
+        const better = bot.pathfinder.bestHarvestTool(block!);
+        if (better) await bot.equip(better, "hand");
+      }
+      await withTimeout(bot.dig(block!), DIG_TIMEOUT_MS, `digging ${block!.name}`);
+    }
     await bot.waitForTicks(6);
   }
   throw new Error("blocks kept falling into the gap");
