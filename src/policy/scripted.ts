@@ -25,6 +25,10 @@ const COBBLE_FOR_FURNACE = 8;
 /** Searching for ore is tunnel, look, tunnel: it earns many more tries than other stages. */
 const MAX_ORE_FAILS = 15;
 const SPARE_STONE_PICKS = 2;
+/** Wet rock (the flooded cave under spawn): tunnels that hit water before moving, and how often. */
+const BLOCKED_TUNNELS_TO_MOVE = 3;
+const MAX_RELOCATIONS = 4;
+const DIG_KEYS = ["descend", "tunnel", "mine_ore:iron", "mine_ore:diamond"];
 
 const FLEE_RANGE = 8;
 const FLEE_DISTANCE = 24;
@@ -96,6 +100,9 @@ export class ScriptedPolicy implements Policy {
   /** The last mine_ore found nothing in sight: dig to uncover more before looking again. */
   private uncover = false;
   private shelterBuilt = false;
+  /** Digging was turned back by water or lava here: dig somewhere else. */
+  private digBlocked = 0;
+  private relocations = 0;
   /** The skill chosen last, kept after its result is read (lastDecision is cleared then). */
   private lastSkill: string | null = null;
   private decisions = 0;
@@ -144,6 +151,11 @@ export class ScriptedPolicy implements Policy {
     if (status === null) return;
 
     if (last.skill === "flee") return;
+    if (last.skill === "descend" || last.skill === "tunnel") {
+      if (/every way down is unsafe/.test(reason)) this.digBlocked = BLOCKED_TUNNELS_TO_MOVE;
+      else if (/water|lava/.test(reason)) this.digBlocked += 1;
+      else if (status === "success") this.digBlocked = 0;
+    }
     if (status === "success") {
       if (last.skill !== "craft") this.failStreak.set(last.key, 0); // a craft is confirmed against the inventory
       if (last.skill === "build_shelter") this.shelterBuilt = true;
@@ -314,6 +326,17 @@ export class ScriptedPolicy implements Policy {
       return null;
     };
 
+    if (this.digBlocked >= BLOCKED_TUNNELS_TO_MOVE && this.relocations < MAX_RELOCATIONS) {
+      // Water or lava all around: a new spot, with fresh tries at digging there.
+      this.digBlocked = 0;
+      const distance = 48 + 16 * this.relocations++;
+      for (const key of DIG_KEYS) {
+        this.attempts.delete(key);
+        this.failStreak.delete(key);
+        this.abandoned.delete(key);
+      }
+      return this.go("explore", { distance }, "water or lava blocks digging here: try somewhere else");
+    }
     if (!has("iron_pickaxe") && !has("diamond_pickaxe")) {
       const ingots = inv["iron_ingot"] ?? 0;
       const raw = inv["raw_iron"] ?? 0;

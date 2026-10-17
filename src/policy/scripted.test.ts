@@ -216,6 +216,32 @@ test("after the outpost it digs for iron, smelts it, then goes down for diamonds
   assert.deepEqual([d.skill, d.args], ["descend", { y: -58 }]);
 });
 
+test("when water blocks every way down, it explores somewhere else and digs again", async () => {
+  const p = new ScriptedPolicy();
+  const kit = { stone_pickaxe: 2, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  const said = (o: Partial<Observation>, event: string) => obs({ ...o, recentEvents: [event] });
+  let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
+  d = (await next(p, after(d, "success", { inventory: kit })))!; // shelter built
+  assert.equal(d.skill, "mine_ore");
+  d = (await next(p, said({ inventory: kit }, "mine_ore failed (no iron ore in reach)")))!;
+  assert.deepEqual([d.skill, d.args], ["descend", { y: 16 }]);
+  const wet = { inventory: kit, position: { x: 0, y: 58, z: 0 } };
+  d = (await next(p, said(wet, "descend failed (stopped at y=58: every way down is unsafe (east: water behind the stone))")))!;
+  assert.deepEqual([d.skill, d.args], ["explore", { distance: 48 }]);
+  d = (await next(p, after(d, "success", wet)))!;
+  assert.equal(d.skill, "mine_ore"); // look first in the new spot
+  d = (await next(p, said(wet, "mine_ore failed (no iron ore in reach)")))!;
+  assert.equal(d.skill, "descend");
+  // Tunnels stopped by water three times in a row: move again, a little further.
+  d = (await next(p, said(wet, "descend failed (reached y=58 of 16 before running out of time)")))!;
+  for (let i = 0; i < 3; i++) {
+    for (let guard = 0; d.skill !== "tunnel" && guard < 6; guard++) d = (await next(p, said(wet, `${d.skill} failed (no iron ore in reach)`)))!;
+    assert.equal(d.skill, "tunnel");
+    d = (await next(p, said(wet, "tunnel success (stopped after 2 blocks: water behind the stone ahead.)")))!;
+  }
+  assert.deepEqual([d.skill, d.args], ["explore", { distance: 64 }]);
+});
+
 test("out mining after the shelter, a close hostile means flee, then wait once fleeing is used up", async () => {
   const p = new ScriptedPolicy();
   const inv = { oak_log: 12, stone_pickaxe: 1 };
