@@ -15,6 +15,16 @@ export type ScenarioName = "sandbox" | "survival";
  */
 export type MemoryMode = "none" | "plan" | "full";
 
+/**
+ * How an agent is told to regard the other agents in its world. An experiment setting.
+ *   neutral       — nothing: the prompt describes other agents but gives no motive
+ *   collaborative — they are teammates; the team succeeds only if everyone reaches the goal
+ *   competitive   — they are opponents; only the first to reach the goal wins
+ * Each is scored by its own rule (see report.ts). It only matters when agents share a world.
+ */
+export type Stance = "neutral" | "collaborative" | "competitive";
+export const STANCES: Stance[] = ["neutral", "collaborative", "competitive"];
+
 /** One chat message between agents (or from a human in the world). */
 export interface Message {
   from: string;
@@ -124,6 +134,9 @@ export interface ModelCall {
   /** Why generation stopped, as the provider reports it (e.g. "end_turn", "max_tokens", "length"). */
   stopReason?: string;
   requestId?: string;
+  /** Failed attempts before this one (rate limits, overload, network) and the time spent waiting on them. */
+  providerRetries?: number;
+  retryWaitMs?: number;
 }
 
 export interface ChatTurn {
@@ -194,4 +207,6 @@ export interface RunConfig {
   episode: string;
   memory: MemoryMode;
   comms: boolean;
+  /** Absent in logs written before stances existed; their prompt leaned collaborative. */
+  stance?: Stance;
 }

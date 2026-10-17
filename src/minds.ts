@@ -95,6 +95,7 @@ export interface RunRow {
   brainDetail: string;
   memory: string | null;
   comms: boolean | null;
+  stance: string | null;
   episode: string | null;
   /** "b4" for a run from scripts/batch.sh b4 (episode "batch-b4-7"); null otherwise. */
   batch: string | null;
@@ -132,6 +133,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     brainDetail: brain.detail,
     memory: calls.length > 0 ? (last.config?.memory ?? null) : null, // the scripted baseline has no memory setting
     comms: last.config?.comms ?? null,
+    stance: calls.length > 0 ? (last.config?.stance ?? null) : null,
     episode: last.config?.episode ?? null,
     batch: /^batch-(.+)-\d+$/.exec(last.config?.episode ?? "")?.[1] ?? null,
     goal: first.observation.goal,

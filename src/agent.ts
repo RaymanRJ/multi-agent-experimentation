@@ -17,17 +17,17 @@ import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import { costUSD, PRICED_MODELS } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
-import type { Backend, EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
+import { STANCES, type Backend, type EndReason, type LoggedStep, type MemoryMode, type Policy, type RunConfig, type ScenarioName, type SkillContext, type Stance } from "./types.js";
 
 const { pathfinder } = pathfinderPkg;
 
 loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
-  string: ["scenario", "brain", "name", "goal", "memory", "comms", "episode"],
+  string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
-  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on" },
+  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral" },
 });
 
 const scenarioName = argv["scenario"] as ScenarioName;
@@ -56,10 +56,16 @@ if (!["on", "off"].includes(commsArg)) {
   process.exit(1);
 }
 const comms = commsArg === "on";
+const stance = String(argv["stance"] || "neutral") as Stance;
+if (!STANCES.includes(stance)) {
+  console.error(`unknown --stance "${stance}" — expected ${STANCES.join(", ")}`);
+  process.exit(1);
+}
 const config: RunConfig = {
   episode: String(argv["episode"] || `ep-${new Date().toISOString().replace(/[:.]/g, "-")}`),
   memory,
   comms,
+  stance,
 };
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
@@ -78,7 +84,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
         console.error((error as Error).message);
         process.exit(1);
       }
-      return { policy: new LLMPolicy(backend, { memory, comms }), backend };
+      return { policy: new LLMPolicy(backend, { memory, comms, stance }), backend };
     }
   }
 }
@@ -127,7 +133,7 @@ async function main(): Promise<void> {
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
 
-  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} -> ${runLog.file}`);
+  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {

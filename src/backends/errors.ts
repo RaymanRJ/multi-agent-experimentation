@@ -76,15 +76,19 @@ export function withRetries(
     name: backend.name,
     ...(backend.contextTokens !== undefined && { contextTokens: backend.contextTokens }),
     async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
+      let waited = 0;
       for (let attempt = 0; ; attempt++) {
         try {
-          return await backend.complete(system, turns);
+          const call = await backend.complete(system, turns);
+          // Logged so throttling shows up in the report, not only on the console.
+          return attempt > 0 ? { ...call, providerRetries: attempt, retryWaitMs: waited } : call;
         } catch (error) {
           const brainError = error instanceof BrainError ? error : new BrainError(String((error as Error)?.message ?? error), "transient");
           if (brainError.kind === "fatal" || brainError.timedOut || attempt >= delays.length) throw brainError;
           const wait = Math.min(brainError.retryAfterMs ?? delays[attempt]!, MAX_RETRY_AFTER_MS);
           log(`${brainError.message} — retrying in ${Math.round(wait / 1000)}s (${attempt + 1}/${delays.length})`);
           await sleep(wait);
+          waited += wait;
         }
       }
     },

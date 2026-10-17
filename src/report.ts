@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
-import type { EndReason, LoggedStep, SkillStatus } from "./types.js";
+import type { EndReason, LoggedStep, MemoryMode, SkillStatus, Stance } from "./types.js";
 import { GOALS, SCENARIOS, goalTask } from "./scenario.js";
 import { costUSD } from "./backends/pricing.js";
 
@@ -29,6 +29,20 @@ export interface RunSummary {
   skillCounts: Record<string, { success: number; failed: number; aborted: number }>;
   deaths: number;
   goalMet: boolean | "n/a";
+  /** When and after how many game ticks the goal was met; null if it wasn't. */
+  goalMetAt: string | null;
+  ticksToGoal: number | null;
+  /** Null for the scripted baseline, which has no memory or stance. */
+  memory: MemoryMode | null;
+  comms: boolean | null;
+  /** "legacy" for logs from before stances, whose prompt leaned collaborative. */
+  stance: Stance | "legacy" | null;
+  /**
+   * Success by the run's own stance: neutral counts the goal met, collaborative counts the
+   * whole team (everyone in the episode) meeting it, competitive counts being first to it.
+   * Set by scoreStances(); equals goalMet until then.
+   */
+  outcome: boolean | "n/a";
   nightReached: boolean;
   survivedNight: boolean | "unknown";
   decisions: number;
@@ -36,6 +50,9 @@ export interface RunSummary {
   decisionMsP90: number;
   totalModelCalls: number;
   retries: number;
+  /** Provider retries (rate limits, overload, network) and the seconds spent waiting on them. */
+  providerRetries: number;
+  retryWaitS: number;
   fallbackWaits: number;
   tokensIn: number;
   tokensOut: number;
@@ -50,6 +67,32 @@ export interface RunSummary {
    * same episode lost its brain, so this run played a world with one agent missing.
    */
   validity: "valid" | "brain unavailable" | "episode incomplete";
+}
+
+/**
+ * Scores each run by its stance's rule, across the agents of its episode. A collaborative
+ * run succeeds only when every collaborative agent in the episode met the goal; a competitive
+ * run succeeds only when it met the goal first. An agent alone in its episode is scored as
+ * neutral would be.
+ */
+export function scoreStances(summaries: RunSummary[]): void {
+  const byEpisode = new Map<string, RunSummary[]>();
+  for (const s of summaries) {
+    if (!s.episode) continue;
+    byEpisode.set(s.episode, [...(byEpisode.get(s.episode) ?? []), s]);
+  }
+  for (const s of summaries) {
+    if (s.goalMet === "n/a") continue;
+    const peers = (s.episode ? byEpisode.get(s.episode) : undefined)?.filter((p) => p.stance === s.stance) ?? [s];
+    if (s.stance === "collaborative") {
+      s.outcome = peers.every((p) => p.goalMet === true);
+    } else if (s.stance === "competitive") {
+      const times = peers.map((p) => p.goalMetAt).filter((at): at is string => at !== null).sort();
+      s.outcome = s.goalMetAt !== null && s.goalMetAt === times[0];
+    } else {
+      s.outcome = s.goalMet;
+    }
+  }
 }
 
 /** Flags every other run in an episode where some agent's brain became unavailable. */
@@ -160,6 +203,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   const scenario = firstObs.scenario;
   const goalText = firstObs.goal;
 
+  const config = steps[0]?.config;
+
   // Determine goalName
   let goalName = "custom";
   for (const [key, val] of Object.entries(GOALS)) {
@@ -235,12 +280,14 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
 
   // Goal outcome
   let goalMet: boolean | "n/a" = "n/a";
+  let goalStep: LoggedStep | undefined;
   const task = goalTask(goalName);
   if (task === "shelter") {
     goalMet = false;
     for (const step of steps) {
       if (step.decision && step.decision.skill === "build_shelter" && step.result && step.result.status === "success") {
         goalMet = true;
+        goalStep = step;
         break;
       }
     }
@@ -257,6 +304,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
         step.result.status === "success"
       ) {
         goalMet = true;
+        goalStep = step;
         break;
       }
     }
@@ -265,6 +313,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
       for (const step of steps) {
         if (step.observation && step.observation.inventory && step.observation.inventory.stone_pickaxe) {
           goalMet = true;
+          goalStep = step;
           break;
         }
       }
@@ -310,6 +359,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   // Model calls and tokens
   let totalModelCalls = 0;
   let retries = 0;
+  let providerRetries = 0;
+  let retryWaitMs = 0;
   let fallbackWaits = 0;
   let tokensIn = 0;
   let tokensOut = 0;
@@ -323,6 +374,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     for (const call of calls) {
       tokensIn += call.inputTokens;
       tokensOut += call.outputTokens;
+      providerRetries += call.providerRetries ?? 0;
+      retryWaitMs += call.retryWaitMs ?? 0;
     }
     // Fallback waits
     if (step.decision?.rationale?.startsWith("fallback:")) {
@@ -368,6 +421,12 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     skillCounts,
     deaths,
     goalMet,
+    goalMetAt: goalStep?.at ?? null,
+    ticksToGoal: goalStep?.ticks ?? null,
+    memory: brain === "scripted" ? null : (config?.memory ?? null),
+    comms: brain === "scripted" ? null : (config?.comms ?? null),
+    stance: brain === "scripted" ? null : (config ? (config.stance ?? "legacy") : null),
+    outcome: goalMet,
     nightReached,
     survivedNight,
     decisions,
@@ -375,6 +434,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     decisionMsP90,
     totalModelCalls,
     retries,
+    providerRetries,
+    retryWaitS: Math.round(retryWaitMs / 1000),
     fallbackWaits,
     tokensIn,
     tokensOut,
@@ -549,9 +610,104 @@ function* readJsonl(path: string): Generator<LoggedStep> {
  * CLI: print aligned text table of runs.
  * Options: --last N (default 20), --json (full summaries), positional file paths.
  */
+/**
+ * 95% Wilson score interval for k successes in n runs. Unlike k/n ± 1.96·SE it stays inside
+ * [0, 1] and is honest at small n: 3/3 is "somewhere between 44% and 100%".
+ */
+export function wilson(k: number, n: number, z = 1.96): [number, number] {
+  if (n === 0) return [0, 1];
+  const p = k / n;
+  const denom = 1 + (z * z) / n;
+  const centre = (p + (z * z) / (2 * n)) / denom;
+  const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
+  return [Math.max(0, centre - half), Math.min(1, centre + half)];
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+export interface ConditionRow {
+  brain: string;
+  memory: string;
+  stance: string;
+  goal: string;
+  scenario: string;
+  runs: number;
+  successes: number;
+  ci: [number, number];
+  /** Medians over successful runs only: how long success took when it came. */
+  ticksToGoal: number | null;
+  decisions: number | null;
+  /** Medians over all runs. */
+  tokensIn: number | null;
+  decisionMs: number | null;
+  costUSD: number | "unknown";
+  /** Runs left out: brain unavailable, or another agent in the episode lost its brain. */
+  excluded: number;
+}
+
+/** One row per brain x memory x stance x goal x scenario, scoring each run by its outcome. */
+export function byCondition(summaries: RunSummary[]): ConditionRow[] {
+  const groups = new Map<string, RunSummary[]>();
+  for (const s of summaries) {
+    const key = [s.brain, s.memory ?? "-", s.stance ?? "-", s.goalName, s.scenario].join("\u0000");
+    groups.set(key, [...(groups.get(key) ?? []), s]);
+  }
+  const rows: ConditionRow[] = [];
+  for (const [key, all] of groups) {
+    const [brain, memory, stance, goal, scenario] = key.split("\u0000") as [string, string, string, string, string];
+    const runs = all.filter((s) => s.validity === "valid" && s.outcome !== "n/a");
+    const wins = runs.filter((s) => s.outcome === true);
+    const costs = runs.map((s) => s.costUSD);
+    rows.push({
+      brain, memory, stance, goal, scenario,
+      runs: runs.length,
+      successes: wins.length,
+      ci: wilson(wins.length, runs.length),
+      ticksToGoal: median(wins.map((s) => s.ticksToGoal).filter((t): t is number => t !== null)),
+      decisions: median(wins.map((s) => s.decisions)),
+      tokensIn: median(runs.map((s) => s.tokensIn)),
+      decisionMs: median(runs.map((s) => s.decisionMsMedian).filter((ms) => ms > 0)),
+      costUSD: costs.includes("unknown") ? "unknown" : (costs as number[]).reduce((a, b) => a + b, 0),
+      excluded: all.length - runs.length,
+    });
+  }
+  return rows.sort((a, b) => [a.goal, a.brain, a.memory, a.stance].join(" ").localeCompare([b.goal, b.brain, b.memory, b.stance].join(" ")));
+}
+
+function printConditions(rows: ConditionRow[]): void {
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const num = (x: number | null) => (x === null ? "-" : String(Math.round(x)));
+  printColumns(rows, [
+    ["Goal", (r) => r.goal, false],
+    ["Brain", (r) => r.brain, false],
+    ["Memory", (r) => r.memory, false],
+    ["Stance", (r) => r.stance, false],
+    ["Scenario", (r) => r.scenario, false],
+    ["Success", (r) => `${r.successes}/${r.runs}`, true],
+    ["95% CI", (r) => (r.runs ? `${pct(r.ci[0])}-${pct(r.ci[1])}` : "-"), true],
+    ["Ticks*", (r) => num(r.ticksToGoal), true],
+    ["Decisions*", (r) => num(r.decisions), true],
+    ["TokenIn", (r) => num(r.tokensIn), true],
+    ["Median(ms)", (r) => num(r.decisionMs), true],
+    ["Cost(USD)", (r) => formatCost(r.costUSD), true],
+    ["Excluded", (r) => String(r.excluded), true],
+  ]);
+  console.log("\n* median over successful runs. Success uses each run's stance rule; CI is the 95% Wilson interval.");
+}
+
 async function main() {
-  const argv = minimist(process.argv.slice(2));
-  const last = argv.last ?? 20;
+  const argv = minimist(process.argv.slice(2), { string: ["by", "batch"] });
+  // The per-condition table is about a whole batch, so it reads every run unless told otherwise.
+  const last = argv.last ?? (argv.by || argv.batch ? Infinity : 20);
+  if (argv.by && argv.by !== "condition") {
+    console.error(`unknown --by "${argv.by}" — expected condition`);
+    process.exit(1);
+  }
   const jsonOutput = argv.json ?? false;
   const files = argv._ as string[];
 
@@ -576,8 +732,8 @@ async function main() {
   files.sort();
 
   // Process last N files
-  const toProcess = files.slice(-last);
-  const summaries: RunSummary[] = [];
+  const toProcess = last === Infinity ? files : files.slice(-last);
+  let summaries: RunSummary[] = [];
 
   for (const file of toProcess) {
     try {
@@ -599,8 +755,22 @@ async function main() {
   }
 
   markEpisodes(summaries);
+  scoreStances(summaries);
+  if (argv.batch) {
+    // batch.sh names episodes batch-NAME-N, team.sh team-NAME-N.
+    const prefixes = [`batch-${argv.batch}-`, `team-${argv.batch}-`];
+    summaries = summaries.filter((s) => prefixes.some((p) => s.episode?.startsWith(p)));
+    if (summaries.length === 0) {
+      console.log(`No runs from batch "${argv.batch}".`);
+      return;
+    }
+  }
 
-  if (jsonOutput) {
+  if (argv.by) {
+    const rows = byCondition(summaries);
+    if (jsonOutput) console.log(JSON.stringify(rows, null, 2));
+    else printConditions(rows);
+  } else if (jsonOutput) {
     console.log(JSON.stringify(summaries, null, 2));
   } else {
     // Text table
@@ -624,10 +794,11 @@ function formatSurvivedNight(survived: boolean | "unknown"): string {
 }
 
 function printTable(summaries: RunSummary[]) {
-  // [header, value, right-aligned?] — widths come from the data, so nothing is cut off.
-  const columns: Array<[string, (s: RunSummary) => string, boolean]> = [
+  printColumns(summaries, [
     ["Agent", (s) => s.agentName || "", false],
     ["Brain", (s) => s.brain || "", false],
+    ["Memory", (s) => s.memory ?? "-", false],
+    ["Stance", (s) => s.stance ?? "-", false],
     ["Scenario", (s) => s.scenario || "", false],
     ["Goal preset", (s) => s.goalName, false],
     ["Steps", (s) => String(s.stepsLogged), true],
@@ -636,18 +807,24 @@ function printTable(summaries: RunSummary[]) {
     ["Valid", (s) => (s.validity === "valid" ? "yes" : `no: ${s.validity}`), false],
     ["Deaths", (s) => String(s.deaths), true],
     ["Goal", (s) => formatGoalMet(s.goalMet), false],
+    ["Outcome", (s) => formatGoalMet(s.outcome), false],
     ["Night", (s) => (s.nightReached ? "yes" : "no"), false],
     ["Survived", (s) => formatSurvivedNight(s.survivedNight), false],
     ["Decisions", (s) => String(s.decisions), true],
     ["Median(ms)", (s) => String(s.decisionMsMedian || 0), true],
     ["P90(ms)", (s) => String(s.decisionMsP90 || 0), true],
     ["Calls", (s) => String(s.totalModelCalls), true],
-    ["Retries", (s) => String(s.retries), true],
+    ["Re-asks", (s) => String(s.retries), true],
+    ["Throttled", (s) => (s.providerRetries ? `${s.providerRetries} (${s.retryWaitS}s)` : "0"), true],
     ["TokenIn", (s) => String(s.tokensIn), true],
     ["TokenOut", (s) => String(s.tokensOut), true],
     ["Cost(USD)", (s) => formatCost(s.costUSD), true],
-  ];
-  const cells = summaries.map((s) => columns.map(([, value]) => value(s)));
+  ]);
+}
+
+/** Prints rows as an aligned text table. Column: [header, value, right-aligned?]; widths come from the data. */
+function printColumns<T>(items: T[], columns: Array<[string, (item: T) => string, boolean]>): void {
+  const cells = items.map((item) => columns.map(([, value]) => value(item)));
   const widths = columns.map(([header], i) => Math.max(header.length, ...cells.map((row) => row[i]!.length)));
   const line = (row: string[]) =>
     row.map((cell, i) => (columns[i]![2] ? cell.padStart(widths[i]!) : cell.padEnd(widths[i]!))).join(" | ");

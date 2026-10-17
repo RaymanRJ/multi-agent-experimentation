@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { LLMPolicy, buildSystemPrompt, FULL_MEMORY_TOKEN_BUDGET, estimateTokens } from "./llm.js";
+import { LLMPolicy, STANCE_TEXT, buildSystemPrompt, FULL_MEMORY_TOKEN_BUDGET, estimateTokens } from "./llm.js";
 import type { Backend, ChatTurn, ModelCall, Observation, Skill } from "../types.js";
 
 function fakeBackend(texts: string[]): Backend & { users: string[]; sent: ChatTurn[][] } {
@@ -201,4 +201,14 @@ test("full memory: fallback leaves history untouched", async () => {
   assert.equal(b.sent[2]!.length, 5);
   await p.decide({ step: 2 } as unknown as Observation, skills);
   assert.equal(b.sent[3]!.length, 1);
+});
+
+test("buildSystemPrompt - neutral gives no motive; the other stances differ by one paragraph", () => {
+  const neutral = buildSystemPrompt(skills, { memory: "plan", comms: true, stance: "neutral" });
+  assert.doesNotMatch(neutral, /teammate|opponent|duplicat|coordinate/i);
+  assert.equal(buildSystemPrompt(skills, { memory: "plan", comms: true }), neutral);
+  for (const stance of ["collaborative", "competitive"] as const) {
+    const text = buildSystemPrompt(skills, { memory: "plan", comms: true, stance });
+    assert.equal(text.replace(STANCE_TEXT[stance]! + "\n", ""), neutral);
+  }
 });

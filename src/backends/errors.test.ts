@@ -56,7 +56,7 @@ test("transient errors are retried with backoff, honouring retry-after", async (
   const slept: number[] = [];
   const inner = flaky([new BrainError("busy", "transient"), new BrainError("slow down", "transient", 429, 5000)]);
   const call = await withRetries(inner, { ...quiet, delays: [100, 200, 400], sleep: async (ms) => void slept.push(ms) }).complete("s", []);
-  assert.equal(call, ok);
+  assert.deepEqual(call, { ...ok, providerRetries: 2, retryWaitMs: 5100 });
   assert.equal(inner.calls, 3);
   assert.deepEqual(slept, [100, 5000]);
 });

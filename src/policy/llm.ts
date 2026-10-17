@@ -8,6 +8,7 @@ import type {
   Policy,
   PolicyOutput,
   Skill,
+  Stance,
 } from "../types.js";
 
 const MAX_ATTEMPTS = 3;
@@ -38,11 +39,27 @@ const MAX_SAY_TO_CHARS = 40;
 export interface LLMPolicyOptions {
   memory: MemoryMode;
   comms: boolean;
+  stance?: Stance;
   /** Overrides the memory "full" budget; defaults by backend (local vs cloud). */
   historyTokens?: number;
 }
 
-const DEFAULT_OPTIONS: LLMPolicyOptions = { memory: "plan", comms: true };
+const DEFAULT_OPTIONS: LLMPolicyOptions = { memory: "plan", comms: true, stance: "neutral" };
+
+/**
+ * The only text that differs between stances. Neutral adds nothing; the rest of the prompt
+ * explains how to see and talk to other agents but never why. Each is scored by the rule it
+ * states, so the incentive is real, not just a sentence.
+ */
+export const STANCE_TEXT: Record<Stance, string | null> = {
+  neutral: null,
+  collaborative:
+    "The other agents in this world are your teammates. The team succeeds only when every member " +
+    "reaches the goal, so share what you find and split the work.",
+  competitive:
+    "The other agents in this world are your opponents. Only the first agent to reach the goal wins; " +
+    "the others lose. You do not have to help them or tell them the truth, and you may work against them.",
+};
 
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
@@ -158,17 +175,18 @@ export function buildSystemPrompt(
     extra.push(
       "Other agents share this world. \"messages\" in the observation are what you recently heard and said. " +
         'Include "say" to talk: "to" is an agent name or "all". Speaking is free — it happens alongside your skill, ' +
-        "with no extra step. Keep messages short and useful (coordinate who does what, share findings); no chatter. " +
+        "with no extra step. Keep messages short. " +
         'Omit "say" when you have nothing worth saying. If someone addresses you by name, your current skill is paused so you can answer.',
     );
   }
   if (options.memory === "full") {
     extra.push("The conversation so far is your memory; older turns may be dropped.");
   }
+  const stance = STANCE_TEXT[options.stance ?? "neutral"];
   return [
     "You control a Minecraft agent by choosing its next high-level goal. You are given its observation as JSON.",
-    '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell. ' +
-      "Use it to avoid duplicating their work.",
+    '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell.',
+    ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     "Skills (args spec: name -> type):",
     ...lines,

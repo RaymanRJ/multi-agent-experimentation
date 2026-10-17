@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { summarizeRun } from "./report.js";
+import { byCondition, scoreStances, summarizeRun, wilson, type RunSummary } from "./report.js";
 import { GOALS } from "./scenario.js";
 import type { LoggedStep } from "./types.js";
 
@@ -795,4 +795,52 @@ test("a run whose brain became unavailable is invalid, and so is the rest of its
   ];
   markEpisodes(runs);
   assert.deepEqual(runs.map((r) => r.validity), ["brain unavailable", "episode incomplete", "valid"]);
+});
+
+/** A summary with only the fields stance scoring and aggregation read. */
+function run(fields: Partial<RunSummary>): RunSummary {
+  return {
+    brain: "ollama:qwen", memory: "plan", stance: "neutral", goalName: "tools", scenario: "sandbox",
+    validity: "valid", goalMet: false, outcome: false, goalMetAt: null, ticksToGoal: null, episode: null,
+    decisions: 5, tokensIn: 100, decisionMsMedian: 1000, costUSD: 0,
+    ...fields,
+  } as RunSummary;
+}
+
+test("wilson - honest intervals at small n", () => {
+  const [lo, hi] = wilson(3, 3);
+  assert.ok(Math.abs(lo - 0.438) < 0.01 && hi === 1, `${lo} ${hi}`);
+  assert.deepStrictEqual(wilson(0, 0), [0, 1]);
+});
+
+test("scoreStances - collaborative needs the whole team, competitive needs to be first", () => {
+  const team = [
+    run({ episode: "e1", stance: "collaborative", goalMet: true, goalMetAt: "2026-10-17T01:00:00Z" }),
+    run({ episode: "e1", stance: "collaborative", goalMet: false }),
+  ];
+  const race = [
+    run({ episode: "e2", stance: "competitive", goalMet: true, goalMetAt: "2026-10-17T01:05:00Z" }),
+    run({ episode: "e2", stance: "competitive", goalMet: true, goalMetAt: "2026-10-17T01:02:00Z" }),
+  ];
+  const alone = run({ episode: "e3", stance: "neutral", goalMet: true, goalMetAt: "2026-10-17T01:00:00Z" });
+  scoreStances([...team, ...race, alone]);
+  assert.deepStrictEqual(team.map((s) => s.outcome), [false, false]);
+  assert.deepStrictEqual(race.map((s) => s.outcome), [false, true]);
+  assert.strictEqual(alone.outcome, true);
+});
+
+test("byCondition - one row per condition, excluding runs whose brain was unavailable", () => {
+  const rows = byCondition([
+    run({ outcome: true, ticksToGoal: 100 }),
+    run({ outcome: false }),
+    run({ outcome: true, ticksToGoal: 300 }),
+    run({ validity: "brain unavailable" }),
+    run({ memory: "full", outcome: true, ticksToGoal: 50 }),
+  ]);
+  assert.strictEqual(rows.length, 2);
+  const plan = rows.find((r) => r.memory === "plan")!;
+  assert.strictEqual(plan.runs, 3);
+  assert.strictEqual(plan.successes, 2);
+  assert.strictEqual(plan.excluded, 1);
+  assert.strictEqual(plan.ticksToGoal, 200);
 });

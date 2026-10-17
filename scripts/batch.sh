@@ -18,6 +18,7 @@ ticks="${3:-12000}"
 scenario="${4:-sandbox}"
 conditions="${CONDITIONS:-scripted ollama:none ollama:plan ollama:full}"
 goals="${GOALS:-shelter tools}"
+stance="${STANCE:-neutral}"   # one agent per world, so this only changes the prompt text
 port="${BATCH_PORT:-25590}"
 list="runs/batch-$name.txt"
 mkdir -p runs
@@ -38,7 +39,7 @@ for rep in $(seq 1 "$reps"); do
       echo "==> [$n/$total] $agent ($scenario, $ticks ticks)"
       scripts/test-server.sh reset "batch-$name" "$port" >/dev/null
       out="$(MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
-        --brain "$brain" --memory "$memory" --comms off --goal "$goal" --scenario "$scenario" \
+        --brain "$brain" --memory "$memory" --comms off --stance "$stance" --goal "$goal" --scenario "$scenario" \
         --ticks "$ticks" --name "$agent" --episode "batch-$name-$n" 2>&1)" || true
       file="$(grep -oE 'runs/[^ ]+\.jsonl' <<<"$out" | head -1)"
       if grep -q 'ended:' <<<"$out"; then

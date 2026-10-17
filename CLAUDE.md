@@ -66,6 +66,9 @@ piece built against it simultaneously. This has already bitten this project's pl
   `-guided` variants spell out the steps and exist to measure how much a model needs that help.
   What the game requires reaches the model through skill descriptions, failure messages and
   `canCraft` — the way it reaches a player — not through the goal text.
+- **Stances differ by one paragraph.** `neutral` gives no motive toward other agents;
+  `collaborative` and `competitive` each add one paragraph (`STANCE_TEXT` in `policy/llm.ts`) and
+  are scored by the rule that paragraph states. How to see and talk to agents is identical in all three.
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
@@ -92,7 +95,12 @@ npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
 npm run agent -- --brain claude --view 3008           # one port per agent to watch several
 npm run agent -- --brain gemini                       # also grok, groq, openrouter: key + model in .env, price in pricing.ts
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
+npm run agent -- --brain ollama --stance competitive  # stance: neutral (default) | collaborative | competitive
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
+npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI
+
+scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env)
+STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
 
 scripts/reset-world.sh                                # regenerate the main world from its seed
 scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)
