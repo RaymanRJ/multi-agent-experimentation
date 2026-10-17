@@ -44,6 +44,7 @@ comes close.
 
 **Talking isn't a skill.** Any decision can include a chat message to another agent or to everyone,
 and it's sent alongside the skill at no extra cost. Comms can be switched off per run (`--comms off`).
+See [communication.md](communication.md).
 
 ## Design rules
 
