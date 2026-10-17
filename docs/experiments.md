@@ -27,6 +27,7 @@ runs without spending anything again.
 | `--memory` | `none`, `plan`, `full` | What the model remembers between decisions: nothing, a short plan it wrote itself, or the whole conversation. |
 | `--stance` | `neutral`, `collaborative`, `competitive` | How the agent is told to regard other agents. See [communication](communication.md). |
 | `--comms` | `on`, `off` | Whether agents can read and send chat. |
+| `--progress` | `off` (default), `on` | Whether each observation lists what a preset goal still lacks, e.g. "no shelter has been built yet". Facts, not steps: it measures how much a model needs to be reminded. |
 | `--budget-usd` | e.g. `1.00` (the default) | Stops a paid run before it spends more than this. |
 
 ## One agent, many conditions: `batch.sh`
@@ -37,7 +38,8 @@ CONDITIONS="scripted ollama:none ollama:full" GOALS="tools shelter" scripts/batc
 
 This runs every condition on every goal, 3 times each, for 12,000 ticks each, in the sandbox.
 Each run gets a fresh world on its own throwaway server, so your main world is never touched. A
-condition is `brain:memory`, and a paid model is named the same way, e.g. `claude:full`.
+condition is `brain:memory`, and a paid model is named the same way, e.g. `claude:full`. Add
+`+progress` to turn on `--progress` for that condition, e.g. `ollama:none+progress`.
 
 The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved next to its run log.
 

@@ -15,7 +15,9 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
    - health, hunger, and time of day;
    - nearby mobs and other agents;
    - the result of its last skill;
-   - which tools it could craft right now.
+   - which tools it could craft right now;
+   - by day, how long until night;
+   - with `--progress on`, what the preset goal still lacks ("no shelter has been built yet").
 2. **The model chooses** one skill and its arguments, for example `craft(stone_pickaxe, 1)`.
    It also gives a short reason, a plan, and optionally a chat message.
 3. **The skill runs** until it finishes, fails or is interrupted. A skill call can take many
@@ -26,7 +28,9 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
    the next observation.
 
 Every skill also stops when the run ends. Skills that move around also stop when a hostile mob
-comes close. One reflex runs before any skill: if the agent's head is under water, the code first
+comes close, when the agent takes damage, at dusk (about a minute before night) and at nightfall,
+so the model can decide what to do about the dark. `build_shelter` is the exception for dusk and
+nightfall: getting under cover is the answer to them. One reflex runs before any skill: if the agent's head is under water, the code first
 moves it to the nearest dry spot, since drowning damage would otherwise stop every skill at once.
 
 **No seeing through walls.** The bot's code knows every block around it, including ore sealed
@@ -45,11 +49,11 @@ comparable.
 | `mine_stone(count)` | Gain this many cobblestone | Uses the best pickaxe it holds. It mines the nearest exposed stone (skipping stone more than 6 blocks below, down in caves), or digs straight down to the stone underground if none is exposed. It stops before water or lava. | "need a wooden_pickaxe — craft one first" |
 | `build_shelter()` | A hut where it stands | Clears a 3×3 space and builds walls 2 high, a roof and a doorway, from planks, stone or dirt (about 43 blocks). It turns held logs into planks automatically. | "need 12 more building blocks … gather about 3 more logs" |
 | `mine_ore(ore, count)` | Gain this many drops of an ore (coal, iron, diamond…) | Finds ore **a player could see**, on a cave wall or a tunnel side, within 48 blocks. It walks there, mines it with a good enough pickaxe and picks up the drop (`raw_iron`, `diamond`…). It skips ore touching lava or water. | "no iron ore in sight within 48 blocks — explore, descend or dig a tunnel" |
-| `smelt(item, count)` | Make ingots, stone, glass or cooked food | Uses a furnace within 32 blocks, or places one it holds, or crafts one from 8 cobblestone. Burns the best fuel it carries (coal, then planks, logs, sticks) and waits about 10 seconds per item. | "not enough fuel to smelt 3 raw_iron" |
+| `smelt(item, count)` | Make ingots, stone, glass or cooked food | Takes the product (`iron_ingot`) or the raw item (`raw_iron`). Uses a furnace within 32 blocks, or places one it holds, or crafts one from 8 cobblestone. Burns the best fuel it carries (coal, then planks, logs, sticks) and waits about 10 seconds per item. | "not enough fuel to smelt 3 raw_iron" |
 | `descend(y)` | Dig down to height `y` | Digs a staircase, which can be walked back up. It checks every block before breaking it and turns away from lava, water and drops into caves. It stops if every way down is unsafe, and reports the ore now in sight. | "stopped at y=12: every way down is unsafe (north: lava behind the stone; …)" |
 | `tunnel(length, direction)` | Dig a 2-high tunnel up to 32 long | Strip-mining: the walls uncover ore hidden in rock, which `mine_ore` can then see. It keeps the same heading between calls and stops before lava, water or a drop. | "cannot tunnel north: water — try another direction" |
 | `eat()` | Eat | Eats the best safe food it holds. | "no food in inventory" |
-| `flee(distance)` | Get away from mobs | Runs directly away from the hostile mobs nearby. | "could not find a path away — you may be cornered" |
+| `flee(distance)` | Get away from mobs | Runs directly away from the hostile mobs nearby. With no way out (a pit, a cave), it walls the agent in with dirt, cobblestone or planks it carries; any later move digs back out. | "could not find a path away … and could not wall yourself in (no dirt, cobblestone or planks to place)" |
 | `sleep()` | Sleep through the night | Finds a bed within 32 blocks, or places one it holds, then walks to it and sleeps. | "it is daytime — can only sleep at night" |
 | `wait(seconds)` | Do nothing for 1–60 s | Stands still, but stops early if interrupted. | (none) |
 
