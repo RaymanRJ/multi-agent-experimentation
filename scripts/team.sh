@@ -62,6 +62,8 @@ for rep in $(seq 1 "$reps"); do
     sleep 5   # join one at a time: the server refuses a second login from one address within 4s
   done
   for pid in "${pids[@]}"; do wait "$pid" || true; done
+  # The server is regenerated for the next rep, so keep its log.
+  docker logs "mae-test-team-$name" > "runs/team-$name-$rep.server.log" 2>&1 || true
   for out in "${outs[@]}"; do
     agent="$(basename "$out" .out)"; agent="${agent#.team-$name-$rep-}"
     if grep -q 'ended:' "$out"; then

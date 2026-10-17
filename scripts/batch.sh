@@ -48,6 +48,8 @@ for rep in $(seq 1 "$reps"); do
         echo "    DID NOT FINISH:"; grep -iE 'error|kicked|not usable' <<<"$out" | head -3 | sed 's/^/      /'
       fi
       [ -n "$file" ] && [ -s "$file" ] && echo "$file" >> "$list"
+      # The server is regenerated for the next run, so keep its log beside the run's.
+      [ -n "$file" ] && docker logs "mae-test-batch-$name" > "${file%.jsonl}.server.log" 2>&1 || true
     done
   done
 done

@@ -29,3 +29,5 @@ runs/
 
 # Throwaway test servers (scripts/test-server.sh)
 test-worlds/
+
+.claude
