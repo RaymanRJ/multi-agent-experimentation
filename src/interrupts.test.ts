@@ -87,3 +87,9 @@ test("flee, eat and sleep are not interrupted by messages", () => {
   const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED["flee"]);
   assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "hi" } }), null);
 });
+
+test("damage while out of air says the agent is drowning", () => {
+  const w = createWatch(calm);
+  assert.match(w.check({ ...calm, health: 18, oxygen: 0 })!, /out of air/);
+  assert.doesNotMatch(createWatch(calm).check({ ...calm, health: 18, oxygen: 20 })!, /out of air/);
+});

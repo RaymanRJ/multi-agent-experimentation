@@ -18,6 +18,8 @@ export interface Hostile {
 
 export interface WorldSnapshot {
   health: number;
+  /** Air left, 0-20; 0 means drowning. Absent when unknown. */
+  oxygen?: number;
   hostiles: Hostile[];
   timeOfDay: number;
   /** Messages ever addressed to this agent by name (absent with comms off). */
@@ -72,7 +74,8 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
     peakHealth = Math.max(peakHealth, now.health);
 
     if (!off.has("damage") && now.health < peakHealth) {
-      return `interrupted: you took damage (health ${Math.round(now.health)})`;
+      const drowning = now.oxygen !== undefined && now.oxygen <= 0;
+      return `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`;
     }
 
     if (!off.has("hostile")) {

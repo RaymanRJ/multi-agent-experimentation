@@ -87,6 +87,7 @@ function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null): WorldSnaps
   }
   return {
     health: bot.health,
+    oxygen: bot.oxygenLevel,
     hostiles,
     timeOfDay: bot.time.timeOfDay,
     ...(buffer ? { directed: buffer.directed, lastDirected: buffer.lastDirected } : {}),

@@ -12,6 +12,11 @@ const TRAVEL_TIMEOUT_MS = 30_000;
 const DIG_TIMEOUT_MS = 20_000;
 const MAX_FAILED_BLOCKS = 6;
 const MAX_TOTAL_MS = 4 * 60_000;
+/**
+ * Exposed stone further below than this is skipped. Walking to it meant dropping into caves and
+ * ravines; one agent fell 22 blocks into a flooded cave and drowned. Digging down is safer.
+ */
+const MAX_DROP_TO_STONE = 6;
 /** How far down to dig for stone when none is exposed. Overworld stone is usually 3-5 blocks down. */
 const MAX_DIG_DEPTH = 12;
 const LIQUIDS = new Set(["lava", "water"]);
@@ -141,6 +146,7 @@ export const mineStone: Skill = {
         points.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
+          if (point.y < bot.entity.position.y - MAX_DROP_TO_STONE) continue;
           const kind = exposure(ctx, point);
           if (kind === "hazard") {
             skipped.add(key(point));
