@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
+import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { EndReason, LoggedStep, SkillStatus } from "./types.js";
 import { GOALS, SCENARIOS } from "./scenario.js";
@@ -653,7 +654,10 @@ function printTable(summaries: RunSummary[]) {
   );
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+// Only as a command: the minds panel imports summarizeRun.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+}

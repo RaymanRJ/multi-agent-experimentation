@@ -1,7 +1,8 @@
 /**
- * The "minds" panel: a tiny read-only web page that shows, per agent, how it is
- * thinking, how long it takes, and what it costs. Source of truth is runs/*.jsonl.
- * node:http only; never reads env vars or .env.
+ * The "minds" panel: a small read-only web page for watching agents think. A list of recent
+ * runs (live first), and for the selected run its progress, what it holds, and a timeline of
+ * every decision — why it was made, what happened, and the exact model call behind it.
+ * Source of truth is runs/*.jsonl. node:http only; never reads env vars or .env.
  */
 import { createServer } from "node:http";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -9,53 +10,19 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { LoggedStep, ModelCall } from "./types.js";
 import { costUSD } from "./backends/pricing.js";
+import { summarizeRun, type MilestoneName } from "./report.js";
 
-export const MAX_AGE_MS = 30 * 60 * 1000;
+/** Runs older than this are not listed. */
+export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
+/** A run with no end recorded and no new line for this long has stopped (crashed, killed). */
+export const STALLED_MS = 10 * 60 * 1000;
+export const MILESTONES: MilestoneName[] = ["logs", "wooden_pickaxe", "stone", "stone_pickaxe", "shelter", "survived_night"];
 
-export interface RunFile {
-  name: string;
-  mtimeMs: number;
-}
-
-export interface Mind {
-  name: string;
-  backend: string;
-  model: string;
-  step: number;
-  decision: { skill: string; args: Record<string, unknown>; rationale?: string } | null;
-  result: { status: string; reason?: string } | null;
-  decisionMs: number;
-  tokensIn: number;
-  tokensOut: number;
-  /** Display string: "$0.0123", "free", or "—". */
-  cost: string;
-  costUSD: number | null;
-  secondsSinceLast: number;
-  reasoning: string | null;
-}
+const RUN_FILE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-(.+)\.jsonl$/;
 
 /** `<runId>-<agentName>.jsonl`; runId is an ISO timestamp with `:` and `.` replaced by `-`. */
 export function agentNameFromFile(file: string): string | null {
-  const m = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-(.+)\.jsonl$/.exec(file);
-  if (m?.[1]) return m[1];
-  const m2 = /^.+?Z-(.+)\.jsonl$/.exec(file);
-  return m2?.[1] ?? null;
-}
-
-/** Most recently modified file per agent, ignoring files older than maxAgeMs. */
-export function pickLatestFiles(
-  files: RunFile[],
-  now: number,
-  maxAgeMs: number = MAX_AGE_MS,
-): Map<string, RunFile> {
-  const best = new Map<string, RunFile>();
-  for (const f of files) {
-    const agent = agentNameFromFile(f.name);
-    if (!agent || now - f.mtimeMs > maxAgeMs) continue;
-    const cur = best.get(agent);
-    if (!cur || f.mtimeMs > cur.mtimeMs) best.set(agent, f);
-  }
-  return best;
+  return RUN_FILE.exec(file)?.[1] ?? null;
 }
 
 /** Contents of <think>…</think> blocks, joined; an unterminated block runs to the end. */
@@ -99,171 +66,265 @@ export function parseSteps(content: string): LoggedStep[] {
   return steps;
 }
 
-export function buildMind(name: string, steps: LoggedStep[], mtimeMs: number, now: number): Mind | null {
-  const last = steps[steps.length - 1];
-  if (!last) return null;
-  const allCalls = steps.flatMap((s) => s.calls ?? []);
-  // Identity comes from any call in the run: a step that timed out or failed
-  // has no calls, and must not make a model-driven agent look scripted.
-  const anyCall = allCalls[allCalls.length - 1];
-  // Reasoning comes from the step's final attempt — the one that decided.
-  const latestCall = last.calls?.[last.calls.length - 1];
-  const total = sumCost(allCalls);
+/** A readable name for the brain: "Qwen3 4B instruct · local" rather than "ollama:qwen3-4b-instruct:ctx8192". */
+export function brainLabel(steps: LoggedStep[]): { label: string; detail: string } {
+  const call = steps.flatMap((s) => s.calls ?? []).at(-1);
+  if (!call) return { label: "Scripted baseline", detail: "no model" };
+  if (call.backend === "ollama") {
+    const base = call.model.replace(/:ctx\d+$/, "").replace(/[-:]/g, " ");
+    const pretty = base.replace(/^qwen3/i, "Qwen3").replace(/\b(\d+)b\b/i, "$1B");
+    const ctx = /:ctx(\d+)$/.exec(call.model)?.[1];
+    return { label: pretty, detail: `local${ctx ? ` · ${Number(ctx) / 1024}k context` : ""}` };
+  }
+  return { label: call.model, detail: call.backend };
+}
+
+export type RunStatus = "running" | "ended" | "stopped";
+
+export function runStatus(steps: LoggedStep[], mtimeMs: number, now: number): RunStatus {
+  if (steps.at(-1)?.ended) return "ended";
+  return now - mtimeMs > STALLED_MS ? "stopped" : "running";
+}
+
+export interface RunRow {
+  file: string;
+  agent: string;
+  status: RunStatus;
+  ended: string | null;
+  brain: string;
+  brainDetail: string;
+  memory: string | null;
+  comms: boolean | null;
+  episode: string | null;
+  /** "b4" for a run from scripts/batch.sh b4 (episode "batch-b4-7"); null otherwise. */
+  batch: string | null;
+  goal: string;
+  scenario: string;
+  step: number;
+  doing: string | null;
+  milestones: Record<string, number | null>;
+  goalMet: boolean | "n/a";
+  ticks: number;
+  tokens: number;
+  cost: string;
+  medianMs: number;
+  startedAt: string;
+  lastAt: number;
+}
+
+export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: number): RunRow | null {
+  const first = steps[0];
+  const last = steps.at(-1);
+  if (!first || !last) return null;
+  const summary = summarizeRun(steps, file);
+  const calls = steps.flatMap((s) => s.calls ?? []);
+  const brain = brainLabel(steps);
+  const status = runStatus(steps, mtimeMs, now);
+  const milestones: Record<string, number | null> = {};
+  for (const name of MILESTONES) milestones[name] = summary.milestones[name]?.step ?? null;
   const lastAt = Date.parse(last.at);
-  // Last log line time; the file's mtime is the fallback and a floor.
-  const lastMs = Number.isNaN(lastAt) ? mtimeMs : Math.max(lastAt, mtimeMs);
   return {
-    name,
-    backend: anyCall?.backend ?? "scripted",
-    model: anyCall?.model ?? "scripted",
+    file,
+    agent: agentNameFromFile(file) ?? file,
+    status,
+    ended: last.ended ?? (status === "stopped" ? "stopped without an end reason" : null),
+    brain: brain.label,
+    brainDetail: brain.detail,
+    memory: calls.length > 0 ? (last.config?.memory ?? null) : null, // the scripted baseline has no memory setting
+    comms: last.config?.comms ?? null,
+    episode: last.config?.episode ?? null,
+    batch: /^batch-(.+)-\d+$/.exec(last.config?.episode ?? "")?.[1] ?? null,
+    goal: first.observation.goal,
+    scenario: first.observation.scenario,
     step: last.step,
-    decision: last.decision
-      ? { skill: last.decision.skill, args: last.decision.args ?? {}, rationale: last.decision.rationale }
-      : null,
-    result: last.result ? { status: last.result.status, reason: last.result.reason } : null,
-    decisionMs: last.decisionMs,
-    tokensIn: allCalls.reduce((a, c) => a + c.inputTokens, 0),
-    tokensOut: allCalls.reduce((a, c) => a + c.outputTokens, 0),
-    cost: formatCost(total, allCalls),
-    costUSD: Number.isNaN(total) ? null : total,
-    secondsSinceLast: Math.max(0, Math.round((now - lastMs) / 1000)),
-    reasoning: extractThink(latestCall?.text),
+    doing: status === "running" && last.decision ? last.decision.skill : null,
+    milestones,
+    goalMet: summary.goalMet,
+    ticks: last.ticks ?? 0,
+    tokens: summary.tokensIn + summary.tokensOut,
+    cost: formatCost(sumCost(calls), calls),
+    medianMs: summary.decisionMsMedian,
+    startedAt: first.at,
+    lastAt: Number.isNaN(lastAt) ? mtimeMs : Math.max(lastAt, mtimeMs),
   };
 }
 
-export function collectMinds(dir: string, now: number = Date.now()): Mind[] {
+/** What changed in the inventory over one step: {"cobblestone": 3, "stick": -2}. */
+export function inventoryDelta(before: Record<string, number>, after: Record<string, number> | undefined): Record<string, number> {
+  if (!after) return {};
+  const delta: Record<string, number> = {};
+  for (const name of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    const change = (after[name] ?? 0) - (before[name] ?? 0);
+    if (change !== 0) delta[name] = change;
+  }
+  return delta;
+}
+
+export interface TimelineItem {
+  step: number;
+  at: string;
+  ticks: number | null;
+  skill: string | null;
+  args: Record<string, unknown>;
+  rationale: string | null;
+  plan: string | null;
+  say: { to: string; text: string } | null;
+  status: string | null;
+  reason: string | null;
+  events: string[];
+  heard: Array<{ from: string; to: string; text: string }>;
+  delta: Record<string, number>;
+  decisionMs: number;
+  tokensIn: number;
+  tokensOut: number;
+  attempts: number;
+  health: number;
+  food: number;
+  isDay: boolean;
+  hostiles: number;
+  ended: string | null;
+}
+
+export function timeline(steps: LoggedStep[]): TimelineItem[] {
+  return steps.map((s, i) => {
+    const calls = s.calls ?? [];
+    const prior = steps[i - 1]?.observation.messages ?? [];
+    const seen = new Set(prior.map((m) => `${m.from}|${m.to}|${m.text}`));
+    return {
+      step: s.step,
+      at: s.at,
+      ticks: s.ticks ?? null,
+      skill: s.decision?.skill ?? null,
+      args: s.decision?.args ?? {},
+      rationale: s.decision?.rationale ?? null,
+      plan: s.decision?.plan ?? null,
+      say: s.decision?.say ?? null,
+      status: s.result?.status ?? null,
+      reason: s.result?.reason ?? null,
+      events: s.events ?? [],
+      // Messages new since the previous observation: what reached this agent on this step.
+      heard: (s.observation.messages ?? [])
+        .filter((m) => !seen.has(`${m.from}|${m.to}|${m.text}`))
+        .map(({ from, to, text }) => ({ from, to, text })),
+      delta: inventoryDelta(s.observation.inventory, s.inventoryAfter),
+      decisionMs: s.decisionMs,
+      tokensIn: calls.reduce((n, c) => n + c.inputTokens, 0),
+      tokensOut: calls.reduce((n, c) => n + c.outputTokens, 0),
+      attempts: calls.length,
+      health: s.observation.health,
+      food: s.observation.food,
+      isDay: s.observation.isDay,
+      hostiles: s.observation.hostiles.length,
+      ended: s.ended ?? null,
+    };
+  });
+}
+
+/** The latest observation, trimmed to what the panel shows as "now". */
+function current(steps: LoggedStep[]) {
+  const last = steps.at(-1)!;
+  const o = last.observation;
+  return {
+    inventory: last.inventoryAfter ?? o.inventory,
+    canCraft: o.canCraft ?? [],
+    plan: [...steps].reverse().find((s) => s.decision?.plan)?.decision?.plan ?? null,
+    health: o.health,
+    food: o.food,
+    isDay: o.isDay,
+    hostiles: o.hostiles,
+    otherAgents: o.otherAgents,
+    position: o.position,
+  };
+}
+
+/** Parsed files, re-read only when they change: a batch leaves dozens of logs, polled every 2s. */
+const cache = new Map<string, { mtimeMs: number; size: number; steps: LoggedStep[] }>();
+
+function load(dir: string, file: string): { steps: LoggedStep[]; mtimeMs: number } | null {
+  try {
+    const stat = statSync(join(dir, file));
+    const hit = cache.get(file);
+    if (hit && hit.mtimeMs === stat.mtimeMs && hit.size === stat.size) return { steps: hit.steps, mtimeMs: stat.mtimeMs };
+    const steps = parseSteps(readFileSync(join(dir, file), "utf8"));
+    cache.set(file, { mtimeMs: stat.mtimeMs, size: stat.size, steps });
+    return { steps, mtimeMs: stat.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+
+/** Only names straight from the directory listing are ever opened, so a query can't escape runs/. */
+function runFiles(dir: string, now: number): string[] {
   let names: string[];
   try {
-    names = readdirSync(dir).filter((n) => n.endsWith(".jsonl"));
+    names = readdirSync(dir).filter((n) => RUN_FILE.test(n));
   } catch {
     return [];
   }
-  const files: RunFile[] = [];
-  for (const n of names) {
+  return names.filter((n) => {
     try {
-      files.push({ name: n, mtimeMs: statSync(join(dir, n)).mtimeMs });
+      return now - statSync(join(dir, n)).mtimeMs <= MAX_AGE_MS;
     } catch {
-      /* file vanished */
+      return false;
     }
-  }
-  const minds: Mind[] = [];
-  for (const [agent, f] of pickLatestFiles(files, now)) {
-    try {
-      const m = buildMind(agent, parseSteps(readFileSync(join(dir, f.name), "utf8")), f.mtimeMs, now);
-      if (m) minds.push(m);
-    } catch {
-      /* unreadable; skip */
-    }
-  }
-  return minds.sort((a, b) => a.name.localeCompare(b.name));
+  });
 }
 
-const PAGE = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent minds</title>
-<style>
-:root{--bg:#f5f6f8;--card:#fff;--fg:#111;--mute:#4a5160;--line:#c9ced8;--ok:#0a7a2f;--bad:#c4161c;--accent:#1a4fd6;--code:#eef0f4}
-@media (prefers-color-scheme:dark){:root{--bg:#0d0f14;--card:#171a22;--fg:#f4f5f7;--mute:#a9b0bf;--line:#363c4a;--ok:#4be07a;--bad:#ff6b6f;--accent:#7fa6ff;--code:#0d0f14}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:20px/1.4 system-ui,-apple-system,sans-serif}
-header{padding:14px 24px;font-size:22px;color:var(--mute)}
-#grid{display:flex;gap:16px;padding:0 16px 16px;align-items:flex-start}
-.card{flex:1 1 0;min-width:0;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:20px}
-.name{font-size:44px;font-weight:800;line-height:1.1;overflow-wrap:anywhere}
-.brain{font-size:24px;color:var(--accent);font-weight:700;margin-bottom:14px;overflow-wrap:anywhere}
-.label{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-top:16px}
-.goal{font-size:32px;font-weight:700;overflow-wrap:anywhere}
-.quote{font-size:24px;font-style:italic;border-left:6px solid var(--accent);padding-left:14px;overflow-wrap:anywhere}
-.outcome{font-size:26px;font-weight:700;overflow-wrap:anywhere}
-.ok{color:var(--ok)}.bad{color:var(--bad)}
-.stat{font-size:28px;font-weight:700}
-.row{display:flex;gap:8px 24px;flex-wrap:wrap}
-details{margin-top:18px}
-summary{cursor:pointer;font-size:20px;color:var(--mute)}
-pre{font:15px/1.4 ui-monospace,Menlo,monospace;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
-#empty{padding:80px 24px;text-align:center;font-size:34px;color:var(--mute)}
-@media (max-width:900px){#grid{flex-direction:column}.card{width:100%}}
-</style></head><body>
-<header>Agent minds</header>
-<div id="grid"></div>
-<div id="empty" hidden>No agents running — start one with npm run agent</div>
-<script>
-"use strict";
-var grid=document.getElementById("grid"),empty=document.getElementById("empty");
-var cards={},openState={},data=[],fetchedAt=Date.now();
-function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
-function goalText(d){
-  if(!d)return "finished";
-  var skill=String(d.skill).replace(/_/g," ");
-  var parts=[];for(var k in d.args){parts.push(k+" "+String(d.args[k]))}
-  return parts.length?skill+" ("+parts.join(", ")+")":skill;
+export function listRuns(dir: string, now: number = Date.now()): RunRow[] {
+  const rows: RunRow[] = [];
+  for (const file of runFiles(dir, now)) {
+    const loaded = load(dir, file);
+    const row = loaded && runRow(file, loaded.steps, loaded.mtimeMs, now);
+    if (row) rows.push(row);
+  }
+  const rank = { running: 0, stopped: 1, ended: 1 } as const;
+  return rows.sort((a, b) => rank[a.status] - rank[b.status] || b.lastAt - a.lastAt);
 }
-function fmtSecs(s){s=Math.round(s);if(s<60)return s+"s";return Math.floor(s/60)+"m "+(s%60)+"s"}
-function fmtNum(n){return Number(n).toLocaleString()}
-function build(m){
-  var c=el("div","card"),r={};
-  r.name=el("div","name");r.brain=el("div","brain");
-  r.goal=el("div","goal");r.quote=el("div","quote");r.out=el("div","outcome");
-  var row=el("div","row");r.think=el("div","stat");r.tok=el("div","stat");r.cost=el("div","stat");
-  row.append(r.think,r.tok,r.cost);
-  r.since=el("div","label");
-  r.det=el("details");var s=el("summary","","full reasoning");r.pre=el("pre");r.det.append(s,r.pre);
-  r.det.addEventListener("toggle",function(){openState[m.name]=r.det.open});
-  c.append(r.name,r.brain,el("div","label","Current goal"),r.goal,el("div","label","Why"),r.quote,el("div","label","Last outcome"),r.out,el("div","label","Time and cost"),row,r.since,r.det);
-  c._r=r;return c;
+
+function findRun(dir: string, file: string | null) {
+  if (!file || !runFiles(dir, Date.now()).includes(file)) return null;
+  return load(dir, file);
 }
-function fill(c,m){
-  var r=c._r;
-  r.name.textContent=m.name;
-  r.brain.textContent=m.backend==="scripted"?"scripted (no AI model)":m.backend+" \\u00B7 "+m.model;
-  r.goal.textContent=goalText(m.decision);
-  r.quote.textContent=(m.decision&&m.decision.rationale)?"\\u201C"+m.decision.rationale+"\\u201D":"(no explanation given)";
-  var res=m.result;
-  if(res){
-    r.out.className="outcome "+(res.status==="success"?"ok":"bad");
-    r.out.textContent="\\u25CF "+(res.status==="success"?"worked":res.status)+(res.reason?": "+res.reason:"");
-  }else{r.out.className="outcome";r.out.textContent="\\u25CB waiting for result"}
-  r.think.textContent=m.backend==="scripted"?"instant (no model)":"thought for "+fmtSecs(m.decisionMs/1000);
-  r.tok.textContent=fmtNum(m.tokensIn)+" in / "+fmtNum(m.tokensOut)+" out";
-  r.cost.textContent="cost: "+m.cost;
-  r.since._base=m.secondsSinceLast;
-  if(r.det.open!==!!openState[m.name])r.det.open=!!openState[m.name];
-  var txt=m.reasoning||"this model does not show its reasoning";
-  if(r.pre.textContent!==txt)r.pre.textContent=txt;
-}
-function tick(){
-  var extra=(Date.now()-fetchedAt)/1000;
-  for(var n in cards){var r=cards[n]._r;if(r.since._base!==undefined)r.since.textContent="since last decision: "+fmtSecs(r.since._base+extra)}
-}
-function render(){
-  empty.hidden=data.length>0;
-  var seen={};
-  data.forEach(function(m){
-    seen[m.name]=1;
-    if(!cards[m.name]){cards[m.name]=build(m);grid.appendChild(cards[m.name])}
-    fill(cards[m.name],m);
-  });
-  for(var n in cards){if(!seen[n]){cards[n].remove();delete cards[n]}}
-  tick();
-}
-function poll(){
-  fetch("/api/minds").then(function(r){return r.json()}).then(function(j){data=j.minds||[];fetchedAt=Date.now();render()}).catch(function(){});
-}
-poll();setInterval(poll,2000);setInterval(tick,1000);
-</script></body></html>`;
 
 export function startServer(port: number, dir = "runs") {
+  const page = readFileSync(new URL("./minds.html", import.meta.url), "utf8");
+  const json = (res: import("node:http").ServerResponse, status: number, body: unknown) => {
+    res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
+    res.end(JSON.stringify(body));
+  };
   const server = createServer((req, res) => {
-    const path = (req.url ?? "/").split("?")[0];
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const file = url.searchParams.get("file");
     if (req.method !== "GET") {
       res.writeHead(405).end();
-    } else if (path === "/api/minds") {
-      res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-      res.end(JSON.stringify({ minds: collectMinds(dir) }));
-    } else if (path === "/") {
+    } else if (url.pathname === "/api/runs") {
+      json(res, 200, { now: Date.now(), runs: listRuns(dir) });
+    } else if (url.pathname === "/api/run") {
+      const run = findRun(dir, file);
+      const row = run && runRow(file!, run.steps, run.mtimeMs, Date.now());
+      if (!run || !row) return json(res, 404, { error: "no such run" });
+      json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps) });
+    } else if (url.pathname === "/api/call") {
+      const run = findRun(dir, file);
+      const step = run?.steps.find((s) => s.step === Number(url.searchParams.get("step")));
+      if (!step) return json(res, 404, { error: "no such step" });
+      json(res, 200, {
+        system: step.system ?? null,
+        observation: step.observation,
+        calls: (step.calls ?? []).map((c) => ({
+          model: c.model,
+          ms: c.ms,
+          inputTokens: c.inputTokens,
+          outputTokens: c.outputTokens,
+          stopReason: c.stopReason ?? null,
+          request: c.request ?? null,
+          thinking: c.thinking ?? extractThink(c.text),
+          text: c.text.replace(/<think>[\s\S]*?(?:<\/think>|$)/g, "").trim(),
+        })),
+      });
+    } else if (url.pathname === "/") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-      res.end(PAGE);
+      res.end(page);
     } else {
       res.writeHead(404).end("not found");
     }

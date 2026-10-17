@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agentNameFromFile, buildMind, extractThink, formatCost, pickLatestFiles, sumCost } from "./minds.js";
+import { agentNameFromFile, brainLabel, extractThink, formatCost, inventoryDelta, runRow, runStatus, STALLED_MS, sumCost, timeline } from "./minds.js";
 import type { LoggedStep, ModelCall } from "./types.js";
 
 const call = (backend: string, model: string, i = 1000, o = 1000, text = ""): ModelCall => ({
@@ -10,22 +10,6 @@ const call = (backend: string, model: string, i = 1000, o = 1000, text = ""): Mo
 test("agent name parsed from file name", () => {
   assert.equal(agentNameFromFile("2026-10-09T15-19-29-683Z-agent_ollama.jsonl"), "agent_ollama");
   assert.equal(agentNameFromFile("notes.txt"), null);
-});
-
-test("pickLatestFiles keeps newest per agent and drops stale", () => {
-  const now = 10_000_000;
-  const f = (name: string, age: number) => ({ name, mtimeMs: now - age });
-  const got = pickLatestFiles(
-    [
-      f("2026-10-09T10-00-00-000Z-a.jsonl", 60_000),
-      f("2026-10-09T11-00-00-000Z-a.jsonl", 10_000),
-      f("2026-10-09T09-00-00-000Z-b.jsonl", 31 * 60_000),
-      f("2026-10-09T09-00-00-000Z-c.jsonl", 5_000),
-    ],
-    now,
-  );
-  assert.deepEqual([...got.keys()].sort(), ["a", "c"]);
-  assert.equal(got.get("a")?.name, "2026-10-09T11-00-00-000Z-a.jsonl");
 });
 
 test("extractThink", () => {
@@ -48,35 +32,51 @@ test("cost: ollama free, known summed, unknown NaN", () => {
   assert.equal(formatCost(0, []), "free");
 });
 
-test("buildMind uses latest step and call", () => {
-  const obs = {} as LoggedStep["observation"];
-  const steps: LoggedStep[] = [
-    { step: 1, at: new Date(0).toISOString(), observation: obs, decision: null, result: null, decisionMs: 5, calls: [] },
-    {
-      step: 2, at: new Date(100_000).toISOString(), observation: obs,
-      decision: { skill: "explore", args: { distance: 16 }, rationale: "look around" },
-      result: { status: "success" }, decisionMs: 42_000,
-      calls: [call("ollama", "qwen3:4b", 10, 20, "<think>deep</think>ok")],
-    },
-  ];
-  const m = buildMind("agent_ollama", steps, 100_000, 118_000)!;
-  assert.equal(m.step, 2);
-  assert.equal(m.model, "qwen3:4b");
-  assert.equal(m.reasoning, "deep");
-  assert.equal(m.cost, "free");
-  assert.equal(m.tokensIn, 10);
-  assert.equal(m.secondsSinceLast, 18);
-  assert.equal(buildMind("a", [], 0, 0), null);
+const obs = (over: Partial<LoggedStep["observation"]> = {}): LoggedStep["observation"] => ({
+  step: 1, scenario: "sandbox", goal: "Craft a stone pickaxe", position: { x: 0, y: 64, z: 0 }, health: 20, food: 20,
+  timeOfDay: 0, isDay: true, inventory: {}, nearbyBlocks: {}, hostiles: [], otherAgents: [], recentEvents: [], ...over,
+});
+const step = (n: number, over: Partial<LoggedStep> = {}): LoggedStep => ({
+  step: n, at: new Date(n * 1000).toISOString(), observation: obs(), decision: { skill: "gather_wood", args: { count: 3 } },
+  result: { status: "success" }, decisionMs: 3000, calls: [], ...over,
 });
 
-test("buildMind - a failed last step keeps the brain identity from earlier calls", () => {
-  const call = { backend: "ollama", model: "qwen3:4b", inputTokens: 1, outputTokens: 1, ms: 1, text: "" };
-  const base = { observation: {} as never, decisionMs: 120000, at: new Date(0).toISOString() };
+test("runStatus: ended when the last line says so, stopped when silent too long, else running", () => {
+  assert.equal(runStatus([step(1, { ended: "goal met" })], 0, 10 * STALLED_MS), "ended");
+  assert.equal(runStatus([step(1)], 0, STALLED_MS + 1), "stopped");
+  assert.equal(runStatus([step(1)], 0, 1000), "running");
+});
+
+test("brainLabel reads the model, and scripted runs have none", () => {
+  assert.deepEqual(brainLabel([step(1)]), { label: "Scripted baseline", detail: "no model" });
+  const qwen = step(1, { calls: [call("ollama", "qwen3-4b-instruct:ctx8192")] });
+  assert.deepEqual(brainLabel([qwen]), { label: "Qwen3 4B instruct", detail: "local · 8k context" });
+  assert.deepEqual(brainLabel([step(1, { calls: [call("claude", "claude-haiku-4-5")] })]), { label: "claude-haiku-4-5", detail: "claude" });
+});
+
+test("inventoryDelta reports gains and losses only", () => {
+  assert.deepEqual(inventoryDelta({ stick: 2, cobblestone: 3 }, { cobblestone: 0, stone_pickaxe: 1 }), { stick: -2, cobblestone: -3, stone_pickaxe: 1 });
+  assert.deepEqual(inventoryDelta({ a: 1 }, undefined), {});
+});
+
+test("timeline shows only messages new on each step", () => {
+  const m1 = { from: "bob", to: "all", text: "hi", ageSeconds: 1 };
+  const m2 = { from: "bob", to: "me", text: "wood?", ageSeconds: 1 };
+  const items = timeline([step(1, { observation: obs({ messages: [m1] }) }), step(2, { observation: obs({ messages: [{ ...m1, ageSeconds: 9 }, m2] }) })]);
+  assert.deepEqual(items.map((i) => i.heard.map((m) => m.text)), [["hi"], ["wood?"]]);
+});
+
+test("runRow summarises progress and the run's end", () => {
   const steps = [
-    { ...base, step: 1, decision: { skill: "explore", args: {} }, result: { status: "success" as const }, calls: [call] },
-    { ...base, step: 2, decision: null, result: { status: "failed" as const, reason: "timed out" }, calls: [] },
+    step(1, { inventoryAfter: { oak_log: 3 }, ticks: 100 }),
+    step(2, { decision: { skill: "craft", args: { item: "wooden_pickaxe" } }, inventoryAfter: { wooden_pickaxe: 1 }, ticks: 200, ended: "model ended" }),
   ];
-  const mind = buildMind("agent_ollama", steps, 0, 0)!;
-  assert.strictEqual(mind.backend, "ollama");
-  assert.strictEqual(mind.model, "qwen3:4b");
+  const row = runRow("2026-10-17T00-00-00-000Z-qnone_tools_1.jsonl", steps, 0, 0)!;
+  assert.equal(row.agent, "qnone_tools_1");
+  assert.equal(row.status, "ended");
+  assert.equal(row.ended, "model ended");
+  assert.equal(row.milestones["logs"], 1);
+  assert.equal(row.milestones["wooden_pickaxe"], 2);
+  assert.equal(row.milestones["stone"], null);
+  assert.equal(row.ticks, 200);
 });
