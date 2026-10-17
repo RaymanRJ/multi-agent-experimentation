@@ -11,7 +11,7 @@ import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./inter
 import { RunLog } from "./log.js";
 import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
-import { movementsFor } from "./skills/util.js";
+import { getOutOfWater, headInWater, movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -304,6 +304,13 @@ async function main(): Promise<void> {
     narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
     lastPlan = decision.plan ?? lastPlan;
     if (buffer && decision.say?.text) speak(bot, buffer, decision.say.to, decision.say.text);
+    if (headInWater(bot)) {
+      // A reflex before any skill: every skill would otherwise be stopped at once by drowning damage.
+      const out = await getOutOfWater(bot);
+      const event = out ? "you were under water and swam out to dry ground" : "you are under water and could not find a way out";
+      recentEvents.push(event);
+      stepEvents.push(event);
+    }
     interruptReason = null;
     watch = createWatch(snapshot(bot, buffer), SUPPRESSED[skill.name] ?? []);
     let result = await skill.run(ctx, decision.args);

@@ -51,3 +51,37 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   movements.scafoldingBlocks = dirt === undefined ? [] : [dirt];
   return movements;
 }
+
+const AIR = new Set(["air", "cave_air"]);
+
+/** True when the bot's head is in water, so it is losing air. */
+export function headInWater(bot: Bot): boolean {
+  return bot.blockAt(bot.entity.position.offset(0, 1.62, 0))?.name === "water";
+}
+
+/**
+ * Walks or swims to the nearest dry spot to stand within 16 blocks. A reflex, not a decision:
+ * an agent that fell into a flooded cave otherwise re-chose its skill, was stopped at once by
+ * drowning damage, and repeated that until it died (seen in batch b6). Returns whether it got out.
+ */
+export async function getOutOfWater(bot: Bot): Promise<boolean> {
+  const airIds = [...AIR].map((name) => bot.registry.blocksByName[name]?.id).filter((id): id is number => id !== undefined);
+  const here = bot.entity.position;
+  const spots = bot
+    .findBlocks({ matching: airIds, maxDistance: 16, count: 1024 })
+    .filter((point) => {
+      const below = bot.blockAt(point.offset(0, -1, 0));
+      const head = bot.blockAt(point.offset(0, 1, 0));
+      return below?.boundingBox === "block" && below.name !== "water" && head !== null && AIR.has(head.name);
+    })
+    .sort((a, b) => a.distanceTo(here) - b.distanceTo(here));
+  for (const spot of spots.slice(0, 4)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new pathfinderPkg.goals.GoalBlock(spot.x, spot.y, spot.z)), 15_000, "getting out of the water");
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+    if (!headInWater(bot)) return true;
+  }
+  return !headInWater(bot);
+}

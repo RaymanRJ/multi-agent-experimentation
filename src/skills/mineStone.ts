@@ -64,6 +64,9 @@ async function digDown(ctx: SkillContext, wanted: number): Promise<string | null
       const next = bot.blockAt(below.position.offset(dx, dy, dz));
       if (next && LIQUIDS.has(next.name)) return `stopped digging down: ${next.name} below`;
     }
+    // Breaking into a cave drops the bot an unknown distance, sometimes into water out of sight.
+    const under = bot.blockAt(below.position.offset(0, -1, 0));
+    if (under && (under.name === "air" || under.name === "cave_air")) return "stopped digging down: a cave opens below";
     if (LIQUIDS.has(below.name)) return `stopped digging down: standing over ${below.name}`;
     if (!bot.canDigBlock(below)) return `cannot dig the ${below.name} below`;
     try {
