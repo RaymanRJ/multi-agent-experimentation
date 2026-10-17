@@ -66,15 +66,20 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
     case "scripted":
       return { policy: new ScriptedPolicy() };
-    case "claude":
-    case "gpt":
-    case "ollama": {
-      const backend = createBackend(brain as BrainName);
+    default: {
+      if (!BRAINS.includes(brain as BrainName)) {
+        console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
+        process.exit(1);
+      }
+      let backend: Backend;
+      try {
+        backend = createBackend(brain as BrainName);
+      } catch (error) {
+        console.error((error as Error).message);
+        process.exit(1);
+      }
       return { policy: new LLMPolicy(backend, { memory, comms }), backend };
     }
-    default:
-      console.error(`unknown brain "${brain}" — valid: scripted, ${BRAINS.join(", ")}`);
-      process.exit(1);
   }
 }
 
