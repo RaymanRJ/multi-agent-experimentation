@@ -109,7 +109,9 @@ export class OpenAIBackend implements Backend {
           text.length > 200 ? text.substring(0, 200) + "..." : text;
         let body: { error?: { code?: string; type?: string; message?: string } | string } = {};
         try {
-          body = JSON.parse(text);
+          const parsed = JSON.parse(text);
+          // Gemini wraps its error object in a one-element array.
+          body = Array.isArray(parsed) ? (parsed[0] ?? {}) : parsed;
         } catch {
           // not JSON; the excerpt is the message
         }

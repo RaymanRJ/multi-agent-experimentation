@@ -90,6 +90,7 @@ npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | t
 npm run agent -- --brain ollama --goal tools-guided   # same task with the steps spelled out (shelter-guided too)
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
 npm run agent -- --brain claude --view 3008           # one port per agent to watch several
+npm run agent -- --brain gemini                       # also grok, groq, openrouter: key + model in .env, price in pricing.ts
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
 
