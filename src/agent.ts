@@ -9,7 +9,7 @@ import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
-import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { getOutOfWater, headInWater, movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
@@ -179,8 +179,18 @@ async function main(): Promise<void> {
 
   bot.on("kicked", (reason) => console.error(`[${agentName}] kicked: ${reason}`));
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
+  // What the run has achieved, for goals that span more than one skill (outpost).
+  let shelterBuilt = false;
+  let nightSinceShelter = false;
+  let nightSurvivedSinceShelter = false;
   bot.on("death", () => {
     recentEvents.push("you died and respawned");
+    if (!nightSurvivedSinceShelter) nightSinceShelter = false; // dying forfeits this night
+  });
+  bot.on("time", () => {
+    if (!shelterBuilt || nightSurvivedSinceShelter) return;
+    if (isNight(bot.time.timeOfDay)) nightSinceShelter = true;
+    else if (nightSinceShelter) nightSurvivedSinceShelter = true;
   });
 
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
@@ -335,7 +345,8 @@ async function main(): Promise<void> {
       recentEvents.push(note);
       stepEvents.push(note);
     }
-    if (goalCheck?.({ skill: decision.skill, status: result.status, inventory: countInventory(bot) })) {
+    if (decision.skill === "build_shelter" && result.status === "success") shelterBuilt = true;
+    if (goalCheck?.({ skill: decision.skill, status: result.status, inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter })) {
       console.log(`[${agentName}] goal met`);
       ended = "goal met";
     }

@@ -91,6 +91,7 @@ npm run agent -- --scenario survival --brain ollama   # free local brain
 npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
 npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore
 npm run agent -- --brain ollama --goal tools-guided   # same task with the steps spelled out (shelter-guided too)
+npm run agent -- --brain ollama --goal outpost --scenario survival --ticks 27000  # long goal: 4 stone tools + shelter, survive the night
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
 npm run agent -- --brain claude --view 3008           # one port per agent to watch several
 npm run agent -- --brain gemini                       # also grok, groq, openrouter: key + model in .env, price in pricing.ts

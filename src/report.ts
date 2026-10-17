@@ -320,6 +320,13 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
+  if (task === "outpost") {
+    // Needs the run's whole history (shelter, then a night survived); the agent judged it live.
+    const last = steps[steps.length - 1];
+    goalMet = last?.ended === "goal met";
+    if (goalMet) goalStep = last;
+  }
+
   // Night reached and survived night
   let nightReached = false;
   let survivedNight: boolean | "unknown" = "unknown";

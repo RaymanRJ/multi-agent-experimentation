@@ -63,6 +63,9 @@ export const GOALS: Record<string, string> = {
   "tools-guided":
     "Craft a stone pickaxe. Check your inventory and do the first step you have not done yet: " +
     "gather a few logs, craft a wooden_pickaxe, mine 3 stone, craft a stone_pickaxe. Once you have it, end the episode.",
+  outpost:
+    "Before nightfall, make a stone pickaxe, a stone axe, a stone sword and a stone shovel, and build a shelter. " +
+    "Then survive the night. The episode ends by itself at sunrise once you have all of that.",
   gather: "Gather as much wood and stone as you can.",
   explore: "Explore as far as you can, and gather anything useful you find on the way.",
 };
@@ -73,10 +76,31 @@ export const GOALS: Record<string, string> = {
  * until the model ends them or the time budget does. Keyed by goal, never by
  * scenario — the same goal ends the same way in either world.
  */
-export const GOAL_CHECKS: Record<string, (after: { skill: string; status: string; inventory: Record<string, number> }) => boolean> = {
+/** The stone tools the outpost goal asks for. */
+export const OUTPOST_TOOLS = ["stone_pickaxe", "stone_axe", "stone_sword", "stone_shovel"];
+
+/** What a goal check sees after each skill: that skill's result, plus what the run has achieved so far. */
+export interface GoalState {
+  skill: string;
+  status: string;
+  inventory: Record<string, number>;
+  /** A build_shelter has succeeded at some point in the run. */
+  shelterBuilt: boolean;
+  /** A whole night has passed, without dying, since the shelter was built. */
+  nightSurvivedSinceShelter: boolean;
+}
+
+export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
   shelter: ({ skill, status }) => skill === "build_shelter" && status === "success",
   tools: ({ inventory }) => (inventory["stone_pickaxe"] ?? 0) > 0,
+  outpost: ({ inventory, shelterBuilt, nightSurvivedSinceShelter }) =>
+    shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
 };
+
+/** Night as far as the goal is concerned: from when hostiles spawn until they burn at sunrise. */
+export function isNight(timeOfDay: number): boolean {
+  return timeOfDay >= 13000 && timeOfDay < 23000;
+}
 
 /** "tools" for "tools-guided": the task a preset sets, whatever help it gives. Success is judged per task. */
 export function goalTask(preset: string): string {

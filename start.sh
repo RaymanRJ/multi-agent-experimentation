@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One command to run the whole experiment:
-#   ./start.sh [--scenario sandbox|survival] [--ticks N] [--memory none|plan|full] [--comms on|off] [--stance neutral|collaborative|competitive] [--goal shelter|tools|shelter-guided|tools-guided|gather|explore|"any sentence"]
+#   ./start.sh [--scenario sandbox|survival] [--ticks N] [--memory none|plan|full] [--comms on|off] [--stance neutral|collaborative|competitive] [--goal shelter|tools|shelter-guided|tools-guided|outpost|gather|explore|"any sentence"]
 # Starts Minecraft + the minds panel + one agent per available brain.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,6 +19,8 @@ Options:
                       shelter   gather wood, make planks, build a shelter
                       tools     work up to a stone pickaxe
                       shelter-guided, tools-guided   the same, with the steps spelled out
+                      outpost   all four stone tools and a shelter by nightfall, then survive the night
+                                (a long goal: give it --scenario survival --ticks 27000)
                       gather    collect as much wood and stone as possible
                       explore   travel far, picking up useful things
                     Without --goal, each scenario uses its own goal.

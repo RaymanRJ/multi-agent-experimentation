@@ -139,8 +139,23 @@ test("a short shelter asks for more wood, then builds; then holds until the run 
   assert.equal(d.skill, "wait"); // sheltered: hold, do not flee
   d = (await next(p, after(d, "success", { isDay: false, timeOfDay: 16000 })))!;
   assert.equal(d.skill, "wait");
-  d = (await next(p, after(d, "success", { isDay: true, timeOfDay: 2000 })))!;
+  const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  d = (await next(p, after(d, "success", { isDay: true, timeOfDay: 2000, inventory: kit })))!;
   assert.equal(d.skill, "wait"); // morning too: the time budget, not the policy, ends the run
+});
+
+test("after the shelter, by day, it makes the other stone tools, then holds", async () => {
+  const p = new ScriptedPolicy();
+  const built = { oak_log: 12, stone_pickaxe: 1 };
+  let d = (await next(p, obs({ inventory: built })))!;
+  assert.equal(d.skill, "build_shelter");
+  d = (await next(p, after(d, "success", { inventory: { stone_pickaxe: 1, oak_log: 2 } })))!;
+  assert.equal(d.skill, "mine_stone");
+  assert.equal((d.args as { count: number }).count, 6);
+  d = (await next(p, after(d, "success", { inventory: { stone_pickaxe: 1, oak_log: 2, cobblestone: 6 } })))!;
+  assert.deepEqual([d.skill, d.args], ["craft", { item: "stone_axe", count: 1 }]);
+  d = (await next(p, after(d, "success", { isDay: false, timeOfDay: 15000, inventory: { stone_pickaxe: 1, stone_axe: 1, oak_log: 1, cobblestone: 3 } })))!;
+  assert.equal(d.skill, "wait"); // never leaves the shelter at night for tools
 });
 
 test("always terminates, even when every skill fails forever", async () => {

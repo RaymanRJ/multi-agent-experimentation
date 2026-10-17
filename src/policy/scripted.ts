@@ -7,6 +7,13 @@ const WOODEN_PICK_UNITS = 12;
 /** Stone pickaxe: 2 sticks (2 planks), plus 4 planks for a fresh table if the old one is far away. */
 const STONE_PICK_UNITS = 6;
 const COBBLE_FOR_PICK = 3;
+/**
+ * Made after the shelter, in daylight, for the outpost goal: once the shelter is built the tools
+ * and shelter goals have already ended the run, so their baseline is unchanged. Cobblestone each.
+ */
+const EXTRA_TOOLS: Array<[string, number]> = [["stone_axe", 3], ["stone_sword", 2], ["stone_shovel", 1]];
+/** Planks for the extras' 5 sticks (two batches of 4) plus a fresh crafting table. */
+const EXTRA_TOOL_UNITS = 8;
 
 const FLEE_RANGE = 8;
 const FLEE_DISTANCE = 24;
@@ -169,8 +176,9 @@ export class ScriptedPolicy implements Policy {
     }
     if (o.isDay) this.failStreak.set("sleep", 0);
 
-    // --- Hold: shelter built (or given up on) ---
-    if (this.shelterBuilt || this.abandoned.has("build_shelter")) return this.hold(o);
+    // --- Hold: shelter built (or given up on), first making the other stone tools by day ---
+    if (this.shelterBuilt) return this.extraTools(o) ?? this.hold(o);
+    if (this.abandoned.has("build_shelter")) return this.hold(o);
 
     // --- Relocate after a failed stage ---
     if (this.pendingExplore) {
@@ -224,6 +232,27 @@ export class ScriptedPolicy implements Policy {
       return this.stage("build_shelter", "build_shelter", {}, "enough blocks: build a shelter");
     }
     return this.hold(o);
+  }
+
+  /** The next step towards a stone axe, sword and shovel, or null when done, impossible or dark. */
+  private extraTools(o: Observation): Decision | null {
+    if (!o.isDay) return null;
+    const inv = o.inventory;
+    const missing = EXTRA_TOOLS.filter(([tool]) => (inv[tool] ?? 0) === 0 && this.usable(`craft:${tool}`));
+    if (missing.length === 0) return null;
+    const cobble = inv["cobblestone"] ?? 0;
+    const needCobble = missing.reduce((total, [, count]) => total + count, 0);
+    if (cobble < missing[0]![1]) {
+      if (!this.usable("mine_stone")) return null;
+      return this.stage("mine_stone", "mine_stone", { count: needCobble - cobble }, "cobblestone for the other stone tools");
+    }
+    const logs = sum(inv, (n) => n.endsWith("_log"));
+    const wood = logs * 4 + sum(inv, (n) => n.endsWith("_planks")) + (inv["stick"] ?? 0) / 2;
+    if (wood < EXTRA_TOOL_UNITS / 2 && this.usable("gather_wood")) {
+      return this.stage("gather_wood", "gather_wood", { count: logs + Math.ceil(EXTRA_TOOL_UNITS / 4) }, "wood for tool handles");
+    }
+    const [tool] = missing[0]!;
+    return this.stage(`craft:${tool}`, "craft", { item: tool, count: 1 }, `${tool} for the outpost`);
   }
 
   /** Wait quietly in safety; the time budget ends the run. */
