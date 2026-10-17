@@ -20,6 +20,9 @@ no API key are needed: the free local model plays on its own.
 ./start.sh                  # Minecraft server, minds panel and one agent per available brain
 ```
 
+A run lasts one in-game day (about 20 minutes) and then the agent stops by itself. For a
+two-minute try, use `./start.sh --ticks 2400`. `./start.sh --help` lists every option.
+
 Then watch:
 - **The agent's view:** http://localhost:3007, a 3D view of the world as the Ollama agent sees it.
 - **Its decisions:** http://localhost:3010 (the minds panel), with what it saw, chose and why for every step.
