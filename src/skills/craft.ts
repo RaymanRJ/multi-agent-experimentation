@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, withTimeout } from "./util.js";
+import { asNumber, closeStrayWindow, opensOnClick, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -232,6 +232,7 @@ async function craftOnce(bot: Bot, recipe: Recipe, table: Block | null): Promise
   const id = recipe.result.id;
   const before = have(bot, id);
   const expected = before + recipe.result.count;
+  await closeStrayWindow(bot);
   const window = table ? await bot.openBlock(table) : bot.inventory;
   try {
     await bot.waitForTicks(2);
@@ -325,7 +326,8 @@ function placementSpots(bot: Bot): Vec3[] {
         const distance = eye.distanceTo(cell.offset(0.5, 0.5, 0.5));
         if (distance > PLACE_REACH) continue;
         if (!isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
-        if (bot.blockAt(cell.offset(0, -1, 0))?.boundingBox !== "block") continue;
+        const floor = bot.blockAt(cell.offset(0, -1, 0));
+        if (floor?.boundingBox !== "block" || opensOnClick(floor.name)) continue;
         spots.push({ cell, distance });
       }
     }
@@ -401,7 +403,7 @@ async function tryPlaceAgainstWalls(ctx: SkillContext, name: string): Promise<Bl
   for (const { cell } of cells.slice(0, 12)) {
     for (const face of FACES) {
       const against = bot.blockAt(cell.plus(face));
-      if (!against || against.boundingBox !== "block") continue;
+      if (!against || against.boundingBox !== "block" || opensOnClick(against.name)) continue;
       const held = bot.inventory.items().find((item) => item.name === name);
       if (!held) return null;
       try {

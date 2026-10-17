@@ -105,3 +105,27 @@ export function liquidBeside(bot: Bot, point: { offset(dx: number, dy: number, d
   }
   return null;
 }
+
+/**
+ * Blocks that do something when clicked. Placing a block "against" one clicks it instead: a
+ * crafting table opens, the block is never placed, and the server then ignores crafts in the
+ * inventory grid until that window is closed. Never place against these.
+ */
+const CLICKABLE = new Set([
+  "crafting_table", "furnace", "blast_furnace", "smoker", "chest", "trapped_chest", "barrel", "anvil",
+  "chipped_anvil", "damaged_anvil", "enchanting_table", "smithing_table", "loom", "cartography_table",
+  "grindstone", "stonecutter", "brewing_stand", "hopper", "dispenser", "dropper", "crafter",
+  "note_block", "bell", "lever", "beacon", "lectern", "respawn_anchor", "jukebox",
+]);
+const CLICKABLE_SUFFIXES = ["_bed", "_door", "_trapdoor", "_fence_gate", "_button", "shulker_box"];
+
+export function opensOnClick(name: string): boolean {
+  return CLICKABLE.has(name) || CLICKABLE_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
+/** Closes a window the bot has open, such as a table opened by a stray click, so the server's view matches. */
+export async function closeStrayWindow(bot: Bot): Promise<void> {
+  if (!bot.currentWindow) return;
+  bot.closeWindow(bot.currentWindow);
+  await bot.waitForTicks(2);
+}

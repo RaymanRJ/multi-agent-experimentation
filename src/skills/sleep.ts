@@ -1,7 +1,7 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { threatened, withTimeout } from "./util.js";
+import { opensOnClick, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -24,7 +24,7 @@ async function placeBed(ctx: SkillContext): Promise<boolean> {
   for (const offset of offsets) {
     const ground = bot.blockAt(origin.plus(offset).offset(0, -1, 0));
     const above = bot.blockAt(origin.plus(offset));
-    if (!ground || !above || ground.boundingBox !== "block" || above.name !== "air") continue;
+    if (!ground || !above || ground.boundingBox !== "block" || opensOnClick(ground.name) || above.name !== "air") continue;
     try {
       await bot.lookAt(ground.position.offset(0.5, 1, 0.5), true);
       await bot.placeBlock(ground, new Vec3(0, 1, 0));

@@ -1,7 +1,7 @@
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { threatened, withTimeout } from "./util.js";
+import { opensOnClick, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
 const PLACE_TIMEOUT_MS = 8_000;
@@ -143,7 +143,7 @@ export const buildShelter: Skill = {
         const references: Array<{ block: NonNullable<ReturnType<typeof bot.blockAt>>; face: Vec3 }> = [];
         for (const direction of FACES) {
           const candidate = bot.blockAt(cell.plus(direction));
-          if (candidate && candidate.boundingBox === "block") references.push({ block: candidate, face: direction.scaled(-1) });
+          if (candidate && candidate.boundingBox === "block" && !opensOnClick(candidate.name)) references.push({ block: candidate, face: direction.scaled(-1) });
         }
         if (references.length === 0) {
           stillRemaining.push(offset); // a neighbour may be placed later this pass
