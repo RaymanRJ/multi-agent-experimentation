@@ -1,6 +1,6 @@
 # Does a small local model need memory, or step-by-step instructions?
 
-*Results from batches b1–b6, October 2026. Model: Qwen3 4B Instruct, running locally (free).
+*Results from batches b1–b7, October 2026. Model: Qwen3 4B Instruct, running locally (free).
 Every number here comes from logged runs (`npm run report -- --by condition --batch bN`).*
 
 ## In one paragraph
@@ -108,9 +108,31 @@ it was given dark oak planks instead of an error. No run failed on wood names.
 
 **Full memory stayed strong** (5 of 6), the same as in b5.
 
-**So far, across b4–b6 on comparable code:**
-- full memory: 15 of 18 (61–94%)
-- plan memory: 10 of 18 (34–75%)
+### After the drowning fixes (b7)
+
+| Goal | Qwen, plan memory | Qwen, full memory |
+|---|---|---|
+| Stone pickaxe, bare | **0/3** | 3/3 |
+| Shelter, bare | 3/3 | 3/3 |
+
+**No drownings.** No agent died in b7.
+
+**Plan memory still failed every stone-pickaxe run, and all three were loops:**
+- One agent asked for "4 oak planks" 20 times in a row and made 68 planks. Then it asked for
+  "one more log" over and over, each time told "you already have 9 logs".
+- Two agents mined stone over and over, up to 73 cobblestone, with a plan reading "mine 4
+  cobblestone, then craft a stone pickaxe". They never went back to the craft step.
+
+In each case the model copied its last plan forward almost word for word and followed it,
+whatever the game reported.
+
+b7 also gave the model four new skills (mining ore, smelting, digging down, tunnelling), so
+its menu was longer than in b6. It used one of them twice, so this is unlikely to explain the
+results.
+
+**So far, across b4–b7 on comparable code:**
+- full memory: 21 of 24 (69–96%)
+- plan memory: 13 of 24 (35–72%)
 - no memory: 12 of 12 (76–100%)
 
 A written plan is the one memory setting that keeps hurting this model.
