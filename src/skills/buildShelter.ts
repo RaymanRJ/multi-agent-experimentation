@@ -11,7 +11,7 @@ const PLACE_ATTEMPTS = 3;
 
 const SOLID_EXACT = new Set(["cobblestone", "dirt", "stone", "cobbled_deepslate", "andesite", "diorite", "granite"]);
 
-function isBuildingBlock(name: string): boolean {
+export function isBuildingBlock(name: string): boolean {
   return name.endsWith("_planks") || SOLID_EXACT.has(name);
 }
 
