@@ -306,7 +306,7 @@ function renderDetail() {
   box.replaceChildren(
     h("div", { class: "head" },
       h("div", {},
-        h("h2", {}, r.agent),
+        h("h2", {}, "Agent: " + r.agent),
         h("div", { class: "brain" }, r.brain + " · " + r.brainDetail + (r.memory ? " · memory: " + r.memory : "") + (r.comms != null ? " · comms " + (r.comms ? "on" : "off") : "") + (r.stance ? " · " + r.stance : "") + " · " + r.scenario),
         h("div", { class: "goal" }, h("b", {}, "Goal: "), r.goal)),
       h("div", { class: "spacer" }), statusBadge(r)),
