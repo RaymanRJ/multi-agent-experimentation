@@ -55,11 +55,14 @@ function createRawBackend(brain: BrainName): Backend {
     case "ollama": {
       const model = env("OLLAMA_MODEL", "qwen3:4b-instruct");
       const baseURL = env("OLLAMA_URL", "http://localhost:11434/v1");
+      // 8k fits the system prompt plus a few decisions of history; ~0.4GB more than the default 4096.
+      const context = Math.floor(Number(env("OLLAMA_CONTEXT", "8192")));
       return new OpenAIBackend({
         name: "ollama",
         model,
         apiKey: "", // Ollama doesn't require an API key
         baseURL,
+        ...(context > 0 && { ollamaContext: context }),
       });
     }
   }

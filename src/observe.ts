@@ -1,5 +1,6 @@
 import type { Bot } from "mineflayer";
 import type { Message, Observation, ScenarioName } from "./types.js";
+import { craftableNow } from "./skills/craft.js";
 
 const NEARBY_RADIUS = 24;
 /** How far away you can tell what another agent is doing. */
@@ -95,6 +96,8 @@ export function observe(
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };
+  const craftable = craftableNow(bot);
+  if (craftable.length > 0) observation.canCraft = craftable;
   if (opts.messages) observation.messages = opts.messages;
   if (opts.plan) observation.plan = opts.plan;
   return observation;

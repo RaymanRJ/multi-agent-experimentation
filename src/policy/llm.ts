@@ -14,13 +14,14 @@ const MAX_ATTEMPTS = 3;
 
 /**
  * Token budget for system prompt + conversation in memory "full", estimated as
- * chars / 4. Ollama's default context window is 4096 tokens and the model also
- * needs room to answer (and to think), so we stop at ~3000 and leave ~1000 for
- * output. Roughly: the system prompt plus one observation is ~1000, so this
- * keeps only the last one or two decision pairs on a local model. The latest
- * user turn is always kept, even if it alone exceeds the budget.
+ * chars / 4, on a local model whose window we don't know: Ollama's default is 4096
+ * tokens and the model also needs room to answer, so stop at ~3000 (one or two
+ * decision pairs). When the backend reports its window, the budget is that window
+ * minus OUTPUT_RESERVE_TOKENS instead. The latest user turn is always kept, even
+ * if it alone exceeds the budget.
  */
 export const FULL_MEMORY_TOKEN_BUDGET = 3000;
+export const OUTPUT_RESERVE_TOKENS = 1500;
 
 /**
  * Cloud models have far larger windows, so full memory there is a real memory
@@ -65,7 +66,10 @@ export class LLMPolicy implements Policy {
     this.name = `llm:${backend.name}`;
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.historyTokens =
-      this.options.historyTokens ?? (backend.name === "ollama" ? FULL_MEMORY_TOKEN_BUDGET : CLOUD_MEMORY_TOKEN_BUDGET);
+      this.options.historyTokens ??
+      (backend.contextTokens
+        ? backend.contextTokens - OUTPUT_RESERVE_TOKENS
+        : backend.name === "ollama" ? FULL_MEMORY_TOKEN_BUDGET : CLOUD_MEMORY_TOKEN_BUDGET);
   }
 
   async decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput> {
@@ -165,6 +169,7 @@ export function buildSystemPrompt(
     "You control a Minecraft agent by choosing its next high-level goal. You are given its observation as JSON.",
     '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell. ' +
       "Use it to avoid duplicating their work.",
+    '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     "Skills (args spec: name -> type):",
     ...lines,
     `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,

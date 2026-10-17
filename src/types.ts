@@ -42,6 +42,8 @@ export interface Observation {
   timeOfDay: number;
   isDay: boolean;
   inventory: Record<string, number>;
+  /** Useful items (tools, furnace) not yet held that craft could make from the inventory now. Omitted when none. */
+  canCraft?: string[];
   nearbyBlocks: Record<string, number>;
   hostiles: Array<{ name: string; distance: number }>;
   /**
@@ -150,6 +152,8 @@ export interface Policy {
  */
 export interface Backend {
   name: string;
+  /** The context window in tokens, when we set it (Ollama); absent for cloud models. */
+  contextTokens?: number;
   complete(system: string, turns: ChatTurn[]): Promise<ModelCall>;
 }
 

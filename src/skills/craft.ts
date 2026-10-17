@@ -420,6 +420,26 @@ async function ensureTable(
   return { table: placed };
 }
 
+/** Things worth telling a model it can make; intermediates (planks, sticks, tables) are left to craft itself. */
+const WORTH_CRAFTING = [
+  "wooden_pickaxe", "stone_pickaxe", "iron_pickaxe",
+  "wooden_axe", "stone_axe", "wooden_sword", "stone_sword", "furnace",
+];
+
+/**
+ * The useful items the craft skill could make right now from what is held (counting
+ * intermediates, and assuming a table can be placed), skipping any already held. Small
+ * models hold every ingredient and still keep gathering; this does that arithmetic for them.
+ */
+export function craftableNow(bot: Bot): string[] {
+  return WORTH_CRAFTING.filter((name) => {
+    const item = bot.registry.itemsByName[name];
+    if (!item || have(bot, item.id) > 0) return false;
+    const plan = bestPlan(bot, item.id, 1, MAX_DEPTH, true);
+    return plan !== null && total(plan.missing) === 0;
+  });
+}
+
 export const craft: Skill = {
   name: "craft",
   description:

@@ -298,9 +298,11 @@ async function main(): Promise<void> {
     const outcome = `${decision.skill} ${JSON.stringify(decision.args)} ${result.status} ${result.reason ?? ""}`;
     repeats = outcome === lastOutcome ? repeats + 1 : 1;
     lastOutcome = outcome;
-    // A plain success repeating is fine (e.g. waiting); a failure or a no-op success with a reason is a loop.
-    if (repeats >= 3 && repeats % 3 === 0 && (result.status !== "success" || result.reason)) {
-      const note = `your last ${repeats} decisions were the same ${decision.skill}(${JSON.stringify(decision.args)}) and all got the same result`;
+    // Only waiting legitimately repeats. Plain successes count too: a small model will run
+    // mine_stone(3) forty times, each one succeeding, while holding everything the next step needs.
+    if (repeats >= 3 && repeats % 3 === 0 && decision.skill !== "wait") {
+      const how = result.status === "success" && !result.reason ? "each succeeded" : "all got the same result";
+      const note = `your last ${repeats} decisions were the same ${decision.skill}(${JSON.stringify(decision.args)}) and ${how}`;
       recentEvents.push(note);
       stepEvents.push(note);
     }

@@ -74,6 +74,7 @@ export function withRetries(
   const log = opts.log ?? ((message) => console.error(message));
   return {
     name: backend.name,
+    ...(backend.contextTokens !== undefined && { contextTokens: backend.contextTokens }),
     async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
       for (let attempt = 0; ; attempt++) {
         try {

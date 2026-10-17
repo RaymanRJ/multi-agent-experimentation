@@ -12,7 +12,10 @@ interface OpenAIResponse {
 
 export class OpenAIBackend implements Backend {
   name: string;
+  contextTokens?: number;
   private model: string;
+  /** Set while the Ollama context model still has to be made; cleared once it exists. */
+  private pendingContext: number | undefined;
   private apiKey: string;
   private baseURL: string;
 
@@ -21,19 +24,51 @@ export class OpenAIBackend implements Backend {
     model,
     apiKey,
     baseURL,
+    ollamaContext,
   }: {
     name: string;
     model: string;
     apiKey: string;
     baseURL: string;
+    /** Ollama only: run the model with this context window instead of Ollama's default 4096. */
+    ollamaContext?: number;
   }) {
     this.name = name;
     this.model = model;
     this.apiKey = apiKey;
     this.baseURL = baseURL;
+    if (ollamaContext) {
+      this.contextTokens = ollamaContext;
+      this.pendingContext = ollamaContext;
+    }
+  }
+
+  /**
+   * Ollama's OpenAI-compatible endpoint ignores num_ctx and reloads the model at its default
+   * 4096 tokens, so derive a model with the window baked in (a few-KB manifest over the same
+   * weights; idempotent) and talk to that. Its name says so, and that name is what gets logged.
+   */
+  private async useOllamaContext(tokens: number): Promise<void> {
+    const derived = `${this.model.replace(/:/g, "-")}:ctx${tokens}`;
+    const root = this.baseURL.replace(/\/v1\/?$/, "");
+    const response = await fetch(`${root}/api/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: derived, from: this.model, parameters: { num_ctx: tokens }, stream: false }),
+    }).catch((error: unknown) => {
+      throw new BrainError(`${this.name}: ${(error as Error).message}`, "transient");
+    });
+    if (!response.ok) {
+      throw new BrainError(`${this.name}: could not set a ${tokens}-token context for ${this.model}: HTTP ${response.status} ${await response.text()}`, "fatal");
+    }
+    this.model = derived;
   }
 
   async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
+    if (this.pendingContext) {
+      await this.useOllamaContext(this.pendingContext); // throws a BrainError; tried again next call
+      this.pendingContext = undefined;
+    }
     const startMs = Date.now();
 
     const timeoutMs = this.name === "ollama" ? 120_000 : 60_000;

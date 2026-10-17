@@ -164,3 +164,45 @@ test("OpenAIBackend - captures thinking, finish_reason, id, request and multi-tu
     globalThis.fetch = originalFetch;
   }
 });
+
+test("OpenAIBackend - ollamaContext derives a model with that window once, then uses it", async () => {
+  const backend = new OpenAIBackend({
+    name: "ollama",
+    model: "qwen3:4b-instruct",
+    apiKey: "",
+    baseURL: "http://localhost:11434/v1",
+    ollamaContext: 8192,
+  });
+  assert.strictEqual(backend.contextTokens, 8192);
+
+  const calls: Array<{ url: string; body: any }> = [];
+  const originalFetch = globalThis.fetch;
+  (globalThis as any).fetch = async (url: string, options: RequestInit) => {
+    calls.push({ url, body: JSON.parse(options.body as string) });
+    if (url.endsWith("/api/create")) return new Response(JSON.stringify({ status: "success" }), { status: 200 });
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: "OK" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }),
+      { status: 200 },
+    );
+  };
+
+  try {
+    const first = await backend.complete("s", [{ role: "user", content: "a" }]);
+    await backend.complete("s", [{ role: "user", content: "b" }]);
+    assert.deepStrictEqual(calls.map((c) => c.url), [
+      "http://localhost:11434/api/create",
+      "http://localhost:11434/v1/chat/completions",
+      "http://localhost:11434/v1/chat/completions",
+    ]);
+    assert.deepStrictEqual(calls[0]!.body, {
+      model: "qwen3-4b-instruct:ctx8192",
+      from: "qwen3:4b-instruct",
+      parameters: { num_ctx: 8192 },
+      stream: false,
+    });
+    assert.strictEqual(calls[1]!.body.model, "qwen3-4b-instruct:ctx8192");
+    assert.strictEqual(first.model, "qwen3-4b-instruct:ctx8192");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
