@@ -39,7 +39,16 @@ CONDITIONS="scripted ollama:none ollama:full" GOALS="tools shelter" scripts/batc
 This runs every condition on every goal, 3 times each, for 12,000 ticks each, in the sandbox.
 Each run gets a fresh world on its own throwaway server, so your main world is never touched. A
 condition is `brain:memory`, and a paid model is named the same way, e.g. `claude:full`. Add
-`+progress` to turn on `--progress` for that condition, e.g. `ollama:none+progress`.
+`+progress` to turn on `--progress` for that condition, e.g. `ollama:none+progress`. Add `@model` to pick the model, so one batch can compare several models from one
+provider:
+
+```bash
+BUDGET_USD=15 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet-5-5 claude:plan@claude-opus-5-5" \
+  GOALS=outpost scripts/batch.sh p1 3 27000 survival
+```
+
+`BUDGET_USD` caps what each paid run may spend (default $1.00). A run that reaches it ends as
+"cost budget", so raise it for long goals: an outpost run on a large model can cost several dollars.
 
 The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved next to its run log.
 
