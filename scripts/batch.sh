@@ -6,6 +6,7 @@
 #
 #   scripts/batch.sh NAME [REPS] [TICKS] [SCENARIO]
 #   CONDITIONS="scripted ollama:none ollama:plan ollama:full" GOALS="shelter tools" scripts/batch.sh b1
+#   GOALS="tools tools-guided" scripts/batch.sh b5     # bare goal vs the step-by-step one
 #
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/batch-NAME.txt
 set -euo pipefail
@@ -32,7 +33,8 @@ for rep in $(seq 1 "$reps"); do
       memory="${condition#*:}"; [ "$memory" = "$condition" ] && memory=plan
       # Minecraft usernames max out at 16 characters: base_tools_1, qplan_shelter_3, ...
       if [ "$brain" = scripted ]; then tag=base; else tag="${brain:0:1}${memory}"; [ "$brain" = ollama ] && tag="q${memory}"; fi
-      agent="$(printf '%s_%s_%s' "$tag" "$goal" "$rep" | cut -c1-16)"
+      short="${goal/-guided/g}"   # tools-guided -> toolsg, to fit the name limit
+      agent="$(printf '%s_%s_%s' "$tag" "$short" "$rep" | cut -c1-16)"
       echo "==> [$n/$total] $agent ($scenario, $ticks ticks)"
       scripts/test-server.sh reset "batch-$name" "$port" >/dev/null
       out="$(MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \

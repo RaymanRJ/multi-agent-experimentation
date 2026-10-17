@@ -62,6 +62,10 @@ piece built against it simultaneously. This has already bitten this project's pl
   says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
   paid models; `--steps` is only a safety cap. Tokens and wall-clock are recorded, never limits —
   tokenizers differ between providers and wall-clock measures the hardware.
+- **Goals state outcomes, not steps.** Preset goals (`tools`, `shelter`) say what to achieve; the
+  `-guided` variants spell out the steps and exist to measure how much a model needs that help.
+  What the game requires reaches the model through skill descriptions, failure messages and
+  `canCraft` — the way it reaches a player — not through the goal text.
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
@@ -83,6 +87,7 @@ npm run agent -- --scenario survival --brain ollama   # free local brain
 ./start.sh --check                                    # check Docker / Ollama / model setup, start nothing
 npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
 npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore
+npm run agent -- --brain ollama --goal tools-guided   # same task with the steps spelled out (shelter-guided too)
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
 npm run agent -- --brain claude --view 3008           # one port per agent to watch several
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { summarizeRun } from "./report.js";
+import { GOALS } from "./scenario.js";
 import type { LoggedStep } from "./types.js";
 
 function makeObservation(overrides: Partial<LoggedStep["observation"]> = {}): LoggedStep["observation"] {
@@ -135,7 +136,7 @@ test("goalMet: shelter met when build_shelter succeeds", () => {
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
   assert.equal(summary.goalMet, true);
-  assert.equal(summary.goalName, "shelter");
+  assert.equal(summary.goalName, "shelter-guided"); // the old preset text: older logs report as guided
 });
 
 test("goalMet: shelter not met when build_shelter fails", () => {
@@ -166,7 +167,21 @@ test("goalMet: tools met when stone_pickaxe craft succeeds", () => {
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
   assert.equal(summary.goalMet, true);
+  assert.equal(summary.goalName, "tools-guided");
+});
+
+test("goalMet: the bare tools goal is judged like the guided one", () => {
+  const steps: LoggedStep[] = [
+    makeStep({
+      step: 1,
+      observation: makeObservation({ goal: GOALS["tools"]! }),
+      decision: { skill: "craft", args: { item: "stone_pickaxe" } },
+      result: { status: "success" },
+    }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
   assert.equal(summary.goalName, "tools");
+  assert.equal(summary.goalMet, true);
 });
 
 test("goalMet: tools met when stone_pickaxe in inventory", () => {

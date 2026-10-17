@@ -3,7 +3,7 @@ import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { EndReason, LoggedStep, SkillStatus } from "./types.js";
-import { GOALS, SCENARIOS } from "./scenario.js";
+import { GOALS, SCENARIOS, goalTask } from "./scenario.js";
 import { costUSD } from "./backends/pricing.js";
 
 export interface MilestoneData {
@@ -127,6 +127,7 @@ function newEventsPerStep(steps: LoggedStep[]): string[][] {
  * Deaths are counted from new events per step (deduplicated by window alignment).
  *
  * goalMet:
+ * (judged per task: "tools-guided" is judged as "tools")
  * - "shelter": met if any build_shelter step has result.status "success"
  * - "tools": met if craft step with args.item "stone_pickaxe" succeeded,
  *   or stone_pickaxe appears in any inventory
@@ -234,7 +235,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
 
   // Goal outcome
   let goalMet: boolean | "n/a" = "n/a";
-  if (goalName === "shelter") {
+  const task = goalTask(goalName);
+  if (task === "shelter") {
     goalMet = false;
     for (const step of steps) {
       if (step.decision && step.decision.skill === "build_shelter" && step.result && step.result.status === "success") {
@@ -242,7 +244,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
         break;
       }
     }
-  } else if (goalName === "tools") {
+  } else if (task === "tools") {
     goalMet = false;
     // Check for successful craft of stone_pickaxe
     for (const step of steps) {
@@ -627,6 +629,7 @@ function printTable(summaries: RunSummary[]) {
     ["Agent", (s) => s.agentName || "", false],
     ["Brain", (s) => s.brain || "", false],
     ["Scenario", (s) => s.scenario || "", false],
+    ["Goal preset", (s) => s.goalName, false],
     ["Steps", (s) => String(s.stepsLogged), true],
     ["Furthest", (s) => s.furthestMilestone || "-", false],
     ["Ended", (s) => s.howEnded || "", false],

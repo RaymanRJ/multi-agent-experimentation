@@ -9,7 +9,7 @@ import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
-import { GOAL_CHECKS, SCENARIOS, applyScenario, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
@@ -98,7 +98,7 @@ async function main(): Promise<void> {
   const maxSteps = Number(argv["steps"]);
   const maxTicks = Number(argv["ticks"]);
   const budgetUSD = Number(argv["budget-usd"]);
-  const goalCheck = GOAL_CHECKS[presetName(goal) ?? ""];
+  const goalCheck = GOAL_CHECKS[goalTask(presetName(goal) ?? "")];
   const { policy, backend } = buildPolicy(String(argv["brain"]));
   if (backend) {
     // Find a bad key or an empty account now, not ten minutes into an episode.

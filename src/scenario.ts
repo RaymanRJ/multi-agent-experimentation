@@ -46,14 +46,21 @@ export const SCENARIOS: Record<ScenarioName, Scenario> = {
 /**
  * Preset goals for `--goal <name>`. The scenario sets the world rules; the goal
  * sets what the agents are asked to do, so any goal works in either scenario.
- * Written for the model: it names the steps the skill library can carry out.
+ *
+ * Plain presets state only the outcome: working out the steps is part of what is being
+ * measured, and what the game requires reaches the model the way it would reach a player,
+ * through skill descriptions, failure messages and `canCraft`. Each `-guided` variant spells
+ * the steps out, so the gap between the two measures how much a model needs that help.
+ * The guided texts are exactly the earlier plain ones, so older logs report as guided.
  */
 export const GOALS: Record<string, string> = {
-  shelter:
+  shelter: "Build a shelter. Once it is built, end the episode.",
+  "shelter-guided":
     "Build a shelter. It needs 11 logs in your inventory (the shelter turns them into planks itself). " +
     "If you have fewer than 11 logs, gather wood; once you have 11 or more, build the shelter. " +
     "Once it is built, end the episode.",
-  tools:
+  tools: "Craft a stone pickaxe. Once you have it, end the episode.",
+  "tools-guided":
     "Craft a stone pickaxe. Check your inventory and do the first step you have not done yet: " +
     "gather a few logs, craft a wooden_pickaxe, mine 3 stone, craft a stone_pickaxe. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
@@ -70,6 +77,11 @@ export const GOAL_CHECKS: Record<string, (after: { skill: string; status: string
   shelter: ({ skill, status }) => skill === "build_shelter" && status === "success",
   tools: ({ inventory }) => (inventory["stone_pickaxe"] ?? 0) > 0,
 };
+
+/** "tools" for "tools-guided": the task a preset sets, whatever help it gives. Success is judged per task. */
+export function goalTask(preset: string): string {
+  return preset.replace(/-guided$/, "");
+}
 
 /** The preset name for a resolved goal text, if it is one. */
 export function presetName(goal: string): string | undefined {
