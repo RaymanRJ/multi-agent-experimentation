@@ -20,7 +20,10 @@ building on it.
   - **Model:** it found and mined 7 raw iron. It then called `smelt` with the ore (`raw_iron`)
     instead of the product (`iron_ingot`) five times, despite the error naming `iron_ingot`. It
     also tried 13 times to craft ingots from an iron block it didn't have. It had almost no coal
-    for fuel. `smelt` could accept the ore's name too; that has not been done.
+    for fuel.
+  - Since fixed, but not yet confirmed in a full run: `smelt` accepts the raw item's name, `craft`
+    points to the furnace for ingots, and the baseline moves elsewhere when water blocks digging.
+    Batch b13 re-runs this goal.
 - **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
   as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
@@ -30,8 +33,12 @@ building on it.
 
 - **No fighting, farming or chest storage.** An agent can only run from mobs (`flee`), eat food it
   already has, and keep everything in its inventory.
-- **`flee` can't get out of a pit.** If an agent is down a hole it dug, or boxed in, `flee` reports
-  "no path away" and the agent is stuck until the mob leaves. This ended at least one outpost run.
+- **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. This was
+  checked in a test pit but not yet in a full run, and without dirt, cobblestone or planks to
+  place it still gives up. Before this fix, being cornered ended at least one outpost run.
+- **The model rarely built its shelter on the outpost goal.** It now gets the time until night,
+  a dusk interrupt, and, with `--progress on`, a list of what the goal still lacks. Batch b12
+  measures whether that helps.
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
   - A flooded cave lies under the spawn area. The skills now stop before digging into water, but agents near it still mine slowly.
