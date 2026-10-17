@@ -84,6 +84,7 @@ It also has these columns:
 - **Furthest**: the furthest milestone the run reached (logs, wooden pickaxe, stone, stone pickaxe, shelter, survived the night).
 - **Re-asks**: answers the model got wrong and was asked again for.
 - **Throttled**: provider rate-limit retries.
+- **Cached**: the share of input tokens read from the provider's prompt cache, which are billed at a discount.
 - **Done refused**: times the model said "done" before the goal was met.
 
 To see why a run failed, open its log in the minds panel (`npm run minds`, then

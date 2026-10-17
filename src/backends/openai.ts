@@ -7,6 +7,8 @@ interface OpenAIResponse {
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
+    /** OpenAI caches long prompt prefixes by itself and reports the hits here. */
+    prompt_tokens_details?: { cached_tokens?: number } | null;
   };
 }
 
@@ -140,6 +142,7 @@ export class OpenAIBackend implements Backend {
         model: this.model,
         inputTokens: data.usage.prompt_tokens,
         outputTokens: data.usage.completion_tokens,
+        ...(data.usage.prompt_tokens_details?.cached_tokens && { cacheReadTokens: data.usage.prompt_tokens_details.cached_tokens }),
         ms,
         text,
         request: turns,

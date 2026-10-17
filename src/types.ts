@@ -126,8 +126,13 @@ export interface Decision {
 export interface ModelCall {
   backend: string;
   model: string;
+  /** All input tokens, cached or not, so token counts compare across providers. */
   inputTokens: number;
   outputTokens: number;
+  /** Of inputTokens: read from the provider's prompt cache (billed at a discount). */
+  cacheReadTokens?: number;
+  /** Of inputTokens: written to the prompt cache this call (Anthropic bills these at a premium). */
+  cacheWriteTokens?: number;
   ms: number;
   /** Raw model output, kept so an episode can be replayed without re-calling. */
   text: string;

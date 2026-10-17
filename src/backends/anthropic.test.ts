@@ -31,7 +31,7 @@ test("AnthropicBackend - request shape and token parsing", async () => {
   const result = await backend.complete("You are helpful", [{ role: "user", content: "Hi" }]);
 
   assert.strictEqual(seen[0].model, "claude-haiku-4-5");
-  assert.strictEqual(seen[0].system, "You are helpful");
+  assert.deepStrictEqual(seen[0].system, [{ type: "text", text: "You are helpful", cache_control: { type: "ephemeral" } }]);
   assert.deepStrictEqual(seen[0].messages, [{ role: "user", content: "Hi" }]);
   assert.strictEqual(result.backend, "claude");
   assert.strictEqual(result.inputTokens, 20);
@@ -78,7 +78,11 @@ test("AnthropicBackend - sends multi-turn history in order", async () => {
     { role: "user" as const, content: "c" },
   ];
   const result = await backend.complete("S", turns);
-  assert.deepStrictEqual(seen[0].messages, turns);
+  assert.deepStrictEqual(seen[0].messages, [
+    { role: "user", content: "a" },
+    { role: "assistant", content: [{ type: "text", text: "b", cache_control: { type: "ephemeral" } }] },
+    { role: "user", content: "c" },
+  ]);
   assert.strictEqual(result.thinking, undefined);
 });
 
@@ -106,4 +110,44 @@ test("Claude pricing - dated snapshot ids resolve to their base model", () => {
 test("Claude pricing - opus-5-5", () => {
   const call = { backend: "claude", model: "claude-opus-5-5", inputTokens: 1_000_000, outputTokens: 1_000_000, ms: 1, text: "" };
   assert.strictEqual(costUSD(call), 24);
+});
+
+test("cachedRequest - breakpoints after the system prompt and after the history before the newest turn", async () => {
+  const { cachedRequest } = await import("./anthropic.js");
+  const one = cachedRequest("S", [{ role: "user", content: "obs" }]);
+  assert.deepStrictEqual(one.messages, [{ role: "user", content: "obs" }], "no history: only the system prompt is marked");
+  const turns = [
+    { role: "user" as const, content: "o1" }, { role: "assistant" as const, content: "r1" },
+    { role: "user" as const, content: "o2" }, { role: "assistant" as const, content: "r2" },
+    { role: "user" as const, content: "o3" },
+  ];
+  const marked = cachedRequest("S", turns).messages.map((m) => typeof m.content !== "string");
+  assert.deepStrictEqual(marked, [false, false, false, true, false]);
+  const flat = cachedRequest("S", turns).messages.map((m) => (typeof m.content === "string" ? m.content : (m.content[0] as { text: string }).text));
+  assert.deepStrictEqual(flat, ["o1", "r1", "o2", "r2", "o3"], "the text sent is unchanged");
+});
+
+test("AnthropicBackend - counts cached input in the total and reports reads and writes", async () => {
+  const backend = new AnthropicBackend({
+    name: "claude",
+    model: "claude-sonnet-5-5",
+    apiKey: "unused",
+    client: fakeClient({
+      content: [{ type: "text", text: "ok" }],
+      usage: { input_tokens: 300, output_tokens: 10, cache_read_input_tokens: 1500, cache_creation_input_tokens: 200 },
+    }),
+  });
+  const result = await backend.complete("S", [{ role: "user", content: "x" }]);
+  assert.strictEqual(result.inputTokens, 2000);
+  assert.strictEqual(result.cacheReadTokens, 1500);
+  assert.strictEqual(result.cacheWriteTokens, 200);
+});
+
+test("Claude pricing - cache reads at a tenth of input, writes at 1.25x", () => {
+  const base = { backend: "claude", model: "claude-sonnet-5-5", outputTokens: 0, ms: 1, text: "" };
+  // Sonnet 5.5 input is $2/M: 1M plain = $2; 1M read = $0.20; 1M written = $2.50.
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000 }) - 2) < 1e-9);
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheReadTokens: 1_000_000 }) - 0.2) < 1e-9);
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 2.5) < 1e-9);
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 3_000_000, cacheReadTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 4.7) < 1e-9);
 });

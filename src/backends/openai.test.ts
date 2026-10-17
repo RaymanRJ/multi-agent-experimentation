@@ -212,3 +212,31 @@ test("costUSD - GPT-6 models are priced, so the budget can cap them", () => {
   assert.strictEqual(costUSD(call), 3);
   assert.ok(Number.isNaN(costUSD({ ...call, model: "gpt-unreleased" })));
 });
+
+test("OpenAIBackend - reports cached prompt tokens as cache reads", async () => {
+  const backend = new OpenAIBackend({ name: "gpt", model: "gpt-4.1-mini", apiKey: "k", baseURL: "http://localhost:8000" });
+  const originalFetch = globalThis.fetch;
+  (globalThis as any).fetch = async () =>
+    new Response(JSON.stringify({
+      choices: [{ message: { content: "ok" } }],
+      usage: { prompt_tokens: 2000, completion_tokens: 5, prompt_tokens_details: { cached_tokens: 1536 } },
+    }), { status: 200 });
+  try {
+    const call = await backend.complete("S", [{ role: "user", content: "x" }]);
+    assert.strictEqual(call.inputTokens, 2000);
+    assert.strictEqual(call.cacheReadTokens, 1536);
+    assert.strictEqual(call.cacheWriteTokens, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OpenAI pricing - cached input at its listed price; unlisted models pay full input price", () => {
+  const base = { backend: "gpt", outputTokens: 0, ms: 1, text: "" };
+  // gpt-4.1-mini: $0.40/M input, $0.10/M cached.
+  const mini = costUSD({ ...base, model: "gpt-4.1-mini", inputTokens: 2_000_000, cacheReadTokens: 1_000_000 });
+  assert.ok(Math.abs(mini - 0.5) < 1e-9);
+  // gpt-6.1-sol lists no cached price: never understate, bill it as plain input.
+  const sol = costUSD({ ...base, model: "gpt-6.1-sol", inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
+  assert.ok(Math.abs(sol - 2) < 1e-9);
+});
