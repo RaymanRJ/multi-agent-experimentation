@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "try": "tsx src/try.ts",
     "report": "tsx src/report.ts",
+    "summary": "tsx src/summary.ts",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
