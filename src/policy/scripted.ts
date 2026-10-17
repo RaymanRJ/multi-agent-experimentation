@@ -14,6 +14,16 @@ const COBBLE_FOR_PICK = 3;
 const EXTRA_TOOLS: Array<[string, number]> = [["stone_axe", 3], ["stone_sword", 2], ["stone_shovel", 1]];
 /** Planks for the extras' 5 sticks (two batches of 4) plus a fresh crafting table. */
 const EXTRA_TOOL_UNITS = 8;
+/** Iron then diamonds, after the outpost: heights to dig to, and how many to fetch. */
+const IRON_Y = 16;
+const DIAMOND_Y = -58;
+const IRON_FOR_PICK = 3;
+const DIAMONDS_FOR_BOOTS = 4;
+/** Logs kept for furnace fuel and the iron pickaxe's sticks; cobblestone for the furnace. */
+const LOGS_FOR_IRON = 3;
+const COBBLE_FOR_FURNACE = 8;
+/** Searching for ore is tunnel, look, tunnel: it earns many more tries than other stages. */
+const MAX_ORE_FAILS = 15;
 
 const FLEE_RANGE = 8;
 const FLEE_DISTANCE = 24;
@@ -42,6 +52,7 @@ const STONE_TIER = ["stone_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netheri
 
 /** Stages that can be retried somewhere else after an explore. */
 const RELOCATABLE = new Set(["gather_wood", "mine_stone", "build_shelter"]);
+const DIAMOND_ARMOR = ["diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots"];
 
 function sum(inventory: Record<string, number>, test: (name: string) => boolean): number {
   return Object.entries(inventory).reduce((total, [name, count]) => (test(name) ? total + count : total), 0);
@@ -81,6 +92,8 @@ export class ScriptedPolicy implements Policy {
   private pendingExplore = false;
   private explores = 0;
   private fleeStreak = 0;
+  /** The last mine_ore found nothing in sight: dig to uncover more before looking again. */
+  private uncover = false;
   private shelterBuilt = false;
   private decisions = 0;
   /** A craft that reported success: if the item is not in the next inventory, the success was phantom. */
@@ -134,7 +147,11 @@ export class ScriptedPolicy implements Policy {
   private countFailure(key: string, skill: string, reason: string): void {
     const streak = (this.failStreak.get(key) ?? 0) + 1;
     this.failStreak.set(key, streak);
-    const limit = skill === "craft" ? MAX_CRAFT_FAILS : skill === "mine_stone" ? MAX_STONE_FAILS : MAX_STAGE_FAILS;
+    if (skill === "mine_ore") this.uncover = true;
+    const limit =
+      skill === "craft" ? MAX_CRAFT_FAILS :
+      skill === "mine_stone" ? MAX_STONE_FAILS :
+      skill === "mine_ore" || skill === "tunnel" ? MAX_ORE_FAILS : MAX_STAGE_FAILS;
     if (streak >= limit) this.abandoned.add(key);
     else if (RELOCATABLE.has(skill) || /flat ground/.test(reason)) this.pendingExplore = true;
     // A craft or shelter that came up short ("need 4 more ...") needs more wood, not a new place.
@@ -177,7 +194,7 @@ export class ScriptedPolicy implements Policy {
     if (o.isDay) this.failStreak.set("sleep", 0);
 
     // --- Hold: shelter built (or given up on), first making the other stone tools by day ---
-    if (this.shelterBuilt) return this.extraTools(o) ?? this.hold(o);
+    if (this.shelterBuilt) return this.extraTools(o) ?? this.ironAndDiamonds(o) ?? this.hold(o);
     if (this.abandoned.has("build_shelter")) return this.hold(o);
 
     // --- Relocate after a failed stage ---
@@ -253,6 +270,52 @@ export class ScriptedPolicy implements Policy {
     }
     const [tool] = missing[0]!;
     return this.stage(`craft:${tool}`, "craft", { item: tool, count: 1 }, `${tool} for the outpost`);
+  }
+
+  /**
+   * After the outpost: an iron pickaxe, then diamond boots. Starts only by day, but once
+   * underground day and night no longer matter. Null when finished or out of options.
+   */
+  private ironAndDiamonds(o: Observation): Decision | null {
+    const inv = o.inventory;
+    const y = o.position.y;
+    if (!o.isDay && y > 55) return null;
+    const has = (name: string) => (inv[name] ?? 0) > 0;
+    const logs = sum(inv, (n) => n.endsWith("_log"));
+    const dig = (targetY: number, why: string): Decision | null => {
+      this.uncover = false;
+      if (y > targetY + 4 && this.usable("descend")) return this.stage("descend", "descend", { y: targetY }, why);
+      if (this.usable("tunnel")) return this.stage("tunnel", "tunnel", { length: 16 }, "uncover ore hidden in the rock");
+      return null;
+    };
+
+    if (!has("iron_pickaxe") && !has("diamond_pickaxe")) {
+      const ingots = inv["iron_ingot"] ?? 0;
+      const raw = inv["raw_iron"] ?? 0;
+      if (ingots >= IRON_FOR_PICK) {
+        return this.usable("craft:iron_pickaxe") ? this.stage("craft:iron_pickaxe", "craft", { item: "iron_pickaxe", count: 1 }, "iron pickaxe, to mine diamonds") : null;
+      }
+      if (ingots + raw >= IRON_FOR_PICK) {
+        if (logs < LOGS_FOR_IRON && !has("coal") && this.usable("gather_wood")) {
+          return this.stage("gather_wood", "gather_wood", { count: LOGS_FOR_IRON }, "wood for furnace fuel and sticks");
+        }
+        if (!has("furnace") && (inv["cobblestone"] ?? 0) < COBBLE_FOR_FURNACE && this.usable("mine_stone")) {
+          return this.stage("mine_stone", "mine_stone", { count: COBBLE_FOR_FURNACE - (inv["cobblestone"] ?? 0) }, "cobblestone for a furnace");
+        }
+        return this.usable("smelt") ? this.stage("smelt", "smelt", { item: "iron_ingot", count: IRON_FOR_PICK - ingots }, "smelt the raw iron") : null;
+      }
+      if (this.uncover || !this.usable("mine_ore:iron")) return dig(IRON_Y, "down to where iron is common");
+      return this.stage("mine_ore:iron", "mine_ore", { ore: "iron", count: IRON_FOR_PICK - ingots - raw }, "raw iron for an iron pickaxe");
+    }
+
+    if (DIAMOND_ARMOR.some(has)) return null;
+    const diamonds = inv["diamond"] ?? 0;
+    if (diamonds >= DIAMONDS_FOR_BOOTS) {
+      return this.usable("craft:diamond_boots") ? this.stage("craft:diamond_boots", "craft", { item: "diamond_boots", count: 1 }, "diamond boots") : null;
+    }
+    if (y > DIAMOND_Y + 8) return dig(DIAMOND_Y, "down to where diamonds are");
+    if (this.uncover || !this.usable("mine_ore:diamond")) return dig(DIAMOND_Y, "keep looking for diamonds");
+    return this.stage("mine_ore:diamond", "mine_ore", { ore: "diamond", count: DIAMONDS_FOR_BOOTS - diamonds }, "diamonds for boots");
   }
 
   /** Wait quietly in safety; the time budget ends the run. */

@@ -139,7 +139,7 @@ test("a short shelter asks for more wood, then builds; then holds until the run 
   assert.equal(d.skill, "wait"); // sheltered: hold, do not flee
   d = (await next(p, after(d, "success", { isDay: false, timeOfDay: 16000 })))!;
   assert.equal(d.skill, "wait");
-  const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1, iron_pickaxe: 1, diamond_boots: 1 };
   d = (await next(p, after(d, "success", { isDay: true, timeOfDay: 2000, inventory: kit })))!;
   assert.equal(d.skill, "wait"); // morning too: the time budget, not the policy, ends the run
 });
@@ -193,4 +193,23 @@ test("a craft that reports success but leaves no item is counted as a failure", 
     if (d.skill !== "craft") { abandoned = true; break; }
   }
   assert.ok(abandoned, "gave up on a pickaxe that never appears");
+});
+
+test("after the outpost it digs for iron, smelts it, then goes down for diamonds", async () => {
+  const p = new ScriptedPolicy();
+  const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
+  d = (await next(p, after(d, "success", { inventory: kit })))!; // shelter built
+  assert.deepEqual([d.skill, d.args], ["mine_ore", { ore: "iron", count: 3 }]);
+  d = (await next(p, after(d, "failed", { inventory: kit })))!;
+  assert.deepEqual([d.skill, d.args], ["descend", { y: 16 }]);
+  d = (await next(p, after(d, "success", { inventory: kit, position: { x: 0, y: 16, z: 0 } })))!;
+  assert.equal(d.skill, "mine_ore");
+  const iron = { ...kit, raw_iron: 3, oak_log: 3, cobblestone: 8 };
+  d = (await next(p, after(d, "success", { inventory: iron, position: { x: 0, y: 16, z: 0 } })))!;
+  assert.deepEqual([d.skill, d.args], ["smelt", { item: "iron_ingot", count: 3 }]);
+  d = (await next(p, after(d, "success", { inventory: { ...kit, iron_ingot: 3 }, position: { x: 0, y: 16, z: 0 } })))!;
+  assert.deepEqual([d.skill, d.args], ["craft", { item: "iron_pickaxe", count: 1 }]);
+  d = (await next(p, after(d, "success", { inventory: { ...kit, iron_pickaxe: 1 }, position: { x: 0, y: 16, z: 0 } })))!;
+  assert.deepEqual([d.skill, d.args], ["descend", { y: -58 }]);
 });
