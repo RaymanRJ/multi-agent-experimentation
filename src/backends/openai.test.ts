@@ -206,3 +206,9 @@ test("OpenAIBackend - ollamaContext derives a model with that window once, then 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("costUSD - GPT-6 models are priced, so the budget can cap them", () => {
+  const call = { backend: "gpt", model: "gpt-6.1-sol", inputTokens: 1_000_000, outputTokens: 100_000, ms: 0, text: "", request: [] };
+  assert.strictEqual(costUSD(call), 3);
+  assert.ok(Number.isNaN(costUSD({ ...call, model: "gpt-unreleased" })));
+});

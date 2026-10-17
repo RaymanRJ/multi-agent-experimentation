@@ -24,7 +24,7 @@ export class AnthropicBackend implements Backend {
     this.name = name;
     this.model = model;
     // maxRetries 0: withRetries() owns retrying, so a rate limit is not retried twice over.
-    this.client = client ?? new Anthropic({ apiKey, timeout: 60_000, maxRetries: 0 });
+    this.client = client ?? new Anthropic({ apiKey, timeout: 120_000, maxRetries: 0 });
   }
 
   async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
@@ -35,7 +35,8 @@ export class AnthropicBackend implements Backend {
     const response = await this.client.messages
       .create({
         model: this.model,
-        max_tokens: 4096,
+        // Room for extended thinking before the answer; only tokens actually produced are billed.
+        max_tokens: 16_000,
         system,
         messages: turns,
       })

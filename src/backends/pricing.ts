@@ -14,10 +14,17 @@ const PRICING: Record<string, [number, number]> = {
   "claude-sonnet-4-6": [3.0, 15.0],
 
   // OpenAI models
-  // gpt-4.1-mini list price since its April 2025 launch; verify at
+  // gpt-4.1-mini list price since its April 2025 launch. The GPT-6 rates come from
+  // price aggregators (2026-10-16), not openai.com; verify at
   // https://openai.com/api/pricing before quoting costs.
   "gpt-4.1-mini": [0.4, 1.6],
+  "gpt-6-luna": [0.1, 0.5],
+  "gpt-6.1-sol": [2.0, 10.0],
+  "gpt-6-astra": [10.0, 50.0],
 };
+
+/** Models with a known price, for error messages. */
+export const PRICED_MODELS = Object.keys(PRICING);
 
 export function costUSD(call: ModelCall): number {
   // Local/unknown models have zero cost

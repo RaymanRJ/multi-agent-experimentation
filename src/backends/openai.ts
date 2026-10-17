@@ -71,7 +71,8 @@ export class OpenAIBackend implements Backend {
     }
     const startMs = Date.now();
 
-    const timeoutMs = this.name === "ollama" ? 120_000 : 60_000;
+    // Reasoning models can think for over a minute on a long full-memory prompt.
+    const timeoutMs = 120_000;
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(new Error(`${this.name} gave no answer within ${timeoutMs / 1000}s`)),

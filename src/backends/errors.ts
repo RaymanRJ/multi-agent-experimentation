@@ -95,6 +95,6 @@ export function withRetries(
  * One tiny call before the run, so a bad key or empty account is found at
  * startup rather than mid-episode. Costs a few tokens on paid brains.
  */
-export async function preflight(backend: Backend): Promise<void> {
-  await backend.complete("Reply with the single word OK.", [{ role: "user", content: "Ready?" }]);
+export async function preflight(backend: Backend): Promise<ModelCall> {
+  return backend.complete("Reply with the single word OK.", [{ role: "user", content: "Ready?" }]);
 }

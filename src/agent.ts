@@ -15,7 +15,7 @@ import { movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
-import { costUSD } from "./backends/pricing.js";
+import { costUSD, PRICED_MODELS } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
 import type { Backend, EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
 
@@ -102,10 +102,19 @@ async function main(): Promise<void> {
   const { policy, backend } = buildPolicy(String(argv["brain"]));
   if (backend) {
     // Find a bad key or an empty account now, not ten minutes into an episode.
+    let probe;
     try {
-      await preflight(backend);
+      probe = await preflight(backend);
     } catch (error) {
       console.error(`[${agentName}] brain ${backend.name} is not usable, not starting: ${(error as Error).message}`);
+      process.exit(3);
+    }
+    // Without a price the cost would count as $0 and --budget-usd would never stop the run.
+    if (!Number.isFinite(costUSD(probe))) {
+      console.error(
+        `[${agentName}] no price is known for model ${probe.model}, so --budget-usd cannot cap it; not starting. ` +
+          `Add its rates to src/backends/pricing.ts (known: ${PRICED_MODELS.join(", ")}).`,
+      );
       process.exit(3);
     }
   }
@@ -253,7 +262,8 @@ async function main(): Promise<void> {
     const decisionMs = Date.now() - startedAt;
     for (const call of calls) {
       const cost = costUSD(call);
-      if (Number.isFinite(cost)) spentUSD += cost; // unknown cloud models show as "unknown" in the report
+      // Fail closed: a price that went unknown mid-run (a different model answered) ends the run.
+      spentUSD += Number.isFinite(cost) ? cost : Infinity;
     }
     const extra = { calls, decisionMs, ...(system ? { system } : {}) };
 
