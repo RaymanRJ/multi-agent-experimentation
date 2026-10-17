@@ -11,6 +11,7 @@ import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./inter
 import { RunLog } from "./log.js";
 import { GOAL_CHECKS, SCENARIOS, applyScenario, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
+import { movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -18,7 +19,7 @@ import { costUSD } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
 import type { Backend, EndReason, LoggedStep, MemoryMode, Policy, RunConfig, ScenarioName, SkillContext } from "./types.js";
 
-const { pathfinder, Movements } = pathfinderPkg;
+const { pathfinder } = pathfinderPkg;
 
 loadEnv();
 
@@ -162,7 +163,7 @@ async function main(): Promise<void> {
   });
 
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
-  bot.pathfinder.setMovements(new Movements(bot));
+  bot.pathfinder.setMovements(movementsFor(bot));
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();

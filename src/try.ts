@@ -14,9 +14,10 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
 import { findSkill, SKILLS } from "./skills/index.js";
+import { movementsFor } from "./skills/util.js";
 import type { SkillContext } from "./types.js";
 
-const { pathfinder, Movements } = pathfinderPkg;
+const { pathfinder } = pathfinderPkg;
 
 loadEnv();
 
@@ -42,7 +43,7 @@ bot.on("kicked", (reason) => console.error(`kicked: ${reason}`));
 bot.on("error", (error) => console.error(`error: ${error.message}`));
 
 bot.once("spawn", async () => {
-  bot.pathfinder.setMovements(new Movements(bot));
+  bot.pathfinder.setMovements(movementsFor(bot));
   await bot.waitForChunksToLoad();
 
   const events: string[] = [];
