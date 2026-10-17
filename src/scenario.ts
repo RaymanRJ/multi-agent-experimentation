@@ -66,6 +66,8 @@ export const GOALS: Record<string, string> = {
   outpost:
     "Before nightfall, make a stone pickaxe, a stone axe, a stone sword and a stone shovel, and build a shelter. " +
     "Then survive the night. The episode ends by itself at sunrise once you have all of that.",
+  iron: "Craft an iron pickaxe. Once you have it, end the episode.",
+  diamond: "Make a piece of diamond armor. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
   explore: "Explore as far as you can, and gather anything useful you find on the way.",
 };
@@ -76,6 +78,8 @@ export const GOALS: Record<string, string> = {
  * until the model ends them or the time budget does. Keyed by goal, never by
  * scenario — the same goal ends the same way in either world.
  */
+export const DIAMOND_ARMOR = ["diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots"];
+
 /** The stone tools the outpost goal asks for. */
 export const OUTPOST_TOOLS = ["stone_pickaxe", "stone_axe", "stone_sword", "stone_shovel"];
 
@@ -93,6 +97,8 @@ export interface GoalState {
 export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
   shelter: ({ skill, status }) => skill === "build_shelter" && status === "success",
   tools: ({ inventory }) => (inventory["stone_pickaxe"] ?? 0) > 0,
+  iron: ({ inventory }) => (inventory["iron_pickaxe"] ?? 0) > 0,
+  diamond: ({ inventory }) => DIAMOND_ARMOR.some((piece) => (inventory[piece] ?? 0) > 0),
   outpost: ({ inventory, shelterBuilt, nightSurvivedSinceShelter }) =>
     shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
 };

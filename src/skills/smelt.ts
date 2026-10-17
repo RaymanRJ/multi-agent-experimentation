@@ -1,0 +1,147 @@
+import pathfinderPkg from "mineflayer-pathfinder";
+import type { Block } from "prismarine-block";
+import type { Skill, SkillContext, SkillResult } from "../types.js";
+import { countInventory } from "../observe.js";
+import { asNumber, withTimeout } from "./util.js";
+import { craft, placeNearby } from "./craft.js";
+
+const { goals } = pathfinderPkg;
+
+const FURNACE_SEARCH_RADIUS = 32;
+const TRAVEL_TIMEOUT_MS = 30_000;
+/** A furnace takes 200 ticks (10 s) per item; allow some slack. */
+const TICKS_PER_ITEM = 230;
+
+/** What can be smelted into what. The model names the result it wants. */
+export const SMELTS: Record<string, string> = {
+  iron_ingot: "raw_iron",
+  gold_ingot: "raw_gold",
+  copper_ingot: "raw_copper",
+  stone: "cobblestone",
+  glass: "sand",
+  cooked_beef: "beef",
+  cooked_porkchop: "porkchop",
+  cooked_chicken: "chicken",
+  cooked_mutton: "mutton",
+};
+
+/** Fuel in order of preference, with how many items one unit smelts. Any log or planks counts as wood. */
+const FUELS: Array<{ test: (name: string) => boolean; smelts: number }> = [
+  { test: (n) => n === "coal" || n === "charcoal", smelts: 8 },
+  { test: (n) => n.endsWith("_planks"), smelts: 1.5 },
+  { test: (n) => n.endsWith("_log"), smelts: 1.5 },
+  { test: (n) => n === "stick", smelts: 0.5 },
+];
+
+/**
+ * Fuel to cover `items`: the best kind first, topped up with the next. Pure, for testing.
+ * Returns [item name, count] pairs, or null if everything held is not enough.
+ */
+export function chooseFuel(inventory: Record<string, number>, items: number): Array<[string, number]> | null {
+  const chosen: Array<[string, number]> = [];
+  let left = items;
+  for (const fuel of FUELS) {
+    for (const [name, held] of Object.entries(inventory)) {
+      if (left <= 0) break;
+      if (!fuel.test(name) || held <= 0) continue;
+      const use = Math.min(held, Math.ceil(left / fuel.smelts));
+      chosen.push([name, use]);
+      left -= use * fuel.smelts;
+    }
+  }
+  return left <= 0 ? chosen : null;
+}
+
+/** A furnace within reach: one nearby, one held and placed, or one crafted from 8 cobblestone and placed. */
+async function ensureFurnace(ctx: SkillContext): Promise<Block | string> {
+  const bot = ctx.bot;
+  const furnaceId = bot.registry.blocksByName["furnace"]?.id;
+  if (furnaceId === undefined) return "this server version has no furnace";
+  const near = bot.findBlock({ matching: furnaceId, maxDistance: FURNACE_SEARCH_RADIUS });
+  if (near) {
+    const { x, y, z } = near.position;
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to furnace");
+      return near;
+    } catch (error) {
+      ctx.log(`could not reach the furnace at ${x},${y},${z}: ${(error as Error).message}`);
+    }
+  }
+  if ((countInventory(bot)["furnace"] ?? 0) === 0) {
+    const made = await craft.run(ctx, { item: "furnace", count: 1 });
+    if (made.status !== "success") return `no furnace nearby and could not craft one: ${made.reason ?? made.status}`;
+  }
+  const placed = await placeNearby(ctx, "furnace");
+  return placed ?? "could not place the furnace: no open ground within reach — move somewhere clearer";
+}
+
+export const smelt: Skill = {
+  name: "smelt",
+  description:
+    "Smelt items in a furnace. Takes `item` — what you want to make (iron_ingot from raw_iron, gold_ingot, copper_ingot, " +
+    "stone from cobblestone, glass from sand, cooked meat) — and `count`. Uses a furnace within 32 blocks, or places " +
+    "one from your inventory, or crafts one from 8 cobblestone. Burns fuel you carry: coal or charcoal (8 items each), " +
+    "planks or logs (1.5 each), sticks. Waits about 10 seconds per item. Fails, naming what is missing, without the " +
+    "raw items or enough fuel. Returns how many were made and your new total.",
+  args: { item: "string", count: "number" },
+
+  async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
+    const bot = ctx.bot;
+    const product = String(rawArgs["item"] ?? "").trim().toLowerCase();
+    const source = SMELTS[product];
+    if (!source) {
+      return { status: "failed", reason: `"${product}" is not something this can smelt — use one of ${Object.keys(SMELTS).join(", ")}` };
+    }
+    const count = Math.max(1, Math.min(64, Math.floor(asNumber(rawArgs["count"], 1))));
+
+    const inventory = countInventory(bot);
+    const raw = inventory[source] ?? 0;
+    if (raw < count) {
+      return { status: "failed", reason: `need ${count - raw} more ${source} to make ${count} ${product}`, detail: { missing: { [source]: count - raw } } };
+    }
+    // Wood burnt as fuel must not be the wood a furnace or later crafts need; the furnace itself
+    // is cobblestone, so only fuel is checked here.
+    const fuel = chooseFuel(inventory, count);
+    if (!fuel) {
+      return { status: "failed", reason: `not enough fuel to smelt ${count} ${source}: carry coal (mine_ore coal), or logs or planks` };
+    }
+
+    const furnaceBlock = await ensureFurnace(ctx);
+    if (typeof furnaceBlock === "string") return { status: "failed", reason: furnaceBlock };
+    if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
+
+    const sourceId = bot.registry.itemsByName[source]!.id;
+    const startedWith = countInventory(bot)[product] ?? 0;
+    const furnace = await bot.openFurnace(furnaceBlock);
+    try {
+      // Clear whatever an earlier smelt left behind.
+      if (furnace.outputItem()) await furnace.takeOutput();
+      if (furnace.inputItem() && furnace.inputItem().type !== sourceId) await furnace.takeInput();
+      for (const [name, use] of fuel) await furnace.putFuel(bot.registry.itemsByName[name]!.id, null, use);
+      await furnace.putInput(sourceId, null, count);
+
+      const made = () => (countInventory(bot)[product] ?? 0) - startedWith + (furnace.outputItem()?.count ?? 0);
+      for (let tick = 0; tick < count * TICKS_PER_ITEM && made() < count; tick += 20) {
+        if (ctx.shouldStop()) break;
+        await bot.waitForTicks(20);
+      }
+      if (furnace.outputItem()) await furnace.takeOutput();
+    } catch (error) {
+      return { status: "failed", reason: `smelting failed: ${(error as Error).message}` };
+    } finally {
+      furnace.close();
+    }
+
+    const total = countInventory(bot)[product] ?? 0;
+    const madeNow = total - startedWith;
+    if (madeNow <= 0) return { status: "failed", reason: `the furnace produced no ${product}`, detail: { total } };
+    if (madeNow < count) {
+      return {
+        status: ctx.shouldStop() ? "aborted" : "failed",
+        reason: `made ${madeNow} of ${count} ${product} before stopping; the rest is still in the furnace`,
+        detail: { made: madeNow, total },
+      };
+    }
+    return { status: "success", detail: { made: madeNow, total } };
+  },
+};

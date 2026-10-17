@@ -1,0 +1,134 @@
+import pathfinderPkg from "mineflayer-pathfinder";
+import type { Block } from "prismarine-block";
+import type { Vec3 } from "vec3";
+import type { Skill, SkillContext, SkillResult } from "../types.js";
+import { countInventory } from "../observe.js";
+import { asNumber, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+
+const { goals } = pathfinderPkg;
+
+const SEARCH_RADII = [16, 32, 48];
+const TRAVEL_TIMEOUT_MS = 30_000;
+const DIG_TIMEOUT_MS = 20_000;
+const MAX_FAILED_BLOCKS = 5;
+const MAX_TOTAL_MS = 4 * 60_000;
+
+/** Pickaxes, weakest first. */
+const TIERS = ["wooden_pickaxe", "stone_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
+
+/** What each ore drops, and the weakest pickaxe that gets the drop (anything weaker breaks it for nothing). */
+export const ORES: Record<string, { drop: string; pickaxe: string }> = {
+  coal: { drop: "coal", pickaxe: "wooden_pickaxe" },
+  copper: { drop: "raw_copper", pickaxe: "stone_pickaxe" },
+  iron: { drop: "raw_iron", pickaxe: "stone_pickaxe" },
+  lapis: { drop: "lapis_lazuli", pickaxe: "stone_pickaxe" },
+  gold: { drop: "raw_gold", pickaxe: "iron_pickaxe" },
+  redstone: { drop: "redstone", pickaxe: "iron_pickaxe" },
+  diamond: { drop: "diamond", pickaxe: "iron_pickaxe" },
+  emerald: { drop: "emerald", pickaxe: "iron_pickaxe" },
+};
+
+/** "iron", "iron_ore" or "deepslate_iron_ore" -> "iron". */
+export function oreKind(name: string): string | null {
+  const kind = name.trim().toLowerCase().replace(/^deepslate_/, "").replace(/_ore$/, "");
+  return kind in ORES ? kind : null;
+}
+
+/** The best pickaxe held, if it is good enough for this ore. */
+function pickaxeFor(inventory: Record<string, number>, needed: string): string | null {
+  const best = [...TIERS].reverse().find((tool) => (inventory[tool] ?? 0) > 0);
+  if (!best) return null;
+  return TIERS.indexOf(best) >= TIERS.indexOf(needed) ? best : null;
+}
+
+export const mineOre: Skill = {
+  name: "mine_ore",
+  description:
+    "Mine ore you can see and collect what it drops. Takes `ore` (coal, iron, copper, gold, diamond, redstone, lapis " +
+    "or emerald) and `count` — how many drops you want to gain (iron gives raw_iron, diamond gives diamond). " +
+    "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
+    "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
+    "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
+    "Skips ore touching lava or water. Returns how many were gained and the new total.",
+  args: { ore: "string", count: "number" },
+
+  async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
+    const bot = ctx.bot;
+    const kind = oreKind(String(rawArgs["ore"] ?? ""));
+    if (!kind) {
+      return { status: "failed", reason: `"${rawArgs["ore"]}" is not an ore — use one of ${Object.keys(ORES).join(", ")}` };
+    }
+    const { drop, pickaxe: needed } = ORES[kind]!;
+    const target = Math.max(1, Math.min(64, asNumber(rawArgs["count"], 3)));
+
+    const pickaxe = pickaxeFor(countInventory(bot), needed);
+    if (!pickaxe) return { status: "failed", reason: `${kind} ore needs at least a ${needed} — craft one first` };
+    const held = bot.inventory.items().find((item) => item.name === pickaxe);
+    if (held) await bot.equip(held, "hand");
+
+    const dropsHeld = () => countInventory(bot)[drop] ?? 0;
+    const startedWith = dropsHeld();
+    const wanted = startedWith + target;
+    const gained = () => dropsHeld() - startedWith;
+    const startedAt = Date.now();
+    const oreIds = [`${kind}_ore`, `deepslate_${kind}_ore`]
+      .map((name) => bot.registry.blocksByName[name]?.id)
+      .filter((id): id is number => id !== undefined);
+    const skipped = new Set<string>();
+    const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
+
+    while (dropsHeld() < wanted) {
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
+      const danger = threatened(ctx);
+      if (danger) return { status: "aborted", reason: `stopped mining because ${danger}`, detail: { gained: gained() } };
+      if (Date.now() - startedAt > MAX_TOTAL_MS) {
+        return { status: "failed", reason: `ran out of time after gaining ${gained()} of ${target} ${drop}`, detail: { gained: gained() } };
+      }
+      if (skipped.size >= MAX_FAILED_BLOCKS) {
+        return { status: "failed", reason: `gave up after ${skipped.size} ${kind} ore blocks could not be reached or broken`, detail: { gained: gained() } };
+      }
+
+      let block: Block | null = null;
+      for (const radius of SEARCH_RADII) {
+        const points = bot
+          .findBlocks({ matching: oreIds, maxDistance: radius, count: 64 })
+          .sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
+        for (const point of points) {
+          if (skipped.has(key(point))) continue;
+          if (!isExposed(bot, point) || liquidBeside(bot, point)) continue;
+          block = bot.blockAt(point);
+          break;
+        }
+        if (block) break;
+      }
+      if (!block) {
+        const reason =
+          gained() > 0
+            ? `gained ${gained()} ${drop}, then no more ${kind} ore in sight`
+            : `no ${kind} ore in sight within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — explore, descend or dig a tunnel to uncover some`;
+        return { status: "failed", reason, detail: { gained: gained(), total: dropsHeld() } };
+      }
+
+      const { x, y, z } = block.position;
+      try {
+        await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
+        const fresh = bot.blockAt(block.position);
+        if (!fresh || !oreIds.includes(fresh.type) || !bot.canDigBlock(fresh)) throw new Error("cannot dig it from here");
+        await withTimeout(bot.dig(fresh), DIG_TIMEOUT_MS, "digging ore");
+      } catch (error) {
+        ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
+        bot.pathfinder.setGoal(null);
+        skipped.add(key(block.position));
+        continue;
+      }
+      try {
+        await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 1)), TRAVEL_TIMEOUT_MS, "collecting drops");
+      } catch {
+        // Best-effort; the loop re-checks the real inventory count.
+      }
+      await bot.waitForTicks(10);
+    }
+
+    return { status: "success", detail: { gained: gained(), total: dropsHeld(), pickaxe } };
+  },
+};

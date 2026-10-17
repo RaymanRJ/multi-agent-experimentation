@@ -1,13 +1,13 @@
 import type { Bot } from "mineflayer";
 import type { Message, Observation, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
+import { isExposed } from "./skills/util.js";
 
 const NEARBY_RADIUS = 24;
 /** How far away you can tell what another agent is doing. */
 export const SIGHT_RADIUS = 32;
 const INTERESTING = [
-  "_log", "_planks", "coal_ore", "iron_ore", "copper_ore", "diamond_ore",
-  "stone", "water", "crafting_table", "furnace",
+  "_log", "_planks", "stone", "water", "crafting_table", "furnace",
 ];
 
 function isInteresting(name: string): boolean {
@@ -58,6 +58,15 @@ export function observe(
   for (const point of found) {
     const block = bot.blockAt(point);
     if (block) nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
+  }
+  // Ores get their own search: in rock, 256 stone blocks used to fill the count before any ore
+  // was reached. Only ore a player could see is counted (see isExposed).
+  const oreIds = Object.values(bot.registry.blocksByName)
+    .filter((block) => block.name.endsWith("_ore"))
+    .map((block) => block.id);
+  for (const point of bot.findBlocks({ matching: oreIds, maxDistance: NEARBY_RADIUS, count: 128 })) {
+    const block = bot.blockAt(point);
+    if (block && isExposed(bot, point)) nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
   }
 
   const hostiles: Array<{ name: string; distance: number }> = [];

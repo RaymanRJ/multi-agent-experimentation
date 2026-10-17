@@ -85,3 +85,23 @@ export async function getOutOfWater(bot: Bot): Promise<boolean> {
   }
   return !headInWater(bot);
 }
+
+const FACES: Array<[number, number, number]> = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+
+/**
+ * True when at least one side of the block touches air or liquid, so a player could see it.
+ * The bot knows every loaded block, including ore sealed inside rock; counting only exposed
+ * ore keeps it from seeing through walls ("x-ray"), so finding diamonds takes real searching.
+ */
+export function isExposed(bot: Bot, point: { offset(dx: number, dy: number, dz: number): any }): boolean {
+  return FACES.some(([dx, dy, dz]) => bot.blockAt(point.offset(dx, dy, dz))?.boundingBox === "empty");
+}
+
+/** Lava or water touching this block, if any: breaking it could flood or burn the bot. */
+export function liquidBeside(bot: Bot, point: { offset(dx: number, dy: number, dz: number): any }): string | null {
+  for (const [dx, dy, dz] of FACES) {
+    const name = bot.blockAt(point.offset(dx, dy, dz))?.name;
+    if (name === "lava" || name === "water") return name;
+  }
+  return null;
+}

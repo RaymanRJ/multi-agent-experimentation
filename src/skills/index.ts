@@ -8,6 +8,9 @@ import { sleep } from "./sleep.js";
 import { craft } from "./craft.js";
 import { mineStone } from "./mineStone.js";
 import { buildShelter } from "./buildShelter.js";
+import { mineOre } from "./mineOre.js";
+import { smelt } from "./smelt.js";
+import { descend, tunnel } from "./underground.js";
 
 /**
  * The complete vocabulary of goals an agent may pursue. Nothing an agent does
@@ -21,6 +24,7 @@ export const SKILLS: Skill[] = [
   gatherWood, wait,
   explore, eat, flee, sleep,
   craft, mineStone, buildShelter,
+  mineOre, smelt, descend, tunnel,
 ];
 
 export function findSkill(name: string): Skill | undefined {

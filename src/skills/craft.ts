@@ -299,9 +299,10 @@ function describeMissing(missing: Missing): string {
 
 function planksHint(missing: Missing): string {
   const names = [...missing.keys()];
-  return names.some((name) => name.endsWith("_planks") || name === "stick")
-    ? " (planks and sticks are crafted from logs — gather_wood first)"
-    : "";
+  if (names.some((name) => name.endsWith("_planks") || name === "stick")) return " (planks and sticks are crafted from logs — gather_wood first)";
+  if (names.some((name) => name.endsWith("_ingot"))) return " (ingots are smelted from raw ore — mine_ore, then smelt)";
+  if (names.includes("diamond")) return " (diamonds come from diamond ore, deep underground — mine_ore diamond with an iron pickaxe)";
+  return "";
 }
 
 const PLACE_REACH = 4.2;
@@ -375,7 +376,7 @@ function relocationTargets(bot: Bot): Vec3[] {
  * of where the bot stands (forests are cluttered, so the nearest cells are often
  * trunks or leaves), and if none works walks to open ground nearby and tries again.
  */
-async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
+export async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
   const bot = ctx.bot;
   const here = await tryPlaceHere(ctx, name);
   if (here) return here;
@@ -442,7 +443,8 @@ async function ensureTable(
 /** Things worth telling a model it can make; intermediates (planks, sticks, tables) are left to craft itself. */
 const WORTH_CRAFTING = [
   "wooden_pickaxe", "stone_pickaxe", "iron_pickaxe",
-  "wooden_axe", "stone_axe", "wooden_sword", "stone_sword", "furnace",
+  "wooden_axe", "stone_axe", "wooden_sword", "stone_sword", "stone_shovel", "furnace",
+  "diamond_pickaxe", "diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots",
 ];
 
 /**
