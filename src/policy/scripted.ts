@@ -106,6 +106,17 @@ export class ScriptedPolicy implements Policy {
     const expected = this.expectItem;
     this.expectItem = null;
     this.absorbLastResult(observation.recentEvents);
+    const lastEvent = observation.recentEvents[observation.recentEvents.length - 1] ?? "";
+    const noPickaxe = !Object.keys(observation.inventory).some((name) => name.endsWith("_pickaxe"));
+    if (this.shelterBuilt && noPickaxe && /pickaxe.* craft one first/.test(lastEvent)) {
+      // Died (everything dropped, shelter left behind) or wore out every pickaxe: nothing past the
+      // shelter can be done without one, so start the plan again from wood.
+      this.shelterBuilt = false;
+      this.abandoned.clear();
+      this.failStreak.clear();
+      this.attempts.clear();
+      this.pendingExplore = false;
+    }
     if (expected) {
       if ((observation.inventory[expected.item] ?? 0) === 0) this.countFailure(expected.key, "craft", "");
       else this.failStreak.set(expected.key, 0);

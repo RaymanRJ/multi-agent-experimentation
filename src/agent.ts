@@ -343,7 +343,7 @@ async function main(): Promise<void> {
     let result = await skill.run(ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
     // ever yielding, the bot stops reading its socket, and the server drops it.
-    if (bot.time.age === skillStartAge) await bot.waitForTicks(1);
+    if (bot.time.age === skillStartAge) await bot.waitForTicks(20);
     if (watch.firedBy() === "message") lastMessageInterruptMs = Date.now();
     watch = null;
     if (interruptReason && !stopping) {

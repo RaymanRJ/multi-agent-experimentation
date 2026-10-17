@@ -139,7 +139,14 @@ export function trackActivity(bot: Bot, self: string): Map<string, string> {
   return doing;
 }
 
+/** Narration at most this often per bot: Paper kicks a player for more than ~10 chat lines in quick succession. */
+export const NARRATION_GAP_MS = 1500;
+const lastNarration = new WeakMap<Bot, number>();
+
 export function narrate(bot: Bot, text: string): void {
+  const now = Date.now();
+  if (now - (lastNarration.get(bot) ?? 0) < NARRATION_GAP_MS) return;
+  lastNarration.set(bot, now);
   bot.chat(formatNarration(text));
 }
 

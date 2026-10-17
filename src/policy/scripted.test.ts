@@ -230,3 +230,12 @@ test("out mining after the shelter, a close hostile means flee, then wait once f
   }
   assert.deepEqual(skills, ["flee", "flee", "flee", "wait"]);
 });
+
+test("after the shelter, losing every pickaxe (a death) starts the plan again from wood", async () => {
+  const p = new ScriptedPolicy();
+  let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
+  assert.equal(d.skill, "build_shelter");
+  d = (await next(p, after(d, "success", { inventory: { oak_log: 2, stone_pickaxe: 1 } })))!;
+  d = (await next(p, obs({ inventory: {}, recentEvents: ["you died and respawned", `${d.skill} failed (need a wooden_pickaxe — craft one first)`] })))!;
+  assert.equal(d.skill, "gather_wood");
+});
