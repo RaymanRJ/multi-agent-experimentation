@@ -121,6 +121,25 @@ function onlyPreferredWood(bot: Bot, recipes: Recipe[]): Recipe[] {
   return kept.length > 0 ? kept : recipes;
 }
 
+/**
+ * `name` with its wood type swapped for `wood`: "oak_planks" -> "dark_oak_planks". Null when
+ * `name` is not a wood item of another type. `woods` lists the wood types, longest first, so
+ * "dark_oak_planks" is read as dark_oak rather than oak.
+ */
+export function swapWood(name: string, wood: string, woods: readonly string[]): string | null {
+  const from = woods.find((w) => name.startsWith(`${w}_`) || name.startsWith(`stripped_${w}_`));
+  if (!from || from === wood) return null;
+  return name.replace(`${from}_`, `${wood}_`);
+}
+
+/** Wood types this server knows (oak, dark_oak, crimson...), longest first. */
+function woodTypes(bot: Bot): string[] {
+  return Object.keys(bot.registry.itemsByName)
+    .filter((name) => name.endsWith("_planks"))
+    .map((name) => name.slice(0, -"_planks".length))
+    .sort((a, b) => b.length - a.length);
+}
+
 interface Plan {
   recipe: Recipe;
   times: number;
@@ -453,18 +472,32 @@ export const craft: Skill = {
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
     const bot = ctx.bot;
-    const name = String(rawArgs["item"] ?? "").trim().toLowerCase();
+    const asked = String(rawArgs["item"] ?? "").trim().toLowerCase();
     const count = Math.max(1, Math.min(64, Math.floor(asNumber(rawArgs["count"], 1))));
-    const item = bot.registry.itemsByName[name];
+    let name = asked;
+    let item = bot.registry.itemsByName[name];
     if (!item) {
       return { status: "failed", reason: `"${name}" is not a known item name — use names like wooden_pickaxe or oak_planks` };
     }
 
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
 
-    const startedWith = have(bot, item.id);
     // Plan assuming a table is obtainable, so a hopeless attempt fails before any planks are spent on one.
-    const plan = bestPlan(bot, item.id, count, MAX_DEPTH, true);
+    let plan = bestPlan(bot, item.id, count, MAX_DEPTH, true);
+    // Models ask for "oak_planks" while holding dark oak logs; every wood makes the same tools, so make
+    // the variant the held wood allows. Failing with "need more oak_log" sent models off to gather.
+    const variant = swapWood(name, preferredWood(bot), woodTypes(bot));
+    const variantItem = variant ? bot.registry.itemsByName[variant] : undefined;
+    if (variant && variantItem && (!plan || total(plan.missing) > 0)) {
+      const variantPlan = bestPlan(bot, variantItem.id, count, MAX_DEPTH, true);
+      if (variantPlan && total(variantPlan.missing) < (plan ? total(plan.missing) : Infinity)) {
+        name = variant;
+        item = variantItem;
+        plan = variantPlan;
+      }
+    }
+    const swapped = name !== asked ? `made ${name} instead of ${asked}, from the wood you hold — any wood type works the same` : undefined;
+    const startedWith = have(bot, item.id);
     if (!plan) {
       return { status: "failed", reason: `${name} cannot be crafted — it has no crafting recipe (it may need smelting or mining)` };
     }
@@ -508,6 +541,7 @@ export const craft: Skill = {
     const now = have(bot, item.id);
     return {
       status: "success",
+      ...(swapped && { reason: swapped }),
       detail: { item: name, crafted: now - startedWith, total: now, usedTable: table !== null },
     };
   },
