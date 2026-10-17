@@ -75,6 +75,8 @@ cleanly if a mob interrupts, and report back `{status, reason}` so the model can
 is where the engineering lives, and it is what lets the model say "gather wood" instead of
 issuing four hundred individual dig commands.
 
+Every skill, what it does, and how it fails is listed in [docs/skills.md](docs/skills.md).
+
 ---
 
 ## The control loop
