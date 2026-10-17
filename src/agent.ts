@@ -191,7 +191,8 @@ async function main(): Promise<void> {
   });
   bot.on("time", () => {
     if (!shelterBuilt || nightSurvivedSinceShelter) return;
-    if (isNight(bot.time.timeOfDay)) nightSinceShelter = true;
+    // Sleeping counts: a bed can be used from dusk, and the night is skipped before it reaches isNight.
+    if (isNight(bot.time.timeOfDay) || bot.isSleeping) nightSinceShelter = true;
     else if (nightSinceShelter) nightSurvivedSinceShelter = true;
   });
 
