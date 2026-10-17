@@ -201,6 +201,10 @@ async function main(): Promise<void> {
   };
 
   let policyFailures = 0;
+  // Identical decisions getting the identical result: reported as a fact (not advice) in
+  // recentEvents, every 3 repeats, so a looping brain can see it is looping.
+  let lastOutcome = "";
+  let repeats = 0;
   let ended: EndReason | undefined;
 
   for (let step = 1; !ended; step++) {
@@ -290,6 +294,15 @@ async function main(): Promise<void> {
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
+    const outcome = `${decision.skill} ${JSON.stringify(decision.args)} ${result.status} ${result.reason ?? ""}`;
+    repeats = outcome === lastOutcome ? repeats + 1 : 1;
+    lastOutcome = outcome;
+    // A plain success repeating is fine (e.g. waiting); a failure or a no-op success with a reason is a loop.
+    if (repeats >= 3 && repeats % 3 === 0 && (result.status !== "success" || result.reason)) {
+      const note = `your last ${repeats} decisions were the same ${decision.skill}(${JSON.stringify(decision.args)}) and all got the same result`;
+      recentEvents.push(note);
+      stepEvents.push(note);
+    }
     if (goalCheck?.({ skill: decision.skill, status: result.status, inventory: countInventory(bot) })) {
       console.log(`[${agentName}] goal met`);
       ended = "goal met";

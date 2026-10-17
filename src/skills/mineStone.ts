@@ -12,6 +12,9 @@ const TRAVEL_TIMEOUT_MS = 30_000;
 const DIG_TIMEOUT_MS = 20_000;
 const MAX_FAILED_BLOCKS = 6;
 const MAX_TOTAL_MS = 4 * 60_000;
+/** How far down to dig for stone when none is exposed. Overworld stone is usually 3-5 blocks down. */
+const MAX_DIG_DEPTH = 12;
+const LIQUIDS = new Set(["lava", "water"]);
 /** Best first. */
 const PICKAXES = ["netherite_pickaxe", "diamond_pickaxe", "iron_pickaxe", "stone_pickaxe", "golden_pickaxe", "wooden_pickaxe"];
 const STONE_BLOCKS = ["stone", "cobblestone"];
@@ -36,12 +39,45 @@ function exposure(ctx: SkillContext, point: Vec3): "open" | "buried" | "hazard" 
   return open ? "open" : "buried";
 }
 
+/**
+ * No exposed stone in range: dig straight down from where the bot stands until it hits stone,
+ * then keep digging stone below until enough cobblestone is held. Deterministic and nearly
+ * always available on land, so the model is not left to solve "find a hillside" by trial and error.
+ * Stops before any block with lava or water below or beside it.
+ */
+async function digDown(ctx: SkillContext, wanted: number): Promise<string | null> {
+  const bot = ctx.bot;
+  for (let depth = 0; cobbleHeld(ctx) < wanted; depth++) {
+    if (ctx.shouldStop()) return "the run is ending";
+    if (depth >= MAX_DIG_DEPTH) return `dug ${MAX_DIG_DEPTH} blocks down without finding enough stone`;
+    // After a dig the bot is still dropping into the hole; read the ground only once it has landed.
+    for (let tick = 0; tick < 40 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+    const below = bot.blockAt(bot.entity.position.floored().offset(0, -1, 0));
+    if (!below) return "the ground below is not loaded";
+    if (below.name === "air" || below.name === "cave_air") continue; // still settling; costs a depth step
+    for (const [dx, dy, dz] of [[0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]] as const) {
+      const next = bot.blockAt(below.position.offset(dx, dy, dz));
+      if (next && LIQUIDS.has(next.name)) return `stopped digging down: ${next.name} below`;
+    }
+    if (LIQUIDS.has(below.name)) return `stopped digging down: standing over ${below.name}`;
+    if (!bot.canDigBlock(below)) return `cannot dig the ${below.name} below`;
+    try {
+      await withTimeout(bot.dig(below), DIG_TIMEOUT_MS, "digging down");
+    } catch (error) {
+      return `digging down failed: ${(error as Error).message}`;
+    }
+    await bot.waitForTicks(STONE_BLOCKS.includes(below.name) ? 10 : 6); // fall into the hole, pick up the drop
+  }
+  return null;
+}
+
 export const mineStone: Skill = {
   name: "mine_stone",
   description:
-    "Mine exposed stone and collect cobblestone. Takes `count` — how many cobblestone you want to gain. " +
+    "Mine stone and collect cobblestone. Takes `count` — how many cobblestone you want to gain. " +
+    "Uses exposed stone nearby, or digs straight down to the stone under the ground when there is none. " +
     "Requires a pickaxe in inventory (at least a wooden_pickaxe; the best one is equipped automatically) — " +
-    "it does not craft one, so use craft first. Fails if no pickaxe, no stone is visible within range, " +
+    "it does not craft one, so use craft first. Fails if no pickaxe, if digging down hits water or lava, " +
     "or blocks cannot be reached. Returns how many cobblestone were gained and the new total.",
   args: { count: "number" },
 
@@ -118,9 +154,13 @@ export const mineStone: Skill = {
         if (block) break;
       }
       if (!block) {
+        ctx.log(`no exposed stone within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — digging down for it`);
+        const problem = await digDown(ctx, wanted);
+        if (problem === null) break;
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
         return {
           status: "failed",
-          reason: `no exposed stone within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — look for a hillside or cave, or move to a rocky area`,
+          reason: `no exposed stone within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks, and ${problem} — explore to somewhere else and try again`,
           detail: { gained: gained() },
         };
       }
