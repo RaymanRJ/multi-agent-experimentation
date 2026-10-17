@@ -53,6 +53,8 @@ export interface RunSummary {
   /** Provider retries (rate limits, overload, network) and the seconds spent waiting on them. */
   providerRetries: number;
   retryWaitS: number;
+  /** Times the model said "done" before the preset goal was met and was told so. */
+  doneRefused: number;
   fallbackWaits: number;
   tokensIn: number;
   tokensOut: number;
@@ -443,6 +445,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     retries,
     providerRetries,
     retryWaitS: Math.round(retryWaitMs / 1000),
+    doneRefused: steps.filter((s) => s.events?.includes("done refused")).length,
     fallbackWaits,
     tokensIn,
     tokensOut,
@@ -823,6 +826,7 @@ function printTable(summaries: RunSummary[]) {
     ["Calls", (s) => String(s.totalModelCalls), true],
     ["Re-asks", (s) => String(s.retries), true],
     ["Throttled", (s) => (s.providerRetries ? `${s.providerRetries} (${s.retryWaitS}s)` : "0"), true],
+    ["Done refused", (s) => String(s.doneRefused), true],
     ["TokenIn", (s) => String(s.tokensIn), true],
     ["TokenOut", (s) => String(s.tokensOut), true],
     ["Cost(USD)", (s) => formatCost(s.costUSD), true],

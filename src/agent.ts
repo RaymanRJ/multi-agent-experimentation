@@ -238,6 +238,7 @@ async function main(): Promise<void> {
   // recentEvents, every 3 repeats, so a looping brain can see it is looping.
   let lastOutcome = "";
   let repeats = 0;
+  let doneRefused = false;
   let ended: EndReason | undefined;
 
   for (let step = 1; !ended; step++) {
@@ -290,6 +291,16 @@ async function main(): Promise<void> {
     }
     const extra = { calls, decisionMs, ...(system ? { system } : {}) };
 
+    if (!decision && goalCheck && !doneRefused) {
+      // A preset goal is checked after every skill and ends the run the moment it is met, so a
+      // "done" now is a claim the game disagrees with. Say so once; a second "done" in a row stands.
+      doneRefused = true;
+      const reason = "the goal is not met yet — compare your inventory with the goal; say done again only to give up";
+      console.log(`[${agentName}] refused done: goal not met`);
+      recentEvents.push(`done refused (${reason})`);
+      write({ decision: null, result: { status: "failed", reason }, events: ["done refused"], ...extra });
+      continue;
+    }
     if (!decision) {
       console.log(`[${agentName}] policy ended the episode`);
       ended = "model ended";
@@ -303,6 +314,7 @@ async function main(): Promise<void> {
       break;
     }
 
+    doneRefused = false;
     const skill = findSkill(decision.skill);
     if (!skill) {
       const result = { status: "failed" as const, reason: `no such skill: ${decision.skill}` };

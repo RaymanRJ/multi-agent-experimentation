@@ -844,3 +844,17 @@ test("byCondition - one row per condition, excluding runs whose brain was unavai
   assert.strictEqual(plan.excluded, 1);
   assert.strictEqual(plan.ticksToGoal, 200);
 });
+
+test("doneRefused: counts each done the agent was told was premature", () => {
+  const refused = makeStep({ result: { status: "failed", reason: "the goal is not met yet" }, events: ["done refused"] });
+  const steps: LoggedStep[] = [
+    makeStep({ decision: { skill: "gather_wood", args: { count: 5 } }, result: { status: "success" } }),
+    { ...refused, step: 2 },
+    makeStep({ step: 3, decision: { skill: "gather_wood", args: { count: 5 } }, result: { status: "success" } }),
+    { ...refused, step: 4 },
+    makeStep({ step: 5 }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  assert.equal(summary.doneRefused, 2);
+  assert.equal(summary.howEnded, "policy ended");
+});
