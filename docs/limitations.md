@@ -11,8 +11,18 @@ building on it.
   - But no full experiment has run on a paid model yet: every result so far is from the free local model.
   - Grok, Gemini, Groq and OpenRouter are wired up the same way, with the same caveat.
   - Each needs its model's price added to `src/backends/pricing.ts`, or a paid run refuses to start.
-- **Some goals have barely been run.** `iron` and `diamond` were checked once each, skill by skill
-  (`scripts/skill-smoke.sh`). They have not been run as full experiments.
+- **The `iron` goal has not yet been met in a full run.** One trial each (batch b11, sandbox, one
+  day) for the baseline and the model, on the final code. Both ran out of time:
+  - **Baseline:** the flooded cave under spawn blocked every way down. `descend` stopped at y=58,
+    and every tunnel from there ran into water. The baseline has no rule to move somewhere else
+    and try again, so it waited out the day. It also had three `craft` timeouts on a stone pickaxe
+    before the fourth try worked; the cause was not investigated.
+  - **Model:** it found and mined 7 raw iron. It then called `smelt` with the ore (`raw_iron`)
+    instead of the product (`iron_ingot`) five times, despite the error naming `iron_ingot`. It
+    also tried 13 times to craft ingots from an iron block it didn't have. It had almost no coal
+    for fuel. `smelt` could accept the ore's name too; that has not been done.
+- **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
+  as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
   should work but are untested. So is running Ollama in Docker on an NVIDIA machine.
 

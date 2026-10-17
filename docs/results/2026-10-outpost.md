@@ -1,13 +1,14 @@
 # Can a small local model hold an outpost through the night?
 
-*Results from batches b8 and b9, October 2026. Model: Qwen3 4B Instruct, running locally (free).
+*Results from batches b8, b9 and b10, October 2026. Model: Qwen3 4B Instruct, running locally (free).
 Every number here comes from logged runs (`npm run report -- --by condition --batch bN`), and
 every failure was read from its log.*
 
 ## In one paragraph
 
 The outpost goal is much harder than the earlier ones, and the small model mostly fails it. The
-scripted baseline met it in 3 of 6 runs; the model met it in 1 of 18. The model is good at the
+scripted baseline met it in 3 of 6 runs in b8 and b9, and 3 of 3 once the last bug was fixed
+(b10); the model met it in 1 of 18. The model is good at the
 first half: it usually makes all four stone tools. Then it either never builds the shelter or
 loses its tools to mobs. Fixes to our code between b8 and b9 helped the baseline (1/3 to 2/3)
 and gave the model its first success, but 3 runs per condition is too few to call any memory
@@ -56,11 +57,16 @@ baseline" is.
 - **Gave up (full memory ×1).** Cornered in a pit by a mob, the agent said "done", was told
   what it was missing, and said "done" again. `flee` cannot climb out of a pit.
 - **Kicked for spam (baseline ×1).** A burst of instant failures sent about ten chat lines in a
-  second, and the server kicked the bot. Narration is now rate-limited (merged after b9); b10
-  re-runs the baseline to check this.
+  second, and the server kicked the bot. Narration is now rate-limited (merged after b9).
 - **Full memory is slow.** Each decision took about 21 seconds, against 4–5 seconds for the
   other settings, because the whole conversation is resent. In a game that keeps running, that
   is a day of only about 40 decisions.
+
+## After the spam fix (b10)
+
+The baseline alone, re-run three times on the final code: **3/3**, with no kicks. Pooled over
+b9 and b10, which differ only in the spam fix, the baseline is 5/6. The skills can do this goal;
+the open question is the model.
 
 ## What this suggests (not acted on)
 

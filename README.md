@@ -72,7 +72,7 @@ the exact prompt and answer, so any run can be replayed and costed later.
 
 **MVP.** The full loop works with the free local model and the scripted baseline:
 - one or several agents in a shared world;
-- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron and diamond;
+- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron and diamond (iron and diamond not yet met in a full run);
 - memory and stance settings;
 - comparison batches with fresh worlds;
 - a report with confidence intervals;
@@ -87,7 +87,8 @@ Paid models are wired up and unit-tested, but not yet run in a full experiment.
 - Small models often claim success they haven't reached. The harness now refuses a premature
   "done" and says what is missing.
 - The long outpost goal (tools, shelter, survive the night) is beyond this model so far: 1 of 18
-  model runs, against 3 of 6 for the baseline. It makes the tools but rarely builds the shelter.
+  model runs, against 5 of 6 for the baseline in the last two batches. It makes the tools but rarely
+  builds the shelter.
 
 What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
 
