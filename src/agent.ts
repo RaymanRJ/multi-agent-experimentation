@@ -24,10 +24,10 @@ const { pathfinder } = pathfinderPkg;
 loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
-  string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode"],
+  string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
-  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral" },
+  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
 });
 
 const scenarioName = argv["scenario"] as ScenarioName;
@@ -56,6 +56,12 @@ if (!["on", "off"].includes(commsArg)) {
   process.exit(1);
 }
 const comms = commsArg === "on";
+const progressArg = String(argv["progress"] || "off");
+if (!["on", "off"].includes(progressArg)) {
+  console.error(`unknown --progress "${progressArg}" — expected on or off`);
+  process.exit(1);
+}
+const progress = progressArg === "on";
 const stance = String(argv["stance"] || "neutral") as Stance;
 if (!STANCES.includes(stance)) {
   console.error(`unknown --stance "${stance}" — expected ${STANCES.join(", ")}`);
@@ -66,6 +72,7 @@ const config: RunConfig = {
   memory,
   comms,
   stance,
+  progress,
 };
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
@@ -84,7 +91,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
         console.error((error as Error).message);
         process.exit(1);
       }
-      return { policy: new LLMPolicy(backend, { memory, comms, stance }), backend };
+      return { policy: new LLMPolicy(backend, { memory, comms, stance, progress }), backend };
     }
   }
 }
@@ -134,7 +141,7 @@ async function main(): Promise<void> {
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
 
-  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} -> ${runLog.file}`);
+  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {
@@ -252,6 +259,9 @@ async function main(): Promise<void> {
       activities,
       ...(buffer ? { messages: buffer.snapshot() } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
+      ...(progress && goalGaps
+        ? { stillNeeded: goalGaps({ skill: "", status: "", inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter }) }
+        : {}),
     });
     stepEvents = [];
     const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended">) => {

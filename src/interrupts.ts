@@ -33,7 +33,7 @@ export interface WorldSnapshot {
  * another agent never interrupts (agents working side by side would thrash), and
  * messages to everyone wait for the next decision.
  */
-export type Trigger = "damage" | "hostile" | "night" | "message";
+export type Trigger = "damage" | "hostile" | "dusk" | "night" | "message";
 
 /** A hostile at or inside this many blocks is a threat worth stopping for. */
 export const HOSTILE_RADIUS = 6;
@@ -41,6 +41,8 @@ export const HOSTILE_RADIUS = 6;
 export const CLOSING_MARGIN = 2;
 /** Same cut-off as Observation.isDay. */
 export const NIGHT_START = 12000;
+/** About a minute before NIGHT_START: still time to get under cover. */
+export const DUSK_START = 10800;
 /**
  * After a message interrupts a skill, further messages wait this long before they can interrupt
  * again. Without it two agents replying to each other abort each other's every skill.
@@ -61,11 +63,13 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *    hostile interrupts would abort it exactly when it matters. Night is also moot.
  *  - eat: a couple of seconds long; the model replans right after anyway.
  *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
+ *  - build_shelter: getting under cover is the answer to dusk and nightfall, not something they should cut short.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
-  flee: ["damage", "hostile", "night", "message"],
-  eat: ["damage", "hostile", "night", "message"],
-  sleep: ["damage", "hostile", "night", "message"],
+  flee: ["damage", "hostile", "dusk", "night", "message"],
+  eat: ["damage", "hostile", "dusk", "night", "message"],
+  sleep: ["damage", "hostile", "dusk", "night", "message"],
+  build_shelter: ["dusk", "night"],
 };
 
 export interface Watch {
@@ -104,6 +108,10 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
 
     if (!off.has("night") && startedDay && now.timeOfDay >= NIGHT_START) {
       return ["night", "interrupted: night is falling"];
+    }
+
+    if (!off.has("dusk") && start.timeOfDay < DUSK_START && now.timeOfDay >= DUSK_START && now.timeOfDay < NIGHT_START) {
+      return ["dusk", `interrupted: the sun is setting — night falls in about ${Math.round((NIGHT_START - now.timeOfDay) / 20)} seconds`];
     }
 
     if (!off.has("message") && (now.directed ?? 0) > startDirected && now.lastDirected) {

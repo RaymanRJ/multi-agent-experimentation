@@ -89,6 +89,15 @@ test("prompt varies by options", () => {
   assert.match(buildSystemPrompt(skills, { memory: "full", comms: true }), /older turns may be dropped/);
 });
 
+test("progress adds one line about stillNeeded; the night clock is always explained", () => {
+  const off = buildSystemPrompt(skills, { memory: "none", comms: false });
+  const on = buildSystemPrompt(skills, { memory: "none", comms: false, progress: true });
+  assert.doesNotMatch(off, /stillNeeded/);
+  assert.match(on, /"stillNeeded" lists what your goal still lacks/);
+  assert.match(off, /ticksUntilNight/);
+  assert.equal(on.split("\n").length, off.split("\n").length + 1);
+});
+
 test("default options are plan + comms, and system is returned", async () => {
   const out = await new LLMPolicy(fakeBackend([`${wait}}`])).decide(obs, skills);
   assert.equal(out.system, buildSystemPrompt(skills, { memory: "plan", comms: true }));

@@ -35,6 +35,8 @@ export interface RunSummary {
   /** Null for the scripted baseline, which has no memory or stance. */
   memory: MemoryMode | null;
   comms: boolean | null;
+  /** Whether the model was told what its goal still lacked. Null for the scripted baseline. */
+  progress: boolean | null;
   /** "legacy" for logs from before stances, whose prompt leaned collaborative. */
   stance: Stance | "legacy" | null;
   /**
@@ -434,6 +436,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     ticksToGoal: goalStep?.ticks ?? null,
     memory: brain === "scripted" ? null : (config?.memory ?? null),
     comms: brain === "scripted" ? null : (config?.comms ?? null),
+    progress: brain === "scripted" ? null : (config ? (config.progress ?? false) : null),
     stance: brain === "scripted" ? null : (config ? (config.stance ?? "legacy") : null),
     outcome: goalMet,
     nightReached,
@@ -643,6 +646,7 @@ function median(values: number[]): number | null {
 export interface ConditionRow {
   brain: string;
   memory: string;
+  progress: string;
   stance: string;
   goal: string;
   scenario: string;
@@ -660,21 +664,22 @@ export interface ConditionRow {
   excluded: number;
 }
 
-/** One row per brain x memory x stance x goal x scenario, scoring each run by its outcome. */
+/** One row per brain x memory x progress x stance x goal x scenario, scoring each run by its outcome. */
 export function byCondition(summaries: RunSummary[]): ConditionRow[] {
   const groups = new Map<string, RunSummary[]>();
   for (const s of summaries) {
-    const key = [s.brain, s.memory ?? "-", s.stance ?? "-", s.goalName, s.scenario].join("\u0000");
+    const progress = s.progress === null ? "-" : s.progress ? "on" : "off";
+    const key = [s.brain, s.memory ?? "-", progress, s.stance ?? "-", s.goalName, s.scenario].join("\u0000");
     groups.set(key, [...(groups.get(key) ?? []), s]);
   }
   const rows: ConditionRow[] = [];
   for (const [key, all] of groups) {
-    const [brain, memory, stance, goal, scenario] = key.split("\u0000") as [string, string, string, string, string];
+    const [brain, memory, progress, stance, goal, scenario] = key.split("\u0000") as [string, string, string, string, string, string];
     const runs = all.filter((s) => s.validity === "valid" && s.outcome !== "n/a");
     const wins = runs.filter((s) => s.outcome === true);
     const costs = runs.map((s) => s.costUSD);
     rows.push({
-      brain, memory, stance, goal, scenario,
+      brain, memory, progress, stance, goal, scenario,
       runs: runs.length,
       successes: wins.length,
       ci: wilson(wins.length, runs.length),
@@ -686,7 +691,7 @@ export function byCondition(summaries: RunSummary[]): ConditionRow[] {
       excluded: all.length - runs.length,
     });
   }
-  return rows.sort((a, b) => [a.goal, a.brain, a.memory, a.stance].join(" ").localeCompare([b.goal, b.brain, b.memory, b.stance].join(" ")));
+  return rows.sort((a, b) => [a.goal, a.brain, a.memory, a.progress, a.stance].join(" ").localeCompare([b.goal, b.brain, b.memory, b.progress, b.stance].join(" ")));
 }
 
 function printConditions(rows: ConditionRow[]): void {
@@ -696,6 +701,7 @@ function printConditions(rows: ConditionRow[]): void {
     ["Goal", (r) => r.goal, false],
     ["Brain", (r) => r.brain, false],
     ["Memory", (r) => r.memory, false],
+    ["Progress", (r) => r.progress, false],
     ["Stance", (r) => r.stance, false],
     ["Scenario", (r) => r.scenario, false],
     ["Success", (r) => `${r.successes}/${r.runs}`, true],
@@ -808,6 +814,7 @@ function printTable(summaries: RunSummary[]) {
     ["Agent", (s) => s.agentName || "", false],
     ["Brain", (s) => s.brain || "", false],
     ["Memory", (s) => s.memory ?? "-", false],
+    ["Progress", (s) => (s.progress === null ? "-" : s.progress ? "on" : "off"), false],
     ["Stance", (s) => s.stance ?? "-", false],
     ["Scenario", (s) => s.scenario || "", false],
     ["Goal preset", (s) => s.goalName, false],

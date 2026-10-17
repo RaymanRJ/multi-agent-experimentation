@@ -50,10 +50,23 @@ test("a different hostile appearing near a known one interrupts", () => {
 });
 
 test("day to night interrupts; starting at night does not", () => {
-  assert.equal(createWatch(calm).check({ ...calm, timeOfDay: 11999 }), null);
+  assert.equal(createWatch({ ...calm, timeOfDay: 11000 }).check({ ...calm, timeOfDay: 11999 }), null);
   assert.match(createWatch(calm).check({ ...calm, timeOfDay: 12000 })!, /night is falling/);
   const night = createWatch({ ...calm, timeOfDay: 14000 });
   assert.equal(night.check({ ...calm, timeOfDay: 15000 }), null);
+});
+
+test("dusk interrupts a skill started in daylight, with the time left; not one started at dusk", () => {
+  assert.equal(createWatch(calm).check({ ...calm, timeOfDay: 10799 }), null);
+  assert.match(createWatch(calm).check({ ...calm, timeOfDay: 10800 })!, /sun is setting — night falls in about 60 seconds/);
+  assert.equal(createWatch({ ...calm, timeOfDay: 10900 }).check({ ...calm, timeOfDay: 11500 }), null);
+});
+
+test("build_shelter is not cut short by dusk or nightfall", () => {
+  const w = createWatch(calm, suppressedFor("build_shelter", null, 0));
+  assert.equal(w.check({ ...calm, timeOfDay: 11000 }), null);
+  assert.equal(w.check({ ...calm, timeOfDay: 12500 }), null);
+  assert.match(w.check({ ...calm, health: 5 })!, /took damage/);
 });
 
 test("only one interrupt per run", () => {

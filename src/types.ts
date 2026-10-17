@@ -51,6 +51,8 @@ export interface Observation {
   food: number;
   timeOfDay: number;
   isDay: boolean;
+  /** By day, ticks until night (20 ticks = 1 second). Omitted at night. */
+  ticksUntilNight?: number;
   inventory: Record<string, number>;
   /** Useful items (tools, furnace) not yet held that craft could make from the inventory now. Omitted when none. */
   canCraft?: string[];
@@ -67,6 +69,8 @@ export interface Observation {
   messages?: Message[];
   /** The plan this agent wrote on its previous decision. Only with memory "plan" or "full". */
   plan?: string;
+  /** What a preset goal still lacks, as facts ("no shelter has been built yet"). Only with progress on. */
+  stillNeeded?: string[];
 }
 
 export type SkillStatus = "success" | "failed" | "aborted";
@@ -207,6 +211,8 @@ export interface RunConfig {
   episode: string;
   memory: MemoryMode;
   comms: boolean;
+  /** Whether the observation lists what a preset goal still lacks. Absent (off) in older logs. */
+  progress?: boolean;
   /** Absent in logs written before stances existed; their prompt leaned collaborative. */
   stance?: Stance;
 }

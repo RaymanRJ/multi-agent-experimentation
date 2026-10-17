@@ -40,6 +40,8 @@ export interface LLMPolicyOptions {
   memory: MemoryMode;
   comms: boolean;
   stance?: Stance;
+  /** The observation lists what the goal still lacks ("stillNeeded"). */
+  progress?: boolean;
   /** Overrides the memory "full" budget; defaults by backend (local vs cloud). */
   historyTokens?: number;
 }
@@ -188,6 +190,8 @@ export function buildSystemPrompt(
     '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell.',
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
+    '"ticksUntilNight" is how long until dark (20 ticks = 1 second); hostile mobs come out at night.',
+    ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
     "Skills (args spec: name -> type):",
     ...lines,
     `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,

@@ -37,6 +37,7 @@ export function observe(
     recentEvents: string[];
     /** Present only when comms are on. */
     messages?: Message[];
+    stillNeeded?: string[];
     /** Present only when memory is plan or full. */
     plan?: string;
     /** What other agents last announced doing (see trackActivity); shown only within sight. */
@@ -99,6 +100,7 @@ export function observe(
     food: Math.round(bot.food),
     timeOfDay,
     isDay: timeOfDay < 12000,
+    ...(timeOfDay < 12000 ? { ticksUntilNight: 12000 - timeOfDay } : {}),
     inventory: countInventory(bot),
     nearbyBlocks,
     hostiles: hostiles.slice(0, 5),
@@ -108,6 +110,7 @@ export function observe(
   const craftable = craftableNow(bot);
   if (craftable.length > 0) observation.canCraft = craftable;
   if (opts.messages) observation.messages = opts.messages;
+  if (opts.stillNeeded?.length) observation.stillNeeded = opts.stillNeeded;
   if (opts.plan) observation.plan = opts.plan;
   return observation;
 }
