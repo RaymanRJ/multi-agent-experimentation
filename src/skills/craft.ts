@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, closeStrayWindow, opensOnClick, withTimeout } from "./util.js";
+import { asNumber, closeStrayWindow, opensOnClick, SMELTS, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -544,6 +544,11 @@ export const craft: Skill = {
     }
     const swapped = name !== asked ? `made ${name} instead of ${asked}, from the wood you hold — any wood type works the same` : undefined;
     const startedWith = have(bot, item.id);
+    // iron_ingot has a crafting recipe (from an iron block), so the shortfall would name iron_block
+    // and send a model after a block it can't make. Point at the furnace instead.
+    if (SMELTS[name] && (!plan || total(plan.missing) > 0)) {
+      return { status: "failed", reason: `${name} is smelted from ${SMELTS[name]}, not crafted — use smelt with item ${name}` };
+    }
     if (!plan) {
       return { status: "failed", reason: `${name} cannot be crafted — it has no crafting recipe (it may need smelting or mining)` };
     }

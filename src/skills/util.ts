@@ -129,3 +129,23 @@ export async function closeStrayWindow(bot: Bot): Promise<void> {
   bot.closeWindow(bot.currentWindow);
   await bot.waitForTicks(2);
 }
+
+/** What can be smelted into what: product -> raw item. */
+export const SMELTS: Record<string, string> = {
+  iron_ingot: "raw_iron",
+  gold_ingot: "raw_gold",
+  copper_ingot: "raw_copper",
+  stone: "cobblestone",
+  glass: "sand",
+  cooked_beef: "beef",
+  cooked_porkchop: "porkchop",
+  cooked_chicken: "chicken",
+  cooked_mutton: "mutton",
+};
+
+/** The smelted product for a name that is either the product or its raw item; null if neither. */
+export function smeltProduct(name: string): string | null {
+  const n = name.trim().toLowerCase();
+  if (SMELTS[n]) return n;
+  return Object.keys(SMELTS).find((product) => SMELTS[product] === n) ?? null;
+}

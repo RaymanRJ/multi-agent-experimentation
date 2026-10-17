@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Block } from "prismarine-block";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, withTimeout } from "./util.js";
+import { asNumber, smeltProduct, SMELTS, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
 
 const { goals } = pathfinderPkg;
@@ -11,19 +11,6 @@ const FURNACE_SEARCH_RADIUS = 32;
 const TRAVEL_TIMEOUT_MS = 30_000;
 /** A furnace takes 200 ticks (10 s) per item; allow some slack. */
 const TICKS_PER_ITEM = 230;
-
-/** What can be smelted into what. The model names the result it wants. */
-export const SMELTS: Record<string, string> = {
-  iron_ingot: "raw_iron",
-  gold_ingot: "raw_gold",
-  copper_ingot: "raw_copper",
-  stone: "cobblestone",
-  glass: "sand",
-  cooked_beef: "beef",
-  cooked_porkchop: "porkchop",
-  cooked_chicken: "chicken",
-  cooked_mutton: "mutton",
-};
 
 /** Fuel in order of preference, with how many items one unit smelts. Any log or planks counts as wood. */
 const FUELS: Array<{ test: (name: string) => boolean; smelts: number }> = [
@@ -79,6 +66,7 @@ export const smelt: Skill = {
   name: "smelt",
   description:
     "Smelt items in a furnace. Takes `item` — what you want to make (iron_ingot from raw_iron, gold_ingot, copper_ingot, " +
+    "or the raw item itself, e.g. raw_iron for iron_ingot; " +
     "stone from cobblestone, glass from sand, cooked meat) — and `count`. Uses a furnace within 32 blocks, or places " +
     "one from your inventory, or crafts one from 8 cobblestone. Burns fuel you carry: coal or charcoal (8 items each), " +
     "planks or logs (1.5 each), sticks. Waits about 10 seconds per item. Fails, naming what is missing, without the " +
@@ -87,10 +75,10 @@ export const smelt: Skill = {
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
     const bot = ctx.bot;
-    const product = String(rawArgs["item"] ?? "").trim().toLowerCase();
-    const source = SMELTS[product];
-    if (!source) {
-      return { status: "failed", reason: `"${product}" is not something this can smelt — use one of ${Object.keys(SMELTS).join(", ")}` };
+    const product = smeltProduct(String(rawArgs["item"] ?? ""));
+    const source = product ? SMELTS[product] : undefined;
+    if (!product || !source) {
+      return { status: "failed", reason: `"${String(rawArgs["item"] ?? "")}" is not something this can smelt — use one of ${Object.keys(SMELTS).join(", ")}` };
     }
     const count = Math.max(1, Math.min(64, Math.floor(asNumber(rawArgs["count"], 1))));
 
