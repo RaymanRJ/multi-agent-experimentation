@@ -10,9 +10,101 @@ trace with no story attached. In a game world you can watch three agents walk in
 forest and either coordinate or collide. Swap the environment for a codebase, a ticket queue, or
 a data pipeline and everything else here stays the same.
 
+## Quick start
+
+You need Docker and [Ollama](https://ollama.com/) running, and Node 25+. No Minecraft purchase and
+no API key are needed: the free local model plays on its own.
+
+```bash
+./start.sh --check          # says what's missing, starts nothing
+./start.sh                  # Minecraft server, minds panel and one agent per available brain
+```
+
+Then watch:
+- **The agent's view:** http://localhost:3007, a 3D view of the world as the Ollama agent sees it.
+- **Its decisions:** http://localhost:3010 (the minds panel), with what it saw, chose and why for every step.
+
+```bash
+npm install                 # once, for the report and experiment scripts
+npm run report              # how each run went: outcome, decisions, tokens, cost
+./stop.sh                   # stop the agents (./stop.sh --all also stops Minecraft)
+```
+
+To add Claude or GPT, put their keys in `.env` (`cp .env.example .env`). They start only when a
+key is set. Set a monthly spend limit in each provider's console as well.
+
 ---
 
-## Architecture
+## How it works
+
+The rule the whole repo follows: **the model decides, the code does.**
+
+- A Minecraft server (in Docker) is the shared world.
+- Each **agent** is a Node.js process that joins the world as a player.
+- When an agent needs to choose, it builds a short summary of its situation (an *observation*)
+  and asks its **brain**, a model, which **skill** to run next, such as `gather_wood(10)` or
+  `build_shelter()`.
+- The skill is our code. It does the work, which can take many seconds of game time, and reports
+  back in plain words, such as "need 2 more planks — gather wood first".
+- The model only chooses between skills. It never steers.
+
+The brain can be fixed rules (`scripted`, the control), a free local model (Ollama), or a paid
+one (Claude, GPT, Gemini, Grok and others through one interface). Every decision is logged, with
+the exact prompt and answer, so any run can be replayed and costed later.
+
+## Documentation
+
+| Read | For |
+|---|---|
+| [docs/skills.md](docs/skills.md) | Every skill an agent can use, how it works and how it fails |
+| [docs/communication.md](docs/communication.md) | How agents see and talk to each other, and the three stances |
+| [docs/experiments.md](docs/experiments.md) | Running a fair comparison and reading the report |
+| [docs/results/](docs/results/) | What the experiments so far have found |
+| [docs/limitations.md](docs/limitations.md) | What is untested, missing or rough |
+| [CLAUDE.md](CLAUDE.md) | Conventions for changing the code |
+
+---
+
+## Status
+
+**MVP.** The full loop works with the free local model and the scripted baseline:
+- one or several agents in a shared world;
+- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron and diamond;
+- memory and stance settings;
+- comparison batches with fresh worlds;
+- a report with confidence intervals;
+- a panel that shows every decision.
+
+Paid models are wired up and unit-tested, but not yet run in a full experiment.
+
+**What we've found so far** (free local model, details in [docs/results/](docs/results/)):
+- Fixing the skill code mattered more than anything about the model.
+- Full conversation memory works best. A self-written plan makes this small model *worse*: it
+  follows its own stale plan into loops.
+- Small models often claim success they haven't reached. The harness now refuses a premature
+  "done" and says what is missing.
+
+What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
+
+---
+
+## Running experiments
+
+```bash
+CONDITIONS="scripted ollama:none ollama:full" GOALS="tools shelter" scripts/batch.sh b10 3 12000 sandbox
+STANCE=competitive scripts/team.sh t2 "qa=ollama:full qb=ollama:full"
+npm run report -- --by condition --batch b10
+```
+
+The first line runs one agent per world across several conditions. The second puts several agents
+in one world. The third summarises a batch, one row per condition, with success rates and 95%
+intervals. Everything is explained in [docs/experiments.md](docs/experiments.md).
+
+---
+
+## Details
+
+### Architecture
 
 ```mermaid
 flowchart TB
@@ -80,7 +172,7 @@ talk to each other is in [docs/communication.md](docs/communication.md).
 
 ---
 
-## The control loop
+### The control loop
 
 A game ticks 20 times per second; a model takes seconds to answer. So the model never touches
 the controls. It picks a **goal**; deterministic code executes it.
@@ -106,7 +198,7 @@ the agent is slow, expensive, and dead before it finishes thinking.
 
 ---
 
-## Scenarios
+### Scenarios
 
 The same world runs in two modes, flipped with one setting. They are not difficulty levels —
 they test different things.
@@ -119,7 +211,7 @@ they test different things.
 The relaxed mode is the harder test — pressure supplies focus, an open goal does not. Toggling is
 a single RCON call plus a swap of the goal given to the agents, so runs stay comparable.
 
-### What is held fixed, and what is not
+#### What is held fixed, and what is not
 
 - **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `compose.yaml`), and
   `scripts/batch.sh` gives every run a freshly regenerated copy, so no run inherits another's
@@ -136,7 +228,7 @@ a single RCON call plus a swap of the goal given to the agents, so runs stay com
 
 ---
 
-## Software
+### Software
 
 | Component | What it does | Cost |
 |---|---|---|
@@ -153,7 +245,7 @@ a single RCON call plus a swap of the goal given to the agents, so runs stay com
 | [OpenAI API](https://platform.openai.com/) | GPT as a brain | usage-based |
 | Minecraft Java Edition | **Optional.** Only needed to walk around the world yourself | ~$30 one-time |
 
-### Why no Minecraft purchase is required
+#### Why no Minecraft purchase is required
 
 "Minecraft" is two separate pieces of software. The **server** is free and always has been. The
 **client** — the graphical game — is the part that costs money. Bots need neither: mineflayer
@@ -165,20 +257,10 @@ until then.
 
 ---
 
-## Status
-
-Early. Scaffolding in progress — see commit history.
-
-## Running it
-
-> Requires Docker running, Node 25+, and (for the free agent) Ollama installed.
-
-**One command** (needs Docker and Ollama; `./start.sh --check` tells you what's missing):
+### What start.sh does
 
 ```bash
-cp .env.example .env        # optional: add API keys to also start the Claude / GPT agents
-./start.sh                  # or: ./start.sh --scenario survival --goal shelter --ticks 12000
-./stop.sh                   # stops agents + minds panel; ./stop.sh --all also stops Minecraft
+./start.sh --scenario survival --goal shelter --ticks 12000   # options: ./start.sh --help
 ```
 
 It checks Docker and Ollama, pulls the model if missing, starts the server, then the minds panel
@@ -187,7 +269,7 @@ It checks Docker and Ollama, pulls the model if missing, starts the server, then
 containers reach it at `host.docker.internal:11434`. To join yourself, use Minecraft Java 1.21.1
 at `localhost`.
 
-### On Linux, Windows, or an Intel Mac
+#### On Linux, Windows, or an Intel Mac
 
 Developed on an Apple Silicon Mac; other platforms are expected to work but are less tested.
 Run `./start.sh --check` first; it checks the setup without starting anything.
