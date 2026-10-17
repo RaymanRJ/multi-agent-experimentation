@@ -215,3 +215,18 @@ test("after the outpost it digs for iron, smelts it, then goes down for diamonds
   d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2, iron_pickaxe: 1 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.deepEqual([d.skill, d.args], ["descend", { y: -58 }]);
 });
+
+test("out mining after the shelter, a close hostile means flee, then wait once fleeing is used up", async () => {
+  const p = new ScriptedPolicy();
+  const inv = { oak_log: 12, stone_pickaxe: 1 };
+  let d = (await next(p, obs({ inventory: inv })))!;
+  assert.equal(d.skill, "build_shelter");
+  d = (await next(p, after(d, "success", { inventory: inv })))!; // by day: off to make tools / mine
+  assert.notEqual(d.skill, "flee");
+  const skills: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    d = (await next(p, after(d, "aborted", { inventory: inv, hostiles: [{ name: "skeleton", distance: 7 }] })))!;
+    skills.push(d.skill);
+  }
+  assert.deepEqual(skills, ["flee", "flee", "flee", "wait"]);
+});

@@ -96,6 +96,8 @@ export class ScriptedPolicy implements Policy {
   /** The last mine_ore found nothing in sight: dig to uncover more before looking again. */
   private uncover = false;
   private shelterBuilt = false;
+  /** The skill chosen last, kept after its result is read (lastDecision is cleared then). */
+  private lastSkill: string | null = null;
   private decisions = 0;
   /** A craft that reported success: if the item is not in the next inventory, the success was phantom. */
   private expectItem: { item: string; key: string } | null = null;
@@ -161,6 +163,7 @@ export class ScriptedPolicy implements Policy {
 
   private go(skill: string, args: Record<string, unknown>, rationale: string, key = skill): Decision {
     this.lastDecision = { skill, key };
+    this.lastSkill = skill;
     return { skill, args, rationale };
   }
 
@@ -180,9 +183,15 @@ export class ScriptedPolicy implements Policy {
 
     // --- Reactive rules ---
     if (!nearest || nearest.distance > FLEE_RANGE) this.fleeStreak = 0;
-    if (nearest && nearest.distance <= FLEE_RANGE && !this.shelterBuilt && this.fleeStreak < MAX_CONSECUTIVE_FLEES) {
-      this.fleeStreak++;
-      return this.go("flee", { distance: FLEE_DISTANCE }, `${nearest.name} ${nearest.distance} blocks away: run`);
+    // Holding in the shelter is safe; out working (mining after the shelter) is not.
+    const holding = this.shelterBuilt && ["wait", "build_shelter"].includes(this.lastSkill ?? "");
+    if (nearest && nearest.distance <= FLEE_RANGE && !holding) {
+      if (this.fleeStreak < MAX_CONSECUTIVE_FLEES) {
+        this.fleeStreak++;
+        return this.go("flee", { distance: FLEE_DISTANCE }, `${nearest.name} ${nearest.distance} blocks away: run`);
+      }
+      // Still close after fleeing: every working skill would stop at once, so wait it out.
+      if (this.shelterBuilt) return this.go("wait", { seconds: 5 }, `${nearest.name} still ${nearest.distance} blocks away: wait`);
     }
 
     if (o.food < EAT_BELOW && sum(inv, (n) => FOODS.has(n)) > 0 && (this.failStreak.get("eat") ?? 0) < 2) {
