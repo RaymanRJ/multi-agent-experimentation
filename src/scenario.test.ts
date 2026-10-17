@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOALS, GOAL_CHECKS, SCENARIOS, isNight, resolveGoal } from "./scenario.js";
+import { GOALS, GOAL_CHECKS, GOAL_GAPS, SCENARIOS, isNight, resolveGoal } from "./scenario.js";
 
 test("resolveGoal - no goal uses the scenario's own", () => {
   assert.equal(resolveGoal(SCENARIOS.survival, undefined), SCENARIOS.survival.goal);
@@ -30,4 +30,15 @@ test("outpost - needs all four stone tools, a shelter, and a night survived afte
   assert.equal(check({ ...done, inventory: { ...tools, stone_shovel: 0 } }), false);
   assert.equal(isNight(18000), true);
   assert.equal(isNight(23500), false);
+});
+
+test("goal gaps name what is missing, and nothing once the goal is met", () => {
+  const state = { skill: "done", status: "success", inventory: { stone_pickaxe: 1, stone_axe: 1 }, shelterBuilt: true, nightSurvivedSinceShelter: false };
+  assert.deepEqual(GOAL_GAPS["tools"]!(state), []);
+  assert.deepEqual(GOAL_GAPS["iron"]!(state), ["you have no iron_pickaxe"]);
+  assert.deepEqual(GOAL_GAPS["outpost"]!(state), [
+    "you have no stone_sword",
+    "you have no stone_shovel",
+    "you have not yet survived a night since building the shelter",
+  ]);
 });

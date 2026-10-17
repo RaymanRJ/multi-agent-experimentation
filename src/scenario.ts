@@ -103,6 +103,26 @@ export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
     shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
 };
 
+/**
+ * What still stands between the run and its preset goal, as plain facts — what a player would see
+ * by looking at their inventory, never the steps to take. Told to a model that says "done" too early.
+ */
+export const GOAL_GAPS: Record<string, (state: GoalState) => string[]> = {
+  shelter: () => ["no shelter has been built yet"],
+  tools: ({ inventory }) => missing(inventory, ["stone_pickaxe"]),
+  iron: ({ inventory }) => missing(inventory, ["iron_pickaxe"]),
+  diamond: ({ inventory }) => (DIAMOND_ARMOR.some((piece) => (inventory[piece] ?? 0) > 0) ? [] : ["you have no piece of diamond armor"]),
+  outpost: ({ inventory, shelterBuilt, nightSurvivedSinceShelter }) => [
+    ...missing(inventory, OUTPOST_TOOLS),
+    ...(shelterBuilt ? [] : ["no shelter has been built yet"]),
+    ...(nightSurvivedSinceShelter ? [] : ["you have not yet survived a night since building the shelter"]),
+  ],
+};
+
+function missing(inventory: Record<string, number>, items: string[]): string[] {
+  return items.filter((item) => (inventory[item] ?? 0) === 0).map((item) => `you have no ${item}`);
+}
+
 /** Night as far as the goal is concerned: from when hostiles spawn until they burn at sunrise. */
 export function isNight(timeOfDay: number): boolean {
   return timeOfDay >= 13000 && timeOfDay < 23000;

@@ -9,7 +9,7 @@ import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
-import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { getOutOfWater, headInWater, movementsFor } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
@@ -111,6 +111,7 @@ async function main(): Promise<void> {
   const maxTicks = Number(argv["ticks"]);
   const budgetUSD = Number(argv["budget-usd"]);
   const goalCheck = GOAL_CHECKS[goalTask(presetName(goal) ?? "")];
+  const goalGaps = GOAL_GAPS[goalTask(presetName(goal) ?? "")];
   const { policy, backend } = buildPolicy(String(argv["brain"]));
   if (backend) {
     // Find a bad key or an empty account now, not ten minutes into an episode.
@@ -295,7 +296,8 @@ async function main(): Promise<void> {
       // A preset goal is checked after every skill and ends the run the moment it is met, so a
       // "done" now is a claim the game disagrees with. Say so once; a second "done" in a row stands.
       doneRefused = true;
-      const reason = "the goal is not met yet — compare your inventory with the goal; say done again only to give up";
+      const gaps = goalGaps?.({ skill: "done", status: "success", inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter }) ?? [];
+      const reason = `the goal is not met yet: ${gaps.length ? gaps.join("; ") : "check it against what you have"}`;
       console.log(`[${agentName}] refused done: goal not met`);
       recentEvents.push(`done refused (${reason})`);
       write({ decision: null, result: { status: "failed", reason }, events: ["done refused"], ...extra });
