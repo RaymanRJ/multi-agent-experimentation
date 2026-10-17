@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWatch, SUPPRESSED, type WorldSnapshot } from "./interrupts.js";
+import { createWatch, MESSAGE_COOLDOWN_MS, SUPPRESSED, suppressedFor, type WorldSnapshot } from "./interrupts.js";
 
 const calm: WorldSnapshot = { health: 20, hostiles: [], timeOfDay: 1000 };
 const zombie = (distance: number, id = 1) => ({ id, name: "zombie", distance });
@@ -92,4 +92,19 @@ test("damage while out of air says the agent is drowning", () => {
   const w = createWatch(calm);
   assert.match(w.check({ ...calm, health: 18, oxygen: 0 })!, /out of air/);
   assert.doesNotMatch(createWatch(calm).check({ ...calm, health: 18, oxygen: 20 })!, /out of air/);
+});
+
+test("a message interrupts at most once per cooldown, so replies don't abort every skill", () => {
+  assert.deepEqual(suppressedFor("gather_wood", null, 0), []);
+  assert.deepEqual(suppressedFor("gather_wood", 1000, 1000 + MESSAGE_COOLDOWN_MS - 1), ["message"]);
+  assert.deepEqual(suppressedFor("gather_wood", 1000, 1000 + MESSAGE_COOLDOWN_MS), []);
+  assert.deepEqual(suppressedFor("flee", 1000, 2000), SUPPRESSED["flee"]);
+});
+
+test("the watch reports which trigger fired", () => {
+  const start: WorldSnapshot = { health: 20, hostiles: [], timeOfDay: 1000, directed: 0, lastDirected: null };
+  const watch = createWatch(start);
+  assert.equal(watch.firedBy(), null);
+  assert.match(watch.check({ ...start, directed: 1, lastDirected: { from: "qb", text: "hi" } }) ?? "", /qb said to you/);
+  assert.equal(watch.firedBy(), "message");
 });

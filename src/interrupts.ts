@@ -41,6 +41,18 @@ export const HOSTILE_RADIUS = 6;
 export const CLOSING_MARGIN = 2;
 /** Same cut-off as Observation.isDay. */
 export const NIGHT_START = 12000;
+/**
+ * After a message interrupts a skill, further messages wait this long before they can interrupt
+ * again. Without it two agents replying to each other abort each other's every skill.
+ */
+export const MESSAGE_COOLDOWN_MS = 60_000;
+
+/** Triggers to suppress for this skill: its own list, plus "message" while the cooldown runs. */
+export function suppressedFor(skill: string, lastMessageInterruptMs: number | null, nowMs: number): Trigger[] {
+  const own = SUPPRESSED[skill] ?? [];
+  const cooling = lastMessageInterruptMs !== null && nowMs - lastMessageInterruptMs < MESSAGE_COOLDOWN_MS;
+  return cooling && !own.includes("message") ? [...own, "message"] : own;
+}
 
 /**
  * Skills that handle the danger themselves; the named triggers are suppressed for them.
@@ -59,6 +71,8 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
 export interface Watch {
   /** Returns an interrupt reason the first time one fires, then null forever (one per run). */
   check(now: WorldSnapshot): string | null;
+  /** Which trigger fired, once one has. */
+  firedBy(): Trigger | null;
 }
 
 export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): Watch {
@@ -68,14 +82,14 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
   const startDirected = start.directed ?? 0;
   // Damage is a drop from the highest health seen, so healing then being hit again counts.
   let peakHealth = start.health;
-  let fired = false;
+  let fired: Trigger | null = null;
 
-  function evaluate(now: WorldSnapshot): string | null {
+  function evaluate(now: WorldSnapshot): [Trigger, string] | null {
     peakHealth = Math.max(peakHealth, now.health);
 
     if (!off.has("damage") && now.health < peakHealth) {
       const drowning = now.oxygen !== undefined && now.oxygen <= 0;
-      return `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`;
+      return ["damage", `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
     }
 
     if (!off.has("hostile")) {
@@ -83,17 +97,17 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
         if (h.distance > HOSTILE_RADIUS) continue;
         const before = startDistance.get(h.id);
         if (before === undefined || h.distance <= before - CLOSING_MARGIN) {
-          return `interrupted: a ${h.name} came within ${HOSTILE_RADIUS} blocks (now ${Math.round(h.distance)})`;
+          return ["hostile", `interrupted: a ${h.name} came within ${HOSTILE_RADIUS} blocks (now ${Math.round(h.distance)})`];
         }
       }
     }
 
     if (!off.has("night") && startedDay && now.timeOfDay >= NIGHT_START) {
-      return "interrupted: night is falling";
+      return ["night", "interrupted: night is falling"];
     }
 
     if (!off.has("message") && (now.directed ?? 0) > startDirected && now.lastDirected) {
-      return `interrupted: ${now.lastDirected.from} said to you: "${now.lastDirected.text.slice(0, 120)}"`;
+      return ["message", `interrupted: ${now.lastDirected.from} said to you: "${now.lastDirected.text.slice(0, 120)}"`];
     }
     return null;
   }
@@ -101,9 +115,11 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
   return {
     check(now) {
       if (fired) return null;
-      const reason = evaluate(now);
-      if (reason) fired = true;
-      return reason;
+      const hit = evaluate(now);
+      if (!hit) return null;
+      fired = hit[0];
+      return hit[1];
     },
+    firedBy: () => fired,
   };
 }

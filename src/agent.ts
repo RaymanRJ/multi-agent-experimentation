@@ -7,7 +7,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
-import { createWatch, SUPPRESSED, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { RunLog } from "./log.js";
 import { GOAL_CHECKS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -161,6 +161,7 @@ async function main(): Promise<void> {
   // flips shouldStop(), so the skill aborts at its next check.
   let watch: Watch | null = null;
   let interruptReason: string | null = null;
+  let lastMessageInterruptMs: number | null = null;
 
   const checkInterrupts = () => {
     if (!watch || interruptReason) return;
@@ -322,8 +323,9 @@ async function main(): Promise<void> {
       stepEvents.push(event);
     }
     interruptReason = null;
-    watch = createWatch(snapshot(bot, buffer), SUPPRESSED[skill.name] ?? []);
+    watch = createWatch(snapshot(bot, buffer), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
     let result = await skill.run(ctx, decision.args);
+    if (watch.firedBy() === "message") lastMessageInterruptMs = Date.now();
     watch = null;
     if (interruptReason && !stopping) {
       // Tell the model why, in place of the skill's generic "the run is ending".

@@ -48,6 +48,10 @@ characters.
   result of the interrupted skill, so it can answer and pick up where it left off. A few
   short skills (`eat`, `sleep`, `flee`) aren't interrupted, and each skill can be interrupted
   at most once.
+- **Then a minute's quiet.** After a message interrupts an agent, more messages to it wait for
+  its next decision for 60 seconds. Without this, two agents replying to each other kept
+  cancelling each other's work: in one test, each agent's `gather_wood` was cut short five
+  times in a row.
 
 ## Seeing without talking
 
