@@ -118,6 +118,21 @@ they test different things.
 The relaxed mode is the harder test — pressure supplies focus, an open goal does not. Toggling is
 a single RCON call plus a swap of the goal given to the agents, so runs stay comparable.
 
+### What is held fixed, and what is not
+
+- **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `compose.yaml`), and
+  `scripts/batch.sh` gives every run a freshly regenerated copy, so no run inherits another's
+  felled trees, holes or inventory.
+- **The start point varies a little.** New players appear at a random spot within
+  `spawnRadius` (Minecraft's default, 10) of the world spawn. Across batches b1–b5 (78 runs)
+  every agent started inside one 20 × 21 block area (x −8…11, z 23…43). That is close enough to
+  share the same surroundings, but not identical: some starts are next to oak trees and others
+  next to dark oak. Treat small differences between conditions with that in mind.
+- **The game does not pause while a model thinks.** The world keeps ticking during every model
+  call, so ticks-to-goal measures decision quality and response speed together, which is
+  deliberate. Each call's duration is logged (`calls[].ms`), each decision's time including
+  retries (`decisionMs`), and `npm run report` shows the median, P90 and retry count per run.
+
 ---
 
 ## Software
