@@ -201,15 +201,17 @@ test("after the outpost it digs for iron, smelts it, then goes down for diamonds
   let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
   d = (await next(p, after(d, "success", { inventory: kit })))!; // shelter built
   assert.deepEqual([d.skill, d.args], ["mine_ore", { ore: "iron", count: 3 }]);
-  d = (await next(p, after(d, "failed", { inventory: kit })))!;
+  d = (await next(p, after(d, "failed", { inventory: { ...kit, cobblestone: 3 } })))!;
+  assert.deepEqual([d.skill, d.args], ["craft", { item: "stone_pickaxe", count: 1 }]); // a spare before digging
+  d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2 } })))!;
   assert.deepEqual([d.skill, d.args], ["descend", { y: 16 }]);
-  d = (await next(p, after(d, "success", { inventory: kit, position: { x: 0, y: 16, z: 0 } })))!;
+  d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.equal(d.skill, "mine_ore");
   const iron = { ...kit, raw_iron: 3, oak_log: 3, cobblestone: 8 };
   d = (await next(p, after(d, "success", { inventory: iron, position: { x: 0, y: 16, z: 0 } })))!;
   assert.deepEqual([d.skill, d.args], ["smelt", { item: "iron_ingot", count: 3 }]);
   d = (await next(p, after(d, "success", { inventory: { ...kit, iron_ingot: 3 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.deepEqual([d.skill, d.args], ["craft", { item: "iron_pickaxe", count: 1 }]);
-  d = (await next(p, after(d, "success", { inventory: { ...kit, iron_pickaxe: 1 }, position: { x: 0, y: 16, z: 0 } })))!;
+  d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2, iron_pickaxe: 1 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.deepEqual([d.skill, d.args], ["descend", { y: -58 }]);
 });

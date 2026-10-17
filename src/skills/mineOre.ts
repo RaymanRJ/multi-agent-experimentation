@@ -12,6 +12,9 @@ const TRAVEL_TIMEOUT_MS = 30_000;
 const DIG_TIMEOUT_MS = 20_000;
 const MAX_FAILED_BLOCKS = 5;
 const MAX_TOTAL_MS = 4 * 60_000;
+/** Ore further above or below than this is left alone: the pathfinder gives up on long climbs. */
+const MAX_HEIGHT_GAP = 8;
+const REACH = 4.5;
 
 /** Pickaxes, weakest first. */
 const TIERS = ["wooden_pickaxe", "stone_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
@@ -34,11 +37,9 @@ export function oreKind(name: string): string | null {
   return kind in ORES ? kind : null;
 }
 
-/** The best pickaxe held, if it is good enough for this ore. */
+/** The cheapest pickaxe held that is good enough for this ore, so the better ones last longer. */
 function pickaxeFor(inventory: Record<string, number>, needed: string): string | null {
-  const best = [...TIERS].reverse().find((tool) => (inventory[tool] ?? 0) > 0);
-  if (!best) return null;
-  return TIERS.indexOf(best) >= TIERS.indexOf(needed) ? best : null;
+  return TIERS.slice(TIERS.indexOf(needed)).find((tool) => (inventory[tool] ?? 0) > 0) ?? null;
 }
 
 export const mineOre: Skill = {
@@ -49,7 +50,7 @@ export const mineOre: Skill = {
     "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
-    "Skips ore touching lava or water. Returns how many were gained and the new total.",
+    "Uses the cheapest pickaxe good enough. Skips ore touching lava or water. Returns how many were gained and the new total.",
   args: { ore: "string", count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -89,6 +90,7 @@ export const mineOre: Skill = {
       }
 
       let block: Block | null = null;
+      let outOfReach: number | null = null;
       for (const radius of SEARCH_RADII) {
         const points = bot
           .findBlocks({ matching: oreIds, maxDistance: radius, count: 64 })
@@ -96,16 +98,25 @@ export const mineOre: Skill = {
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point) || liquidBeside(bot, point)) continue;
+          const gap = point.y - Math.floor(bot.entity.position.y);
+          if (Math.abs(gap) > MAX_HEIGHT_GAP) {
+            outOfReach ??= gap;
+            continue;
+          }
           block = bot.blockAt(point);
           break;
         }
         if (block) break;
       }
       if (!block) {
+        const far =
+          outOfReach === null
+            ? ""
+            : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
         const reason =
           gained() > 0
-            ? `gained ${gained()} ${drop}, then no more ${kind} ore in sight`
-            : `no ${kind} ore in sight within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — explore, descend or dig a tunnel to uncover some`;
+            ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}`
+            : `no ${kind} ore in reach within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks${far || " — explore, descend or dig a tunnel to uncover some"}`;
         return { status: "failed", reason, detail: { gained: gained(), total: dropsHeld() } };
       }
 
@@ -114,6 +125,9 @@ export const mineOre: Skill = {
         await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
         const fresh = bot.blockAt(block.position);
         if (!fresh || !oreIds.includes(fresh.type) || !bot.canDigBlock(fresh)) throw new Error("cannot dig it from here");
+        // Out of reach or behind a wall, the server ignores the dig and mineflayer waits forever.
+        const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+        if (eye.distanceTo(fresh.position.offset(0.5, 0.5, 0.5)) > REACH || !bot.canSeeBlock(fresh)) throw new Error("out of reach");
         await withTimeout(bot.dig(fresh), DIG_TIMEOUT_MS, "digging ore");
       } catch (error) {
         ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);

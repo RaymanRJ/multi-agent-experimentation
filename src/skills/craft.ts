@@ -376,9 +376,51 @@ function relocationTargets(bot: Bot): Vec3[] {
  * of where the bot stands (forests are cluttered, so the nearest cells are often
  * trunks or leaves), and if none works walks to open ground nearby and tries again.
  */
+const FACES = [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1), new Vec3(0, 1, 0)];
+
+/**
+ * Places the block in any open cell within reach, against any solid side. Tables and furnaces
+ * need no floor under them, and in a 1-wide staircase or tunnel no cell has open ground beside it.
+ */
+async function tryPlaceAgainstWalls(ctx: SkillContext, name: string): Promise<Block | null> {
+  const bot = ctx.bot;
+  const feet = bot.entity.position.floored();
+  const eye = bot.entity.position.offset(0, 1.6, 0);
+  const cells: Array<{ cell: Vec3; distance: number }> = [];
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dy = -1; dy <= 2; dy++) {
+      for (let dz = -3; dz <= 3; dz++) {
+        if (dx === 0 && dz === 0 && (dy === 0 || dy === 1)) continue; // the bot itself
+        const cell = feet.offset(dx, dy, dz);
+        const distance = eye.distanceTo(cell.offset(0.5, 0.5, 0.5));
+        if (distance <= PLACE_REACH && isOpen(bot.blockAt(cell))) cells.push({ cell, distance });
+      }
+    }
+  }
+  cells.sort((a, b) => a.distance - b.distance);
+  for (const { cell } of cells.slice(0, 12)) {
+    for (const face of FACES) {
+      const against = bot.blockAt(cell.plus(face));
+      if (!against || against.boundingBox !== "block") continue;
+      const held = bot.inventory.items().find((item) => item.name === name);
+      if (!held) return null;
+      try {
+        await bot.equip(held, "hand");
+        await bot.placeBlock(against, face.scaled(-1));
+      } catch {
+        await bot.waitForTicks(3);
+      }
+      const placed = bot.blockAt(cell);
+      if (placed && placed.name === name) return placed;
+      break; // one face per cell; the next cell is a better bet than another face of this one
+    }
+  }
+  return null;
+}
+
 export async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
   const bot = ctx.bot;
-  const here = await tryPlaceHere(ctx, name);
+  const here = (await tryPlaceHere(ctx, name)) ?? (await tryPlaceAgainstWalls(ctx, name));
   if (here) return here;
 
   const tried: Vec3[] = [];

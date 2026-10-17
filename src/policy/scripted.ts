@@ -24,6 +24,7 @@ const LOGS_FOR_IRON = 3;
 const COBBLE_FOR_FURNACE = 8;
 /** Searching for ore is tunnel, look, tunnel: it earns many more tries than other stages. */
 const MAX_ORE_FAILS = 15;
+const SPARE_STONE_PICKS = 2;
 
 const FLEE_RANGE = 8;
 const FLEE_DISTANCE = 24;
@@ -283,6 +284,10 @@ export class ScriptedPolicy implements Policy {
     const has = (name: string) => (inv[name] ?? 0) > 0;
     const logs = sum(inv, (n) => n.endsWith("_log"));
     const dig = (targetY: number, why: string): Decision | null => {
+      // Digging wears pickaxes out (stone ~130 blocks); keep spares so the iron one is kept for ore.
+      if ((inv["stone_pickaxe"] ?? 0) < SPARE_STONE_PICKS && (inv["cobblestone"] ?? 0) >= COBBLE_FOR_PICK && this.usable("craft:stone_pickaxe")) {
+        return this.stage("craft:stone_pickaxe", "craft", { item: "stone_pickaxe", count: 1 }, "a spare stone pickaxe for digging");
+      }
       this.uncover = false;
       if (y > targetY + 4 && this.usable("descend")) return this.stage("descend", "descend", { y: targetY }, why);
       if (this.usable("tunnel")) return this.stage("tunnel", "tunnel", { length: 16 }, "uncover ore hidden in the rock");
