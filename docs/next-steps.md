@@ -111,8 +111,8 @@ Read this at the start of a session; update it when something finishes or a new 
    The under-water digging explained some of it, not all. Not yet investigated.
 5. **Panel start line: done 18 October.** An agent writes `<log>.start.json` when it starts, and the
    panel lists it as "Starting" until its first decision is logged.
-6. **Extended thinking for Claude** (`--thinking on`) was discussed and left off for now: it costs
-   several times more per decision and would be its own condition.
+6. **Extended thinking for Claude: left off, written up as a limitation** (`docs/limitations.md`,
+   "Not yet tested", with how to measure it). Candidate for the long paid test (#2 above).
 7. **Before making the repo public:** scan the git history for secrets, check the `protect-main`
    ruleset is enforced (`gh api repos/RaymanRJ/multi-agent-experimentation/rulesets`), and go back to
    branches and pull requests.

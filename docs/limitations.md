@@ -6,6 +6,22 @@ building on it.
 
 ## Not yet tested
 
+- **Extended thinking is off for every model, and its effect is unmeasured** (decided 18 October).
+  Claude is never asked to think before answering (no `thinking` in the request), and there is no
+  `--thinking` option. What stands in for it: Haiku often writes its reasoning as text before its
+  decision, and GPT-6 reasoning models think internally at their default effort.
+  - **Why it might help:** what holds the agents back is planning, not mechanics: loops, believing
+    they hold things they don't, misreading the goal. Haiku's best decisions are the ones it reasons
+    through first.
+  - **Why it is off:** it costs several times more per decision and makes each one slower, while
+    the game keeps running; Sonnet and Opus already meet the simple goals in 4–5 decisions. It
+    would also be its own condition, so runs with and without it can't be pooled.
+  - **To measure it:** add `--thinking on|off` (a thinking budget in the Claude request), recorded
+    in the run config like memory and stance, then run the same long goal (`outpost`) with it on and
+    off on one model, Haiku first, for a few dollars. The decision tool is offered, not forced, so
+    it already allows thinking (the API refuses a forced tool together with thinking).
+  - Logs already keep any thinking a provider returns (`thinking` on each call), so nothing else
+    needs to change to read it.
 - **Paid models have only been tried, not compared.**
   - Claude Haiku 4.5, Sonnet 5.5 and Opus 5.5 each met the `tools` goal once (batch poc1, 18 October:
     4–5 decisions, $0.01–$0.04 a run), and Haiku and Sonnet have played team runs. No batch with
