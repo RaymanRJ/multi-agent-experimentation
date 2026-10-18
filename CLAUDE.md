@@ -143,9 +143,13 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   when something finishes or a new ask comes in.
 - **Commits are pre-approved; pushes are not.** Commit without asking; push only when asked. Commit
   messages are one sentence, plus the `Co-Authored-By` trailer.
-- **While the repo is private, commit straight to `main`.** Branches and pull requests come back when
-  it goes public; the `protect-main` ruleset (one approval, admins may bypass only through a PR) is
-  only enforced on a public repo.
+- **The repo is public (since 18 October): work on a branch and open a pull request.** `main` is
+  protected by the `protect-main` ruleset: no direct pushes, force pushes or deletion; a pull request
+  with one approval, resolved conversations and a passing `test` check (CI). The owner is the only
+  collaborator and can't approve their own pull request, so they merge with the admin bypass, which
+  works only through a pull request. Pushing a branch still needs asking. Pull requests from outside
+  contributors run CI only after the owner approves them, and workflows may use only GitHub's own
+  actions.
 - **Never change `src/` under a running batch or team run.** Work in a worktree under
   `.claude/worktrees/` (symlink `node_modules` and `runs` into it, never commit them) and
   fast-forward `main` after the run ends.

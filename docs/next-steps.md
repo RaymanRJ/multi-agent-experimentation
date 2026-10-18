@@ -121,9 +121,10 @@ Read this at the start of a session; update it when something finishes or a new 
    panel lists it as "Starting" until its first decision is logged.
 6. **Extended thinking for Claude: left off, written up as a limitation** (`docs/limitations.md`,
    "Not yet tested", with how to measure it). Candidate for the long paid test (#2 above).
-7. **Before making the repo public:** scan the git history for secrets, check the `protect-main`
-   ruleset is enforced (`gh api repos/RaymanRJ/multi-agent-experimentation/rulesets`), and go back to
-   branches and pull requests.
+7. **Made public 18 October.** The history was scanned for keys, tokens and private keys (none); the
+   `protect-main` ruleset is enforced and now also requires CI; outside contributors' pull requests
+   need approval before any workflow runs; only GitHub-owned actions are allowed; the workflow token
+   is read-only. Work goes through branches and pull requests (`CLAUDE.md`).
 8. **Two drowning gaps, deferred by the owner (18 October):** water while the model is thinking,
    and a skill started after a failed escape. Both are described with their fixes in
    `docs/limitations.md` ("Rough edges in the code"). Leave them unless drowning shows up again.
