@@ -12,7 +12,8 @@ import { readFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { parseSteps } from "./minds.js";
 import { writeSummary } from "./summary.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
+import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
@@ -27,7 +28,7 @@ const { pathfinder } = pathfinderPkg;
 loadEnv();
 
 const argv = minimist(process.argv.slice(2), {
-  string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress"],
+  string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress", "team"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
   default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
@@ -81,6 +82,10 @@ const config: RunConfig = {
   maxSteps: Number(argv["steps"]),
   world: scenario.setup,
 };
+// `--team a,b,c`: the agents launched together as one team (scripts/team.sh passes it). A team goal is
+// judged on all of them, and a collaborative agent's run ends only when the whole team is done.
+const team = String(argv["team"] ?? "").split(",").map((name) => name.trim()).filter(Boolean);
+if (team.length > 0) config.team = team;
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
@@ -125,6 +130,7 @@ async function main(): Promise<void> {
   const maxTicks = Number(argv["ticks"]);
   const budgetUSD = Number(argv["budget-usd"]);
   const goalCheck = GOAL_CHECKS[goalTask(presetName(goal) ?? "")];
+  const teamGoal = TEAM_GOALS.has(goalTask(presetName(goal) ?? ""));
   const goalGaps = GOAL_GAPS[goalTask(presetName(goal) ?? "")];
   const { policy, backend } = buildPolicy(String(argv["brain"]));
   if (backend) {
@@ -210,6 +216,26 @@ async function main(): Promise<void> {
     else if (nightSinceShelter) nightSurvivedSinceShelter = true;
   });
 
+  const board = team.length > 1 ? new TeamBoard("runs", config.episode, agentName, team.includes(agentName) ? team : [...team, agentName]) : null;
+  const collaborative = board !== null && stance === "collaborative";
+  // Sticky: some checks (shelter) pass only on the step that achieved them.
+  let ownGoalMet = false;
+  let toldTeamWaiting = false;
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter });
+  /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
+  const goalState = (skill: string, status: string) => {
+    const own = ownState();
+    const states = teamGoal && board ? [own, ...Object.values(board.read()).filter((m) => m !== undefined)] : [own];
+    return { skill, status, ...combine(states) };
+  };
+  const publish = () => board?.publish({ ...ownState(), goalMet: ownGoalMet });
+  /** A team goal can be met by a teammate's step, while this agent is busy or thinking. */
+  const refreshTeamGoal = () => {
+    if (teamGoal && !ownGoalMet && goalCheck?.(goalState("wait", "success"))) ownGoalMet = true;
+  };
+  /** Over for this agent: its goal is met and, in a collaborative team, every teammate's is too. */
+  const finished = () => ownGoalMet && (teamGoal || !collaborative || stillWorking(board!.read()).length === 0);
+
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
   bot.pathfinder.setMovements(movementsFor(bot));
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
@@ -229,6 +255,17 @@ async function main(): Promise<void> {
   });
   let spentUSD = 0;
   narrate(bot, `online — brain: ${policy.name}`);
+  publish();
+  // Notice a teammate finishing the job in the middle of this agent's own skill, and stop it.
+  const teamTimer = board
+    ? setInterval(() => {
+        refreshTeamGoal();
+        if (!watch || interruptReason || !finished()) return;
+        interruptReason = teamGoal ? "the team goal is met" : "every member of the team has met the goal";
+        bot.pathfinder.setGoal(null);
+        bot.stopDigging();
+      }, 2000)
+    : null;
 
   // `--view` serves this bot's view of the world in a browser. Pass a port
   // (`--view 3008`) to watch several agents at once. It observes only — no
@@ -267,7 +304,7 @@ async function main(): Promise<void> {
       ...(buffer ? { messages: buffer.snapshot() } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
-        ? { stillNeeded: goalGaps({ skill: "", status: "", inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter }) }
+        ? { stillNeeded: goalGaps(goalState("", "")) }
         : {}),
     });
     stepEvents = [];
@@ -314,7 +351,9 @@ async function main(): Promise<void> {
       // A preset goal is checked after every skill and ends the run the moment it is met, so a
       // "done" now is a claim the game disagrees with. Say so once; a second "done" in a row stands.
       doneRefused = true;
-      const gaps = goalGaps?.({ skill: "done", status: "success", inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter }) ?? [];
+      const gaps = ownGoalMet && collaborative
+        ? stillWorking(board!.read()).map((name) => `${name} has not met the goal yet`)
+        : (goalGaps?.(goalState("done", "success")) ?? []);
       const reason = `the goal is not met yet: ${gaps.length ? gaps.join("; ") : "check it against what you have"}`;
       console.log(`[${agentName}] refused done: goal not met`);
       recentEvents.push(`done refused (${reason})`);
@@ -325,6 +364,15 @@ async function main(): Promise<void> {
       console.log(`[${agentName}] policy ended the episode`);
       ended = "model ended";
       write({ decision: null, result: null, ...extra });
+      break;
+    }
+
+    refreshTeamGoal();
+    if (board && finished()) {
+      // A teammate's step finished the job while this agent was deciding.
+      console.log(`[${agentName}] goal met by the team`);
+      ended = "goal met";
+      write({ decision, result: { status: "aborted", reason: "the team's goal was met while deciding" }, ...extra });
       break;
     }
 
@@ -384,15 +432,25 @@ async function main(): Promise<void> {
       stepEvents.push(note);
     }
     if (decision.skill === "build_shelter" && result.status === "success") shelterBuilt = true;
-    if (goalCheck?.({ skill: decision.skill, status: result.status, inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter })) {
+    if (goalCheck?.(goalState(decision.skill, result.status))) ownGoalMet = true;
+    publish();
+    if (finished()) {
       console.log(`[${agentName}] goal met`);
       ended = "goal met";
+    } else if (ownGoalMet && collaborative && !toldTeamWaiting) {
+      toldTeamWaiting = true;
+      const waiting = stillWorking(board!.read());
+      const note = `you have met the goal yourself; the team succeeds only when every member has, and ${waiting.join(", ")} ${waiting.length === 1 ? "has" : "have"} not yet`;
+      recentEvents.push(note);
+      stepEvents.push(note);
     }
     write({ decision, result, events: stepEvents, ...extra });
   }
 
   console.log(`[${agentName}] ended: ${ended} after ${elapsedTicks()} ticks, $${spentUSD.toFixed(4)}`);
   stopping = true;
+  if (teamTimer) clearInterval(teamTimer);
+  publish();
   console.log(`[${agentName}] done — log at ${runLog.file}`);
   try {
     console.log(`[${agentName}] report at ${writeSummary(parseSteps(readFileSync(runLog.file, "utf8")), runLog.file)}`);

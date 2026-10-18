@@ -131,3 +131,49 @@ test("runSkill - an error a skill didn't catch becomes a failed result, and the 
   const fine = await runSkill(findSkill("wait")!, context(bot), { seconds: 1 });
   assert.equal(fine.status, "success");
 });
+
+const teammate = (distance: number) => ({ name: "player", type: "player", username: "qwen", position: { x: 0.5 + distance, y: 64, z: 0.5 } });
+
+test("give - says what's missing before it moves", async () => {
+  const has = { inventory: { cobblestone: 5 }, entities: [teammate(1)] };
+  assert.match((await run("give", has, { item: "cobblestone" })).reason!, /say who to give to/);
+  assert.match((await run("give", has, { to: "tester", item: "cobblestone" })).reason!, /yourself/);
+  assert.match((await run("give", has, { to: "qwen" })).reason!, /say what to give/);
+  assert.match((await run("give", has, { to: "qwen", item: "cobble" })).reason!, /no item called cobble/);
+  assert.match((await run("give", has, { to: "qwen", item: "stick" })).reason!, /you have no stick to give/);
+  assert.match((await run("give", { inventory: { cobblestone: 5 } }, { to: "qwen", item: "cobblestone" })).reason!, /qwen is not in sight/);
+  assert.equal((await run("give", has, { to: "qwen", item: "cobblestone" }, true)).status, "aborted");
+});
+
+test("give - reports a teammate it can't reach", async () => {
+  const result = await run("give", { inventory: { cobblestone: 5 }, entities: [teammate(12)] }, { to: "qwen", item: "cobblestone" });
+  assert.equal(result.status, "failed");
+  assert.match(result.reason!, /could not reach qwen/);
+});
+
+test("give - tosses no more than it holds, and succeeds when the teammate picks it up", async () => {
+  const { bot, calls, emit, setInventory } = fakeBot({ inventory: { cobblestone: 5 }, entities: [teammate(1.5)] });
+  const pending = findSkill("give")!.run(context(bot), { to: "QWEN", item: "cobblestone", count: 9 });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone"], "already beside them: no walking, and only the 5 it has");
+  emit("playerCollect", { username: "someone_else" }, {});
+  emit("playerCollect", { username: "qwen" }, {});
+  setInventory({});
+  assert.deepEqual(await pending, { status: "success", detail: { gave: 5, item: "cobblestone", to: "QWEN" } });
+});
+
+test("pick_up - fails plainly when nothing is lying nearby", async () => {
+  assert.match((await run("pick_up", {})).reason!, /no dropped item within 8 blocks/);
+  assert.match((await run("pick_up", { entities: [zombie(3)] }, { item: "cobblestone" })).reason!, /no dropped cobblestone/);
+});
+
+test("give - owns up when some of the toss came back to the giver", async () => {
+  const { bot, emit, setInventory } = fakeBot({ inventory: { cobblestone: 5 }, entities: [teammate(1)] });
+  const pending = findSkill("give")!.run(context(bot), { to: "qwen", item: "cobblestone", count: 3 });
+  await new Promise((resolve) => setImmediate(resolve));
+  emit("playerCollect", { username: "qwen" }, {});
+  setInventory({ cobblestone: 4 });
+  const result = await pending;
+  assert.equal(result.status, "success");
+  assert.match(result.reason!, /qwen got 1 of the 3 cobblestone; the rest came back to you/);
+});

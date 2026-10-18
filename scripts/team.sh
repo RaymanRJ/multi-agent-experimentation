@@ -7,6 +7,7 @@
 #   AGENT is  name=brain[:memory][@model]   (name at most 16 characters; memory defaults to plan)
 #
 #   STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"
+#   STANCE=collaborative GOAL=team-camp scripts/team.sh t3 "haiku=claude@claude-haiku-4-5 qwen=ollama"
 #   STANCE=collaborative COMMS=on GOAL=shelter scripts/team.sh t2 "opus=claude:full@claude-opus-5-5 sol=gpt@gpt-6.1-sol"
 #
 # STANCE (neutral), COMMS (on), PROGRESS (off), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent.
@@ -44,6 +45,8 @@ for rep in $(seq 1 "$reps"); do
   episode="team-$name-$rep"
   echo "==> rep $rep/$reps: $agents (stance=$stance, comms=$comms, goal=$goal, $scenario, $ticks ticks)"
   scripts/test-server.sh reset "team-$name" "$port" >/dev/null
+  rm -rf "runs/.teams/$episode"   # the shared team state from an earlier run of this episode name
+  members="$(for spec in $agents; do printf '%s,' "${spec%%=*}"; done)"
   pids=()
   outs=()
   viewport=3007
@@ -63,7 +66,7 @@ for rep in $(seq 1 "$reps"); do
       [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"
       MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
         --brain "$brain" --memory "$memory" --comms "$comms" --stance "$stance" --progress "$progress" --budget-usd "$budget" --goal "$goal" \
-        --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" ${viewargs[@]+"${viewargs[@]}"} > "$out" 2>&1 || true
+        --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" --team "${members%,}" ${viewargs[@]+"${viewargs[@]}"} > "$out" 2>&1 || true
     ) &
     pids+=($!)
     sleep 5   # join one at a time: the server refuses a second login from one address within 4s

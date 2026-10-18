@@ -289,7 +289,7 @@ function openSetup() {
       h("h4", {}, "World"),
       rows([["Scenario", s.scenario], ["Server setup", s.world ? h("pre", {}, s.world.join("\n")) : notLogged], ["Spawned at", s.spawn.x + ", " + s.spawn.y + ", " + s.spawn.z], ["Started", new Date(s.startedAt).toLocaleString()]]),
       h("h4", {}, "Agent"),
-      rows([["Brain", s.brain], ["Memory", s.memory], ["Progress list", onOff(s.progress)], ["Stance", s.stance], ["Chat", onOff(s.comms)], ["Episode", s.episode]]),
+      rows([["Brain", s.brain], ["Memory", s.memory], ["Progress list", onOff(s.progress)], ["Stance", s.stance], ["Chat", onOff(s.comms)], ["Team", s.team ? s.team.join(", ") : null], ["Episode", s.episode]]),
       h("h4", {}, "Limits"),
       rows([["Time budget", s.ticks != null ? num(s.ticks) + " ticks (" + game(s.ticks) + " of game time)" : notLogged], ["Cost cap", s.budgetUSD != null ? "$" + s.budgetUSD.toFixed(2) : null], ["Decision cap", s.maxSteps != null ? num(s.maxSteps) + " (a safety cap)" : null]]),
       h("h4", {}, "System prompt"),

@@ -3,7 +3,7 @@ import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { EndReason, LoggedStep, MemoryMode, SkillStatus, Stance } from "./types.js";
-import { GOALS, SCENARIOS, goalTask } from "./scenario.js";
+import { GOALS, SCENARIOS, TEAM_GOALS, goalTask } from "./scenario.js";
 import { costUSD } from "./backends/pricing.js";
 
 export interface MilestoneData {
@@ -326,8 +326,9 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
-  if (task === "outpost" || task === "iron" || task === "diamond") {
-    // Judged live by the agent's goal check (outpost needs the run's history); the log records it.
+  if (task === "outpost" || task === "iron" || task === "diamond" || TEAM_GOALS.has(task)) {
+    // Judged live by the agent's goal check (outpost needs the run's history, a team goal the
+    // teammates' inventories); the log records it.
     const last = steps[steps.length - 1];
     goalMet = last?.ended === "goal met";
     if (goalMet) goalStep = last;

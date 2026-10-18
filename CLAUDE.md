@@ -108,6 +108,7 @@ npm run summary -- --batch b5                         # rebuild each run's behav
 
 scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
+STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; watch at :3007, :3008
 
 scripts/reset-world.sh                                # regenerate the main world from its seed
 scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)

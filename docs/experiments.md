@@ -21,7 +21,7 @@ runs without spending anything again.
 | Option | Values | What it changes |
 |---|---|---|
 | `--brain` | `scripted`, `ollama`, `claude`, `gpt`, `gemini`, `grok`, `groq`, `openrouter` | Who decides. `scripted` is fixed rules, no model; it is the control. |
-| `--goal` | `tools`, `shelter`, `outpost`, `iron`, `diamond`, or any sentence in quotes | What the agent is asked to achieve. Preset goals are checked by code, and the run ends when they are met. `tools-guided` and `shelter-guided` spell out the steps. |
+| `--goal` | `tools`, `shelter`, `outpost`, `iron`, `diamond`, `team-camp`, or any sentence in quotes | What the agent is asked to achieve. Preset goals are checked by code, and the run ends when they are met. `tools-guided` and `shelter-guided` spell out the steps. |
 | `--scenario` | `sandbox`, `survival` | Peaceful world, or one with hostile mobs and hunger. |
 | `--ticks` | e.g. `12000` (half a day), `27000` (a day and a night) | The time budget. 20 ticks = 1 second. |
 | `--memory` | `none`, `plan`, `full` | What the model remembers between decisions: nothing, a short plan it wrote itself, or the whole conversation. |
@@ -57,12 +57,23 @@ The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved ne
 ```bash
 STANCE=competitive scripts/team.sh t2 "qa=ollama:full qb=ollama:full" 3 12000
 STANCE=collaborative GOAL=shelter scripts/team.sh t3 "opus=claude:full@claude-opus-5-5 qwen=ollama:full"
+STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t4 "haiku=claude@claude-haiku-4-5 qwen=ollama"
 ```
 
 Each agent is `name=brain:memory@model`, where the memory and the model are optional. All agents in
 one repeat share a world and an episode ID, so the report can score them together:
 - **collaborative:** the team wins only if every member reaches the goal;
 - **competitive:** only the first agent to reach it wins.
+
+A collaborative agent that reaches the goal doesn't leave: its run goes on until every teammate has
+reached it too, so it can help. Agents can hand each other items with `give`, and collect dropped
+items with `pick_up`.
+
+**`team-camp`** is a goal for the whole team: between them, the agents must hold a stone pickaxe, axe,
+sword and shovel, and one of them must build a shelter. It doesn't matter who holds what, so it pays to
+split the work. Every agent's run ends as soon as the team has it all. Agents learn what teammates
+hold only by looking and asking; the shared tally behind the check (`runs/.teams/`) is never shown
+to them. `VIEW=on` serves each agent's view in a browser, from localhost:3007 up.
 
 ## Reading the results
 

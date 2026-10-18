@@ -33,7 +33,10 @@ building on it.
 ## What agents can't do
 
 - **No fighting, farming or chest storage.** An agent can only run from mobs (`flee`), eat food it
-  already has, and keep everything in its inventory.
+  already has, and keep everything in its inventory, or hand it to another agent (`give`).
+- **A `give` sometimes falls short.** Items are tossed at the receiver's feet. Near spawn an agent
+  can be standing in a tree canopy, and the items fall through to the ground below; it then has to
+  `pick_up` them. Of ten live hand-overs, two fell short this way, and one partly came back to the giver.
 - **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. In b12 it
   walled one agent in, and once, underground, failed with two gaps left that it could not fill
   (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run.

@@ -66,6 +66,7 @@ test("goal checks and gaps agree: unmet goals list a gap, met ones list none", (
     ["iron", state({ stone_pickaxe: 1, iron_ingot: 3 }), state({ iron_pickaxe: 1 })],
     ["diamond", state({ diamond: 4 }), state({ diamond_boots: 1 })],
     ["outpost", state(kit, { shelterBuilt: true }), state(kit, { shelterBuilt: true, nightSurvivedSinceShelter: true })],
+    ["team-camp", state(kit), state(kit, { shelterBuilt: true })],
   ];
   for (const [goal, unmet, met] of cases) {
     assert.equal(GOAL_CHECKS[goal]!(unmet), false, `${goal} not met`);

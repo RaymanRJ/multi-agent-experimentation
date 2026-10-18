@@ -32,7 +32,7 @@ export interface FakeWorld {
   food?: number;
   timeOfDay?: number;
   /** Other entities: hostiles, players. */
-  entities?: Array<{ name: string; type: string; position: { x: number; y: number; z: number } }>;
+  entities?: Array<{ name: string; type: string; position: { x: number; y: number; z: number }; username?: string }>;
 }
 
 export interface FakeBot {
@@ -41,6 +41,8 @@ export interface FakeBot {
   world: Map<string, string>;
   setInventory(items: Record<string, number>): void;
   calls: string[];
+  /** Fires the bot's listeners for an event, as the server would. */
+  emit(event: string, ...args: unknown[]): void;
 }
 
 const key = (p: { x: number; y: number; z: number }) => `${Math.floor(p.x)},${Math.floor(p.y)},${Math.floor(p.z)}`;
@@ -91,9 +93,10 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
   const timeOfDay = setup.timeOfDay ?? 1000;
   const entities: Record<number, any> = {};
   (setup.entities ?? []).forEach((e, i) => {
-    entities[i + 1] = { id: i + 1, name: e.name, displayName: e.name, type: e.type, position: new Vec3(e.position.x, e.position.y, e.position.z) };
+    entities[i + 1] = { id: i + 1, name: e.name, displayName: e.name, type: e.type, username: e.username, position: new Vec3(e.position.x, e.position.y, e.position.z) };
   });
 
+  const listeners = new Map<string, Array<(...args: unknown[]) => void>>();
   const bot: any = {
     username: "tester",
     registry,
@@ -138,8 +141,12 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
     },
     waitForTicks: async () => {},
     once: () => {},
-    on: () => {},
-    removeListener: () => {},
+    on: (event: string, fn: (...args: unknown[]) => void) => listeners.set(event, [...(listeners.get(event) ?? []), fn]),
+    removeListener: (event: string, fn: (...args: unknown[]) => void) => listeners.set(event, (listeners.get(event) ?? []).filter((f) => f !== fn)),
+    lookAt: async () => {},
+    toss: async (id: number, _metadata: unknown, count: number) => {
+      calls.push(`toss ${count} ${registry.items[id]?.name}`);
+    },
     chat: (message: string) => calls.push(`chat ${message}`),
     pathfinder: {
       goto: async () => {
@@ -151,7 +158,8 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
       movements: {},
     },
   };
-  return { bot: bot as Bot, world, setInventory, calls };
+  const emit = (event: string, ...args: unknown[]) => (listeners.get(event) ?? []).forEach((fn) => fn(...args));
+  return { bot: bot as Bot, world, setInventory, calls, emit };
 }
 
 /** A SkillContext around a fake bot; `stop` makes shouldStop() true from the start. */

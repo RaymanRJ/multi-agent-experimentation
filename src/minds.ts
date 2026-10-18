@@ -236,6 +236,7 @@ export interface RunSetup {
   progress: boolean | null;
   stance: string | null;
   episode: string | null;
+  team: string[] | null;
   ticks: number | null;
   budgetUSD: number | null;
   maxSteps: number | null;
@@ -263,6 +264,7 @@ export function runSetup(steps: LoggedStep[]): RunSetup | null {
     progress: model ? (config?.progress ?? null) : null,
     stance: model ? (config?.stance ?? null) : null,
     episode: config?.episode ?? null,
+    team: config?.team ?? null,
     ticks: config?.ticks ?? null,
     budgetUSD: model ? (config?.budgetUSD ?? null) : null,
     maxSteps: config?.maxSteps ?? null,

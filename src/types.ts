@@ -64,6 +64,11 @@ export interface Observation {
    * a message. Present with comms on or off.
    */
   otherAgents: Array<{ name: string; distance: number; doing?: string }>;
+  /**
+   * Dropped items within a few blocks, by name. Omitted when none. Without it an agent can't tell
+   * that items handed to it (give) fell short, so it would never think to pick_up.
+   */
+  itemsOnGround?: Record<string, number>;
   recentEvents: string[];
   /** Recent messages heard and sent, oldest first. Absent when comms are off. */
   messages?: Message[];
@@ -226,4 +231,6 @@ export interface RunConfig {
   maxSteps?: number;
   /** The server commands that set up the world for this run's scenario. Absent in older logs. */
   world?: string[];
+  /** Every agent launched as one team (`--team`), this one included. Absent for an agent alone. */
+  team?: string[];
 }

@@ -18,7 +18,7 @@ import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
 import { newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
 import { brainLabel, MILESTONES, parseSteps } from "./minds.js";
-import { GOAL_GAPS, goalTask } from "./scenario.js";
+import { GOAL_GAPS, TEAM_GOALS, goalTask } from "./scenario.js";
 
 const MILESTONE_LABELS: Record<string, string> = {
   logs: "Logs",
@@ -212,7 +212,8 @@ function rationale(step: LoggedStep): string | null {
 
 /** What the preset goal still lacked at the end, as the run's own goal check words it. */
 function stillLacking(s: RunSummary, steps: LoggedStep[]): string[] {
-  if (s.goalMet !== false) return [];
+  // A team goal's gaps depend on what the teammates held, which this agent's log doesn't record.
+  if (s.goalMet !== false || TEAM_GOALS.has(goalTask(s.goalName))) return [];
   const gaps = GOAL_GAPS[goalTask(s.goalName)];
   const last = steps[steps.length - 1];
   if (!gaps || !last) return [];

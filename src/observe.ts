@@ -2,6 +2,7 @@ import type { Bot } from "mineflayer";
 import type { Message, Observation, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { isExposed } from "./skills/util.js";
+import { droppedNearby } from "./skills/pickUp.js";
 
 const NEARBY_RADIUS = 24;
 /** How far away you can tell what another agent is doing. */
@@ -84,6 +85,8 @@ export function observe(
     }
   }
   hostiles.sort((a, b) => a.distance - b.distance);
+  const itemsOnGround: Record<string, number> = {};
+  for (const { name, count } of droppedNearby(bot)) itemsOnGround[name] = (itemsOnGround[name] ?? 0) + count;
 
   const timeOfDay = bot.time.timeOfDay;
 
@@ -109,6 +112,7 @@ export function observe(
   };
   const craftable = craftableNow(bot);
   if (craftable.length > 0) observation.canCraft = craftable;
+  if (Object.keys(itemsOnGround).length > 0) observation.itemsOnGround = itemsOnGround;
   if (opts.messages) observation.messages = opts.messages;
   if (opts.stillNeeded?.length) observation.stillNeeded = opts.stillNeeded;
   if (opts.plan) observation.plan = opts.plan;
