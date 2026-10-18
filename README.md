@@ -31,6 +31,7 @@ Then watch:
 npm install                 # once, for the report and experiment scripts
 npm run report              # how each run went: outcome, decisions, tokens, cost
 npm run summary             # rebuild the newest run's report on how the agent behaved (every run writes one)
+npm run compare -- --team t1  # one readable report comparing a team run's or batch's agents (written at the end)
 ./stop.sh                   # stop the agents (./stop.sh --all also stops Minecraft)
 ```
 

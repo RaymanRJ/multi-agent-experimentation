@@ -81,3 +81,6 @@ done
 scripts/test-server.sh down "batch-$name" >/dev/null
 echo
 npm run --silent report -- --last 1000 $(cat "$list")
+# The readable comparison: by goal and model, and for teams who did what (src/compare.ts).
+echo
+echo "Comparison: $(npm run --silent compare -- --batch "$name")"

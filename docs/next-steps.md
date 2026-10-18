@@ -98,9 +98,9 @@ Read this at the start of a session; update it when something finishes or a new 
    when it is losing it. Live: out of a 5-deep pool in 1.3 s, out of a flooded room with a ceiling
    in 10.7 s.
 
-1. **A comparison of goals and agents.** The owner wants, eventually, a breakdown of each goal and
-   how the agents behaved, to compare across goals, models and team set-ups (who did what, what they
-   said, what they handed over). Build on the per-run report (`src/summary.ts`).
+1. **A comparison of goals and agents: done 18 October** (`npm run compare`, `src/compare.ts`).
+   Every team run and batch writes `runs/compare-<team|batch>-<name>.md`: by goal, by model and
+   condition, and for teams who did what, requests and a timeline. Extend it as questions come up.
 2. **The long paid test** (proof of concept, step 2 of the runbook in `docs/experiments.md`): one
    `outpost` run each on Haiku, Sonnet and Opus, survival, 27,000 ticks, `BUDGET_USD=5`. Estimated
    about $5 in total; ask before running.

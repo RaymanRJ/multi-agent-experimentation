@@ -290,6 +290,12 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   return lines;
 }
 
+/** The run's verdict sentences on their own, for reports that cover many runs (src/compare.ts). */
+export function verdictLines(steps: LoggedStep[], file: string): string[] {
+  const s = summarizeRun(steps, file);
+  return verdict(s, behaviour(steps), steps, stillLacking(s, steps));
+}
+
 export function renderSummary(steps: LoggedStep[], file: string): string {
   const s = summarizeRun(steps, file);
   const b = behaviour(steps);

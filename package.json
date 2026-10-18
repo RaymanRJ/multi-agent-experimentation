@@ -11,6 +11,7 @@
     "try": "tsx src/try.ts",
     "report": "tsx src/report.ts",
     "summary": "tsx src/summary.ts",
+    "compare": "tsx src/compare.ts",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {

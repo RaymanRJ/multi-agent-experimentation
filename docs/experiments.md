@@ -127,6 +127,25 @@ npm run summary -- runs/<file>.jsonl    # a particular run
 npm run summary -- --batch b10          # every run in a batch
 ```
 
+**Comparing runs.** Every team run and batch also ends with one readable report across all its
+runs, `runs/compare-team-<name>.md` or `runs/compare-batch-<name>.md`. For each goal:
+
+- **an at-a-glance table,** one row per agent: the outcome, decisions, how many worked, whether it
+  changed course after failing, its longest loop, unusable answers, deaths and cost;
+- **by model and condition,** when a goal was run more than once: how often it was met (with a 95%
+  range), the median time and decisions, and the cost per run;
+- **for a team,** who made, built and handed over what, what they asked of each other and whether it
+  was done, and a timeline of the key moments across all the agents;
+- **a sentence or two on each agent,** from its own report.
+
+```bash
+npm run compare -- --team trio3         # rebuild a team run's comparison
+npm run compare -- --batch b13          # a batch's
+npm run compare -- runs/a.jsonl runs/b.jsonl --title "Haiku vs Sonnet"   # any runs
+```
+
+`runs/` is not committed: copy a comparison worth keeping into `docs/results/`.
+
 To see why a run failed, open its log in the minds panel (`npm run minds`, then
 http://localhost:3010). It shows every decision: what the agent saw, what it chose and why, and
 what happened. Its **Run setup** button opens the world settings, the run's limits and the full

@@ -112,6 +112,7 @@ npm test && npm run typecheck                         # unit tests + types; CI r
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
 npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI
 npm run summary -- --batch b5                         # rebuild each run's behaviour report (written at run end)
+npm run compare -- --team trio3                       # one readable report across runs: by goal, model, and who did what (written at run end)
 
 scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
