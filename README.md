@@ -79,34 +79,127 @@ afterwards without calling a model again. From the logs:
 Each run writes its own report, and every batch or team run ends with one readable comparison
 across all of its agents (`npm run compare`).
 
-## Quick start
+## Getting started
 
-You need Docker and [Ollama](https://ollama.com/) running, and Node 25+. No Minecraft purchase and
-no API key are needed: the free local model runs on its own.
+A step-by-step guide from a fresh machine to your first hands-off run. No Minecraft purchase and no
+API key are needed: the free local model runs on its own.
+
+### 1. Install the prerequisites
+
+You need **Docker** (it runs the environment), **[Ollama](https://ollama.com/)** (it runs the free
+local model on your machine) and **Node.js 25 or newer** (it runs the agents). Developed on an
+Apple Silicon Mac; other platforms are expected to work but are less tested.
+
+| | Docker | Ollama (local model) | Notes |
+|---|---|---|---|
+| **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
+| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
+| **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run everything from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
+| **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
+
+Without a GPU, expect several seconds to half a minute per decision from the local model. Keep the
+default non-thinking model (`qwen3:4b-instruct`): reasoning models are too slow for the 120-second
+decision timeout on CPU. Ollama runs on the host, not in Docker, because containers on a Mac can't
+use its GPU.
+
+### 2. Get the code
 
 ```bash
-./start.sh --check          # says what's missing, starts nothing
-./start.sh                  # the environment, the minds panel and one agent per available model
+git clone https://github.com/RaymanRJ/multi-agent-experimentation.git
+cd multi-agent-experimentation
+npm install
 ```
 
-A run lasts one in-game day (about 20 minutes) and then the agent stops by itself. For a
-two-minute try, use `./start.sh --ticks 2400`. `./start.sh --help` lists every option.
-
-Then watch:
-- **What the agent sees:** http://localhost:3007, a 3D view of the environment around it.
-- **What it decides:** http://localhost:3010 (the minds panel): for every step, what it saw, what
-  it chose and why.
+### 3. Check your setup
 
 ```bash
-npm install                   # once, for the report and experiment scripts
-npm run report                # how each run went: outcome, decisions, tokens, cost
-npm run summary               # rebuild the newest run's report on how the agent behaved (every run writes one)
-npm run compare -- --team t1  # one readable report comparing a team run's or batch's agents (written at the end)
-./stop.sh                     # stop the agents (./stop.sh --all also stops the environment)
+./start.sh --check
 ```
 
-To add Claude or GPT, put their keys in `.env` (`cp .env.example .env`). They start only when a
-key is set. Set a monthly spend limit in each provider's console as well.
+This starts nothing. It checks Docker, Ollama and the local model, and says exactly what is
+missing and how to fix it. The first full start pulls the model (about 2.5 GB) if you don't have
+it yet.
+
+### 4. Start your first run
+
+```bash
+./start.sh --ticks 2400         # a two-minute try
+./start.sh                      # a full in-game day, about 20 minutes
+```
+
+`start.sh` starts the environment (a game server in Docker), the minds panel and one agent per
+available model, gives each its goal, and steps back. A run ends by itself when the goal is met,
+when the model says it is done, or when its time runs out. The game server accepts any player name
+without an account check (the bots need that), so keep it on your own machine or network and never
+expose port 25565 to the internet. To set the conditions:
+
+```bash
+./start.sh --scenario survival --goal outpost --ticks 27000   # threats at night, a long goal
+./start.sh --goal "Mine 10 stone"                             # any goal, in quotes
+./start.sh --memory full --comms off --stance collaborative   # what the agents remember and how they regard each other
+./start.sh --help                                             # every option and preset goal
+```
+
+### 5. Watch it work
+
+- **What it decides:** http://localhost:3010, the minds panel. For every step: what the agent saw,
+  what it chose and why, what happened, and what it cost. **Run setup** shows the full prompt.
+- **What it sees:** a 3D view around each agent: http://localhost:3007 for the local model, 3008
+  for Claude, 3009 for GPT.
+
+### 6. Read the results
+
+```bash
+npm run report                  # how each run went: outcome, decisions, tokens, cost
+npm run summary                 # a readable report on how the newest run's agent behaved
+npm run compare -- --team t1    # one readable comparison across a team run's or batch's agents
+```
+
+Every run writes its own report beside its log in `runs/` when it ends; team runs and batches also
+write the comparison.
+
+### 7. Add paid models (optional)
+
+```bash
+cp .env.example .env            # then put ANTHROPIC_API_KEY and/or OPENAI_API_KEY in it
+```
+
+Claude and GPT agents start only when their key is set; the defaults are Claude Haiku 4.5 and
+GPT-6 Luna (change them with `ANTHROPIC_MODEL` and `OPENAI_MODEL`). Never commit `.env`: this repo
+is public.
+
+- **Spending.** `--budget-usd` (default $1.00) stops a run before it overspends, but the real guard
+  against a surprise bill is a monthly spend limit in the Anthropic and OpenAI consoles: set one
+  when you create a key.
+- **Bad keys and empty accounts** are caught before the agent joins: each makes one tiny call
+  first and stops with the provider's message. If credits run out mid-run, the run ends as `brain
+  unavailable` and the report marks it, and every other agent in that run, as not comparable. Rate
+  limits and overloads are retried with backoff.
+
+### 8. Run your own agents and experiments
+
+```bash
+npm run agent -- --brain scripted                              # no model: the fixed-rules baseline
+npm run agent -- --brain ollama --goal shelter --view          # one agent, watched at :3007
+npm run agent -- --brain claude --goal tools --view 3008       # one port per agent to watch several
+STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t1 "haiku=claude@claude-haiku-4-5 qwen=ollama"
+```
+
+These need the environment running: `./start.sh` starts it, or `docker compose up -d` on its own
+(the team and batch scripts start their own). The last line is a team: several agents in one fresh
+environment with a shared goal. For fair
+comparisons across models and conditions, see [Running experiments](#running-experiments) and
+[docs/experiments.md](docs/experiments.md).
+
+### 9. Stop
+
+```bash
+./stop.sh                       # stop the agents and the minds panel
+./stop.sh --all                 # also stop the environment
+```
+
+To walk around the environment yourself, you need Minecraft Java Edition 1.21.1 (connect to
+`localhost`); nothing else needs it.
 
 ## Status
 
@@ -296,54 +389,6 @@ Buy the client only when you want your own eyes in the world. `prismarine-viewer
 until then.
 
 ---
-
-### What start.sh does
-
-```bash
-./start.sh --scenario survival --goal shelter --ticks 12000   # options: ./start.sh --help
-```
-
-It checks Docker and Ollama, pulls the model if missing, starts the server, then the minds panel
-(http://localhost:3010) and one agent per available brain (viewers on :3007 ollama, :3008 claude,
-:3009 gpt). Claude and GPT start only if their key is set. Ollama stays on the host (Metal GPU);
-containers reach it at `host.docker.internal:11434`. To join yourself, use Minecraft Java 1.21.1
-at `localhost`.
-
-#### On Linux, Windows, or an Intel Mac
-
-Developed on an Apple Silicon Mac; other platforms are expected to work but are less tested.
-Run `./start.sh --check` first; it checks the setup without starting anything.
-
-| | Docker | Ollama (local model) | Notes |
-|---|---|---|---|
-| **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
-| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
-| **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run `./start.sh` from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
-| **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
-
-Without a GPU, expect several seconds to half a minute per decision from the local model. Use a
-non-thinking model (the default `qwen3:4b-instruct`): reasoning models are too slow for the
-120-second decision timeout on CPU. Linux machines with an NVIDIA GPU can instead run Ollama in a
-container: `docker compose --profile ollama-docker up -d ollama` (untested).
-
-Manual path:
-
-```bash
-cp .env.example .env        # API keys optional — the local agent needs none
-docker compose up -d        # Paper server on :25565
-npm install
-npm run agent -- --scenario sandbox --brain scripted   # no model; proves the loop
-```
-
-Never commit `.env`. This repo is public.
-
-**Paid brains and credits.** `--budget-usd` (default $1.00) stops one run before it overspends, but
-the real guard against a surprise bill is a monthly spend limit in the Anthropic and OpenAI
-consoles — set one when you create a key. Each model agent makes one tiny call before joining the
-world, so a bad key or an empty account stops it at startup with the provider's message. If credits
-run out mid-run, the run ends as `brain unavailable` (no retries) and `npm run report` marks it, and
-every other agent in that episode, as not comparable. Rate limits and overloads are retried with
-backoff instead.
 
 ## Licence
 
