@@ -109,8 +109,8 @@ Read this at the start of a session; update it when something finishes or a new 
 4. **`mine_stone` is slow:** the drowning is fixed (0a; trio3 had none), but "digging stone timed
    out after 20000ms" still appears in trio3 (Haiku and qwen), with walking and exploring timeouts.
    The under-water digging explained some of it, not all. Not yet investigated.
-5. **The panel shows a run only after its first decision ends,** which can be minutes. An agent
-   could write a start line when it joins.
+5. **Panel start line: done 18 October.** An agent writes `<log>.start.json` when it starts, and the
+   panel lists it as "Starting" until its first decision is logged.
 6. **Extended thinking for Claude** (`--thinking on`) was discussed and left off for now: it costs
    several times more per decision and would be its own condition.
 7. **Before making the repo public:** scan the git history for secrets, check the `protect-main`

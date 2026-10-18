@@ -8,9 +8,9 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
-import { parseSteps } from "./minds.js";
+import { brainLabel, parseSteps, startFileFor, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
@@ -22,7 +22,7 @@ import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import { costUSD, PRICED_MODELS } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
-import { STANCES, type Backend, type EndReason, type LoggedStep, type MemoryMode, type Policy, type RunConfig, type ScenarioName, type SkillContext, type Stance } from "./types.js";
+import { STANCES, type Backend, type ModelCall, type EndReason, type LoggedStep, type MemoryMode, type Policy, type RunConfig, type ScenarioName, type SkillContext, type Stance } from "./types.js";
 
 const { pathfinder } = pathfinderPkg;
 
@@ -137,9 +137,9 @@ async function main(): Promise<void> {
   const teamGoal = TEAM_GOALS.has(goalTask(presetName(goal) ?? ""));
   const goalGaps = GOAL_GAPS[goalTask(presetName(goal) ?? "")];
   const { policy, backend } = buildPolicy(String(argv["brain"]));
+  let probe: ModelCall | undefined;
   if (backend) {
     // Find a bad key or an empty account now, not ten minutes into an episode.
-    let probe;
     try {
       probe = await preflight(backend);
     } catch (error) {
@@ -157,6 +157,13 @@ async function main(): Promise<void> {
   }
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
+  // Lets the minds panel list this agent now, not only once its first decision is logged.
+  const brain = brainLabel(probe ? [{ calls: [probe] } as unknown as LoggedStep] : []);
+  const start: RunStart = {
+    agent: agentName, brain: brain.label, brainDetail: brain.detail, goal, scenario: scenario.name,
+    memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(),
+  };
+  writeFileSync(startFileFor(runLog.file), JSON.stringify(start));
 
   console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);

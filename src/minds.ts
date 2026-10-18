@@ -80,7 +80,57 @@ export function brainLabel(steps: LoggedStep[]): { label: string; detail: string
   return { label: call.model, detail: call.backend };
 }
 
-export type RunStatus = "running" | "ended" | "stopped";
+/** "starting": the agent has joined (its .start.json exists) but has not logged a decision yet. */
+export type RunStatus = "starting" | "running" | "ended" | "stopped";
+
+/**
+ * What an agent writes beside its log when it starts (`<log>.start.json`), so the panel can list
+ * it before its first decision, which can take minutes (world setup, a slow first answer).
+ */
+export interface RunStart {
+  agent: string;
+  brain: string;
+  brainDetail: string;
+  goal: string;
+  scenario: string;
+  memory: string | null;
+  comms: boolean;
+  stance: string | null;
+  episode: string;
+  startedAt: string;
+}
+
+export const startFileFor = (log: string) => log.replace(/\.jsonl$/, ".start.json");
+
+/** A panel row for an agent that has started but not yet decided anything. */
+export function startingRow(file: string, start: RunStart, mtimeMs: number, now: number): RunRow {
+  const status: RunStatus = now - mtimeMs > STALLED_MS ? "stopped" : "starting";
+  return {
+    file,
+    agent: start.agent,
+    status,
+    ended: status === "stopped" ? "stopped before its first decision" : null,
+    brain: start.brain,
+    brainDetail: start.brainDetail,
+    memory: start.memory,
+    comms: start.comms,
+    stance: start.stance,
+    episode: start.episode,
+    batch: /^batch-(.+)-\d+$/.exec(start.episode)?.[1] ?? null,
+    goal: start.goal,
+    scenario: start.scenario,
+    step: 0,
+    doing: null,
+    milestones: Object.fromEntries(MILESTONES.map((name) => [name, null])),
+    goalMet: "n/a",
+    ticks: 0,
+    tokens: 0,
+    cost: "$0",
+    medianMs: 0,
+    startedAt: start.startedAt,
+    lastAt: mtimeMs,
+  };
+}
 
 export function runStatus(steps: LoggedStep[], mtimeMs: number, now: number): RunStatus {
   if (steps.at(-1)?.ended) return "ended";
@@ -307,6 +357,16 @@ function load(dir: string, file: string): { steps: LoggedStep[]; mtimeMs: number
   }
 }
 
+const START_FILE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-(.+)\.start\.json$/;
+
+function startFiles(dir: string, now: number): string[] {
+  try {
+    return readdirSync(dir).filter((n) => START_FILE.test(n) && now - statSync(join(dir, n)).mtimeMs <= MAX_AGE_MS);
+  } catch {
+    return [];
+  }
+}
+
 /** Only names straight from the directory listing are ever opened, so a query can't escape runs/. */
 function runFiles(dir: string, now: number): string[] {
   let names: string[];
@@ -331,7 +391,19 @@ export function listRuns(dir: string, now: number = Date.now()): RunRow[] {
     const row = loaded && runRow(file, loaded.steps, loaded.mtimeMs, now);
     if (row) rows.push(row);
   }
-  const rank = { running: 0, stopped: 1, ended: 1 } as const;
+  // Agents that have started but logged nothing yet, listed under their log's name so the row
+  // carries on seamlessly once the first decision is written.
+  for (const name of startFiles(dir, now)) {
+    const log = name.replace(/\.start\.json$/, ".jsonl");
+    if (rows.some((row) => row.file === log)) continue;
+    try {
+      const start = JSON.parse(readFileSync(join(dir, name), "utf8")) as RunStart;
+      rows.push(startingRow(log, start, statSync(join(dir, name)).mtimeMs, now));
+    } catch {
+      // Half-written or unreadable: it will be listed on the next poll, or by its log.
+    }
+  }
+  const rank = { starting: 0, running: 0, stopped: 1, ended: 1 } as const;
   return rows.sort((a, b) => rank[a.status] - rank[b.status] || b.lastAt - a.lastAt);
 }
 

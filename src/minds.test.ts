@@ -100,3 +100,25 @@ test("runSetup gathers the world, limits and prompt, and says what an older log 
   assert.equal(old.system, null);
   assert.equal(runSetup([]), null);
 });
+
+test("listRuns - an agent that has started but not decided is listed as starting, then by its log", async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { listRuns, startFileFor } = await import("./minds.js");
+  const dir = mkdtempSync(join(tmpdir(), "minds-"));
+  try {
+    const log = "2026-10-18T10-00-00-000Z-haiku.jsonl";
+    const start = { agent: "haiku", brain: "claude-haiku-4-5", brainDetail: "claude", goal: "Make tools", scenario: "sandbox", memory: "plan", comms: true, stance: "neutral", episode: "batch-b9-1", startedAt: "2026-10-18T10:00:00.000Z" };
+    writeFileSync(join(dir, startFileFor(log)), JSON.stringify(start));
+    const [row] = listRuns(dir);
+    assert.equal(row?.file, log, "listed under its log's name, so the selection carries over");
+    assert.equal(row?.status, "starting");
+    assert.equal(row?.batch, "b9");
+    writeFileSync(join(dir, log), "");
+    assert.equal(listRuns(dir)[0]?.status, "starting", "an empty log is still starting");
+    assert.equal(listRuns(dir, Date.now() + 11 * 60_000)[0]?.status, "stopped", "no decision in ten minutes: stopped");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

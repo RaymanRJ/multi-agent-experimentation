@@ -198,6 +198,7 @@ function argText(args) { const parts = Object.entries(args || {}).map(([k, v]) =
 function now() { return Date.now() + serverOffset; }
 function isMet(r) { return r.ended === "goal met"; }
 function statusBadge(r) {
+  if (r.status === "starting") return h("span", { class: "badge running" }, h("span", { class: "dot running" }), "Starting · first decision on its way");
   if (r.status === "running") return h("span", { class: "badge running" }, h("span", { class: "dot running" }), "Running · step " + r.step);
   if (r.status === "stopped") return h("span", { class: "badge stopped" }, "Stopped — no end recorded");
   return h("span", { class: "badge " + (isMet(r) ? "met" : "ended") }, isMet(r) ? "✓ Goal met" : "Ended: " + r.ended);
@@ -206,13 +207,13 @@ function pips(r) { return h("div", { class: "pips", title: MILESTONES.map(([k, l
 
 function renderList() {
   const box = $("runs");
-  const live = runs.filter((r) => r.status === "running");
-  const done = runs.filter((r) => r.status !== "running");
+  const live = runs.filter((r) => r.status === "running" || r.status === "starting");
+  const done = runs.filter((r) => r.status !== "running" && r.status !== "starting");
   $("summary").textContent = live.length + " running · " + done.length + " finished (last 6h)";
   const row = (r) => h("button", { class: "run" + (r.file === selected ? " sel" : ""), onclick: () => { $("follow").checked = false; save(); select(r.file); } },
-    h("div", { class: "top" }, h("span", { class: "dot " + (r.status === "running" ? "running" : r.status === "stopped" ? "stopped" : isMet(r) ? "met" : "") }),
-      h("span", { class: "name" }, r.agent), h("span", { class: "when" }, r.status === "running" ? (r.doing ? words(r.doing) : "thinking") : ago(now() - r.lastAt))),
-    h("div", { class: "meta", title: r.brain + " · " + r.brainDetail }, r.brain + (r.brainDetail.includes("context") ? " " + r.brainDetail.replace(/^local · /, "").replace(" context", "") : "") + (r.memory ? " · memory " + r.memory : "") + " · " + (r.status === "running" ? "step " + r.step : r.ended)),
+    h("div", { class: "top" }, h("span", { class: "dot " + (r.status === "running" || r.status === "starting" ? "running" : r.status === "stopped" ? "stopped" : isMet(r) ? "met" : "") }),
+      h("span", { class: "name" }, r.agent), h("span", { class: "when" }, r.status === "starting" ? "starting" : r.status === "running" ? (r.doing ? words(r.doing) : "thinking") : ago(now() - r.lastAt))),
+    h("div", { class: "meta", title: r.brain + " · " + r.brainDetail }, r.brain + (r.brainDetail.includes("context") ? " " + r.brainDetail.replace(/^local · /, "").replace(" context", "") : "") + (r.memory ? " · memory " + r.memory : "") + " · " + (r.status === "starting" ? "joining" : r.status === "running" ? "step " + r.step : r.ended)),
     pips(r));
   const kids = [];
   if (live.length) kids.push(h("div", { class: "group" }, "Running"), live.map(row));
@@ -338,6 +339,11 @@ function itemView(g) {
 
 function renderDetail() {
   const box = $("detail");
+  const starting = runs.find((r) => r.file === selected && r.status === "starting");
+  if (!detail && starting) {
+    box.replaceChildren(h("div", { class: "empty" }, h("b", {}, starting.agent), " (" + starting.brain + ") has joined the world. Its first decision will appear here as soon as it is made.", h("div", { class: "goal" }, h("b", {}, "Goal: "), starting.goal)));
+    return;
+  }
   if (!detail) { if (!runs.length) box.replaceChildren(h("div", { class: "empty" }, "No runs in the last 6 hours — start one with ", h("code", {}, "npm run agent"), ".")); return; }
   const r = detail.run, cur = detail.now, items = detail.timeline;
   const last = items[items.length - 1];
