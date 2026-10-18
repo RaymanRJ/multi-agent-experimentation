@@ -41,9 +41,9 @@ building on it.
   `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
   (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
   - **The baseline's outpost goes on to dig for iron** after its shelter, and the flooded-cave
-    fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3. Partly
-    fixed, not yet confirmed: it no longer digs with its last pickaxe (one run lost the outpost
-    that way). Being caught underground at night (the other failed run) is not addressed.
+    fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3. Now
+    it never digs with its last pickaxe (one run lost the outpost that way), and in b14 it met
+    the goal 3/3. Being caught underground at night (the other failed b12 run) is not addressed.
   - **The model keeps crafting tools it already holds,** dozens of times per run, failing for
     want of cobblestone. Since fixed, but not yet confirmed: a failed craft now says when the
     item is already held, and the cobblestone message names `mine_stone`.
