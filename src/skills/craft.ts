@@ -298,12 +298,18 @@ function describeMissing(missing: Missing): string {
   return [...missing.entries()].map(([name, count]) => `${count} more ${name}`).join(" and ");
 }
 
-function planksHint(missing: Missing): string {
+export function planksHint(missing: Missing): string {
   const names = [...missing.keys()];
   if (names.some((name) => name.endsWith("_planks") || name === "stick")) return " (planks and sticks are crafted from logs — gather_wood first)";
+  if (names.includes("cobblestone")) return " (cobblestone comes from mining stone — mine_stone first, with a wooden pickaxe)";
   if (names.some((name) => name.endsWith("_ingot"))) return " (ingots are smelted from raw ore — mine_ore, then smelt)";
   if (names.includes("diamond")) return " (diamonds come from diamond ore, deep underground — mine_ore diamond with an iron pickaxe)";
   return "";
+}
+
+/** Small models re-craft tools they hold, failing each time; say so when it fails. */
+export function alreadyHeld(name: string, held: number): string {
+  return held > 0 ? ` — you already have ${held} ${name}` : "";
 }
 
 const PLACE_REACH = 4.2;
@@ -555,7 +561,7 @@ export const craft: Skill = {
     if (total(plan.missing) > 0) {
       return {
         status: "failed",
-        reason: `need ${describeMissing(plan.missing)} to craft ${count} ${name}${planksHint(plan.missing)}`,
+        reason: `need ${describeMissing(plan.missing)} to craft ${count} ${name}${planksHint(plan.missing)}${alreadyHeld(name, startedWith)}`,
         detail: { missing: Object.fromEntries(plan.missing) },
       };
     }
