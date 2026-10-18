@@ -7,6 +7,7 @@ What do AI agents do when they are given a goal, a set of tools, and then left a
 - [The control loop](#the-control-loop)
 - [What an agent is given](#what-an-agent-is-given)
 - [What gets measured](#what-gets-measured)
+- [Why this matters beyond the game](#why-this-matters-beyond-the-game)
 - [Getting started](#getting-started): [prerequisites](#1-install-the-prerequisites) · [get the code](#2-get-the-code) · [check your setup](#3-check-your-setup) · [first run](#4-start-your-first-run) · [watch](#5-watch-it-work) · [results](#6-read-the-results) · [paid models](#7-add-paid-models-optional) · [your own experiments](#8-run-your-own-agents-and-experiments) · [stop](#9-stop)
 - [Status](#status)
 - [Documentation](#documentation)
@@ -90,6 +91,38 @@ afterwards without calling a model again. From the logs:
 
 Each run writes its own report, and every batch or team run ends with one readable comparison
 across all of its agents (`npm run compare`).
+
+## Why this matters beyond the game
+
+Businesses are starting to hand work to AI agents: answering support tickets, reconciling
+invoices, keeping data pipelines running, triaging alerts at night. The promise is the same as in
+this project: give the agent a goal and access to the right systems, and let it get on with it,
+without a person checking every step.
+
+That raises practical questions, and they are hard to answer by watching real business systems,
+where an agent's work is buried in logs and its mistakes surface weeks later. Here every decision
+can be watched as it happens and replayed afterwards, and the goal is either met or it isn't. The
+environment is a game; the questions are the same ones a company faces.
+
+| What we saw | What it could mean for you |
+|---|---|
+| **The tools mattered more than the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts. | Before paying for a bigger model, invest in the systems and integrations the agent works through. An agent is only as reliable as the tools you give it, and a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. |
+| **Keeping the model out of the step-by-step work.** The model chooses *what* to do; ordinary code does it. This is the design the project is built on rather than a measured result: a model takes seconds to answer while the world keeps moving, so letting it steer every step was never workable. | Let the AI make the judgement calls and leave execution to proven software. An agent that improvises every click and keystroke is slow, expensive and fragile. |
+| **Agents claim success they haven't reached.** Small models regularly said "done" when the goal wasn't met. | Never take an agent's word that a job is finished. Check the outcome independently (was the refund actually issued?) before anyone relies on it. |
+| **Cheaper models loop.** The small model repeated the same failing action dozens of times, even when told exactly what was wrong. The larger models changed course about half the time or more. | Budget and monitor for repetition. Set limits on time and spend per task, watch for an agent doing the same thing over and over, and match the model to how much judgement the work needs. |
+| **Cost varies enormously, and isn't the same as quality.** A single decision cost from nothing (a model on our own machine) to up to about $0.02 (Claude Sonnet); GPT-6 Luna's cost about $0.0005, ten or more times less. In one team run that cheapest paid model built the shelter, and its whole run cost under half a cent. | Price per decision tells you little on its own. Measure cost per *completed task* on your own work: a cheap model that finishes can beat an expensive one, and a free local model keeps data in-house. |
+| **Teams of agents can split the work, but need ground rules.** In one run, four agents on four different models met a shared goal: one made every tool and handed them out, another built the shelter. Along the way, agents didn't know their own names until told, and interrupted each other so often that work kept getting cancelled. | Multi-agent setups are workable, but the coordination has to be designed: who each agent is, how work is handed over, and when one may interrupt another. Those rules belong in the system, not left to the agents to work out. |
+| **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
+| **Every decision is recorded.** Each choice is logged with exactly what the agent saw and why it chose, so any run can be replayed and audited, and its cost traced to the cent. | Insist on the same from any agent you deploy. When something goes wrong, you need to see what it knew and why it acted, not just the end result. |
+
+**In short:** autonomous agents can do useful work unattended, but how reliable they are depends far
+more on the systems around them (good tools, independent checks of the outcome, firm limits,
+complete records) than on which model sits in the middle. That is the part of the work this project
+is about, and it carries over to any business system.
+
+**A caveat:** these are early results from a small number of runs, mostly with one local model, in
+a game. They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
+says what has and hasn't been tested.
 
 ## Getting started
 
