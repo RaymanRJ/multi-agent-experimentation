@@ -116,6 +116,14 @@ setting, with `--progress` off and on: 7 conditions, 3 runs each.*
   7 (no memory, progress on), 5 (full memory, progress on) and 4 (plan memory, progress on).
   Each death loses the tools.
 
+## After the spare-pickaxe fix (b14)
+
+*Batch b14, 18 October: the baseline alone, three runs, on main with the spare-pickaxe rule and the
+cobblestone message fix.* **3/3**, against 1/3 in b12. In every run the baseline made a spare
+stone pickaxe before digging, and in two it then held, keeping its tools. One run died once
+underground and still met the goal. Three runs can't show the fix is complete; being caught
+underground at night is still possible.
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a
