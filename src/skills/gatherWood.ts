@@ -78,8 +78,9 @@ export const gatherWood: Skill = {
     // "this many more" let a model that already had plenty loop forever.
     const wanted = target;
     if (startedWith >= wanted) {
+      // "failed", not "success": nothing happened, and a small model read a success as progress and asked again, 147 times.
       return {
-        status: "success",
+        status: "failed",
         reason: `you already have ${startedWith} logs, at least the ${wanted} asked for, so none were gathered — count is the total to hold, not how many more: to hold ${startedWith + wanted}, ask for ${startedWith + wanted}`,
         detail: { gathered: 0, totalLogs: startedWith },
       };

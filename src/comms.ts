@@ -77,7 +77,9 @@ export class MessageBuffer {
     if (!text) return false;
     this.push({ from, to, text, at: now });
     if (to.toLowerCase() === this.self.toLowerCase()) {
-      this.directed++;
+      // The same words from the same sender again tell nothing new: heard, but no second interrupt.
+      const repeat = this.lastDirected?.from === from && this.lastDirected.text === text;
+      if (!repeat) this.directed++;
       this.lastDirected = { from, text };
     }
     return true;

@@ -1,7 +1,7 @@
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, opensOnClick, threatened, withTimeout } from "./util.js";
+import { asNumber, liquidBeside, opensOnClick, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
 const PLACE_TIMEOUT_MS = 8_000;
@@ -117,6 +117,15 @@ export const buildShelter: Skill = {
       }
     }
     if (storeys === 2) clear.push(new Vec3(-1, 2, -1));
+    // Look before digging anything: a cleared block with lava behind it lets the lava in on the builder.
+    for (const offset of clear) {
+      const point = center.plus(offset);
+      const here = bot.blockAt(point);
+      const liquid = here?.name === "lava" || here?.name === "water" ? here.name : here?.boundingBox === "block" ? liquidBeside(bot, point) : null;
+      if (liquid) {
+        return { status: "failed", reason: `there is ${liquid} in or beside the space the shelter needs — move to open dry ground first` };
+      }
+    }
     for (const offset of clear) {
       const block = bot.blockAt(center.plus(offset));
       if (!block || block.boundingBox !== "block") continue;

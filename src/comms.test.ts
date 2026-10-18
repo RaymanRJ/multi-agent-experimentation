@@ -63,3 +63,14 @@ test("only messages addressed to this agent by name count as directed", async ()
   assert.equal(b.directed, 1);
   assert.deepEqual(b.lastDirected, { from: "agent_b", text: "can you mine the stone?" });
 });
+
+test("the same words from the same sender interrupt only once", () => {
+  const b = new MessageBuffer("qwen");
+  b.hear("haiku", "@qwen bringing you a sword", 0);
+  b.hear("haiku", "@qwen bringing you a sword", 1);
+  assert.equal(b.directed, 1, "a repeat is heard but doesn't interrupt again");
+  assert.equal(b.snapshot(2).length, 2);
+  b.hear("haiku", "@qwen it is beside you", 3);
+  b.hear("bob", "@qwen it is beside you", 4);
+  assert.equal(b.directed, 3, "new words, or another sender, do");
+});

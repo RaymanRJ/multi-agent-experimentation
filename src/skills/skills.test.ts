@@ -76,10 +76,10 @@ test("mine_stone - needs a pickaxe first", async () => {
   assert.equal((await run("mine_stone", {}, { count: 3 })).reason, "need a wooden_pickaxe — craft one first");
 });
 
-test("gather_wood - a count it already holds is a success with nothing to do; it stops for a mob or the end", async () => {
+test("gather_wood - a count it already holds fails, saying count is a total; it stops for a mob or the end", async () => {
   const enough = await run("gather_wood", { inventory: { oak_log: 12 } }, { count: 10 });
-  assert.equal(enough.status, "success");
-  assert.match(enough.reason!, /already have 12 logs/);
+  assert.equal(enough.status, "failed");
+  assert.match(enough.reason!, /already have 12 logs.*count is the total to hold.*ask for 22/);
   assert.equal((await run("gather_wood", {}, { count: 5 }, true)).status, "aborted");
   assert.match((await run("gather_wood", { entities: [zombie(3)] }, { count: 5 })).reason!, /stopped gathering because zombie/);
 });
@@ -176,4 +176,27 @@ test("give - owns up when some of the toss came back to the giver", async () => 
   const result = await pending;
   assert.equal(result.status, "success");
   assert.match(result.reason!, /qwen got 1 of the 3 cobblestone; the rest came back to you/);
+});
+
+test("go_to - says what's missing, and won't chase an agent it can't see", async () => {
+  assert.match((await run("go_to", {})).reason!, /say where to go/);
+  assert.match((await run("go_to", {}, { to: "tester" })).reason!, /already where you are/);
+  assert.match((await run("go_to", {}, { to: "qwen" })).reason!, /qwen is not in sight; ask them where they are/);
+  assert.match((await run("go_to", {}, { x: 900, z: 0 })).reason!, /more than 512/);
+  assert.equal((await run("go_to", {}, { x: 50, z: 0 }, true)).status, "aborted");
+  assert.match((await run("go_to", { entities: [zombie(3)] }, { x: 50, z: 0 })).reason!, /stopped walking because zombie/);
+});
+
+test("go_to - gives up when every leg is blocked, and is done at once when already there", async () => {
+  const blocked = await run("go_to", {}, { x: 50, z: 0 });
+  assert.equal(blocked.status, "failed");
+  assert.match(blocked.reason!, /blocked 3 times/);
+  assert.equal((await run("go_to", { entities: [teammate(2)] }, { to: "qwen" })).status, "success");
+});
+
+test("build_shelter - won't clear a space with lava beside it", async () => {
+  const blocks = { ...floor(64), "1,65,1": "dirt", "2,65,1": "lava" };
+  const result = await run("build_shelter", { inventory: { oak_planks: 64 }, blocks }, { storeys: 2 });
+  assert.equal(result.status, "failed");
+  assert.match(result.reason!, /lava in or beside the space/);
 });
