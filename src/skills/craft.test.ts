@@ -45,10 +45,16 @@ test("craft - unknown item, smelted item and uncraftable item each get their own
   assert.match((await tryCraft({}, { item: "cobblestone" })).reason!, /cannot be crafted — it has no crafting recipe/);
 });
 
-test("craft - a mined item is not sent after its storage block", { todo: "known bug: says 'need 1 more diamond_block to craft 1 diamond'" }, async () => {
-  // diamond (like emerald, coal, redstone) has one recipe: unpacking its block. iron_ingot has the
-  // same problem and is handled by pointing at the furnace; mined items are not handled yet.
-  assert.doesNotMatch((await tryCraft({}, { item: "diamond" })).reason!, /diamond_block/);
+test("craft - a mined item points at its ore, not its storage block", async () => {
+  assert.equal((await tryCraft({}, { item: "diamond" })).reason, "diamond is mined, not crafted — use mine_ore with ore diamond");
+  assert.equal((await tryCraft({}, { item: "coal" })).reason, "coal is mined, not crafted — use mine_ore with ore coal");
+  assert.match((await tryCraft({}, { item: "lapis_lazuli" })).reason!, /not crafted from scratch — its only recipe unpacks a lapis_block/);
+});
+
+test("craft - unpacking a storage block that is held still works", async () => {
+  const { bot, calls } = fakeBot({ inventory: { diamond_block: 1 } });
+  await craft.run(context(bot), { item: "diamond", count: 9 });
+  assert.ok(calls.includes("packet craft_recipe_request"), "went ahead and asked the server");
 });
 
 test("craft - a shortfall names what is missing, the skill that gets it, and a tool already held", async () => {
@@ -71,10 +77,11 @@ test("craft - counts intermediates: logs make the planks a tool needs, so it goe
   assert.match(result.reason!, /^crafting stick failed: the server did not fill the crafting grid/);
 });
 
-test("craft - a failed craft while making a crafting table is reported, not thrown", { todo: "known bug: the error escapes skill.run, and the agent loop does not catch it" }, async () => {
+test("craft - a failed craft while making a crafting table is reported, not thrown", async () => {
   // 2 logs = 8 planks: a table (4), 3 for the head and 1 for two sticks; the table is made first.
   const result = await tryCraft({ oak_log: 2 }, { item: "wooden_pickaxe" });
   assert.equal(result.status, "failed");
+  assert.match(result.reason!, /^crafting a crafting_table for wooden_pickaxe failed: the server did not fill/);
 });
 
 test("craft - planks asked by the wrong wood name are made from the wood held", async () => {

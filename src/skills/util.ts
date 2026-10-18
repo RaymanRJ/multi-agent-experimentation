@@ -1,6 +1,6 @@
 import type { Bot } from "mineflayer";
 import pathfinderPkg from "mineflayer-pathfinder";
-import type { SkillContext } from "../types.js";
+import type { Skill, SkillContext, SkillResult } from "../types.js";
 
 const { Movements } = pathfinderPkg;
 
@@ -148,4 +148,17 @@ export function smeltProduct(name: string): string | null {
   const n = name.trim().toLowerCase();
   if (SMELTS[n]) return n;
   return Object.keys(SMELTS).find((product) => SMELTS[product] === n) ?? null;
+}
+
+/**
+ * Runs a skill so that an error it did not catch becomes a failed result the model can replan
+ * against, instead of ending the run. Any goal the skill left on the pathfinder is cleared.
+ */
+export async function runSkill(skill: Skill, ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
+  try {
+    return await skill.run(ctx, args);
+  } catch (error) {
+    ctx.bot.pathfinder?.setGoal(null);
+    return { status: "failed", reason: `${skill.name} hit an unexpected error: ${(error as Error).message}` };
+  }
 }

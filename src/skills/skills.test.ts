@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SKILLS, findSkill } from "./index.js";
+import { runSkill } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 
 const run = (name: string, setup: Parameters<typeof fakeBot>[0], args: Record<string, unknown> = {}, stop = false) => {
@@ -117,4 +118,16 @@ test("descend and tunnel - need a pickaxe, and keep an iron one for ore", async 
   assert.match((await run("tunnel", { blocks: floor(64, "stone") }, { length: 8 })).reason!, /need a pickaxe to dig/);
   const saving = await run("descend", { inventory: { iron_pickaxe: 1 }, worn: { iron_pickaxe: 240 }, blocks: floor(64, "stone") }, { y: 16 });
   assert.match(saving.reason!, /stopped to save your iron_pickaxe \(10 uses left\) for mining ore/);
+});
+
+test("runSkill - an error a skill didn't catch becomes a failed result, and the pathfinder is stopped", async () => {
+  const { bot } = fakeBot();
+  let cleared = false;
+  bot.pathfinder.setGoal = () => { cleared = true; };
+  const broken = { name: "broken", description: "", args: {}, run: async () => { throw new Error("boom"); } };
+  const result = await runSkill(broken, context(bot), {});
+  assert.deepEqual(result, { status: "failed", reason: "broken hit an unexpected error: boom" });
+  assert.ok(cleared);
+  const fine = await runSkill(findSkill("wait")!, context(bot), { seconds: 1 });
+  assert.equal(fine.status, "success");
 });

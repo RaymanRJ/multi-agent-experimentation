@@ -307,6 +307,19 @@ export function planksHint(missing: Missing): string {
   return "";
 }
 
+/** The storage block an item's every recipe unpacks (diamond_block for diamond), or null. */
+function storageBlockOf(bot: Bot, id: number): string | null {
+  const recipes = recipesOf(bot, id, true);
+  if (recipes.length === 0) return null;
+  let block: string | null = null;
+  for (const recipe of recipes) {
+    const inputs = recipe.delta.filter((entry) => entry.count < 0).map((entry) => itemName(bot, entry.id));
+    if (inputs.length !== 1 || !inputs[0]!.endsWith("_block")) return null;
+    block = inputs[0]!;
+  }
+  return block;
+}
+
 /** Small models re-craft tools they hold, failing each time; say so when it fails. */
 export function alreadyHeld(name: string, held: number): string {
   return held > 0 ? ` — you already have ${held} ${name}` : "";
@@ -555,6 +568,18 @@ export const craft: Skill = {
     if (SMELTS[name] && (!plan || total(plan.missing) > 0)) {
       return { status: "failed", reason: `${name} is smelted from ${SMELTS[name]}, not crafted — use smelt with item ${name}` };
     }
+    // diamond, emerald, coal...: the only recipe unpacks the storage block, so the shortfall would
+    // name diamond_block and send a model after a block it can't make. Point at the ore instead.
+    const unpacks = storageBlockOf(bot, item.id);
+    if (unpacks && (!plan || total(plan.missing) > 0)) {
+      const ore = bot.registry.blocksByName[`${name}_ore`] ? name : null;
+      return {
+        status: "failed",
+        reason: ore
+          ? `${name} is mined, not crafted — use mine_ore with ore ${ore}`
+          : `${name} is not crafted from scratch — its only recipe unpacks a ${unpacks}`,
+      };
+    }
     if (!plan) {
       return { status: "failed", reason: `${name} cannot be crafted — it has no crafting recipe (it may need smelting or mining)` };
     }
@@ -568,7 +593,12 @@ export const craft: Skill = {
 
     let table: Block | null = null;
     if (plan.recipe.requiresTable) {
-      const found = await ensureTable(ctx);
+      let found: Awaited<ReturnType<typeof ensureTable>>;
+      try {
+        found = await ensureTable(ctx);
+      } catch (error) {
+        return { status: "failed", reason: `crafting a crafting_table for ${name} failed: ${(error as Error).message}` };
+      }
       if ("error" in found) return { status: "failed", reason: found.error };
       if ("missing" in found) {
         return {

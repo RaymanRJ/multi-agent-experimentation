@@ -11,7 +11,7 @@ import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./in
 import { RunLog } from "./log.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
-import { getOutOfWater, headInWater, movementsFor } from "./skills/util.js";
+import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -350,7 +350,7 @@ async function main(): Promise<void> {
     interruptReason = null;
     watch = createWatch(snapshot(bot, buffer), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
     const skillStartAge = bot.time.age;
-    let result = await skill.run(ctx, decision.args);
+    let result = await runSkill(skill, ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
     // ever yielding, the bot stops reading its socket, and the server drops it.
     if (bot.time.age === skillStartAge) await bot.waitForTicks(20);
