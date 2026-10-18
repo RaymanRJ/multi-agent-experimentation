@@ -92,3 +92,6 @@ Read this at the start of a session; update it when something finishes or a new 
 7. **Before making the repo public:** scan the git history for secrets, check the `protect-main`
    ruleset is enforced (`gh api repos/RaymanRJ/multi-agent-experimentation/rulesets`), and go back to
    branches and pull requests.
+8. **Two drowning gaps, deferred by the owner (18 October):** water while the model is thinking,
+   and a skill started after a failed escape. Both are described with their fixes in
+   `docs/limitations.md` ("Rough edges in the code"). Leave them unless drowning shows up again.

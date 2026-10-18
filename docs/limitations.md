@@ -84,6 +84,18 @@ building on it.
 
 ## Rough edges in the code
 
+- **Two gaps in the drowning reflex, left on purpose (18 October).** A skill is stopped when air
+  falls to half, and the code swims the agent out before the model decides, so the model is told
+  afterwards and never asked to handle the water. Not covered:
+  - **Water while the model is thinking.** No interrupt watches while a decision is being made, so
+    an agent that slips into water then waits until the decision returns (5–20 s on a paid model)
+    before the swim-out runs. Fix: run the same check on a timer during the decision.
+  - **A failed escape.** If the swim-out finds no way out, the next skill starts with air already
+    below half, and the air interrupt only fires when air *crosses* half, so only drowning damage
+    stops it (and `flee`, `eat` and `sleep` ignore damage). The model does see "could not find a
+    way out" and `air`. Fix: start no skill but the one the model chose with that in view, and fire
+    the air interrupt whenever air is below half.
+
 - **Messages by name interrupt an agent at most once a minute,** timed on the wall clock. That is
   enough to stop two agents cancelling each other's work, but it is a rule of thumb, not tuned.
 - **Narration in chat is limited to once every 1.5 seconds** to avoid the server kicking a bot for
