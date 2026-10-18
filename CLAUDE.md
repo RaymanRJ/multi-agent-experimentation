@@ -101,6 +101,7 @@ npm run agent -- --brain gemini                       # also grok, groq, openrou
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
 npm run agent -- --brain ollama --stance competitive  # stance: neutral (default) | collaborative | competitive
 npm run agent -- --brain ollama --goal outpost --progress on  # list what the preset goal still lacks each step
+npm test && npm run typecheck                         # unit tests + types; CI runs both on every PR
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
 npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI
 npm run summary -- --batch b5                         # one Markdown page per run, beside its log
@@ -112,6 +113,17 @@ scripts/reset-world.sh                                # regenerate the main worl
 scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)
 MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
 ```
+
+## Tests
+
+- `npm test` runs the unit tests (`src/**/*.test.ts`); `.github/workflows/ci.yml` runs them, the
+  typecheck and a parse of the shell scripts on every pull request. None of it needs Docker, a
+  server, a model or a key.
+- Skills are tested against `src/testing/fakeBot.ts`: a fake bot with the real 1.21.1 game data
+  (registry, recipes, foods), an inventory and a world of placed blocks. It covers a skill's checks
+  and messages before it acts; movement, digging and the craft protocol are checked live by
+  `scripts/skill-smoke.sh`.
+- Known bugs are kept as `todo` tests: they run and report, but don't fail the build.
 
 ## Hard constraints
 
