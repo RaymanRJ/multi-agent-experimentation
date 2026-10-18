@@ -19,8 +19,9 @@ building on it.
     11,000 ticks in two of three runs. The rule is meant for survival.
   - **`mine_ore` often can't reach iron it can see** ("out of reach", 20-second dig timeouts),
     then gives up after five blocks. One baseline call ran 5,000 ticks for nothing.
-  - **"need 3 more cobblestone" doesn't name `mine_stone`,** unlike the planks message, which
+  - **"need 3 more cobblestone" didn't name `mine_stone`,** unlike the planks message, which
     names `gather_wood`. The model retried the craft 4–16 times per run before mining stone.
+    Since fixed, but not yet confirmed in a full run: the message now names `mine_stone`.
   - **`descend` to y=16 takes 3,000–6,000 ticks** and usually wears out a stone pickaxe.
   - **Deaths are logged without a cause.** The run log says "you died and respawned"; the
     server log that has the cause is replaced with the next batch's server.
@@ -40,9 +41,12 @@ building on it.
   `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
   (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
   - **The baseline's outpost goes on to dig for iron** after its shelter, and the flooded-cave
-    fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3.
+    fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3. Partly
+    fixed, not yet confirmed: it no longer digs with its last pickaxe (one run lost the outpost
+    that way). Being caught underground at night (the other failed run) is not addressed.
   - **The model keeps crafting tools it already holds,** dozens of times per run, failing for
-    want of cobblestone. Neither failure message says the tool is already held.
+    want of cobblestone. Since fixed, but not yet confirmed: a failed craft now says when the
+    item is already held, and the cobblestone message names `mine_stone`.
   - **A run with the goal all but met ended on two "done"s** before the night it had to survive.
   - **Full memory fills the local model's 8,192-token window** (~7,200 tokens per call), and
     five of six runs gave up early.

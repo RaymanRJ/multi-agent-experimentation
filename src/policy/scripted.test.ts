@@ -200,10 +200,12 @@ test("after the outpost it digs for iron, smelts it, then goes down for diamonds
   const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
   let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
   d = (await next(p, after(d, "success", { inventory: kit })))!; // shelter built
-  assert.deepEqual([d.skill, d.args], ["mine_ore", { ore: "iron", count: 3 }]);
-  d = (await next(p, after(d, "failed", { inventory: { ...kit, cobblestone: 3 } })))!;
-  assert.deepEqual([d.skill, d.args], ["craft", { item: "stone_pickaxe", count: 1 }]); // a spare before digging
+  assert.deepEqual([d.skill, d.args], ["mine_stone", { count: 3 }]); // a spare pickaxe before any digging
+  d = (await next(p, after(d, "success", { inventory: { ...kit, cobblestone: 3 } })))!;
+  assert.deepEqual([d.skill, d.args], ["craft", { item: "stone_pickaxe", count: 1 }]);
   d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2 } })))!;
+  assert.deepEqual([d.skill, d.args], ["mine_ore", { ore: "iron", count: 3 }]);
+  d = (await next(p, after(d, "failed", { inventory: { ...kit, stone_pickaxe: 2 } })))!;
   assert.deepEqual([d.skill, d.args], ["descend", { y: 16 }]);
   d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.equal(d.skill, "mine_ore");
@@ -214,6 +216,22 @@ test("after the outpost it digs for iron, smelts it, then goes down for diamonds
   assert.deepEqual([d.skill, d.args], ["craft", { item: "iron_pickaxe", count: 1 }]);
   d = (await next(p, after(d, "success", { inventory: { ...kit, stone_pickaxe: 2, iron_pickaxe: 1 }, position: { x: 0, y: 16, z: 0 } })))!;
   assert.deepEqual([d.skill, d.args], ["descend", { y: -58 }]);
+});
+
+test("down to its last pickaxe with no way to make another, it stops digging and keeps its tools", async () => {
+  const p = new ScriptedPolicy();
+  const kit = { stone_pickaxe: 2, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  const deep = { x: 0, y: 17, z: 0 };
+  let d = (await next(p, obs({ inventory: { oak_log: 12, stone_pickaxe: 1 } })))!;
+  d = (await next(p, after(d, "success", { inventory: kit })))!; // shelter built
+  assert.equal(d.skill, "mine_ore");
+  const worn = { ...kit, stone_pickaxe: 1, cobblestone: 40 };
+  d = (await next(p, after(d, "failed", { inventory: worn, position: deep })))!;
+  assert.deepEqual([d.skill, d.args], ["craft", { item: "stone_pickaxe", count: 1 }]);
+  for (let i = 0; i < 8 && d.skill === "craft"; i++) {
+    d = (await next(p, obs({ inventory: worn, position: deep, recentEvents: ["craft failed (need 2 more oak_planks to craft 1 stone_pickaxe)"] })))!;
+  }
+  assert.equal(d.skill, "wait", "holds instead of digging on with the only pickaxe");
 });
 
 test("when water blocks every way down, it explores somewhere else and digs again", async () => {

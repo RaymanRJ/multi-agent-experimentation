@@ -315,11 +315,17 @@ export class ScriptedPolicy implements Policy {
     if (!o.isDay && y > 55) return null;
     const has = (name: string) => (inv[name] ?? 0) > 0;
     const logs = sum(inv, (n) => n.endsWith("_log"));
-    const dig = (targetY: number, why: string): Decision | null => {
-      // Digging wears pickaxes out (stone ~130 blocks); keep spares so the iron one is kept for ore.
-      if ((inv["stone_pickaxe"] ?? 0) < SPARE_STONE_PICKS && (inv["cobblestone"] ?? 0) >= COBBLE_FOR_PICK && this.usable("craft:stone_pickaxe")) {
-        return this.stage("craft:stone_pickaxe", "craft", { item: "stone_pickaxe", count: 1 }, "a spare stone pickaxe for digging");
+    // Digging, and walking through rock to ore, wears pickaxes out (stone ~130 blocks). Never go
+    // down with only one: make a spare first, or stop here with the tools still in hand.
+    const spare = (): Decision | null | undefined => {
+      if (sum(inv, (n) => STONE_TIER.includes(n)) >= SPARE_STONE_PICKS) return undefined;
+      const cobble = inv["cobblestone"] ?? 0;
+      if (cobble < COBBLE_FOR_PICK) {
+        return this.usable("mine_stone") ? this.stage("mine_stone", "mine_stone", { count: COBBLE_FOR_PICK - cobble }, "cobblestone for a spare pickaxe") : null;
       }
+      return this.usable("craft:stone_pickaxe") ? this.stage("craft:stone_pickaxe", "craft", { item: "stone_pickaxe", count: 1 }, "a spare stone pickaxe before digging") : null;
+    };
+    const dig = (targetY: number, why: string): Decision | null => {
       this.uncover = false;
       if (y > targetY + 4 && this.usable("descend")) return this.stage("descend", "descend", { y: targetY }, why);
       if (this.usable("tunnel")) return this.stage("tunnel", "tunnel", { length: 16 }, "uncover ore hidden in the rock");
@@ -352,6 +358,8 @@ export class ScriptedPolicy implements Policy {
         }
         return this.usable("smelt") ? this.stage("smelt", "smelt", { item: "iron_ingot", count: IRON_FOR_PICK - ingots }, "smelt the raw iron") : null;
       }
+      const first = spare();
+      if (first !== undefined) return first;
       if (this.uncover || !this.usable("mine_ore:iron")) return dig(IRON_Y, "down to where iron is common");
       return this.stage("mine_ore:iron", "mine_ore", { ore: "iron", count: IRON_FOR_PICK - ingots - raw }, "raw iron for an iron pickaxe");
     }
@@ -361,6 +369,8 @@ export class ScriptedPolicy implements Policy {
     if (diamonds >= DIAMONDS_FOR_BOOTS) {
       return this.usable("craft:diamond_boots") ? this.stage("craft:diamond_boots", "craft", { item: "diamond_boots", count: 1 }, "diamond boots") : null;
     }
+    const first = spare();
+    if (first !== undefined) return first;
     if (y > DIAMOND_Y + 8) return dig(DIAMOND_Y, "down to where diamonds are");
     if (this.uncover || !this.usable("mine_ore:diamond")) return dig(DIAMOND_Y, "keep looking for diamonds");
     return this.stage("mine_ore:diamond", "mine_ore", { ore: "diamond", count: DIAMONDS_FOR_BOOTS - diamonds }, "diamonds for boots");
