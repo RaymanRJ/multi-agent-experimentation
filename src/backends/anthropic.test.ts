@@ -151,3 +151,33 @@ test("Claude pricing - cache reads at a tenth of input, writes at 1.25x", () => 
   assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 2.5) < 1e-9);
   assert.ok(Math.abs(costUSD({ ...base, inputTokens: 3_000_000, cacheReadTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 4.7) < 1e-9);
 });
+
+test("AnthropicBackend - offers the decision tool without forcing it, and returns its input apart from the text", async () => {
+  const seen: unknown[] = [];
+  const tool = { name: "decide", description: "Submit.", schema: { type: "object", properties: {} } };
+  const backend = new AnthropicBackend({
+    name: "claude",
+    model: "claude-sonnet-5-5",
+    apiKey: "k",
+    client: fakeClient(
+      {
+        content: [
+          { type: "text", text: "Logs first." },
+          { type: "tool_use", id: "t1", name: "decide", input: { skill: "gather_wood", args: { count: 12 } } },
+        ],
+        stop_reason: "tool_use",
+        usage: { input_tokens: 10, output_tokens: 5 },
+      },
+      seen,
+    ),
+  });
+  const call = await backend.complete("System", [{ role: "user", content: "{}" }], tool);
+  const params = seen[0] as { tools: Array<{ name: string; input_schema: unknown }>; tool_choice: unknown };
+  assert.deepStrictEqual(params.tools.map((t) => t.name), ["decide"]);
+  assert.deepStrictEqual(params.tool_choice, { type: "auto" });
+  assert.strictEqual(call.text, "Logs first.");
+  assert.strictEqual(call.toolInput, '{"skill":"gather_wood","args":{"count":12}}');
+  const plain = new AnthropicBackend({ name: "claude", model: "m", apiKey: "k", client: fakeClient({ content: [{ type: "text", text: "{}" }], usage: { input_tokens: 1, output_tokens: 1 } }, seen) });
+  await plain.complete("System", [{ role: "user", content: "{}" }]);
+  assert.strictEqual((seen[1] as { tools?: unknown }).tools, undefined, "no tool asked for, none sent");
+});

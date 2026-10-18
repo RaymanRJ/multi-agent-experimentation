@@ -1,8 +1,9 @@
-import type { Backend, ChatTurn, ModelCall } from "../types.js";
+import type { Backend, ChatTurn, DecisionTool, ModelCall } from "../types.js";
 
 /**
  * A model call that failed, sorted by what the agent should do about it.
- *   fatal     — retrying cannot help: out of credits, quota exhausted, bad key, unknown model.
+ *   fatal     — retrying cannot help: out of credits, quota exhausted, bad key, unknown model,
+ *               a request the provider rejects as malformed (400, 422).
  *               The run ends as "brain unavailable" and is excluded from comparisons.
  *   transient — the provider is busy or the network blipped: rate limit, overload, 5xx,
  *               timeout. Retried with backoff before it counts as a failed decision.
@@ -44,6 +45,9 @@ export function classify(
     (detail.type && FATAL_TYPES.has(detail.type)) ||
     (detail.code && FATAL_CODES.has(detail.code)) ||
     status === 401 || status === 402 || status === 403 || status === 404 ||
+    // A request the provider can't accept is ours to fix: sending it again gets the same answer
+    // (gpt-6-luna refused tools alongside reasoning four times over before this).
+    status === 400 || status === 422 ||
     // Anthropic has reported low credit as a 400 invalid_request_error.
     /credit balance is too low/i.test(detail.message ?? "");
   return new BrainError(message, fatal ? "fatal" : "transient", status, retryAfterMs);
@@ -75,11 +79,11 @@ export function withRetries(
   return {
     name: backend.name,
     ...(backend.contextTokens !== undefined && { contextTokens: backend.contextTokens }),
-    async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
+    async complete(system: string, turns: ChatTurn[], tool?: DecisionTool): Promise<ModelCall> {
       let waited = 0;
       for (let attempt = 0; ; attempt++) {
         try {
-          const call = await backend.complete(system, turns);
+          const call = await backend.complete(system, turns, tool);
           // Logged so throttling shows up in the report, not only on the console.
           return attempt > 0 ? { ...call, providerRetries: attempt, retryWaitMs: waited } : call;
         } catch (error) {

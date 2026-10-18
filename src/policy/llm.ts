@@ -2,6 +2,7 @@ import type {
   Backend,
   ChatTurn,
   Decision,
+  DecisionTool,
   MemoryMode,
   ModelCall,
   Observation,
@@ -107,6 +108,7 @@ export class LLMPolicy implements Policy {
   async decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput> {
     const { memory } = this.options;
     const system = buildSystemPrompt(skills, this.options);
+    const tool = decisionTool(skills, this.options);
     const user: ChatTurn = { role: "user", content: JSON.stringify(observation) };
     const base: ChatTurn[] =
       memory === "full" ? trimHistory(system, this.history, user, this.historyTokens, this.refill) : [user];
@@ -117,15 +119,17 @@ export class LLMPolicy implements Policy {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       // Without full memory a retry is the same single user turn plus the error.
       const turns = memory === "full" || retryTurns.length === 0 ? [...base, ...retryTurns] : retryTurns;
-      const call = await this.backend.complete(system, turns);
+      const call = await this.backend.complete(system, turns, tool);
       calls.push(call);
+      // A decision submitted through the tool, else one written as text.
+      const answer = call.toolInput ?? call.text;
 
-      const parsed = parseDecision(call.text, skills, this.options);
+      const parsed = parseDecision(answer, skills, this.options);
       if (parsed.ok) {
         if (memory === "full") {
           // Keep the trimmed history plus this exchange. The assistant turn is
           // the reply without its reasoning, which would only eat context.
-          this.history = [...base.slice(0, -1), user, { role: "assistant", content: cleanText(call.text) }];
+          this.history = [...base.slice(0, -1), user, { role: "assistant", content: cleanText(answer) }];
         }
         return { decision: parsed.decision, calls, system };
       }
@@ -134,7 +138,7 @@ export class LLMPolicy implements Policy {
       if (memory === "full") {
         // Real back-and-forth: the bad reply, then the error.
         retryTurns.push(
-          { role: "assistant", content: cleanText(call.text) || "(empty reply)" },
+          { role: "assistant", content: cleanText(answer) || "(empty reply)" },
           { role: "user", content: retryMessage(lastError) },
         );
       } else {
@@ -153,6 +157,27 @@ export class LLMPolicy implements Policy {
       system,
     };
   }
+}
+
+/**
+ * The decision as a tool: the same fields the prompt asks for, so a model that calls it and one
+ * that writes the JSON out are judged alike. Exported for tests.
+ */
+export function decisionTool(skills: Skill[], options: LLMPolicyOptions = DEFAULT_OPTIONS): DecisionTool {
+  const properties: Record<string, unknown> = {
+    skill: { type: "string", enum: [...skills.map((s) => s.name), "done"], description: 'The skill to run next, or "done" to end the episode.' },
+    args: { type: "object", description: "The skill's args, as in its args spec." },
+    rationale: { type: "string" },
+  };
+  if (options.memory !== "none") properties["plan"] = { type: "string" };
+  if (options.comms) {
+    properties["say"] = { type: "object", properties: { to: { type: "string" }, text: { type: "string" } }, required: ["to", "text"] };
+  }
+  return {
+    name: "decide",
+    description: "Submit your decision: the JSON object the system prompt describes.",
+    schema: { type: "object", properties, required: ["skill"] },
+  };
 }
 
 function retryMessage(error: string): string {

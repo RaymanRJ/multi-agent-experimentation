@@ -1,9 +1,12 @@
-import type { Backend, ChatTurn, ModelCall } from "../types.js";
+import type { Backend, ChatTurn, DecisionTool, ModelCall } from "../types.js";
 import { BrainError, classify } from "./errors.js";
 
 interface OpenAIResponse {
   id?: string;
-  choices: Array<{ message: { content: string; reasoning?: string }; finish_reason?: string | null }>;
+  choices: Array<{
+    message: { content: string | null; reasoning?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> };
+    finish_reason?: string | null;
+  }>;
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -20,6 +23,8 @@ export class OpenAIBackend implements Backend {
   private pendingContext: number | undefined;
   private apiKey: string;
   private baseURL: string;
+  /** Whether to offer the decision tool. Off for Ollama, so the local model's condition stays as it was. */
+  private tools: boolean;
 
   constructor({
     name,
@@ -27,6 +32,7 @@ export class OpenAIBackend implements Backend {
     apiKey,
     baseURL,
     ollamaContext,
+    tools = false,
   }: {
     name: string;
     model: string;
@@ -34,7 +40,9 @@ export class OpenAIBackend implements Backend {
     baseURL: string;
     /** Ollama only: run the model with this context window instead of Ollama's default 4096. */
     ollamaContext?: number;
+    tools?: boolean;
   }) {
+    this.tools = tools;
     this.name = name;
     this.model = model;
     this.apiKey = apiKey;
@@ -66,7 +74,8 @@ export class OpenAIBackend implements Backend {
     this.model = derived;
   }
 
-  async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
+  async complete(system: string, turns: ChatTurn[], tool?: DecisionTool): Promise<ModelCall> {
+    const offer = this.tools && tool;
     if (this.pendingContext) {
       await this.useOllamaContext(this.pendingContext); // throws a BrainError; tried again next call
       this.pendingContext = undefined;
@@ -96,6 +105,10 @@ export class OpenAIBackend implements Backend {
               { role: "system", content: system },
               ...turns,
             ],
+            ...(offer && {
+              tools: [{ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.schema } }],
+              tool_choice: "auto",
+            }),
           }),
           signal: controller.signal,
         },
@@ -136,6 +149,7 @@ export class OpenAIBackend implements Backend {
       const message = choice?.message;
       const reasoning = message?.reasoning ? `<think>${message.reasoning}</think>\n` : "";
       const text = reasoning + (message?.content ?? "");
+      const used = offer ? message?.tool_calls?.find((c) => c.function?.name === tool.name)?.function?.arguments : undefined;
 
       return {
         backend: this.name,
@@ -145,6 +159,7 @@ export class OpenAIBackend implements Backend {
         ...(data.usage.prompt_tokens_details?.cached_tokens && { cacheReadTokens: data.usage.prompt_tokens_details.cached_tokens }),
         ms,
         text,
+        ...(used && { toolInput: used }),
         request: turns,
         ...(message?.reasoning && { thinking: message.reasoning }),
         ...(choice?.finish_reason && { stopReason: choice.finish_reason }),

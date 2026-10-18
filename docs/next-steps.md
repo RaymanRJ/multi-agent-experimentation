@@ -80,10 +80,9 @@ Read this at the start of a session; update it when something finishes or a new 
 
 ## Open, most wanted first
 
-0. **Sonnet 5.5 answers in tool-call form first, every time.** In trio1 each of its decisions came
-   back as `<invoke name="gather_wood">…` (stop reason `tool_use`) instead of JSON, and was re-asked:
-   13 decisions, 26 calls, about double the cost. Fix before any paid comparison: accept that form,
-   or ask for the decision through real tool use or structured output.
+0. **Sonnet's tool-call answers: fixed 18 October.** Claude is now offered a `decide` tool (not
+   forced, so Haiku still writes its reasoning before calling it). Live: Sonnet and Haiku each
+   decided in one call through the tool. GPT stays on JSON text (see `docs/limitations.md`).
 
 0a. **Done after trio2 (18 October), not yet tried in a team run:** a note after every third
    `ask_agent`/`tell_agent` in a row to the same agent; `give` paths away from the drop when
@@ -107,9 +106,9 @@ Read this at the start of a session; update it when something finishes or a new 
 3. **Confirm recent fixes on the free model:** an outpost batch with `--progress` off and on (3 runs
    each, ~2 h), then the two open baseline problems in `docs/limitations.md` (waiting out the night in
    the sandbox; `mine_ore` failing to reach ore it can see).
-4. **`mine_stone` is slow and unsafe (likely fixed, see 0a; confirm in runs):** dig timeouts ("digging stone timed out after 20000ms") took
-   most of Sonnet's `tools` run and both agents' time in a team run, and in trio1 it kept Haiku
-   mining under water until it ran out of air (5,000 ticks). Not investigated.
+4. **`mine_stone` is slow:** the drowning is fixed (0a; trio3 had none), but "digging stone timed
+   out after 20000ms" still appears in trio3 (Haiku and qwen), with walking and exploring timeouts.
+   The under-water digging explained some of it, not all. Not yet investigated.
 5. **The panel shows a run only after its first decision ends,** which can be minutes. An agent
    could write a start line when it joins.
 6. **Extended thinking for Claude** (`--thinking on`) was discussed and left off for now: it costs

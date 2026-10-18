@@ -28,6 +28,11 @@ test("bad keys and unknown models are fatal", () => {
   assert.equal(classify("ollama", 404, { message: 'model "nope" not found' }).kind, "fatal");
 });
 
+test("a request the provider rejects as malformed is fatal: sending it again gets the same answer", () => {
+  assert.equal(classify("gpt", 400, { message: "HTTP 400: Function tools with reasoning_effort are not supported" }).kind, "fatal");
+  assert.equal(classify("gpt", 422, {}).kind, "fatal");
+});
+
 test("rate limits, overload and server errors are transient, with retry-after parsed", () => {
   const limited = classify("gpt", 429, { code: "rate_limit_exceeded", retryAfter: "7" });
   assert.equal(limited.kind, "transient");

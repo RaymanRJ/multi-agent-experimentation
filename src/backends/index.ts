@@ -25,7 +25,7 @@ interface Provider {
 
 export const PROVIDERS = {
   claude: { api: "anthropic", keyVar: "ANTHROPIC_API_KEY", modelVar: "ANTHROPIC_MODEL", defaultModel: "claude-haiku-4-5-20251001" },
-  gpt: { api: "openai", keyVar: "OPENAI_API_KEY", modelVar: "OPENAI_MODEL", defaultModel: "gpt-4.1-mini", baseURL: "https://api.openai.com/v1", urlVar: "OPENAI_BASE_URL" },
+  gpt: { api: "openai", keyVar: "OPENAI_API_KEY", modelVar: "OPENAI_MODEL", defaultModel: "gpt-6-luna", baseURL: "https://api.openai.com/v1", urlVar: "OPENAI_BASE_URL" },
   grok: { api: "openai", keyVar: "XAI_API_KEY", modelVar: "XAI_MODEL", baseURL: "https://api.x.ai/v1" },
   gemini: { api: "openai", keyVar: "GEMINI_API_KEY", modelVar: "GEMINI_MODEL", baseURL: "https://generativelanguage.googleapis.com/v1beta/openai" },
   // Hosted open-weight models (Llama, Qwen, gpt-oss...) on Groq's servers.
@@ -72,5 +72,10 @@ function createRawBackend(brain: BrainName): Backend {
     apiKey,
     baseURL,
     ...(context > 0 && { ollamaContext: context }),
+    // No decision tool on the OpenAI-compatible APIs for now: OpenAI's reasoning models refuse
+    // tools on /chat/completions unless reasoning is switched off (gpt-6-luna, 18 October), and
+    // switching it off would handicap them. They answer in JSON text, as they always have, and
+    // never showed Sonnet's tool-call-as-text problem. The local model answers in text too.
+    tools: false,
   });
 }

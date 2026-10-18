@@ -278,3 +278,25 @@ test("the prompt names the agent when it has a name, and explains optional args"
   assert.match(prompt, /a type ending in "\?" is optional/);
   assert.doesNotMatch(buildSystemPrompt(skills), /name is/);
 });
+
+test("a decision submitted through the tool is used over the text around it", async () => {
+  const backend: Backend = {
+    name: "fake",
+    async complete(_system, _turns, tool) {
+      assert.equal(tool?.name, "decide");
+      return { backend: "fake", model: "m", inputTokens: 1, outputTokens: 1, ms: 1, text: 'I could {"skill":"wait"} but', toolInput: '{"skill":"gather_wood","args":{"count":4}}' };
+    },
+  };
+  const out = await new LLMPolicy(backend).decide(obs, skills);
+  assert.deepEqual(out.decision?.args, { count: 4 });
+  assert.equal(out.calls.length, 1);
+});
+
+test("decisionTool - the same fields the prompt asks for, skills named, extras by option", async () => {
+  const { decisionTool } = await import("./llm.js");
+  const full = decisionTool(skills, { memory: "plan", comms: true }).schema as { properties: Record<string, { enum?: string[] }> };
+  assert.deepEqual(Object.keys(full.properties), ["skill", "args", "rationale", "plan", "say"]);
+  assert.deepEqual(full.properties["skill"]!.enum, ["gather_wood", "wait", "done"]);
+  const bare = decisionTool(skills, { memory: "none", comms: false }).schema as { properties: Record<string, unknown> };
+  assert.deepEqual(Object.keys(bare.properties), ["skill", "args", "rationale"]);
+});

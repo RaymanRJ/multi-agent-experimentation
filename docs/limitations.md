@@ -12,8 +12,14 @@ building on it.
     repeats has run on a paid model, and no long goal (`outpost`) has.
   - Prompt caching works on Sonnet and Opus (about 70% of input cached). Haiku 4.5 never caches: our
     prompt (about 2,150 tokens) is below its minimum.
-  - OpenAI, Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its
-    model's price in `src/backends/pricing.ts`, or a paid run refuses to start.
+  - GPT-6 Luna (the default `gpt` model since 18 October) has made one live decision: valid, in one
+    call, $0.0005. Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs
+    its model's price in `src/backends/pricing.ts`, or a paid run refuses to start.
+  - **Claude decides through a tool; GPT and the local model write JSON text.** Claude is offered a
+    `decide` tool (not forced), because Sonnet 5.5 otherwise wrote its decision as tool-call syntax
+    in text on about half its calls, each one re-asked. OpenAI's reasoning models refuse tools on
+    the Chat Completions API unless reasoning is switched off, so GPT is not offered it; moving GPT
+    to the Responses API would allow both. The system prompt is the same either way.
 - **The `iron` goal has been met only twice** (batch b13, sandbox, one day, three runs per
   condition): both by the model with `--progress on` (2/3). The model without it and the
   baseline went 0/3. Too few runs to credit the progress list. Details in
@@ -100,14 +106,14 @@ building on it.
   enough to stop two agents cancelling each other's work, but it is a rule of thumb, not tuned.
 - **Narration in chat is limited to once every 1.5 seconds** to avoid the server kicking a bot for
   spam. In a burst of instant failures, other agents' view of what that agent is doing can lag.
-- **Prompt caching is built but not yet seen working on a real account.** It is checked only by
-  tests with fake API clients so far:
-  - Claude requests mark the system prompt and the history for caching.
-  - OpenAI caches long prompts by itself, and the report counts the hits.
-  - GPT-6 models have no listed cached price, so their cached tokens are billed at the full input
-    price in our numbers. Our numbers can overstate their cost, never understate it.
-  - The system prompt is about 1,300–1,800 tokens, which may be under some Claude models' minimum
-    for caching. Runs with no or plan memory then get no saving on that model.
+- **Prompt caching works, but not on every model** (seen on real accounts, 18 October):
+  - Claude requests mark the system prompt and the history for caching. Sonnet 5.5 and Opus 5.5
+    read about 70–77% of their input from the cache.
+  - Haiku 4.5 never caches: the prompt (about 2,150 tokens) is under its minimum. Runs with no or
+    plan memory get no saving on it.
+  - OpenAI caches long prompts by itself, and the report counts the hits. GPT-6 cached input is
+    billed at the full input price in our numbers (its cache writes are dearer than input and not
+    counted), so our numbers can overstate its cost, never understate it.
   - With full memory on a paid model, the history is now cut to half its budget when it fills,
     rather than one exchange at a time. That keeps the cache hitting, but it also means the model
     sees between 10,000 and 20,000 tokens of history rather than always about 20,000.

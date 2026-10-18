@@ -167,6 +167,11 @@ export interface ModelCall {
   ms: number;
   /** Raw model output, kept so an episode can be replayed without re-calling. */
   text: string;
+  /**
+   * The decision as the model submitted it through the decision tool, as JSON, when it used the
+   * tool; `text` then holds only what it wrote before the call. Absent when it answered in text.
+   */
+  toolInput?: string;
   /** Exactly what was sent. The system prompt is logged once per step in LoggedStep.system. */
   request?: ChatTurn[];
   /** Reasoning the provider returned separately from the answer (Claude thinking, Ollama reasoning). */
@@ -207,7 +212,21 @@ export interface Backend {
   name: string;
   /** The context window in tokens, when we set it (Ollama); absent for cloud models. */
   contextTokens?: number;
-  complete(system: string, turns: ChatTurn[]): Promise<ModelCall>;
+  /** Offers `tool` to the model when given and the backend supports tools; the model may use it or answer in text. */
+  complete(system: string, turns: ChatTurn[], tool?: DecisionTool): Promise<ModelCall>;
+}
+
+/**
+ * The decision as a tool the model can call: its input is the same JSON object the system prompt
+ * asks for. Offered, never forced, so a model can still write its reasoning before calling it, and
+ * one that answers in text is still understood. Sonnet 5.5 answered in tool-call syntax as text on
+ * about half its calls until it had a real tool to call.
+ */
+export interface DecisionTool {
+  name: string;
+  description: string;
+  /** JSON Schema for the tool's input. */
+  schema: Record<string, unknown>;
 }
 
 export interface LoggedStep {

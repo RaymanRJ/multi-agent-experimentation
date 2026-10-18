@@ -19,8 +19,10 @@ const PRICING: Record<string, [number, number] | [number, number, number]> = {
 
   // OpenAI models
   // gpt-4.1-mini list price since its April 2025 launch. The GPT-6 rates come from
-  // price aggregators (2026-10-16), not openai.com; verify at
-  // https://openai.com/api/pricing before quoting costs.
+  // price aggregators (2026-10-16; gpt-6-luna rechecked 2026-10-18 against two more), not
+  // openai.com, which refuses automated reads; verify there before quoting costs. Luna's cached
+  // input is listed at $0.01 but its cache writes at $0.125, which this adapter does not count,
+  // so cached input is left at the full price: costs may be overstated, never understated.
   "gpt-4.1-mini": [0.4, 1.6, 0.1],
   "gpt-6-luna": [0.1, 0.5],
   "gpt-6.1-sol": [2.0, 10.0],

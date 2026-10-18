@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Backend, ChatTurn, ModelCall } from "../types.js";
+import type { Backend, ChatTurn, DecisionTool, ModelCall } from "../types.js";
 import { BrainError, classify } from "./errors.js";
 
 /** The subset of the SDK client this backend uses — lets tests inject a fake. */
@@ -45,7 +45,7 @@ export class AnthropicBackend implements Backend {
     this.client = client ?? new Anthropic({ apiKey, timeout: 120_000, maxRetries: 0 });
   }
 
-  async complete(system: string, turns: ChatTurn[]): Promise<ModelCall> {
+  async complete(system: string, turns: ChatTurn[], tool?: DecisionTool): Promise<ModelCall> {
     const startMs = Date.now();
 
     // Models with always-on thinking return thinking blocks alongside the
@@ -56,6 +56,12 @@ export class AnthropicBackend implements Backend {
         // Room for extended thinking before the answer; only tokens actually produced are billed.
         max_tokens: 16_000,
         ...cachedRequest(system, turns),
+        // Offered, not forced ("auto"): the model may write its reasoning first, and forcing a tool
+        // would also rule out extended thinking. The tool sits before the system prompt in the cache.
+        ...(tool && {
+          tools: [{ name: tool.name, description: tool.description, input_schema: tool.schema as Anthropic.Tool.InputSchema }],
+          tool_choice: { type: "auto" as const },
+        }),
       })
       .catch((error: unknown) => {
         if (error instanceof Anthropic.APIError && error.status !== undefined) {
@@ -75,6 +81,8 @@ export class AnthropicBackend implements Backend {
       .map((block) => block.text)
       .join("");
 
+    const used = response.content.find((block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === tool?.name);
+
     // Thinking is kept (separately from the answer) so the log shows what was paid for.
     const thinking = response.content
       .filter((block): block is Anthropic.ThinkingBlock => block.type === "thinking")
@@ -93,6 +101,7 @@ export class AnthropicBackend implements Backend {
       ...(cacheWrite && { cacheWriteTokens: cacheWrite }),
       ms: Date.now() - startMs,
       text,
+      ...(used && { toolInput: JSON.stringify(used.input) }),
       request: turns,
       ...(thinking && { thinking }),
       ...(response.stop_reason && { stopReason: response.stop_reason }),

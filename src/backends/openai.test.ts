@@ -240,3 +240,32 @@ test("OpenAI pricing - cached input at its listed price; unlisted models pay ful
   const sol = costUSD({ ...base, model: "gpt-6.1-sol", inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
   assert.ok(Math.abs(sol - 2) < 1e-9);
 });
+
+test("OpenAIBackend - offers the decision tool to hosted models only, and reads the call's arguments", async () => {
+  const tool = { name: "decide", description: "Submit.", schema: { type: "object", properties: {} } };
+  const bodies: Array<Record<string, unknown>> = [];
+  const originalFetch = globalThis.fetch;
+  (globalThis as any).fetch = async (_url: string, init: { body: string }) => {
+    bodies.push(JSON.parse(init.body));
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: null, tool_calls: [{ function: { name: "decide", arguments: '{"skill":"wait","args":{"seconds":5}}' } }] }, finish_reason: "tool_calls" }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+      { status: 200 },
+    );
+  };
+  try {
+    const hosted = new OpenAIBackend({ name: "gpt", model: "gpt-x", apiKey: "k", baseURL: "https://api.openai.com/v1", tools: true });
+    const call = await hosted.complete("System", [{ role: "user", content: "{}" }], tool);
+    assert.strictEqual(call.toolInput, '{"skill":"wait","args":{"seconds":5}}');
+    assert.strictEqual(call.text, "");
+    assert.strictEqual(bodies[0]!["tool_choice"], "auto");
+    const local = new OpenAIBackend({ name: "ollama", model: "qwen3:4b", apiKey: "", baseURL: "http://localhost:11434/v1" });
+    const plain = await local.complete("System", [{ role: "user", content: "{}" }], tool);
+    assert.strictEqual(bodies[1]!["tools"], undefined, "the local model keeps answering in text");
+    assert.strictEqual(plain.toolInput, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
