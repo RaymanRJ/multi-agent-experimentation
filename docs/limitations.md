@@ -33,12 +33,21 @@ building on it.
 
 - **No fighting, farming or chest storage.** An agent can only run from mobs (`flee`), eat food it
   already has, and keep everything in its inventory.
-- **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. This was
-  checked in a test pit but not yet in a full run, and without dirt, cobblestone or planks to
-  place it still gives up. Before this fix, being cornered ended at least one outpost run.
-- **The model rarely built its shelter on the outpost goal.** It now gets the time until night,
-  a dusk interrupt, and, with `--progress on`, a list of what the goal still lacks. Batch b12
-  measures whether that helps.
+- **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. In b12 it
+  walled one agent in, and once, underground, failed with two gaps left that it could not fill
+  (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run.
+- **The model rarely completes the outpost goal** (3 of 18 runs in b12; see
+  `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
+  (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
+  - **The baseline's outpost goes on to dig for iron** after its shelter, and the flooded-cave
+    fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3.
+  - **The model keeps crafting tools it already holds,** dozens of times per run, failing for
+    want of cobblestone. Neither failure message says the tool is already held.
+  - **A run with the goal all but met ended on two "done"s** before the night it had to survive.
+  - **Full memory fills the local model's 8,192-token window** (~7,200 tokens per call), and
+    five of six runs gave up early.
+  - **`build_shelter` sometimes can't clear dirt or grass from its own floor,** and `smelt`
+    once failed three times with "destination full". Neither was investigated.
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
   - A flooded cave lies under the spawn area. The skills now stop before digging into water, but agents near it still mine slowly.

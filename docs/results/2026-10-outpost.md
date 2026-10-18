@@ -68,6 +68,54 @@ The baseline alone, re-run three times on the final code: **3/3**, with no kicks
 b9 and b10, which differ only in the spam fix, the baseline is 5/6. The skills can do this goal;
 the open question is the model.
 
+## With the time until night, the dusk interrupt and the progress list (b12)
+
+*Batch b12, 17–18 October, on main at `1d049ee`: the smelt, flooded-cave, flee, dusk and
+`--progress` changes. Survival, 27,000 ticks. The baseline, and the model with each memory
+setting, with `--progress` off and on: 7 conditions, 3 runs each.*
+
+| Condition | Progress off | Progress on |
+|---|---|---|
+| Scripted baseline | 1/3 | – |
+| Model, no memory | 0/3 | 1/3 |
+| Model, plan memory | 1/3 | 1/3 |
+| Model, full memory | 0/3 | 0/3 |
+
+- **The model did better than in b8 and b9, but not by enough to call.** It met the goal in
+  3 of 18 runs (1 of 18 before). With the progress list it was 2 of 9 runs, and 1 of 9 without.
+- **The progress list got the model to build shelters.** With it, the model tried
+  `build_shelter` in 6 of 9 runs; without it, in 3 of 9. The no-memory model never tried
+  without it, and tried in all three runs with it.
+- **The baseline fell from 3/3 (b10) to 1/3, and the likely cause is the flooded-cave fix.**
+  After its shelter and tools, the baseline goes on to dig for iron. In b10 the flooded cave
+  stopped it near its shelter. In b12 the new move-elsewhere rule took it away to dig. One run
+  wore out its last stone pickaxe and did not make another. That left it with 3 of the 4 tools
+  at the end. It also failed `smelt` three times with "destination full". The other run was
+  cornered by a creeper underground at night and died, losing everything. The baseline's
+  outpost should probably stop at the outpost. Not fixed.
+- **"need N more cobblestone" loops dominate the model's runs.** All three no-memory,
+  progress-off runs had all four tools before night (by tick 5,400, 6,200 and 10,900). They
+  then spent the rest of the run crafting stone tools they already had: 49–91 crafts per run,
+  most of them failing for want of cobblestone. None of them
+  ever tried the shelter. This is the same missing hint as in the iron batch: the message
+  doesn't name `mine_stone`, nor say the tool is already held.
+- **One success was given up.** A no-memory, progress-on run had all four tools and a shelter
+  at dusk. It then said "done" twice, before surviving the night. The second "done" ends a run
+  by design, so the run ended without the goal.
+- **Full memory gave up.** Five of its six runs ended with the model saying "done" twice, after
+  only 13–40 decisions. The local model's window is set to 8,192 tokens, so full memory fills
+  it: each call sent about 7,100–7,400 tokens. The model's reasons ("all paths have been
+  blocked", "cannot be completed within the time") read like a model that has seen many of its
+  own failures.
+- **`build_shelter` failed to clear its own floor** in four runs, on dirt, grass, stone and
+  coal ore: "blocked by grass_block that I cannot clear". Dirt and grass can be dug by hand, so
+  the dig itself probably failed or timed out. Not investigated.
+- **`craft` timed out on stone tools,** 8 and 16 times in two runs ("crafting stone_axe timed
+  out after 15000ms"), as in b11. Not investigated.
+- **Deaths were concentrated in a few runs:** 14 and 7 (plan memory, progress off and on),
+  7 (no memory, progress on), 5 (full memory, progress on) and 4 (plan memory, progress on).
+  Each death loses the tools.
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a
