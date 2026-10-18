@@ -9,7 +9,8 @@
 #   STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"
 #   STANCE=collaborative COMMS=on GOAL=shelter scripts/team.sh t2 "opus=claude:full@claude-opus-5-5 sol=gpt@gpt-6.1-sol"
 #
-# STANCE (neutral), COMMS (on), PROGRESS (off), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent. @model sets the brain's
+# STANCE (neutral), COMMS (on), PROGRESS (off), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent.
+# VIEW=on serves each agent's view in a browser, the first at localhost:3007, the next at 3008, and so on. @model sets the brain's
 # model variable for that agent only, so two models from one provider can play together.
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/team-NAME.txt
 set -euo pipefail
@@ -25,6 +26,7 @@ comms="${COMMS:-on}"
 progress="${PROGRESS:-off}"
 budget="${BUDGET_USD:-1.00}"
 goal="${GOAL:-tools}"
+view="${VIEW:-off}"
 port="${TEAM_PORT:-25600}"
 list="runs/team-$name.txt"
 mkdir -p runs
@@ -44,6 +46,7 @@ for rep in $(seq 1 "$reps"); do
   scripts/test-server.sh reset "team-$name" "$port" >/dev/null
   pids=()
   outs=()
+  viewport=3007
   for spec in $agents; do
     agent="${spec%%=*}"
     rest="${spec#*=}"
@@ -54,11 +57,13 @@ for rep in $(seq 1 "$reps"); do
     out="runs/.team-$name-$rep-$agent.out"
     outs+=("$out")
     var="$(model_var "$brain")"
+    viewargs=()
+    if [ "$view" = on ]; then viewargs=(--view "$viewport"); echo "    $agent: watch at http://localhost:$viewport"; viewport=$((viewport + 1)); fi
     (
       [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"
       MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
         --brain "$brain" --memory "$memory" --comms "$comms" --stance "$stance" --progress "$progress" --budget-usd "$budget" --goal "$goal" \
-        --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" > "$out" 2>&1 || true
+        --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" ${viewargs[@]+"${viewargs[@]}"} > "$out" 2>&1 || true
     ) &
     pids+=($!)
     sleep 5   # join one at a time: the server refuses a second login from one address within 4s
