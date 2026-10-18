@@ -204,6 +204,7 @@ export function buildSystemPrompt(
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
+    '"air" appears only when you are under water: you drown when it reaches 0.',
     '"ticksUntilNight" is how long until dark (20 ticks = 1 second); hostile mobs come out at night.',
     ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
     "Skills (args spec: name -> type):",

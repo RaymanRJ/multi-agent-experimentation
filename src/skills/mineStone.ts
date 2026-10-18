@@ -32,14 +32,19 @@ const NEIGHBOURS: Array<[number, number, number]> = [
   [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
 ];
 
-/** Stone with at least one open side can be reached without tunnelling, and has no lava behind it. */
-function exposure(ctx: SkillContext, point: Vec3): "open" | "buried" | "hazard" {
+/**
+ * Stone with at least one open side can be reached without tunnelling. Stone touching lava or
+ * water is a hazard: water counts as an open side to the game, and mining such stone meant swimming
+ * to it and digging under water, 25 times slower, until the air ran out (team trio2: Sonnet drowned
+ * twice this way, and it is where the "digging stone timed out" failures came from).
+ */
+export function exposure(ctx: SkillContext, point: Vec3): "open" | "buried" | "hazard" {
   let open = false;
   for (const [dx, dy, dz] of NEIGHBOURS) {
     const neighbour = ctx.bot.blockAt(point.offset(dx, dy, dz));
     if (!neighbour) continue;
-    if (neighbour.name === "lava") return "hazard";
-    if (neighbour.boundingBox === "empty") open = true;
+    if (LIQUIDS.has(neighbour.name)) return "hazard";
+    if (neighbour.boundingBox === "empty") open = true; // air, grass, flowers: anything a player walks through
   }
   return open ? "open" : "buried";
 }
@@ -143,24 +148,19 @@ export const mineStone: Skill = {
       }
 
       let block: Block | null = null;
+      const feet = bot.entity.position.y;
+      // Filtered inside the search, not after it: the nearest few hundred stone blocks are nearly all
+      // buried, so a search for stone then a filter for open stone found none and dug down instead.
+      const usable = (candidate: Block) =>
+        candidate.position.y >= feet - MAX_DROP_TO_STONE && !skipped.has(key(candidate.position)) && exposure(ctx, candidate.position) === "open";
       for (const radius of SEARCH_RADII) {
         // Nearest first keeps travel short (findBlocks is not distance-sorted for every case);
         // stone beside another agent last, so two agents don't dig the same pit.
-        const points = nearestUncrowded(bot, bot.findBlocks({ matching: stoneIds, maxDistance: radius, count: 128 }));
-        for (const point of points) {
-          if (skipped.has(key(point))) continue;
-          if (point.y < bot.entity.position.y - MAX_DROP_TO_STONE) continue;
-          const kind = exposure(ctx, point);
-          if (kind === "hazard") {
-            skipped.add(key(point));
-            continue;
-          }
-          if (kind === "open") {
-            block = bot.blockAt(point);
-            break;
-          }
+        const points = nearestUncrowded(bot, bot.findBlocks({ matching: stoneIds, maxDistance: radius, count: 64, useExtraInfo: usable }));
+        if (points[0]) {
+          block = bot.blockAt(points[0]);
+          break;
         }
-        if (block) break;
       }
       if (!block) {
         ctx.log(`no exposed stone within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks — digging down for it`);

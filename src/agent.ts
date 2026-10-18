@@ -305,7 +305,23 @@ async function main(): Promise<void> {
   let doneRefused = false;
   let ended: EndReason | undefined;
 
+  /**
+   * The water reflex, run by the code and never left to a model: before the agent decides, since a
+   * model thinking for ten seconds under water drowned (team trio2), and again before each skill.
+   */
+  const escapeWater = async (): Promise<string | null> => {
+    if (!headInWater(bot)) return null;
+    const out = await getOutOfWater(bot);
+    const event = out ? "you were under water and swam out" : "you are under water and could not find a way out";
+    recentEvents.push(event);
+    return event;
+  };
+  // Asking or telling the same agent again and again, in different words each time: the repeat note
+  // below only catches identical decisions (Haiku asked qwen 17 questions in trio2).
+  let asking = { key: "", count: 0 };
+
   for (let step = 1; !ended; step++) {
+    const surfaced = await escapeWater();
     const asked = buffer?.pending() ?? { requests: [], mark: 0 };
     const observation = observe(bot, {
       step,
@@ -319,7 +335,7 @@ async function main(): Promise<void> {
         ? { stillNeeded: goalGaps(goalState("", "")) }
         : {}),
     });
-    stepEvents = [];
+    stepEvents = surfaced ? [surfaced] : [];
     let responses: LoggedStep["responses"];
     const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended" | "responses">) => {
       // Checked last, so a goal met or a model "done" on the final step wins.
@@ -412,14 +428,11 @@ async function main(): Promise<void> {
     console.log(`[${agentName}] step ${step}: ${decision.skill}(${JSON.stringify(decision.args)})`);
     narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
     lastPlan = decision.plan ?? lastPlan;
-    if (buffer && decision.say?.text) speak(bot, decision.say.to, decision.say.text);
-    if (headInWater(bot)) {
-      // A reflex before any skill: every skill would otherwise be stopped at once by drowning damage.
-      const out = await getOutOfWater(bot);
-      const event = out ? "you were under water and swam out to dry ground" : "you are under water and could not find a way out";
-      recentEvents.push(event);
-      stepEvents.push(event);
-    }
+    // Said to itself, a message reaches nobody (qwen gave its coordinates that way in trio2): say it to everyone.
+    const sayTo = decision.say?.to.toLowerCase() === agentName.toLowerCase() ? "all" : decision.say?.to ?? "all";
+    if (buffer && decision.say?.text) speak(bot, sayTo, decision.say.text);
+    const wet = await escapeWater();
+    if (wet) stepEvents.push(wet);
     interruptReason = null;
     watch = createWatch(snapshot(bot, buffer), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
     const skillStartAge = bot.time.age;
@@ -446,6 +459,13 @@ async function main(): Promise<void> {
     if (repeats >= 3 && repeats % 3 === 0 && decision.skill !== "wait") {
       const how = result.status === "success" && !result.reason ? "each succeeded" : "all got the same result";
       const note = `your last ${repeats} decisions were the same ${decision.skill}(${JSON.stringify(decision.args)}) and ${how}`;
+      recentEvents.push(note);
+      stepEvents.push(note);
+    }
+    const askKey = COMMS_SKILLS.has(decision.skill) ? `${decision.skill} to ${String(decision.args["to"] ?? "").toLowerCase()}` : "";
+    asking = askKey && askKey === asking.key ? { key: askKey, count: asking.count + 1 } : { key: askKey, count: askKey ? 1 : 0 };
+    if (asking.count >= 3 && asking.count % 3 === 0) {
+      const note = `your last ${asking.count} decisions were all ${asking.key}`;
       recentEvents.push(note);
       stepEvents.push(note);
     }

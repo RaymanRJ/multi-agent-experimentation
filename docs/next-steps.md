@@ -60,10 +60,18 @@ Read this at the start of a session; update it when something finishes or a new 
    13 decisions, 26 calls, about double the cost. Fix before any paid comparison: accept that form,
    or ask for the decision through real tool use or structured output.
 
-0a. **From trio2, before the next team run:** pass 24,000 ticks; a note when an agent asks the
-   same agent the same kind of thing again and again (the loop note only catches identical
-   decisions, and Haiku varied the wording); look at why `give` swept its own toss back up again;
-   decide whether to drop a `say` addressed to the speaker itself.
+0a. **Done after trio2 (18 October), not yet tried in a team run:** a note after every third
+   `ask_agent`/`tell_agent` in a row to the same agent; `give` paths away from the drop when
+   stepping back goes nowhere (3 of 3 live, back to a wall) and won't drop for a receiver under
+   water; a `say` to oneself goes to everyone. **Drowning:** `mine_stone` counted stone beside water
+   as exposed and swam to it, so agents dug under water (25× slower: the "digging stone timed out"
+   failures) until their air ran out. Now stone touching water is never mined, the search looks only
+   for open stone (it used to look at the nearest 128 stone blocks, nearly all buried, and dig down
+   when none was open), and swimming costs the pathfinder 8× a step. Live: 4 of 4 runs from spawn,
+   random spots and a lake shore, 0 ticks under water. A skill is stopped at half air, before any
+   damage; the code swims the agent out *before* the model decides (not after); the agent sees `air`
+   when it is losing it. Live: out of a 5-deep pool in 1.3 s, out of a flooded room with a ceiling
+   in 10.7 s.
 
 1. **A comparison of goals and agents.** The owner wants, eventually, a breakdown of each goal and
    how the agents behaved, to compare across goals, models and team set-ups (who did what, what they
@@ -74,7 +82,7 @@ Read this at the start of a session; update it when something finishes or a new 
 3. **Confirm recent fixes on the free model:** an outpost batch with `--progress` off and on (3 runs
    each, ~2 h), then the two open baseline problems in `docs/limitations.md` (waiting out the night in
    the sandbox; `mine_ore` failing to reach ore it can see).
-4. **`mine_stone` is slow and unsafe:** dig timeouts ("digging stone timed out after 20000ms") took
+4. **`mine_stone` is slow and unsafe (likely fixed, see 0a; confirm in runs):** dig timeouts ("digging stone timed out after 20000ms") took
    most of Sonnet's `tools` run and both agents' time in a team run, and in trio1 it kept Haiku
    mining under water until it ran out of air (5,000 ticks). Not investigated.
 5. **The panel shows a run only after its first decision ends,** which can be minutes. An agent

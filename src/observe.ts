@@ -102,6 +102,8 @@ export function observe(
     },
     health: Math.round(bot.health),
     food: Math.round(bot.food),
+    // What a player sees as the bubble bar: only there while it is going down.
+    ...(bot.oxygenLevel !== undefined && bot.oxygenLevel < 20 ? { air: Math.round(bot.oxygenLevel) } : {}),
     timeOfDay,
     isDay: timeOfDay < 12000,
     ...(timeOfDay < 12000 ? { ticksUntilNight: 12000 - timeOfDay } : {}),

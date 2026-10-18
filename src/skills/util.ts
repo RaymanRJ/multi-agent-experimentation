@@ -71,8 +71,14 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   const movements = new Movements(bot);
   const dirt = bot.registry.itemsByName["dirt"]?.id;
   movements.scafoldingBlocks = dirt === undefined ? [] : [dirt];
+  // Swimming is allowed but dear: a route through water was how agents ended up mining under it.
+  // Set in the library's code (movements.js) but missing from its type definitions.
+  (movements as unknown as { liquidCost: number }).liquidCost = LIQUID_COST;
   return movements;
 }
+
+/** Extra path cost per block of water, against 1 for a block of walking. */
+export const LIQUID_COST = 8;
 
 const AIR = new Set(["air", "cave_air"]);
 
@@ -81,16 +87,34 @@ export function headInWater(bot: Bot): boolean {
   return bot.blockAt(bot.entity.position.offset(0, 1.62, 0))?.name === "water";
 }
 
+/** Nothing solid between the bot's head and open air within `height` blocks: swimming up gets it out. */
+function openWaterAbove(bot: Bot, height = 8): boolean {
+  for (let dy = 2; dy <= height; dy++) {
+    const block = bot.blockAt(bot.entity.position.offset(0, 1.62 + dy - 1, 0));
+    if (!block) return false;
+    if (AIR.has(block.name)) return true;
+    if (block.name !== "water") return false;
+  }
+  return false;
+}
+
 /**
- * Walks or swims to the nearest dry spot to stand within 16 blocks. A reflex, not a decision:
+ * Swims straight up when the surface is open above, else walks or swims to the nearest dry spot to
+ * stand within 24 blocks. A reflex, not a decision:
  * an agent that fell into a flooded cave otherwise re-chose its skill, was stopped at once by
  * drowning damage, and repeated that until it died (seen in batch b6). Returns whether it got out.
  */
 export async function getOutOfWater(bot: Bot): Promise<boolean> {
+  if (openWaterAbove(bot)) {
+    bot.setControlState("jump", true);
+    for (let tick = 0; tick < 80 && headInWater(bot); tick += 5) await bot.waitForTicks(5);
+    bot.setControlState("jump", false);
+    if (!headInWater(bot)) return true;
+  }
   const airIds = [...AIR].map((name) => bot.registry.blocksByName[name]?.id).filter((id): id is number => id !== undefined);
   const here = bot.entity.position;
   const spots = bot
-    .findBlocks({ matching: airIds, maxDistance: 16, count: 1024 })
+    .findBlocks({ matching: airIds, maxDistance: 24, count: 2048 })
     .filter((point) => {
       const below = bot.blockAt(point.offset(0, -1, 0));
       const head = bot.blockAt(point.offset(0, 1, 0));

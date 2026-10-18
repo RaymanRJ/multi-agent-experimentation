@@ -33,8 +33,13 @@ export interface WorldSnapshot {
  * another agent never interrupts (agents working side by side would thrash), and
  * messages to everyone wait for the next decision.
  */
-export type Trigger = "damage" | "hostile" | "dusk" | "night" | "message";
+export type Trigger = "air" | "damage" | "hostile" | "dusk" | "night" | "message";
 
+/**
+ * Air (0-20, about 15 s under water from full) at or below which a skill is stopped. Drowning damage
+ * only starts at 0, which was too late: by the time a model had decided, the agent had drowned.
+ */
+export const LOW_AIR = 10;
 /** A hostile at or inside this many blocks is a threat worth stopping for. */
 export const HOSTILE_RADIUS = 6;
 /** A hostile already known at the start only interrupts if it closes in by this much. */
@@ -92,6 +97,11 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
 
   function evaluate(now: WorldSnapshot): [Trigger, string] | null {
     peakHealth = Math.max(peakHealth, now.health);
+
+    // Never suppressed: no skill handles running out of air itself.
+    if (now.oxygen !== undefined && now.oxygen <= LOW_AIR && (start.oxygen ?? 20) > LOW_AIR) {
+      return ["air", "interrupted: you are under water and running out of air"];
+    }
 
     if (!off.has("damage") && now.health < peakHealth) {
       const drowning = now.oxygen !== undefined && now.oxygen <= 0;

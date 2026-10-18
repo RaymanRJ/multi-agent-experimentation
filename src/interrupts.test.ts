@@ -126,3 +126,12 @@ test("ask_agent is not interrupted by the answer it is waiting for", () => {
   const watch = createWatch({ health: 20, hostiles: [], timeOfDay: 1000, directed: 0 }, SUPPRESSED["ask_agent"]);
   assert.equal(watch.check({ health: 20, hostiles: [], timeOfDay: 1000, directed: 1, lastDirected: { from: "haiku", text: "40 logs" } }), null);
 });
+
+test("running low on air interrupts before drowning starts, even a skill that ignores everything else", async () => {
+  const { LOW_AIR } = await import("./interrupts.js");
+  const start = { health: 20, hostiles: [], timeOfDay: 1000, oxygen: 20 };
+  const watch = createWatch(start, SUPPRESSED["flee"]);
+  assert.equal(watch.check({ ...start, oxygen: LOW_AIR + 1 }), null);
+  assert.match(watch.check({ ...start, oxygen: LOW_AIR })!, /running out of air/);
+  assert.equal(createWatch({ ...start, oxygen: 4 }).check({ ...start, oxygen: 3 }), null, "already low at the start: the model chose this knowing");
+});

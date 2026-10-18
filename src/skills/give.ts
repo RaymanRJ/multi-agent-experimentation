@@ -17,6 +17,8 @@ const LEG_TIMEOUT_MS = 20_000;
 const PICKUP_WAIT_MS = 8_000;
 /** About two blocks of walking backwards: out of reach of the toss, still in sight. */
 const STEP_BACK_TICKS = 12;
+/** Out of a player's 1-block pickup reach of the drop, with a margin. */
+const STEP_AWAY = 2.5;
 
 function findAgent(ctx: SkillContext, name: string): Entity | undefined {
   const wanted = name.toLowerCase();
@@ -70,6 +72,10 @@ export const give: Skill = {
     }
 
     const target = findAgent(ctx, to)!;
+    const receiverHead = bot.blockAt(target.position.offset(0, 1.62, 0));
+    if (receiverHead?.name === "water") {
+      return { status: "failed", reason: `${to} is under water, where dropped items float away; wait until they are out` };
+    }
     const collected = new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => done(false), PICKUP_WAIT_MS);
       const onCollect = (collector: Entity) => {
@@ -93,10 +99,19 @@ export const give: Skill = {
       return { status: "failed", reason: `could not toss the ${item}: ${(error as Error).message}` };
     }
     ctx.log(`tossed ${count} ${item} to ${to}`);
-    // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up.
+    // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up. Walking
+    // backwards blind failed against a wall (trio2: inside a shelter), so path away from the drop instead.
+    const dropped = bot.entity.position.clone();
     bot.setControlState("back", true);
     await bot.waitForTicks(STEP_BACK_TICKS);
     bot.setControlState("back", false);
+    if (bot.entity.position.distanceTo(dropped) < STEP_AWAY) {
+      try {
+        await withTimeout(bot.pathfinder.goto(new goals.GoalInvert(new goals.GoalNear(dropped.x, dropped.y, dropped.z, STEP_AWAY))), 1500, "stepping away");
+      } catch {
+        bot.pathfinder.setGoal(null);
+      }
+    }
 
     const picked = await collected;
     await bot.waitForTicks(10);

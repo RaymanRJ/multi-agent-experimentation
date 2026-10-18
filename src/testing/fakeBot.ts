@@ -76,7 +76,7 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
   };
 
   const position = new Vec3(setup.position?.x ?? 0.5, setup.position?.y ?? 64, setup.position?.z ?? 0.5);
-  const findBlocks = (options: { matching: number | number[] | ((b: any) => boolean); maxDistance?: number; count?: number }) => {
+  const findBlocks = (options: { matching: number | number[] | ((b: any) => boolean); maxDistance?: number; count?: number; useExtraInfo?: boolean | ((b: any) => boolean) }) => {
     const ids = typeof options.matching === "function" ? null : new Set([options.matching].flat());
     const found: Vec3[] = [];
     for (const [cell, name] of world) {
@@ -86,6 +86,7 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
       const block = blockAt(point);
       if (ids ? !ids.has(block.type) : !(options.matching as (b: any) => boolean)(block)) continue;
       if (name === "air") continue;
+      if (typeof options.useExtraInfo === "function" && !options.useExtraInfo(block)) continue;
       found.push(point);
     }
     found.sort((a, b) => a.distanceTo(position) - b.distanceTo(position));

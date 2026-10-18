@@ -155,7 +155,7 @@ test("give - tosses no more than it holds, and succeeds when the teammate picks 
   const { bot, calls, emit, setInventory } = fakeBot({ inventory: { cobblestone: 5 }, entities: [teammate(1.5)] });
   const pending = findSkill("give")!.run(context(bot), { to: "QWEN", item: "cobblestone", count: 9 });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone", "back on", "back off"], "already beside them: no walking, only the 5 it has, then a step back");
+  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone", "back on", "back off", "goto"], "already beside them: no walking, only the 5 it has, then a step back, and a path away when the step back went nowhere");
   emit("playerCollect", { username: "someone_else" }, {});
   emit("playerCollect", { username: "qwen" }, {});
   setInventory({});
@@ -229,4 +229,18 @@ test("ask_agent - returns the answer addressed to the asker, not other chatter",
   assert.deepEqual(result, { status: "success", reason: 'haiku answered: "40 oak logs"', detail: { to: "haiku", question: "how many logs?", reply: "40 oak logs" } });
   assert.equal((await run("ask_agent", { players: ["haiku"] }, { to: "haiku", question: "?" }, true)).status, "aborted");
   assert.match((await run("ask_agent", {}, { to: "haiku", question: "?" })).reason!, /no other agent called "haiku"/);
+});
+
+test("give - won't drop items for a receiver under water", async () => {
+  const blocks = { "1,65,0": "water", "2,65,0": "water" };
+  const result = await run("give", { inventory: { cobblestone: 5 }, entities: [teammate(1.5)], blocks }, { to: "qwen", item: "cobblestone", count: 5 });
+  assert.match(result.reason!, /qwen is under water/);
+});
+
+test("mine_stone - stone touching water is a hazard, stone in the open is not", async () => {
+  const { exposure } = await import("./mineStone.js");
+  const { Vec3 } = await import("vec3");
+  const { bot } = fakeBot({ blocks: { "0,60,0": "stone", "1,60,0": "water", "5,60,0": "stone", "5,59,0": "stone", "4,60,0": "stone", "6,60,0": "stone", "5,60,1": "stone", "5,60,-1": "stone" } });
+  assert.equal(exposure(context(bot), new Vec3(0, 60, 0)), "hazard", "water is an open side to the game, but not one to mine from");
+  assert.equal(exposure(context(bot), new Vec3(5, 60, 0)), "open", "air above it");
 });
