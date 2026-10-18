@@ -78,7 +78,9 @@ piece built against it simultaneously. This has already bitten this project's pl
   `--team a,b`) each write what they hold to `runs/.teams/<episode>/` (`src/team.ts`). A team goal
   (`team-camp`) is checked against all of it, and a collaborative agent's run ends only when the whole
   team is done. Teammates learn about each other only by looking (`otherAgents`) and by chat; agents
-  act on each other through `give`, `pick_up` and `go_to`.
+  act on each other through `give`, `pick_up` and `go_to`. They can ask things of each other with
+  `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log
+  records whether its next decision complied (`responses`).
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.
 

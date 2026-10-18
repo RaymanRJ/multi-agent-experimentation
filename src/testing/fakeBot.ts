@@ -33,6 +33,8 @@ export interface FakeWorld {
   timeOfDay?: number;
   /** Other entities: hostiles, players. */
   entities?: Array<{ name: string; type: string; position: { x: number; y: number; z: number }; username?: string }>;
+  /** Players in the world but out of sight; those among `entities` with a username are added too. */
+  players?: string[];
 }
 
 export interface FakeBot {
@@ -96,6 +98,10 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
     entities[i + 1] = { id: i + 1, name: e.name, displayName: e.name, type: e.type, username: e.username, position: new Vec3(e.position.x, e.position.y, e.position.z) };
   });
 
+  const players: Record<string, unknown> = {};
+  for (const name of setup.players ?? []) players[name] = { username: name };
+  for (const e of Object.values(entities)) if (e.username) players[e.username] = { username: e.username, entity: e };
+
   const listeners = new Map<string, Array<(...args: unknown[]) => void>>();
   const bot: any = {
     username: "tester",
@@ -103,6 +109,7 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
     version: GAME_VERSION,
     entity: { position, velocity: new Vec3(0, 0, 0), onGround: true, height: 1.8 },
     entities,
+    players,
     health: setup.health ?? 20,
     food: setup.food ?? 20,
     time: { timeOfDay, isDay: timeOfDay < 12000 || timeOfDay >= 23000, age: 0 },

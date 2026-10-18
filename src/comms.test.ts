@@ -27,11 +27,10 @@ test("narration is marked and never heard", () => {
   assert.deepEqual(buf.snapshot(), []);
 });
 
-test("own echoes are ignored; sent messages are recorded", () => {
+test("an agent never hears its own messages", () => {
   const buf = new MessageBuffer("a");
-  buf.sent("b", "on it", 1000);
   assert.equal(buf.hear("a", "@b on it", 1000), false);
-  assert.equal(buf.snapshot(1000).length, 1);
+  assert.deepEqual(buf.snapshot(1000), []);
 });
 
 test("buffer keeps the last 8, oldest first, with ages", () => {
@@ -73,4 +72,49 @@ test("the same words from the same sender interrupt only once", () => {
   b.hear("haiku", "@qwen it is beside you", 3);
   b.hear("bob", "@qwen it is beside you", 4);
   assert.equal(b.directed, 3, "new words, or another sender, do");
+});
+
+test("requests addressed to an agent are kept apart from its messages, once each, until it decides", async () => {
+  const { MessageBuffer, formatSpeech, requestText } = await import("./comms.js");
+  const buf = new MessageBuffer("qwen");
+  const tell = formatSpeech("qwen", requestText({ kind: "tell", skill: "give", args: { to: "sonnet", item: "oak_log", count: 20 } }));
+  assert.equal(tell, '@qwen [tell] give {"to":"sonnet","item":"oak_log","count":20}');
+  buf.hear("sonnet", tell, 1000);
+  buf.hear("sonnet", tell, 2000);
+  buf.hear("haiku", formatSpeech("qwen", requestText({ kind: "ask", question: "how many logs?" })), 3000);
+  buf.hear("haiku", formatSpeech("sonnet", requestText({ kind: "ask", question: "where are you?" })), 3000);
+  assert.equal(buf.directed, 2, "both requests interrupt; the repeat does not");
+  const { requests, mark } = buf.pending(4000);
+  assert.deepEqual(requests, [
+    { from: "sonnet", kind: "tell", skill: "give", args: { to: "sonnet", item: "oak_log", count: 20 }, ageSeconds: 3 },
+    { from: "haiku", kind: "ask", question: "how many logs?", ageSeconds: 1 },
+  ]);
+  assert.deepEqual(buf.snapshot(4000).map((m) => m.text), ["[ask] where are you?"], "a request for someone else is ordinary chat");
+  buf.hear("haiku", formatSpeech("qwen", requestText({ kind: "ask", question: "still there?" })), 5000);
+  buf.settle(mark);
+  assert.deepEqual(buf.pending(5000).requests.map((r) => r.question), ["still there?"], "one heard while deciding waits for the next decision");
+});
+
+test("parseRequest reads tells and asks, keeps the skill when args are mangled, ignores plain speech", async () => {
+  const { parseRequest } = await import("./comms.js");
+  assert.deepEqual(parseRequest('[tell] craft {"item":"stone_axe"}'), { kind: "tell", skill: "craft", args: { item: "stone_axe" } });
+  assert.deepEqual(parseRequest('[tell] give {"to":"a","ite...'), { kind: "tell", skill: "give", args: {} });
+  assert.deepEqual(parseRequest("[ask] got logs?"), { kind: "ask", question: "got logs?" });
+  assert.equal(parseRequest("[ask] "), null);
+  assert.equal(parseRequest("I'll take stone"), null);
+});
+
+test("responseTo judges compliance from the decision alone", async () => {
+  const { responseTo } = await import("./comms.js");
+  const tell = { from: "sonnet", kind: "tell" as const, skill: "give", args: { to: "sonnet", item: "oak_log", count: 20 } };
+  const give = (args: Record<string, unknown>) => ({ skill: "give", args });
+  assert.equal(responseTo(tell, give({ to: "Sonnet", item: "oak_log", count: 20 })), "complied");
+  assert.equal(responseTo(tell, give({ to: "sonnet", item: "oak_log", count: 5 })), "partly");
+  assert.equal(responseTo(tell, { skill: "gather_wood", args: { count: 40 } }), "other");
+  assert.equal(responseTo(tell, null), "other");
+  const ask = { from: "haiku", kind: "ask" as const, question: "logs?" };
+  assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "haiku", text: "40" } }), "answered");
+  assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "all", text: "40" } }), "answered");
+  assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "sonnet", text: "hi" } }), "unanswered");
+  assert.equal(responseTo(ask, { skill: "wait", args: {} }), "unanswered");
 });

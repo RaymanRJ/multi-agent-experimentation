@@ -59,6 +59,8 @@ comparable.
 | `give(to, item, count)` | Hand items to another agent | Says in chat that it is coming (which pauses them), walks up beside them, drops the items at its feet and steps back. Succeeds when they pick the items up; otherwise tells them the items are on the ground. | "qwen is not in sight; ask where they are, or go to them first" |
 | `pick_up(item)` | Collect dropped items within 8 blocks | Walks over each one (all, or only `item`). Dropped items near an agent are listed in its observation as `itemsOnGround`. | "there is no dropped stone_sword within 8 blocks" |
 | `go_to(to)` or `go_to(x, z)` | Walk to an agent in sight, or to coordinates | Walks in legs of 32 blocks, up to 512, following an agent that moves. | "qwen is not in sight; ask them where they are, then go_to with x and z" |
+| `tell_agent(to, skill, args)` | Ask another agent to run one of its skills | Checks the agent exists, the skill exists and every arg it needs is given, then sends the request in chat. Doesn't wait: whether they do it is up to them, and the log records whether they did. Not offered with comms off. | "give needs item, count in args (it takes {…})" |
+| `ask_agent(to, question)` | Ask another agent a question | Sends it by name and waits up to 30 seconds for their answer, which it returns. Not offered with comms off. | "qwen did not answer within 30 s; an answer may still come later in messages" |
 
 **Talking isn't a skill.** Any decision can include a chat message to another agent or to everyone,
 and it's sent alongside the skill at no extra cost. Comms can be switched off per run (`--comms off`).

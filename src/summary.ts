@@ -221,6 +221,38 @@ function stillLacking(s: RunSummary, steps: LoggedStep[]): string[] {
   return gaps({ skill: "done", status: "success", inventory, shelterBuilt: !!s.milestones["shelter"], nightSurvivedSinceShelter: false });
 }
 
+export interface Requests {
+  /** tell_agent and ask_agent decisions this agent made. */
+  sent: Array<{ step: number; kind: "tell" | "ask"; to: string; what: string; status: string; reply?: string }>;
+  /** Requests it was shown, and what its next decision did about each. */
+  received: Array<{ step: number; from: string; kind: "tell" | "ask"; what: string; response: string }>;
+}
+
+/** Who asked whom for what, and whether it was done: the agent's side of it, from its own log. */
+export function requests(steps: LoggedStep[]): Requests {
+  const out: Requests = { sent: [], received: [] };
+  for (const step of steps) {
+    const d = step.decision;
+    if (d && (d.skill === "tell_agent" || d.skill === "ask_agent")) {
+      const tell = d.skill === "tell_agent";
+      const reply = step.result?.detail?.["reply"];
+      out.sent.push({
+        step: step.step,
+        kind: tell ? "tell" : "ask",
+        to: String(d.args["to"] ?? ""),
+        what: tell ? `${String(d.args["skill"] ?? "")} ${String(d.args["args"] ?? "")}` : String(d.args["question"] ?? ""),
+        status: step.result?.status ?? "-",
+        ...(typeof reply === "string" ? { reply } : {}),
+      });
+    }
+    for (const r of step.responses ?? []) {
+      const what = r.kind === "tell" ? `${r.skill ?? ""} ${JSON.stringify(r.args ?? {})}` : r.question ?? "";
+      out.received.push({ step: step.step, from: r.from, kind: r.kind, what, response: r.response });
+    }
+  }
+  return out;
+}
+
 /** Three to six plain sentences on how the run went, built from the numbers below them. */
 function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: string[]): string[] {
   const lines: string[] = [];
@@ -249,6 +281,12 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   if (s.doneRefused > 0) lines.push(`It claimed to be done ${s.doneRefused} time${s.doneRefused > 1 ? "s" : ""} before the goal was met.`);
   if (s.deaths > 0) lines.push(`It died ${s.deaths} time${s.deaths > 1 ? "s" : ""}, losing what it carried each time.`);
   if (b.invalid > 0) lines.push(`${b.invalid} decision${b.invalid > 1 ? "s" : ""} named a skill that does not exist.`);
+  const r = requests(steps);
+  const tells = r.received.filter((x) => x.kind === "tell");
+  const asks = r.received.filter((x) => x.kind === "ask");
+  if (tells.length) lines.push(`Of ${tells.length} request${tells.length > 1 ? "s" : ""} to act, it did ${tells.filter((x) => x.response === "complied").length} as asked.`);
+  if (asks.length) lines.push(`Of ${asks.length} question${asks.length > 1 ? "s" : ""} put to it, it answered ${asks.filter((x) => x.response === "answered").length}.`);
+  if (r.sent.length) lines.push(`It made ${r.sent.length} request${r.sent.length > 1 ? "s" : ""} of other agents.`);
   return lines;
 }
 
@@ -354,6 +392,23 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     if (step.decision?.say) notable.push(`- Step ${step.step}: said to ${step.decision.say.to}: "${step.decision.say.text}"`);
   }
   if (notable.length) add("## Notable moments", "", ...notable.slice(0, 12), ...(notable.length > 12 ? [`- …and ${notable.length - 12} more`] : []), "");
+
+  const asked = requests(steps);
+  if (asked.sent.length || asked.received.length) {
+    add("## Requests between agents", "");
+    if (asked.sent.length) {
+      add("Made:", "");
+      for (const x of asked.sent.slice(0, 12)) {
+        add(`- Step ${x.step}: ${x.kind} ${x.to}: ${clip(x.what, 120)} (${x.status}${x.reply ? `; answer: "${clip(x.reply, 120)}"` : ""})`);
+      }
+      add("");
+    }
+    if (asked.received.length) {
+      add("Received:", "");
+      for (const x of asked.received.slice(0, 12)) add(`- Step ${x.step}: ${x.from} ${x.kind === "tell" ? "told it to" : "asked"}: ${clip(x.what, 120)} → **${x.response}**`);
+      add("");
+    }
+  }
 
   const story = phases(steps);
   add("<details><summary>The run, step by step</summary>", "", "Consecutive decisions of the same skill are folded into one line.", "");

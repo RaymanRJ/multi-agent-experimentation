@@ -200,3 +200,32 @@ test("build_shelter - won't clear a space with lava beside it", async () => {
   assert.equal(result.status, "failed");
   assert.match(result.reason!, /lava in or beside the space/);
 });
+
+test("tell_agent - checks the agent, the skill and its args, then sends one request line", async () => {
+  const setup = { players: ["qwen"] };
+  assert.match((await run("tell_agent", setup, { to: "bob", skill: "craft", args: "{}" })).reason!, /no other agent called "bob"/);
+  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "fly", args: "{}" })).reason!, /no skill called "fly"/);
+  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "ask_agent", args: "{}" })).reason!, /not to ask_agent/);
+  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "craft", args: "not json" })).reason!, /must be an object/);
+  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "give", args: '{"to":"tester"}' })).reason!, /give needs item, count in args/);
+  const { bot, calls } = fakeBot(setup);
+  const result = await findSkill("tell_agent")!.run(context(bot), { to: "QWEN", skill: "craft", args: '{"item":"stone_axe","count":1,"extra":1}' });
+  assert.equal(result.status, "success");
+  assert.deepEqual(calls, ['chat @qwen [tell] craft {"item":"stone_axe","count":1}'], "only the skill's own args are passed on");
+});
+
+test("ask_agent - returns the answer addressed to the asker, not other chatter", async () => {
+  const { bot, calls, emit } = fakeBot({ players: ["haiku"] });
+  bot.chat = (line: string) => {
+    calls.push(`chat ${line}`);
+    emit("chat", "haiku", "[act] gather_wood({})");
+    emit("chat", "haiku", "@sonnet not you");
+    emit("chat", "haiku", "@tester [tell] craft {}");
+    emit("chat", "haiku", "@tester 40 oak logs");
+  };
+  const result = await findSkill("ask_agent")!.run(context(bot), { to: "haiku", question: "how many logs?" });
+  assert.deepEqual(calls, ["chat @haiku [ask] how many logs?"]);
+  assert.deepEqual(result, { status: "success", reason: 'haiku answered: "40 oak logs"', detail: { to: "haiku", question: "how many logs?", reply: "40 oak logs" } });
+  assert.equal((await run("ask_agent", { players: ["haiku"] }, { to: "haiku", question: "?" }, true)).status, "aborted");
+  assert.match((await run("ask_agent", {}, { to: "haiku", question: "?" })).reason!, /no other agent called "haiku"/);
+});

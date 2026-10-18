@@ -6,7 +6,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 
 import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
-import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
+import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { readFileSync } from "node:fs";
 import { RunLog } from "./log.js";
@@ -15,6 +15,7 @@ import { writeSummary } from "./summary.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
+import { COMMS_SKILLS } from "./skills/tellAgent.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { LLMPolicy } from "./policy/llm.js";
@@ -84,6 +85,8 @@ const config: RunConfig = {
 };
 // `--team a,b,c`: the agents launched together as one team (scripts/team.sh passes it). A team goal is
 // judged on all of them, and a collaborative agent's run ends only when the whole team is done.
+// With comms off nobody hears anything, so the skills that only pass words are not offered.
+const skills = comms ? SKILLS : SKILLS.filter((skill) => !COMMS_SKILLS.has(skill.name));
 const team = String(argv["team"] ?? "").split(",").map((name) => name.trim()).filter(Boolean);
 if (team.length > 0) config.team = team;
 
@@ -303,31 +306,33 @@ async function main(): Promise<void> {
   let ended: EndReason | undefined;
 
   for (let step = 1; !ended; step++) {
+    const asked = buffer?.pending() ?? { requests: [], mark: 0 };
     const observation = observe(bot, {
       step,
       scenario: scenario.name,
       goal,
       recentEvents,
       activities,
-      ...(buffer ? { messages: buffer.snapshot() } : {}),
+      ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
         ? { stillNeeded: goalGaps(goalState("", "")) }
         : {}),
     });
     stepEvents = [];
-    const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended">) => {
+    let responses: LoggedStep["responses"];
+    const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended" | "responses">) => {
       // Checked last, so a goal met or a model "done" on the final step wins.
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
-      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
     };
 
     const startedAt = Date.now();
     let output;
     try {
-      output = await policy.decide(observation, SKILLS);
+      output = await policy.decide(observation, skills);
       policyFailures = 0;
     } catch (error) {
       // A slow or unreachable model must not end the run. Log the failed step,
@@ -348,6 +353,11 @@ async function main(): Promise<void> {
     }
     const { decision, calls, system } = output;
     const decisionMs = Date.now() - startedAt;
+    if (asked.requests.length) {
+      // This decision is the agent's answer to every request it was shown; they leave its list.
+      responses = asked.requests.map(({ ageSeconds: _age, ...request }) => ({ ...request, response: responseTo(request, decision) }));
+      buffer?.settle(asked.mark);
+    }
     for (const call of calls) {
       const cost = costUSD(call);
       // Fail closed: a price that went unknown mid-run (a different model answered) ends the run.
@@ -402,7 +412,7 @@ async function main(): Promise<void> {
     console.log(`[${agentName}] step ${step}: ${decision.skill}(${JSON.stringify(decision.args)})`);
     narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
     lastPlan = decision.plan ?? lastPlan;
-    if (buffer && decision.say?.text) speak(bot, buffer, decision.say.to, decision.say.text);
+    if (buffer && decision.say?.text) speak(bot, decision.say.to, decision.say.text);
     if (headInWater(bot)) {
       // A reflex before any skill: every skill would otherwise be stopped at once by drowning damage.
       const out = await getOutOfWater(bot);

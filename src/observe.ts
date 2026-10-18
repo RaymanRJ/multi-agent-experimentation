@@ -1,5 +1,5 @@
 import type { Bot } from "mineflayer";
-import type { Message, Observation, ScenarioName } from "./types.js";
+import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { isExposed } from "./skills/util.js";
 import { droppedNearby } from "./skills/pickUp.js";
@@ -38,6 +38,7 @@ export function observe(
     recentEvents: string[];
     /** Present only when comms are on. */
     messages?: Message[];
+    requests?: Request[];
     stillNeeded?: string[];
     /** Present only when memory is plan or full. */
     plan?: string;
@@ -114,6 +115,7 @@ export function observe(
   if (craftable.length > 0) observation.canCraft = craftable;
   if (Object.keys(itemsOnGround).length > 0) observation.itemsOnGround = itemsOnGround;
   if (opts.messages) observation.messages = opts.messages;
+  if (opts.requests?.length) observation.requests = opts.requests;
   if (opts.stillNeeded?.length) observation.stillNeeded = opts.stillNeeded;
   if (opts.plan) observation.plan = opts.plan;
   return observation;

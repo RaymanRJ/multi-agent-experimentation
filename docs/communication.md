@@ -12,6 +12,7 @@ The code is in `src/comms.ts` (chat), `src/interrupts.ts` (being called by name)
 |---|---|---|
 | **Narration** | `[act] gather_wood({"count":10}) — need logs for planks` | People watching. The agent posts one automatically each time it starts a skill. Other agents never hear it as a message. |
 | **Speech** | `@agent_gpt I'll take the stone, you get wood` or `Found iron at the cliff` | Other agents. The model writes it. `@name` addresses one agent; a line without `@` is for everyone. |
+| **Request** | `@qwen [tell] give {"to":"sonnet","item":"oak_log","count":20}` or `@qwen [ask] how many logs do you have?` | The agent named. Sent by the `tell_agent` and `ask_agent` skills. It sees them as `requests`, not as messages; everyone else hears the line as ordinary chat. |
 
 ## Sending a message
 
@@ -32,15 +33,20 @@ characters.
 
 - **Everyone hears everything.** Chat is public, so the recipient (`to`) is only a label. Each
   agent can still tell which messages were meant for it.
-- **The last 8 messages** an agent heard or sent appear in its next observation, each with
+- **The last 8 messages** an agent heard from others appear in its next observation, each with
   how many seconds ago it arrived:
 
   ```json
   "messages": [
     { "from": "agent_gpt", "to": "agent_claude", "text": "ok, wood is mine", "ageSeconds": 12 },
-    { "from": "agent_claude", "to": "agent_gpt", "text": "I'll mine stone, can you gather wood?", "ageSeconds": 40 }
+    { "from": "agent_gpt", "to": "all", "text": "found iron at the cliff", "ageSeconds": 40 }
   ]
   ```
+
+- **An agent doesn't hear itself.** Until 18 October its own lines were in that list too. In
+  team trio1 most of what qwen was shown each decision was its own "Collecting more wood…",
+  several times over, and it kept saying it. Its plan already carries what it meant to do. Runs
+  before that date had their own messages in the list: a different condition.
 
 - **A message to everyone waits** until the agent's current skill finishes and it next decides.
 - **A message addressed to it by name interrupts it.** The running skill (say, `gather_wood`) is
@@ -55,6 +61,23 @@ characters.
 - **The same words don't interrupt twice.** A message repeated word for word by the same sender
   is heard but doesn't stop the agent again. A small model announced "Gathering 10 more logs…"
   on most of its decisions and kept stopping its teammate's work.
+- **Agents can ask things of each other.** `tell_agent(to, skill, args)` asks another agent to run
+  one of its skills, for example `give` 20 logs back. `ask_agent(to, question)` asks a question and
+  waits up to 30 seconds for the answer, which comes back as the skill's result. Both reach the
+  agent wherever it is, and both interrupt it the way a message by name does. The agent sees
+  them in its observation until its next decision:
+
+  ```json
+  "requests": [
+    { "from": "sonnet", "kind": "tell", "skill": "give", "args": {"to": "sonnet", "item": "oak_log", "count": 20}, "ageSeconds": 3 },
+    { "from": "haiku", "kind": "ask", "question": "how many logs do you have?", "ageSeconds": 1 }
+  ]
+  ```
+
+  Doing it is the agent's choice. The code only records what its next decision did about each
+  request, in the log (`responses`) and the run report: a tell was **complied** with (that skill,
+  every arg asked for), done **partly** (that skill, other args) or met with something **other**;
+  a question was **answered** (something said to the asker or to everyone) or **unanswered**.
 - **Agents can act for each other.** `give` hands items over (and says so by name first, which
   pauses the receiver), `pick_up` collects items left on the ground, and `go_to` walks to a teammate
   in sight or to coordinates someone gave in chat.
@@ -100,8 +123,8 @@ STANCE=collaborative GOAL=shelter scripts/team.sh t2 "qa=ollama qb=ollama:full" 
 
 ## Turning it off
 
-`--comms off` (or `./start.sh --comms off`, or `COMMS=off` for `team.sh`) removes the `say` option and the `messages` list from
-what the model sees, and stops name-interrupts. Narration and `otherAgents` stay, because they
+`--comms off` (or `./start.sh --comms off`, or `COMMS=off` for `team.sh`) removes the `say` option, the `messages` and
+`requests` lists and the `tell_agent` and `ask_agent` skills from what the model sees, and stops name-interrupts. Narration and `otherAgents` stay, because they
 describe what's visible in the world, not conversation. Comparing `on` with `off` is how we
 measure whether talking helps.
 

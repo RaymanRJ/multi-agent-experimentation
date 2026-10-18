@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { behaviour, gameTime, phases, problemKey, renderSummary } from "./summary.js";
+import { behaviour, gameTime, phases, problemKey, renderSummary, requests } from "./summary.js";
 import type { LoggedStep, Observation } from "./types.js";
 import { GOALS } from "./scenario.js";
 
@@ -102,4 +102,19 @@ test("renderSummary - a met goal, and a scripted run without the model-only part
     assert.ok(!md.includes(modelOnly.replace(/\\/g, "")), `no ${modelOnly} for the baseline`);
   }
   assert.match(md, /Nothing failed\./);
+});
+
+test("requests - what it asked of others and what it did when asked", () => {
+  const steps: LoggedStep[] = [
+    step(1, "tell_agent", "success", { decision: { skill: "tell_agent", args: { to: "qwen", skill: "give", args: '{"count":5}' } } }),
+    step(2, "ask_agent", "success", { decision: { skill: "ask_agent", args: { to: "qwen", question: "logs?" } }, result: { status: "success", detail: { reply: "40" } } }),
+    step(3, "give", "success", { responses: [{ from: "qwen", kind: "tell", skill: "give", args: { count: 5 }, response: "complied" }, { from: "qwen", kind: "ask", question: "ready?", response: "unanswered" }] }),
+  ];
+  const r = requests(steps);
+  assert.deepEqual(r.sent.map((x) => [x.kind, x.to, x.what, x.reply]), [["tell", "qwen", 'give {"count":5}', undefined], ["ask", "qwen", "logs?", "40"]]);
+  assert.deepEqual(r.received.map((x) => x.response), ["complied", "unanswered"]);
+  const text = renderSummary(steps, "runs/x.jsonl");
+  assert.match(text, /## Requests between agents/);
+  assert.match(text, /Of 1 request to act, it did 1 as asked\./);
+  assert.match(text, /Of 1 question put to it, it answered 0\./);
 });

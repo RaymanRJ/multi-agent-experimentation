@@ -64,12 +64,14 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *  - eat: a couple of seconds long; the model replans right after anyway.
  *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
  *  - build_shelter: getting under cover is the answer to dusk and nightfall, not something they should cut short.
+ *  - ask_agent: it is waiting for an answer addressed to it, which must not cut the wait short.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
   flee: ["damage", "hostile", "dusk", "night", "message"],
   eat: ["damage", "hostile", "dusk", "night", "message"],
   sleep: ["damage", "hostile", "dusk", "night", "message"],
   build_shelter: ["dusk", "night"],
+  ask_agent: ["message"],
 };
 
 export interface Watch {

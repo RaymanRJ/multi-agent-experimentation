@@ -72,6 +72,13 @@ test("string number args are coerced", async () => {
   assert.deepEqual(out.decision?.args, { count: 7 });
 });
 
+test("an object given for a string arg is kept as JSON", async () => {
+  const tell: Skill = { name: "tell_agent", description: "Tell.", args: { to: "string", skill: "string", args: "string" }, run: async () => ({ status: "success" }) };
+  const reply = '{"skill":"tell_agent","args":{"to":"qwen","skill":"craft","args":{"item":"stone_axe"}}}';
+  const out = await new LLMPolicy(fakeBackend([reply])).decide(obs, [tell]);
+  assert.deepEqual(out.decision?.args, { to: "qwen", skill: "craft", args: '{"item":"stone_axe"}' });
+});
+
 const wait = '{"skill":"wait","args":{"seconds":1}';
 
 test("prompt varies by options", () => {

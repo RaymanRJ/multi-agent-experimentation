@@ -36,6 +36,27 @@ export interface Message {
 }
 
 /**
+ * Something another agent asked of this one by name, through tell_agent or ask_agent. The agent
+ * decides whether to do it; the code only records what it did (RequestResponse).
+ */
+export interface Request {
+  from: string;
+  /** "tell": run `skill` with `args`. "ask": answer `question`. */
+  kind: "tell" | "ask";
+  skill?: string;
+  args?: Record<string, unknown>;
+  question?: string;
+  ageSeconds: number;
+}
+
+/**
+ * What the decision made after seeing a request did about it: a tell is "complied" (that skill
+ * with every arg asked for), "partly" (that skill, other args) or "other"; a question is
+ * "answered" (something said to the asker or to everyone) or "unanswered".
+ */
+export type RequestResponse = "complied" | "partly" | "other" | "answered" | "unanswered";
+
+/**
  * What an agent is told about its situation.
  *
  * Deliberately small. The temptation is to hand the model everything the bot can
@@ -70,8 +91,10 @@ export interface Observation {
    */
   itemsOnGround?: Record<string, number>;
   recentEvents: string[];
-  /** Recent messages heard and sent, oldest first. Absent when comms are off. */
+  /** Recent messages heard from others, oldest first. Absent when comms are off. */
   messages?: Message[];
+  /** Requests addressed to this agent that it has not yet decided on. Omitted when none. */
+  requests?: Request[];
   /** The plan this agent wrote on its previous decision. Only with memory "plan" or "full". */
   plan?: string;
   /** What a preset goal still lacks, as facts ("no shelter has been built yet"). Only with progress on. */
@@ -203,6 +226,8 @@ export interface LoggedStep {
   ticks?: number;
   /** Inventory once the step's skill finished — observations are taken before, so the last result is otherwise lost. */
   inventoryAfter?: Record<string, number>;
+  /** The requests shown in this step's observation, and what this decision did about each. */
+  responses?: Array<Omit<Request, "ageSeconds"> & { response: RequestResponse }>;
   /** Set on the last line of a run: why it stopped. */
   ended?: EndReason;
 }

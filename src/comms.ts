@@ -8,11 +8,16 @@
  * The recipient is only a label: every agent hears every line, and the
  * observation shows `to` so the model can tell what was meant for it.
  *
+ * Requests are speech with a mark, sent by the tell_agent and ask_agent skills:
+ *   "@qwen [tell] give {"to":"sonnet","item":"oak_log","count":20}"   run this skill
+ *   "@qwen [ask] how many logs do you have?"                          answer this
+ * The agent named sees them as "requests", not as messages; everyone else hears the line as chat.
+ *
  * The parse/format/buffer logic here is pure; `attachComms` is the one bit
  * that touches a bot.
  */
 import type { Bot } from "mineflayer";
-import type { Message } from "./types.js";
+import type { Decision, Message, Request, RequestResponse } from "./types.js";
 
 /** Marks narration so it is never mistaken for a message. */
 export const NARRATION_PREFIX = "[act] ";
@@ -51,6 +56,54 @@ export function formatSpeech(to: string, text: string): string {
   return clip(`@${to} ${body}`);
 }
 
+const TELL_MARK = "[tell] ";
+const ASK_MARK = "[ask] ";
+export const MAX_REQUESTS = 4;
+
+export type RequestBody = { kind: "tell"; skill: string; args: Record<string, unknown> } | { kind: "ask"; question: string };
+
+/** The speech text for a request; formatSpeech adds the address. Inverse of parseRequest. */
+export function requestText(body: RequestBody): string {
+  return body.kind === "tell" ? `${TELL_MARK}${body.skill} ${JSON.stringify(body.args)}` : `${ASK_MARK}${body.question.trim()}`;
+}
+
+/** A request from speech text, or null for ordinary speech. A tell whose args don't parse has none. */
+export function parseRequest(text: string): RequestBody | null {
+  if (text.startsWith(ASK_MARK)) {
+    const question = text.slice(ASK_MARK.length).trim();
+    return question ? { kind: "ask", question } : null;
+  }
+  if (!text.startsWith(TELL_MARK)) return null;
+  const match = /^([a-z_]+)\s*([\s\S]*)$/.exec(text.slice(TELL_MARK.length).trim());
+  if (!match) return null;
+  let args: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(match[2]!.trim() || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) args = parsed as Record<string, unknown>;
+  } catch {
+    // Cut off or mangled: the skill name alone still says what was asked.
+  }
+  return { kind: "tell", skill: match[1]!, args };
+}
+
+const same = (a: unknown, b: unknown) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+
+/**
+ * How the decision an agent made after seeing a request answers it. Judged by the code, not the
+ * model: a tell is complied with when the decision runs the skill asked for with every arg asked
+ * for ("partly" with other args), and a question is answered when the decision says something to
+ * the asker (or to everyone).
+ */
+export function responseTo(request: Pick<Request, "from" | "kind" | "skill" | "args">, decision: Decision | null): RequestResponse {
+  if (request.kind === "ask") {
+    const to = decision?.say?.to;
+    return to !== undefined && (same(to, request.from) || same(to, "all")) ? "answered" : "unanswered";
+  }
+  if (!decision || decision.skill !== request.skill) return "other";
+  const asked = Object.entries(request.args ?? {});
+  return asked.every(([key, value]) => key in decision.args && same(decision.args[key], value)) ? "complied" : "partly";
+}
+
 interface Stored {
   from: string;
   to: string;
@@ -58,9 +111,15 @@ interface Stored {
   at: number;
 }
 
-/** The last few messages heard and sent, oldest first. */
+/**
+ * The last few messages heard, oldest first, and the requests addressed to this agent that it has
+ * not yet decided on. Its own messages are left out: a small model shown its own last lines tends
+ * to repeat them, and its plan already carries what it meant to do.
+ */
 export class MessageBuffer {
   private readonly items: Stored[] = [];
+  private readonly requests: Array<Omit<Request, "ageSeconds"> & { at: number; text: string; seq: number }> = [];
+  private seq = 0;
   /** Messages addressed to this agent by name, ever — the interrupt watches this grow. */
   directed = 0;
   lastDirected: { from: string; text: string } | null = null;
@@ -75,19 +134,24 @@ export class MessageBuffer {
     if (from === this.self || isNarration(line)) return false;
     const { to, text } = parseSpeech(line);
     if (!text) return false;
-    this.push({ from, to, text, at: now });
-    if (to.toLowerCase() === this.self.toLowerCase()) {
+    const toMe = to.toLowerCase() === this.self.toLowerCase();
+    const request = toMe ? parseRequest(text) : null;
+    if (request) {
+      // The same request again replaces nothing and waits once.
+      if (!this.requests.some((r) => r.from === from && r.text === text)) {
+        this.requests.push({ from, ...request, at: now, text, seq: this.seq++ });
+        while (this.requests.length > MAX_REQUESTS) this.requests.shift();
+      }
+    } else {
+      this.push({ from, to, text, at: now });
+    }
+    if (toMe) {
       // The same words from the same sender again tell nothing new: heard, but no second interrupt.
       const repeat = this.lastDirected?.from === from && this.lastDirected.text === text;
       if (!repeat) this.directed++;
       this.lastDirected = { from, text };
     }
     return true;
-  }
-
-  /** Record something this agent said, so it sees its own side of the conversation. */
-  sent(to: string, text: string, now = Date.now()): void {
-    this.push({ from: this.self, to: to || "all", text: text.trim(), at: now });
   }
 
   snapshot(now = Date.now()): Message[] {
@@ -97,6 +161,17 @@ export class MessageBuffer {
       text: m.text,
       ageSeconds: Math.max(0, Math.round((now - m.at) / 1000)),
     }));
+  }
+
+  /** Requests not yet decided on, oldest first, and a mark to settle exactly these later. */
+  pending(now = Date.now()): { requests: Request[]; mark: number } {
+    const requests = this.requests.map(({ at, text: _text, seq: _seq, ...r }) => ({ ...r, ageSeconds: Math.max(0, Math.round((now - at) / 1000)) }));
+    return { requests, mark: this.seq };
+  }
+
+  /** The agent has decided, having seen every request heard before `mark`: those are done. */
+  settle(mark: number): void {
+    for (let i = this.requests.length - 1; i >= 0; i--) if (this.requests[i]!.seq < mark) this.requests.splice(i, 1);
   }
 
   private push(m: Stored): void {
@@ -152,8 +227,7 @@ export function narrate(bot: Bot, text: string): void {
   bot.chat(formatNarration(text));
 }
 
-/** Says a decision's `say` in chat and notes it in the buffer. */
-export function speak(bot: Bot, buffer: MessageBuffer, to: string, text: string): void {
+/** Says a decision's `say` in chat. */
+export function speak(bot: Bot, to: string, text: string): void {
   bot.chat(formatSpeech(to, text));
-  buffer.sent(to, text);
 }

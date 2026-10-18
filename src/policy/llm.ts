@@ -190,6 +190,8 @@ export function buildSystemPrompt(
         'Include "say" to talk: "to" is an agent name or "all". Speaking is free — it happens alongside your skill, ' +
         "with no extra step. Keep messages short. " +
         'Omit "say" when you have nothing worth saying. If someone addresses you by name, your current skill is paused so you can answer.',
+      '"requests" are what other agents have asked of you by name: "tell" asks you to run a skill with those args, ' +
+        '"ask" asks you a question. Whether to do it is your choice; answer a question with "say" to them.',
     );
   }
   if (options.memory === "full") {
@@ -253,7 +255,8 @@ function parseDecision(text: string, skills: Skill[], options: LLMPolicyOptions)
       if (!Number.isFinite(n)) return { ok: false, error: `arg "${key}" must be a number, got ${JSON.stringify(value)}` };
       args[key] = n;
     } else {
-      args[key] = String(value);
+      // An object where a string is expected (tell_agent's args) is kept whole, not "[object Object]".
+      args[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
     }
   }
 

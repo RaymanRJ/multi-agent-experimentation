@@ -121,3 +121,8 @@ test("the watch reports which trigger fired", () => {
   assert.match(watch.check({ ...start, directed: 1, lastDirected: { from: "qb", text: "hi" } }) ?? "", /qb said to you/);
   assert.equal(watch.firedBy(), "message");
 });
+
+test("ask_agent is not interrupted by the answer it is waiting for", () => {
+  const watch = createWatch({ health: 20, hostiles: [], timeOfDay: 1000, directed: 0 }, SUPPRESSED["ask_agent"]);
+  assert.equal(watch.check({ health: 20, hostiles: [], timeOfDay: 1000, directed: 1, lastDirected: { from: "haiku", text: "40 logs" } }), null);
+});
