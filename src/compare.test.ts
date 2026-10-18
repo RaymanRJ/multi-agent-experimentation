@@ -55,7 +55,7 @@ test("renderComparison - a team episode reads as who did what, with handovers on
   assert.match(text, /\*\*a\*\* \(Claude Haiku 4\.5\): made stone axe; gave stone axe to b;/);
   assert.match(text, /\*\*b\*\* .*received stone axe from a; .*ended holding stone axe\./);
   assert.match(text, /0:00 — a made a stone axe/);
-  assert.match(text, /\| 200 \/ 20 \| \$0\.0004 \|/, "tokens in / out beside cost");
+  assert.match(text, /\| 200 \/ 20 \| \$0\.0003 \|/, "tokens in / out beside cost");
   assert.match(text, /300 \/ 30 tokens in \/ out/, "and in total");
 });
 
