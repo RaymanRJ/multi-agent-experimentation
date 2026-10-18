@@ -63,8 +63,10 @@ const DEFAULT_OPTIONS: LLMPolicyOptions = { memory: "plan", comms: true, stance:
 export const STANCE_TEXT: Record<Stance, string | null> = {
   neutral: null,
   collaborative:
+    // Why to work together, never how: "share what you find and split the work" was cut on
+    // 18 October for steering the model (runs before that had it: a different condition).
     "The other agents in this world are your teammates. The team succeeds only when every member " +
-    "reaches the goal, so share what you find and split the work.",
+    "reaches the goal.",
   competitive:
     "The other agents in this world are your opponents. Only the first agent to reach the goal wins; " +
     "the others lose. You do not have to help them or tell them the truth, and you may work against them.",
@@ -204,7 +206,7 @@ export function buildSystemPrompt(
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
-    '"air" appears only when you are under water: you drown when it reaches 0.',
+    '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
     '"ticksUntilNight" is how long until dark (20 ticks = 1 second); hostile mobs come out at night.',
     ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
     "Skills (args spec: name -> type):",

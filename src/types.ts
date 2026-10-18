@@ -70,7 +70,7 @@ export interface Observation {
   position: { x: number; y: number; z: number };
   health: number;
   food: number;
-  /** Air left, 0-20, when under water and losing it; at 0 the agent drowns. Omitted otherwise. */
+  /** Air left, 0-20, when under water and losing it; at 0 the agent loses 2 health a second. Omitted otherwise. */
   air?: number;
   timeOfDay: number;
   isDay: boolean;

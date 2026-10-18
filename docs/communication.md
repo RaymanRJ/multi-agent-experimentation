@@ -99,7 +99,7 @@ in the prompt:
 | Stance | What the model is told | How the run is scored |
 |---|---|---|
 | `neutral` (default) | Nothing. It's told other agents exist and what they're doing, but no motive. | Did this agent reach the goal? |
-| `collaborative` | "The other agents in this world are your teammates. The team succeeds only when every member reaches the goal, so share what you find and split the work." | Did **every** collaborative agent in the episode reach it? |
+| `collaborative` | "The other agents in this world are your teammates. The team succeeds only when every member reaches the goal." Until 18 October it went on "…, so share what you find and split the work", which told the model how to collaborate rather than why; runs before then had that wording. | Did **every** collaborative agent in the episode reach it? |
 | `competitive` | "The other agents in this world are your opponents. Only the first agent to reach the goal wins; the others lose. You do not have to help them or tell them the truth, and you may work against them." | Was this agent the **first** to reach it? |
 
 The scoring matches what the model is told, so the incentive is real rather than just a sentence.

@@ -66,7 +66,8 @@ function underCover(ctx: SkillContext, base: Block): boolean {
 export const gatherWood: Skill = {
   name: "gather_wood",
   description:
-    "Collect logs from nearby trees. Takes `count` — the total number of logs you want in your inventory. " +
+    "Collect logs from the nearest trees, of any kind. Takes `count` — the total number of logs you want in your " +
+    "inventory, all kinds added together: every kind of log makes the same planks, sticks, tools and shelters. " +
     "If you already have that many, it returns at once without gathering. " +
     "Fails if there are no reachable trees nearby or a hostile interrupts.",
   args: { count: "number" },

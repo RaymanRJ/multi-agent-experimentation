@@ -69,6 +69,11 @@ Read this at the start of a session; update it when something finishes or a new 
     - Haiku called `pick_up` for a shovel 20 times, mostly while already holding it; qwen claimed to
       have handed over a sword it never had.
 
+- **Prompt changes on 18 October, after trio3:** the collaborative stance lost "so share what you
+  find and split the work" (it steered the model); `air` now says what 0 means (2 health a second
+  while under water, not instant death); `gather_wood` says every kind of log counts and makes the
+  same things. Team runs trio1–trio3 had the old wording.
+
 ## Open, most wanted first
 
 0. **Sonnet 5.5 answers in tool-call form first, every time.** In trio1 each of its decisions came
