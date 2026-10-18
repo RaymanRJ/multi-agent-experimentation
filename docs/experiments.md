@@ -96,17 +96,24 @@ It also has these columns:
 - **Cached**: the share of input tokens read from the provider's prompt cache, which are billed at a discount.
 - **Done refused**: times the model said "done" before the goal was met.
 
-For a one-page write-up of a single run, use `npm run summary`. It covers how the run ended, the
-milestones, time and token use, every skill used and how often it failed, the most common
-problems, a condensed step-by-step story and the final inventory:
+Every run also writes a short report on how the agent behaved, beside its log as
+`runs/<file>.summary.md`, when it ends. It starts with a verdict in plain sentences, then:
+- **a scorecard:** decisions that worked, how often it changed course after a failure, failures
+  that repeated an earlier one exactly, its longest loop, false "done" claims, unusable answers,
+  deaths, think time, tokens and cost;
+- **progress** through the milestones;
+- **where the game time went,** by skill and waiting on the model;
+- **what got in its way;**
+- **for a model, its own reasons** at the start, in its longest loop and at the end.
+
+The step-by-step story and the final inventory are folded away at the bottom. To rebuild
+reports, for example for runs from before this existed:
 
 ```bash
 npm run summary                         # the newest run
 npm run summary -- runs/<file>.jsonl    # a particular run
 npm run summary -- --batch b10          # every run in a batch
 ```
-
-Each summary is written beside its log as `runs/<file>.summary.md`.
 
 To see why a run failed, open its log in the minds panel (`npm run minds`, then
 http://localhost:3010). It shows every decision: what the agent saw, what it chose and why, and

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gameTime, phases, problemKey, renderSummary } from "./summary.js";
+import { behaviour, gameTime, phases, problemKey, renderSummary } from "./summary.js";
 import type { LoggedStep, Observation } from "./types.js";
 import { GOALS } from "./scenario.js";
 
@@ -37,13 +37,69 @@ test("phases - folds repeats and back-and-forth, and adds up what was gained", (
   assert.equal(p[1]!.failed, 2);
 });
 
-test("renderSummary - outcome, sections and the grouped problems", () => {
-  const steps = [step(1, "craft", "failed"), step(2, "craft", "failed"), { ...step(3, "wait", "success"), ended: "time budget" as const }];
+const failing = (n: number, item: string, reason = "need 3 more cobblestone", extra: Partial<LoggedStep> = {}): LoggedStep => ({
+  ...step(n, "craft", "failed"), decision: { skill: "craft", args: { item }, rationale: `make a ${item}` }, result: { status: "failed", reason }, ...extra,
+});
+
+test("behaviour - worked, failed and interrupted; response to failure; repeats and loops", () => {
+  const steps = [
+    failing(1, "stone_pickaxe"), failing(2, "stone_pickaxe"), failing(3, "stone_pickaxe"), // a loop of 3
+    failing(4, "stone_axe"), // changed course
+    failing(5, "stone_pickaxe"), // a repeat, not adjacent
+    { ...step(6, "mine_stone", "success") },
+    { ...step(7, "gather_wood", "success"), result: { status: "aborted" as const, reason: "interrupted: a zombie came within 6 blocks" } },
+    { ...step(8, "fly", "failed"), result: { status: "failed" as const, reason: "no such skill: fly" } },
+    { ...step(9, "wait", "success"), result: { status: "aborted" as const, reason: "the run is ending" } },
+  ];
+  const b = behaviour(steps);
+  assert.equal(b.decisions, 9);
+  assert.deepEqual([b.succeeded, b.failed, b.interrupted], [1, 6, 1], "the run ending is not an interruption");
+  assert.equal(b.failuresWithNext, 6);
+  assert.equal(b.changedCourse, 4, "steps 3, 4, 5 and 8 were followed by something else");
+  assert.equal(b.repeatedFailures, 3, "steps 2, 3 and 5 repeat an earlier failure");
+  assert.deepEqual(b.longestLoop, { count: 3, decision: 'craft {"item":"stone_pickaxe"}', reason: "need 3 more cobblestone", from: 1 });
+  assert.equal(b.invalid, 1);
+});
+
+test("behaviour - game time splits into thinking and doing", () => {
+  // 600 ticks per step; 10 s of thinking is 200 of them.
+  const steps = [step(1, "mine_stone", "success", { decisionMs: 10_000 }), step(2, "wait", "success", { decisionMs: 10_000 })];
+  assert.deepEqual(behaviour(steps).ticksBySkill, { thinking: 400, mine_stone: 400, wait: 400 });
+  const slow = [step(1, "craft", "failed", { decisionMs: 60_000 })];
+  assert.deepEqual(behaviour(slow).ticksBySkill, { thinking: 600 }, "thinking never exceeds the span");
+});
+
+test("renderSummary - a failed model run: verdict, scorecard, sections and its own words", () => {
+  const steps: LoggedStep[] = [
+    failing(1, "stone_pickaxe"), failing(2, "stone_pickaxe"), failing(3, "stone_pickaxe"),
+    { ...step(4, "done", "failed"), decision: null, result: { status: "failed", reason: "the goal is not met yet: you have no stone_pickaxe" }, events: ["done refused"],
+      calls: [{ backend: "ollama", model: "m", inputTokens: 10, outputTokens: 5, ms: 1, text: '{"skill":"done","rationale":"I give up on stone"}' }] },
+    { ...step(5, "wait", "success"), ended: "time budget" as const },
+  ];
   const md = renderSummary(steps, "runs/x-agent.jsonl");
-  assert.match(md, /^# Run summary: /);
+  assert.match(md, /^# Run report: /);
   assert.match(md, /\*\*Goal not met:\*\* the time budget ran out/);
-  for (const section of ["## Setup", "## At a glance", "## Milestones", "## What it did", "## What went wrong", "## The run, step by step", "## Final inventory"]) {
+  for (const section of ["## Verdict", "## Scorecard", "## Progress", "## Where the time went", "## What got in its way", "## In its own words", "## Notable moments", "<details><summary>The run, step by step"]) {
     assert.ok(md.includes(section), section);
   }
-  assert.match(md, /\*\*2×\*\* \(craft\): need 1 more cobblestone/);
+  assert.match(md, /Still outstanding at the end: you have no stone_pickaxe/);
+  assert.match(md, /failed 3 times in a row from step 1/);
+  assert.match(md, /claimed to be done 1 time before the goal was met/);
+  assert.match(md, /\*\*3×\*\* \(craft\): need 3 more cobblestone/);
+  assert.match(md, /\*\*At the end\*\*, choosing `done`: "I give up on stone"/, "the rationale of a done comes from its reply");
+});
+
+test("renderSummary - a met goal, and a scripted run without the model-only parts", () => {
+  const base = { at: "2026-10-17T10:00:00.000Z", config: { brain: "scripted" } as unknown as LoggedStep["config"] };
+  const steps: LoggedStep[] = [
+    { ...step(1, "mine_stone", "success"), ...base },
+    { ...step(2, "craft", "success", { inventoryAfter: { stone_pickaxe: 1 } }), decision: { skill: "craft", args: { item: "stone_pickaxe" }, rationale: "" }, ...base, ended: "goal met" as const },
+  ];
+  const md = renderSummary(steps, "runs/x-base.jsonl");
+  assert.match(md, /\*\*Goal met\*\*/);
+  assert.match(md, /Met its goal in 2 decisions/);
+  for (const modelOnly of ["## In its own words", "False \"done\" claims", "Tokens", "Cost"]) {
+    assert.ok(!md.includes(modelOnly.replace(/\\/g, "")), `no ${modelOnly} for the baseline`);
+  }
+  assert.match(md, /Nothing failed\./);
 });
