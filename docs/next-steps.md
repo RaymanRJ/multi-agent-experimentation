@@ -52,6 +52,22 @@ Read this at the start of a session; update it when something finishes or a new 
     - Sonnet drowned in `mine_stone` twice, died once and lost its pickaxe (item 4).
     - Haiku's unusable answers rose from 0 in trio1 to 11 of 50 calls: analysis with no JSON, and
       invented skills (`say`, `tell_agent` with a `question`). The new skills may be confusing it.
+  - **Team trio3** (18 October, after the drowning and trio2 fixes, 24,000 ticks): **goal met at
+    ~19,000 ticks for $1.28** (Haiku $0.44, Sonnet $0.85, near its $1 cap). No deaths and no
+    drowning: qwen went under twice and the reflex swam it out both times. Sonnet made all four tools,
+    built the two-storey shelter (on its third try: twice "blocked by dark_oak_log") and gave Haiku a
+    shovel; qwen looped on `gather_wood` 40 times, then crafted its own stone pickaxe at the very
+    end, which completed the goal. Nobody used `tell_agent`; Haiku used `ask_agent` 7 times.
+    Found:
+    - **Agents are never told their own name** (not in the observation, not in the prompt). Haiku
+      tried three times to `give` to "haiku", Sonnet asked "sonnet" a question, qwen spoke to "qwen".
+    - **`go_to(to)` and `go_to(x, z)` are always rejected:** the parser requires every arg a skill
+      lists, but go_to takes either. All 24 of Haiku's re-asks were this (~$0.12).
+    - **`ask_agent` took `give`'s own chat line** ("bringing you 1 stone_shovel, stay where you
+      are") as the answer, twice.
+    - Sonnet answered in tool-call form first on 41 of its 79 calls (item 0): about half its cost.
+    - Haiku called `pick_up` for a shovel 20 times, mostly while already holding it; qwen claimed to
+      have handed over a sword it never had.
 
 ## Open, most wanted first
 
