@@ -74,6 +74,11 @@ piece built against it simultaneously. This has already bitten this project's pl
   are scored by the rule that paragraph states. How to see and talk to agents is identical in all three.
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
+- **Teams share a tally, never shown to the model.** Agents launched together (`scripts/team.sh`,
+  `--team a,b`) each write what they hold to `runs/.teams/<episode>/` (`src/team.ts`). A team goal
+  (`team-camp`) is checked against all of it, and a collaborative agent's run ends only when the whole
+  team is done. Teammates learn about each other only by looking (`otherAgents`) and by chat; agents
+  act on each other through `give`, `pick_up` and `go_to`.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.
 
@@ -125,6 +130,30 @@ MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
   and messages before it acts; movement, digging and the craft protocol are checked live by
   `scripts/skill-smoke.sh`.
 - Known bugs are kept as `todo` tests: they run and report, but don't fail the build.
+
+## Working agreements
+
+How the owner of this repo wants work done. A new machine has none of Claude's local memory from
+earlier sessions; this section and `docs/next-steps.md` carry what it held.
+
+- **Read `docs/next-steps.md` first.** It says where things stand and what is open. Keep it current
+  when something finishes or a new ask comes in.
+- **Commits are pre-approved; pushes are not.** Commit without asking; push only when asked. Commit
+  messages are one sentence, plus the `Co-Authored-By` trailer.
+- **While the repo is private, commit straight to `main`.** Branches and pull requests come back when
+  it goes public; the `protect-main` ruleset (one approval, admins may bypass only through a PR) is
+  only enforced on a public repo.
+- **Never change `src/` under a running batch or team run.** Work in a worktree under
+  `.claude/worktrees/` (symlink `node_modules` and `runs` into it, never commit them) and
+  fast-forward `main` after the run ends.
+- **Stay inside this folder.**
+- **Ask before paid runs.** Say what they will cost first and cap them with `BUDGET_USD`.
+- **Check skill changes in the real game, not only in tests.** The fake bot can't model physics: a
+  `give` that passed every test overshot its receiver in four of five live tries. Use a throwaway
+  server (`scripts/test-server.sh`) with `src/try.ts`, or a two-bot script for skills between agents.
+- **Read the logs before believing a result**, and say what was measured, not what was hoped.
+- **`runs/` is not in git.** Logs from earlier machines are not here; the numbers that matter are in
+  `docs/results/`.
 
 ## Hard constraints
 

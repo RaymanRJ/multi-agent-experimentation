@@ -65,6 +65,7 @@ the exact prompt and answer, so any run can be replayed and costed later.
 | [docs/experiments.md](docs/experiments.md) | Running a fair comparison and reading the report |
 | [docs/results/](docs/results/) | What the experiments so far have found |
 | [docs/limitations.md](docs/limitations.md) | What is untested, missing or rough |
+| [docs/next-steps.md](docs/next-steps.md) | Where things stand, what's open, and setting up a new machine |
 | [CLAUDE.md](CLAUDE.md) | Conventions for changing the code |
 
 ---
@@ -73,13 +74,14 @@ the exact prompt and answer, so any run can be replayed and costed later.
 
 **MVP.** The full loop works with the free local model and the scripted baseline:
 - one or several agents in a shared world;
-- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron and diamond (iron and diamond not yet met in a full run);
+- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron, diamond (not yet met in a full run), and a team goal;
 - memory and stance settings;
 - comparison batches with fresh worlds;
 - a report with confidence intervals;
 - a panel that shows every decision.
 
-Paid models are wired up and unit-tested, but not yet run in a full experiment.
+Claude models (Haiku, Sonnet, Opus) have run single tests and team runs, but no comparison batch
+yet. Several agents can work as a team on a shared goal and hand each other items (`team-camp`).
 
 **What we've found so far** (free local model, details in [docs/results/](docs/results/)):
 - Fixing the skill code mattered more than anything about the model.

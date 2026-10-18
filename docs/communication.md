@@ -52,6 +52,12 @@ characters.
   its next decision for 60 seconds. Without this, two agents replying to each other kept
   cancelling each other's work: in one test, each agent's `gather_wood` was cut short five
   times in a row.
+- **The same words don't interrupt twice.** A message repeated word for word by the same sender
+  is heard but doesn't stop the agent again. A small model announced "Gathering 10 more logs…"
+  on most of its decisions and kept stopping its teammate's work.
+- **Agents can act for each other.** `give` hands items over (and says so by name first, which
+  pauses the receiver), `pick_up` collects items left on the ground, and `go_to` walks to a teammate
+  in sight or to coordinates someone gave in chat.
 
 ## Seeing without talking
 

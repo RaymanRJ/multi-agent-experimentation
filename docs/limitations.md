@@ -6,11 +6,14 @@ building on it.
 
 ## Not yet tested
 
-- **Paid models have not been run end to end.**
-  - The Claude and OpenAI adapters are unit-tested, and they make one check call before a run starts.
-  - But no full experiment has run on a paid model yet: every result so far is from the free local model.
-  - Grok, Gemini, Groq and OpenRouter are wired up the same way, with the same caveat.
-  - Each needs its model's price added to `src/backends/pricing.ts`, or a paid run refuses to start.
+- **Paid models have only been tried, not compared.**
+  - Claude Haiku 4.5, Sonnet 5.5 and Opus 5.5 each met the `tools` goal once (batch poc1, 18 October:
+    4–5 decisions, $0.01–$0.04 a run), and Haiku and Sonnet have played team runs. No batch with
+    repeats has run on a paid model, and no long goal (`outpost`) has.
+  - Prompt caching works on Sonnet and Opus (about 70% of input cached). Haiku 4.5 never caches: our
+    prompt (about 2,150 tokens) is below its minimum.
+  - OpenAI, Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its
+    model's price in `src/backends/pricing.ts`, or a paid run refuses to start.
 - **The `iron` goal has been met only twice** (batch b13, sandbox, one day, three runs per
   condition): both by the model with `--progress on` (2/3). The model without it and the
   baseline went 0/3. Too few runs to credit the progress list. Details in
