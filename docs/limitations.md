@@ -91,5 +91,13 @@ building on it.
   - With full memory on a paid model, the history is now cut to half its budget when it fills,
     rather than one exchange at a time. That keeps the cache hitting, but it also means the model
     sees between 10,000 and 20,000 tokens of history rather than always about 20,000.
+- **Two craft bugs found by the unit tests, not fixed** (kept as `todo` tests in
+  `src/skills/craft.test.ts`):
+  - Asking to craft a mined item that has only an unpacking recipe (diamond, emerald, coal)
+    says "need 1 more diamond_block", sending a model after a block it can't make.
+  - If crafting fails while `craft` is making its own crafting table, the error escapes the
+    skill. The agent loop doesn't catch errors from skills, so this would end the run.
+- **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
+  behaviour is checked by hand with `scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored because logs contain full prompts. Copy
   it somewhere if the results matter.

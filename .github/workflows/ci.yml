@@ -1,0 +1,34 @@
+# Checks every pull request, and main after each merge: types, unit tests, and the shell scripts'
+# syntax. Nothing here needs Docker, a Minecraft server, a model or an API key; the skills' live
+# behaviour is checked by scripts/skill-smoke.sh and the batches.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # canvas (for prismarine-viewer) builds from source when no prebuilt binary fits.
+      - run: sudo apt-get update && sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Shell scripts parse
+        run: for f in scripts/*.sh start.sh stop.sh; do bash -n "$f"; done
