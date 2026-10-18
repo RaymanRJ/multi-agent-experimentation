@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import type { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, threatened, withTimeout } from "./util.js";
+import { asNumber, nearestUncrowded, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -119,7 +119,7 @@ export const gatherWood: Skill = {
       // Widen the search rather than giving up at the first empty radius.
       let trunkBase: Block | null = null;
       for (const radius of SEARCH_RADII) {
-        for (const point of ctx.bot.findBlocks({ matching: logIds, maxDistance: radius, count: 64 })) {
+        for (const point of nearestUncrowded(ctx.bot, ctx.bot.findBlocks({ matching: logIds, maxDistance: radius, count: 64 }))) {
           const base = groundedTrunkBase(ctx, point);
           if (base && !skipped.has(key(base.position)) && !underCover(ctx, base)) {
             trunkBase = base;

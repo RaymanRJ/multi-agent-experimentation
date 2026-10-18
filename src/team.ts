@@ -12,6 +12,8 @@ export interface MemberState {
   inventory: Record<string, number>;
   shelterBuilt: boolean;
   nightSurvivedSinceShelter: boolean;
+  /** Storeys of the tallest shelter this member has built; 0 for none. */
+  shelterStoreys: number;
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;
@@ -66,6 +68,7 @@ export function combine(states: Array<Omit<MemberState, "at" | "goalMet">>): Omi
     inventory,
     shelterBuilt: states.some((s) => s.shelterBuilt),
     nightSurvivedSinceShelter: states.some((s) => s.nightSurvivedSinceShelter),
+    shelterStoreys: Math.max(0, ...states.map((s) => s.shelterStoreys ?? 0)),
   };
 }
 

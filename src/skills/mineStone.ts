@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import type { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, threatened, withTimeout } from "./util.js";
+import { asNumber, nearestUncrowded, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -144,9 +144,9 @@ export const mineStone: Skill = {
 
       let block: Block | null = null;
       for (const radius of SEARCH_RADII) {
-        const points = bot.findBlocks({ matching: stoneIds, maxDistance: radius, count: 128 });
-        // findBlocks is not distance-sorted for every case; nearest first keeps travel short.
-        points.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
+        // Nearest first keeps travel short (findBlocks is not distance-sorted for every case);
+        // stone beside another agent last, so two agents don't dig the same pit.
+        const points = nearestUncrowded(bot, bot.findBlocks({ matching: stoneIds, maxDistance: radius, count: 128 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (point.y < bot.entity.position.y - MAX_DROP_TO_STONE) continue;

@@ -44,7 +44,7 @@ test("goal gaps name what is missing, and nothing once the goal is met", () => {
 });
 
 const OPEN_ENDED = new Set(["gather", "explore"]);
-const state = (inventory: Record<string, number>, more: Partial<{ skill: string; status: string; shelterBuilt: boolean; nightSurvivedSinceShelter: boolean }> = {}) =>
+const state = (inventory: Record<string, number>, more: Partial<{ skill: string; status: string; shelterBuilt: boolean; nightSurvivedSinceShelter: boolean; shelterStoreys: number }> = {}) =>
   ({ skill: "wait", status: "success", inventory, shelterBuilt: false, nightSurvivedSinceShelter: false, ...more });
 
 test("every preset with an end has a check and gaps; open-ended ones have neither", () => {
@@ -66,7 +66,7 @@ test("goal checks and gaps agree: unmet goals list a gap, met ones list none", (
     ["iron", state({ stone_pickaxe: 1, iron_ingot: 3 }), state({ iron_pickaxe: 1 })],
     ["diamond", state({ diamond: 4 }), state({ diamond_boots: 1 })],
     ["outpost", state(kit, { shelterBuilt: true }), state(kit, { shelterBuilt: true, nightSurvivedSinceShelter: true })],
-    ["team-camp", state(kit), state(kit, { shelterBuilt: true })],
+    ["team-camp", state(kit, { shelterBuilt: true }), state(kit, { shelterBuilt: true, shelterStoreys: 2 })],
   ];
   for (const [goal, unmet, met] of cases) {
     assert.equal(GOAL_CHECKS[goal]!(unmet), false, `${goal} not met`);
@@ -110,4 +110,15 @@ test("scenario parity - sandbox and survival differ only in setup and goal text"
   };
   assert.deepEqual(rest(sandbox), rest(survival));
   assert.notDeepEqual(sandbox.setup, survival.setup);
+});
+
+test("team-camp - every member must carry a stone tool, and the shelter must have two storeys", () => {
+  const check = GOAL_CHECKS["team-camp"]!, gaps = GOAL_GAPS["team-camp"]!;
+  const kit = { stone_pickaxe: 1, stone_axe: 1, stone_sword: 1, stone_shovel: 1 };
+  const base = { skill: "wait", status: "success", inventory: kit, shelterBuilt: true, nightSurvivedSinceShelter: false, shelterStoreys: 2 };
+  assert.equal(check({ ...base, members: { haiku: { stone_pickaxe: 1, stone_axe: 1 }, qwen: { stone_sword: 1, stone_shovel: 1 } } }), true);
+  const hoarded = { ...base, members: { haiku: kit, qwen: { wooden_pickaxe: 1 } } };
+  assert.equal(check(hoarded), false);
+  assert.deepEqual(gaps(hoarded), ["qwen carries no stone tool"]);
+  assert.deepEqual(gaps({ ...base, shelterStoreys: 1, members: { haiku: kit } }), ["nobody on the team has built a two-storey shelter yet"]);
 });

@@ -221,12 +221,18 @@ async function main(): Promise<void> {
   // Sticky: some checks (shelter) pass only on the step that achieved them.
   let ownGoalMet = false;
   let toldTeamWaiting = false;
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter });
+  let shelterStoreys = 0;
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter, shelterStoreys });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
-    const states = teamGoal && board ? [own, ...Object.values(board.read()).filter((m) => m !== undefined)] : [own];
-    return { skill, status, ...combine(states) };
+    if (!teamGoal) return { skill, status, ...own };
+    const others = board ? board.read() : {};
+    // A teammate that hasn't reported yet still counts, as a member holding nothing.
+    const members: Record<string, Record<string, number>> = { [agentName]: own.inventory };
+    for (const name of board?.teammates ?? []) members[name] = others[name]?.inventory ?? {};
+    const states = [own, ...Object.values(others).filter((m) => m !== undefined)];
+    return { skill, status, ...combine(states), members };
   };
   const publish = () => board?.publish({ ...ownState(), goalMet: ownGoalMet });
   /** A team goal can be met by a teammate's step, while this agent is busy or thinking. */
@@ -291,6 +297,8 @@ async function main(): Promise<void> {
   // recentEvents, every 3 repeats, so a looping brain can see it is looping.
   let lastOutcome = "";
   let repeats = 0;
+  // Waiting in a row with nothing to wait out, counted whatever the seconds: the loop note above leaves waiting alone.
+  let idleWaits = 0;
   let doneRefused = false;
   let ended: EndReason | undefined;
 
@@ -431,7 +439,17 @@ async function main(): Promise<void> {
       recentEvents.push(note);
       stepEvents.push(note);
     }
-    if (decision.skill === "build_shelter" && result.status === "success") shelterBuilt = true;
+    // Waiting out a night or a mob is legitimate; waiting in daylight with no mob in sight is a loop.
+    idleWaits = decision.skill === "wait" && observation.isDay && observation.hostiles.length === 0 ? idleWaits + 1 : 0;
+    if (idleWaits >= 3 && idleWaits % 3 === 0) {
+      const note = `your last ${idleWaits} decisions were all wait, in daylight with no hostile mobs in sight`;
+      recentEvents.push(note);
+      stepEvents.push(note);
+    }
+    if (decision.skill === "build_shelter" && result.status === "success") {
+      shelterBuilt = true;
+      shelterStoreys = Math.max(shelterStoreys, Number(result.detail?.["storeys"] ?? 1));
+    }
     if (goalCheck?.(goalState(decision.skill, result.status))) ownGoalMet = true;
     publish();
     if (finished()) {

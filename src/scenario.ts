@@ -69,8 +69,8 @@ export const GOALS: Record<string, string> = {
   // A team goal: met by what the agents hold between them, so it pays to split the work and hand things over.
   "team-camp":
     "Between you, your team must end up holding a stone pickaxe, a stone axe, a stone sword and a stone shovel, " +
-    "and one of you must build a shelter. It does not matter who holds which tool or who builds. " +
-    "The episode ends by itself once the team has all of that.",
+    "with every member carrying at least one of them, and one of you must build a two-storey shelter. " +
+    "It does not matter who builds. The episode ends by itself once the team has all of that.",
   iron: "Craft an iron pickaxe. Once you have it, end the episode.",
   diamond: "Make a piece of diamond armor. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
@@ -86,8 +86,8 @@ export const GOALS: Record<string, string> = {
 export const DIAMOND_ARMOR = ["diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots"];
 
 /**
- * Goals judged on the whole team: the check sees every member's inventory added together, and a
- * shelter built by any of them. Alone, an agent is a team of one.
+ * Goals judged on the whole team: the check sees every member's inventory added together, each
+ * member's own inventory, and a shelter built by any of them. Alone, an agent is a team of one.
  */
 export const TEAM_GOALS = new Set(["team-camp"]);
 
@@ -103,6 +103,10 @@ export interface GoalState {
   shelterBuilt: boolean;
   /** A whole night has passed, without dying, since the shelter was built. */
   nightSurvivedSinceShelter: boolean;
+  /** Storeys of the tallest shelter built so far (0 for none). Absent where no goal needs it. */
+  shelterStoreys?: number;
+  /** Each team member's own inventory, by name, for team goals that ask something of every member. */
+  members?: Record<string, Record<string, number>>;
 }
 
 export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
@@ -112,7 +116,7 @@ export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
   diamond: ({ inventory }) => DIAMOND_ARMOR.some((piece) => (inventory[piece] ?? 0) > 0),
   outpost: ({ inventory, shelterBuilt, nightSurvivedSinceShelter }) =>
     shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
-  "team-camp": ({ inventory, shelterBuilt }) => shelterBuilt && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
+  "team-camp": (state) => GOAL_GAPS["team-camp"]!(state).length === 0,
 };
 
 /**
@@ -129,9 +133,12 @@ export const GOAL_GAPS: Record<string, (state: GoalState) => string[]> = {
     ...(shelterBuilt ? [] : ["no shelter has been built yet"]),
     ...(nightSurvivedSinceShelter ? [] : ["you have not yet survived a night since building the shelter"]),
   ],
-  "team-camp": ({ inventory, shelterBuilt }) => [
+  "team-camp": ({ inventory, shelterStoreys, members }) => [
     ...OUTPOST_TOOLS.filter((tool) => (inventory[tool] ?? 0) === 0).map((tool) => `nobody on the team has a ${tool}`),
-    ...(shelterBuilt ? [] : ["nobody on the team has built a shelter yet"]),
+    ...Object.entries(members ?? {})
+      .filter(([, held]) => !OUTPOST_TOOLS.some((tool) => (held[tool] ?? 0) > 0))
+      .map(([name]) => `${name} carries no stone tool`),
+    ...((shelterStoreys ?? 0) >= 2 ? [] : ["nobody on the team has built a two-storey shelter yet"]),
   ],
 };
 

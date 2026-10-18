@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import type { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { asNumber, nearestUncrowded, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -92,9 +92,7 @@ export const mineOre: Skill = {
       let block: Block | null = null;
       let outOfReach: number | null = null;
       for (const radius of SEARCH_RADII) {
-        const points = bot
-          .findBlocks({ matching: oreIds, maxDistance: radius, count: 64 })
-          .sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
+        const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point) || liquidBeside(bot, point)) continue;

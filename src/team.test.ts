@@ -5,13 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 
-const member = (inventory: Record<string, number>, more: Partial<{ shelterBuilt: boolean; goalMet: boolean }> = {}) =>
-  ({ inventory, shelterBuilt: false, nightSurvivedSinceShelter: false, goalMet: false, ...more });
+const member = (inventory: Record<string, number>, more: Partial<{ shelterBuilt: boolean; shelterStoreys: number; goalMet: boolean }> = {}) =>
+  ({ inventory, shelterBuilt: false, nightSurvivedSinceShelter: false, shelterStoreys: 0, goalMet: false, ...more });
 
 test("combine - adds up what the team holds, and counts a shelter built by anyone", () => {
-  const team = combine([member({ stone_pickaxe: 1, cobblestone: 2 }), member({ cobblestone: 3, stone_axe: 1 }, { shelterBuilt: true })]);
+  const team = combine([member({ stone_pickaxe: 1, cobblestone: 2 }), member({ cobblestone: 3, stone_axe: 1 }, { shelterBuilt: true, shelterStoreys: 2 })]);
   assert.deepEqual(team.inventory, { stone_pickaxe: 1, cobblestone: 5, stone_axe: 1 });
   assert.equal(team.shelterBuilt, true);
+  assert.equal(team.shelterStoreys, 2);
   assert.equal(combine([member({})]).shelterBuilt, false);
 });
 

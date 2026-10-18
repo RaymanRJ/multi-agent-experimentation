@@ -24,6 +24,28 @@ export async function withTimeout<T>(
   }
 }
 
+/** Another agent this close to a target is working the same spot. */
+export const CROWD_RADIUS = 4;
+
+/** Another player within CROWD_RADIUS of the point: two agents digging one pit get in each other's way. */
+export function crowded(bot: Bot, point: { distanceTo(other: any): number }): boolean {
+  return Object.values(bot.entities).some(
+    (e) => e && e !== bot.entity && e.type === "player" && point.distanceTo(e.position) <= CROWD_RADIUS,
+  );
+}
+
+/**
+ * Targets nearest first, except that ones beside another agent go last. They stay in the list, so
+ * an agent with nothing else in reach still works beside its teammate rather than giving up.
+ */
+export function nearestUncrowded<T extends { distanceTo(other: any): number }>(bot: Bot, points: T[]): T[] {
+  const here = bot.entity.position;
+  return points
+    .map((point) => ({ point, crowded: crowded(bot, point), distance: point.distanceTo(here) }))
+    .sort((a, b) => Number(a.crowded) - Number(b.crowded) || a.distance - b.distance)
+    .map(({ point }) => point);
+}
+
 /** A hostile close enough that continuing is a bad idea. */
 export function threatened(ctx: SkillContext, within = 8): string | null {
   for (const entity of Object.values(ctx.bot.entities)) {

@@ -1,7 +1,7 @@
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { opensOnClick, threatened, withTimeout } from "./util.js";
+import { asNumber, opensOnClick, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
 const PLACE_TIMEOUT_MS = 8_000;
@@ -31,11 +31,19 @@ function materials(ctx: SkillContext): Record<string, number> {
 async function planksFromLogs(ctx: SkillContext, shortfall: number): Promise<number> {
   let made = 0;
   for (const [name, count] of Object.entries(countInventory(ctx.bot))) {
-    if (made >= shortfall || !name.endsWith("_log")) continue;
-    const planks = Math.min(count * 4, Math.ceil((shortfall - made) / 4) * 4);
-    const result = await craft.run(ctx, { item: name.replace(/_log$/, "_planks"), count: planks });
-    if (result.status === "success") made += planks;
-    else ctx.log(`could not turn ${name} into planks: ${result.reason ?? result.status}`);
+    if (!name.endsWith("_log")) continue;
+    let logs = count;
+    // craft makes at most a stack (64) per call, and a two-storey shelter needs more than that.
+    while (made < shortfall && logs > 0) {
+      const planks = Math.min(logs * 4, Math.ceil((shortfall - made) / 4) * 4, 64);
+      const result = await craft.run(ctx, { item: name.replace(/_log$/, "_planks"), count: planks });
+      if (result.status !== "success") {
+        ctx.log(`could not turn ${name} into planks: ${result.reason ?? result.status}`);
+        break;
+      }
+      made += planks;
+      logs -= planks / 4;
+    }
   }
   return made;
 }
@@ -47,8 +55,12 @@ const FACES: Vec3[] = [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0)
  *   walls  — the 12 cells orthogonally around the interior (corners are not needed
  *            to seal it), two high, with a 2-high doorway in the middle of the south side
  *   roof   — those 12 cells plus the 9 interior cells, one level above the walls
+ * With two storeys the walls rise to five high, the roof sits on top of them, and a floor
+ * (the 9 interior cells at the old roof's height, less a 1-block hatch in one corner) splits
+ * the inside into two rooms. The floor is listed last: placed earlier, it would sit between
+ * the builder and the roof it still has to place.
  */
-function layout(): { walls: Vec3[]; roof: Vec3[]; door: Vec3[] } {
+export function layout(storeys = 1): { walls: Vec3[]; roof: Vec3[]; door: Vec3[] } {
   const ring: Array<[number, number]> = [];
   for (let dx = -2; dx <= 2; dx++) {
     for (let dz = -2; dz <= 2; dz++) {
@@ -61,14 +73,18 @@ function layout(): { walls: Vec3[]; roof: Vec3[]; door: Vec3[] } {
   const isDoor = (v: Vec3) => door.some((d) => d.equals(v));
 
   const walls: Vec3[] = [];
-  for (const dy of [0, 1]) {
+  const top = storeys === 2 ? 5 : 2;
+  for (let dy = 0; dy < top; dy++) {
     for (const [dx, dz] of ring) {
       const cell = new Vec3(dx, dy, dz);
       if (!isDoor(cell)) walls.push(cell);
     }
   }
-  const roof: Vec3[] = ring.map(([dx, dz]) => new Vec3(dx, 2, dz));
-  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) roof.push(new Vec3(dx, 2, dz));
+  const roof: Vec3[] = ring.map(([dx, dz]) => new Vec3(dx, top, dz));
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) roof.push(new Vec3(dx, top, dz));
+  if (storeys === 2) {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (!(dx === -1 && dz === -1)) roof.push(new Vec3(dx, 2, dz));
+  }
   return { walls, roof, door };
 }
 
@@ -79,32 +95,39 @@ export const buildShelter: Skill = {
     "and a 2-high doorway on the south side, using planks, cobblestone, stone, dirt or similar blocks from " +
     "inventory. Needs about 43 building blocks (any mix; fewer if natural walls already exist). Logs in your " +
     "inventory are turned into planks automatically (1 log = 4 planks, so 11 logs is enough on its own). " +
+    "Optional `storeys`: 1 (default) or 2. Two storeys add a second room on top, with a hatch in the floor " +
+    "between them, and need about 87 blocks (22 logs). " +
     "Tells you the exact shortfall if you have too few. Stand on reasonably flat open ground first. " +
     "You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
-  args: {},
+  args: { storeys: "number" },
 
-  async run(ctx: SkillContext): Promise<SkillResult> {
+  async run(ctx: SkillContext, args: Record<string, unknown> = {}): Promise<SkillResult> {
     const bot = ctx.bot;
     const center = bot.entity.position.floored();
-    const { walls, roof, door } = layout();
+    const storeys = asNumber(args["storeys"], 1) >= 2 ? 2 : 1;
+    const { walls, roof, door } = layout(storeys);
     const cellAt = (offset: Vec3) => center.plus(offset);
 
-    // Interior must be clear: clear what we can dig, fail on the rest.
+    // Interior must be clear: clear what we can dig, fail on the rest. Two storeys also need the
+    // upper room and the hatch between them clear, and any shelter its doorway.
+    const clear: Vec3[] = [...door];
     for (let dx = -1; dx <= 1; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
-        for (const dy of [0, 1]) {
-          const block = bot.blockAt(center.offset(dx, dy, dz));
-          if (!block || block.boundingBox !== "block") continue;
-          try {
-            if (!bot.canDigBlock(block)) throw new Error("cannot dig");
-            await withTimeout(bot.dig(block), 10_000, "clearing interior");
-          } catch {
-            return {
-              status: "failed",
-              reason: `the 3x3 space around me is blocked by ${block.name} that I cannot clear — move to open flat ground`,
-            };
-          }
-        }
+        for (const dy of storeys === 2 ? [0, 1, 3, 4] : [0, 1]) clear.push(new Vec3(dx, dy, dz));
+      }
+    }
+    if (storeys === 2) clear.push(new Vec3(-1, 2, -1));
+    for (const offset of clear) {
+      const block = bot.blockAt(center.plus(offset));
+      if (!block || block.boundingBox !== "block") continue;
+      try {
+        if (!bot.canDigBlock(block)) throw new Error("cannot dig");
+        await withTimeout(bot.dig(block), 10_000, "clearing interior");
+      } catch {
+        return {
+          status: "failed",
+          reason: `the 3x3 space around me is blocked by ${block.name} that I cannot clear — move to open flat ground`,
+        };
       }
     }
 
@@ -206,10 +229,11 @@ export const buildShelter: Skill = {
     const doorBlocked = door.some((offset) => !needsBlock(offset));
     return {
       status: "success",
-      reason: "the shelter is finished and you are standing inside it — there is no need to build it again",
+      reason: `the ${storeys === 2 ? "two-storey " : ""}shelter is finished and you are standing inside it — there is no need to build it again`,
       detail: {
         position: { x: center.x, y: center.y, z: center.z },
         interior: "3x3",
+        storeys,
         doorway: `south side at x=${center.x}, z=${center.z + 2}`,
         blocksPlaced: placed,
         doorwayBlocked: doorBlocked,

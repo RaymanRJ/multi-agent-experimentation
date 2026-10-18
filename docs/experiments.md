@@ -70,8 +70,9 @@ reached it too, so it can help. Agents can hand each other items with `give`, an
 items with `pick_up`.
 
 **`team-camp`** is a goal for the whole team: between them, the agents must hold a stone pickaxe, axe,
-sword and shovel, and one of them must build a shelter. It doesn't matter who holds what, so it pays to
-split the work. Every agent's run ends as soon as the team has it all. Agents learn what teammates
+sword and shovel, with every member carrying at least one, and one of them must build a two-storey
+shelter (`build_shelter` with `storeys` 2: about 87 blocks, or 22 logs). It doesn't matter who builds,
+so it pays to split the work. Every agent's run ends as soon as the team has it all. Agents learn what teammates
 hold only by looking and asking; the shared tally behind the check (`runs/.teams/`) is never shown
 to them. `VIEW=on` serves each agent's view in a browser, from localhost:3007 up.
 
