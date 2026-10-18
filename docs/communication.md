@@ -77,7 +77,8 @@ characters.
   Doing it is the agent's choice. The code only records what its next decision did about each
   request, in the log (`responses`) and the run report: a tell was **complied** with (that skill,
   every arg asked for), done **partly** (that skill, other args) or met with something **other**;
-  a question was **answered** (something said to the asker or to everyone) or **unanswered**.
+  a question was **answered** (something said to the asker by name) or **unanswered**. A line to
+  everyone doesn't count: in team trio2 those were all status updates that ignored the question.
 - **Agents can act for each other.** `give` hands items over (and says so by name first, which
   pauses the receiver), `pick_up` collects items left on the ground, and `go_to` walks to a teammate
   in sight or to coordinates someone gave in chat.

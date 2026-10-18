@@ -114,7 +114,7 @@ test("responseTo judges compliance from the decision alone", async () => {
   assert.equal(responseTo(tell, null), "other");
   const ask = { from: "haiku", kind: "ask" as const, question: "logs?" };
   assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "haiku", text: "40" } }), "answered");
-  assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "all", text: "40" } }), "answered");
+  assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "all", text: "gathering wood" } }), "unanswered", "a line to everyone is not an answer");
   assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "sonnet", text: "hi" } }), "unanswered");
   assert.equal(responseTo(ask, { skill: "wait", args: {} }), "unanswered");
 });

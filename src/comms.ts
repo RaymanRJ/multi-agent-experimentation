@@ -92,12 +92,12 @@ const same = (a: unknown, b: unknown) => String(a).trim().toLowerCase() === Stri
  * How the decision an agent made after seeing a request answers it. Judged by the code, not the
  * model: a tell is complied with when the decision runs the skill asked for with every arg asked
  * for ("partly" with other args), and a question is answered when the decision says something to
- * the asker (or to everyone).
+ * the asker by name (a line to everyone is the agent's usual status update, not an answer).
  */
 export function responseTo(request: Pick<Request, "from" | "kind" | "skill" | "args">, decision: Decision | null): RequestResponse {
   if (request.kind === "ask") {
     const to = decision?.say?.to;
-    return to !== undefined && (same(to, request.from) || same(to, "all")) ? "answered" : "unanswered";
+    return to !== undefined && same(to, request.from) ? "answered" : "unanswered";
   }
   if (!decision || decision.skill !== request.skill) return "other";
   const asked = Object.entries(request.args ?? {});

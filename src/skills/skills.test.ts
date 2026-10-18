@@ -220,6 +220,7 @@ test("ask_agent - returns the answer addressed to the asker, not other chatter",
     calls.push(`chat ${line}`);
     emit("chat", "haiku", "[act] gather_wood({})");
     emit("chat", "haiku", "@sonnet not you");
+    emit("chat", "haiku", "gathering wood for everyone");
     emit("chat", "haiku", "@tester [tell] craft {}");
     emit("chat", "haiku", "@tester 40 oak logs");
   };

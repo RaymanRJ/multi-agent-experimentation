@@ -38,6 +38,20 @@ Read this at the start of a session; update it when something finishes or a new 
     then handed qwen an axe and Haiku a shovel with `give` (both worked). Haiku lost most of its run
     to `mine_stone` under water. qwen asked for logs it already held 28 times; told that `count` is a
     total, it raised its count twice (10, then 20, then 40) but kept looping.
+  - **Requests between agents** (team trio2, 18 October: same three agents, with `tell_agent`,
+    `ask_agent` and no hearing their own messages; 12,000 ticks by mistake, trio1 had 24,000). Goal
+    not met; $0.41. By 5,500 ticks Haiku alone held all four stone tools and had built the
+    two-storey shelter: only handing tools over was left, and that never happened.
+    - Haiku asked qwen 17 questions (its tools, then its coordinates). qwen never answered one:
+      every "answer" was its usual line to everyone ("Gathering more logs…"), which `ask_agent` then
+      accepted (fixed: only a reply addressed to the asker counts). qwen started by exploring 10
+      times and ended ~200 blocks away; it gave its coordinates once, addressed to itself.
+    - Sonnet used `tell_agent` once, well: it told Haiku to give qwen a stone axe, and Haiku complied
+      at once (the give failed: qwen was out of sight). qwen also told Haiku to give it the axe.
+    - Haiku's `give` to Sonnet failed with the giver sweeping its own toss back up (8 of 8 had worked live).
+    - Sonnet drowned in `mine_stone` twice, died once and lost its pickaxe (item 4).
+    - Haiku's unusable answers rose from 0 in trio1 to 11 of 50 calls: analysis with no JSON, and
+      invented skills (`say`, `tell_agent` with a `question`). The new skills may be confusing it.
 
 ## Open, most wanted first
 
@@ -45,6 +59,11 @@ Read this at the start of a session; update it when something finishes or a new 
    back as `<invoke name="gather_wood">…` (stop reason `tool_use`) instead of JSON, and was re-asked:
    13 decisions, 26 calls, about double the cost. Fix before any paid comparison: accept that form,
    or ask for the decision through real tool use or structured output.
+
+0a. **From trio2, before the next team run:** pass 24,000 ticks; a note when an agent asks the
+   same agent the same kind of thing again and again (the loop note only catches identical
+   decisions, and Haiku varied the wording); look at why `give` swept its own toss back up again;
+   decide whether to drop a `say` addressed to the speaker itself.
 
 1. **A comparison of goals and agents.** The owner wants, eventually, a breakdown of each goal and
    how the agents behaved, to compare across goals, models and team set-ups (who did what, what they

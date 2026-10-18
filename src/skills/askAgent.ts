@@ -8,8 +8,8 @@ export const ANSWER_WAIT_MS = 30_000;
 export const askAgent: Skill = {
   name: "ask_agent",
   description:
-    "Ask another agent a question, by name, and wait up to 30 seconds for the answer, which comes back as this " +
-    "skill's result. It reaches them wherever they are. They decide whether and how to answer. " +
+    "Ask another agent a question, by name, and wait up to 30 seconds for their answer to you, which comes back as " +
+    "this skill's result. It reaches them wherever they are. They decide whether and how to answer. " +
     "Args: `to` (an agent's name), `question`.",
   args: { to: "string", question: "string" },
 
@@ -27,8 +27,9 @@ export const askAgent: Skill = {
     const onChat = (username: string, message: string) => {
       if (username !== to || isNarration(message)) return;
       const { to: addressee, text } = parseSpeech(message);
-      // Their answer is speech to the asker or to everyone; a request of their own is not an answer.
-      if ((addressee.toLowerCase() === self || addressee === "all") && !parseRequest(text)) reply = text;
+      // Only speech addressed to the asker is an answer. Their usual line to everyone is not: in team
+      // trio2 every "answer" taken from those was a status update that ignored the question.
+      if (addressee.toLowerCase() === self && !parseRequest(text)) reply = text;
     };
     bot.on("chat", onChat);
     try {
