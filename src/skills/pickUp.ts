@@ -32,7 +32,7 @@ export const pickUp: Skill = {
     `Collect items lying on the ground within ${PICKUP_RADIUS} blocks (listed in itemsOnGround), such as ones another ` +
     "agent tossed to you or that fell out of reach. Args: `item` (optional: collect only this item; default everything). " +
     "Walks over each one. Fails if there is nothing there to collect, or none of it could be reached.",
-  args: { item: "string" },
+  args: { item: "string?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;

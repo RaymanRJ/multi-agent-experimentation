@@ -99,7 +99,7 @@ export const buildShelter: Skill = {
     "between them, and need about 87 blocks (22 logs). " +
     "Tells you the exact shortfall if you have too few. Stand on reasonably flat open ground first. " +
     "You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
-  args: { storeys: "number" },
+  args: { storeys: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown> = {}): Promise<SkillResult> {
     const bot = ctx.bot;

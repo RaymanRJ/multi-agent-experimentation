@@ -35,6 +35,9 @@ export const tellAgent: Skill = {
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;
+    if (String(args["to"] ?? "").trim().toLowerCase() === bot.username.toLowerCase()) {
+      return { status: "failed", reason: `${bot.username} is you; tell another agent` };
+    }
     const to = agentNamed(bot, String(args["to"] ?? ""));
     if (!to) return { status: "failed", reason: `there is no other agent called "${String(args["to"] ?? "")}" in this world` };
     const name = String(args["skill"] ?? "").trim();
@@ -45,11 +48,13 @@ export const tellAgent: Skill = {
     if (COMMS_SKILLS.has(skill.name)) return { status: "failed", reason: `say what you want them to do, not to ${skill.name} on your behalf` };
     const given = parseArgs(args["args"]);
     if (!given) return { status: "failed", reason: '`args` must be an object of that skill\'s args, e.g. {"count": 10}' };
-    const missing = Object.keys(skill.args).filter((key) => given[key] === undefined || given[key] === null || given[key] === "");
+    const missing = Object.entries(skill.args)
+      .filter(([key, type]) => !type.endsWith("?") && (given[key] === undefined || given[key] === null || given[key] === ""))
+      .map(([key]) => key);
     if (missing.length) {
       return { status: "failed", reason: `${skill.name} needs ${missing.join(", ")} in args (it takes ${JSON.stringify(skill.args)})` };
     }
-    const kept = Object.fromEntries(Object.keys(skill.args).map((key) => [key, given[key]]));
+    const kept = Object.fromEntries(Object.keys(skill.args).filter((key) => given[key] !== undefined && given[key] !== null).map((key) => [key, given[key]]));
     const line = formatSpeech(to, requestText({ kind: "tell", skill: skill.name, args: kept }));
     if (line.length > MAX_CHAT) return { status: "failed", reason: "that request is too long for chat; shorten the args" };
     bot.chat(line);

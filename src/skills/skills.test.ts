@@ -21,7 +21,7 @@ test("skill list - unique names, a description and args for each, found by name"
   for (const skill of SKILLS) {
     assert.ok(skill.description.length > 40, `${skill.name} has a real description`);
     for (const [arg, type] of Object.entries(skill.args)) {
-      assert.ok(type === "number" || type === "string", `${skill.name}.${arg}`);
+      assert.ok(["number", "string", "number?", "string?"].includes(type), `${skill.name}.${arg}`);
       assert.match(skill.description, new RegExp(arg), `${skill.name}'s description explains ${arg}`);
     }
     assert.equal(findSkill(skill.name), skill);
@@ -155,7 +155,7 @@ test("give - tosses no more than it holds, and succeeds when the teammate picks 
   const { bot, calls, emit, setInventory } = fakeBot({ inventory: { cobblestone: 5 }, entities: [teammate(1.5)] });
   const pending = findSkill("give")!.run(context(bot), { to: "QWEN", item: "cobblestone", count: 9 });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone", "back on", "back off", "goto"], "already beside them: no walking, only the 5 it has, then a step back, and a path away when the step back went nowhere");
+  assert.deepEqual(calls, ["chat @qwen [auto] bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone", "back on", "back off", "goto"], "already beside them: no walking, only the 5 it has, then a step back, and a path away when the step back went nowhere");
   emit("playerCollect", { username: "someone_else" }, {});
   emit("playerCollect", { username: "qwen" }, {});
   setInventory({});
@@ -207,7 +207,9 @@ test("tell_agent - checks the agent, the skill and its args, then sends one requ
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "fly", args: "{}" })).reason!, /no skill called "fly"/);
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "ask_agent", args: "{}" })).reason!, /not to ask_agent/);
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "craft", args: "not json" })).reason!, /must be an object/);
-  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "give", args: '{"to":"tester"}' })).reason!, /give needs item, count in args/);
+  assert.match((await run("tell_agent", setup, { to: "qwen", skill: "give", args: '{"to":"tester"}' })).reason!, /give needs item in args/, "count is optional");
+  assert.match((await run("tell_agent", setup, { to: "Tester", skill: "craft", args: "{}" })).reason!, /tester is you/);
+  assert.equal((await run("tell_agent", setup, { to: "qwen", skill: "go_to", args: '{"to":"tester"}' })).status, "success", "go_to needs only one of its args");
   const { bot, calls } = fakeBot(setup);
   const result = await findSkill("tell_agent")!.run(context(bot), { to: "QWEN", skill: "craft", args: '{"item":"stone_axe","count":1,"extra":1}' });
   assert.equal(result.status, "success");
@@ -221,6 +223,7 @@ test("ask_agent - returns the answer addressed to the asker, not other chatter",
     emit("chat", "haiku", "[act] gather_wood({})");
     emit("chat", "haiku", "@sonnet not you");
     emit("chat", "haiku", "gathering wood for everyone");
+    emit("chat", "haiku", "@tester [auto] bringing you 1 stone_shovel, stay where you are");
     emit("chat", "haiku", "@tester [tell] craft {}");
     emit("chat", "haiku", "@tester 40 oak logs");
   };
@@ -229,6 +232,7 @@ test("ask_agent - returns the answer addressed to the asker, not other chatter",
   assert.deepEqual(result, { status: "success", reason: 'haiku answered: "40 oak logs"', detail: { to: "haiku", question: "how many logs?", reply: "40 oak logs" } });
   assert.equal((await run("ask_agent", { players: ["haiku"] }, { to: "haiku", question: "?" }, true)).status, "aborted");
   assert.match((await run("ask_agent", {}, { to: "haiku", question: "?" })).reason!, /no other agent called "haiku"/);
+  assert.match((await run("ask_agent", { players: ["haiku"] }, { to: "tester", question: "?" })).reason!, /tester is you/);
 });
 
 test("give - won't drop items for a receiver under water", async () => {

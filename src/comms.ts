@@ -56,6 +56,13 @@ export function formatSpeech(to: string, text: string): string {
   return clip(`@${to} ${body}`);
 }
 
+/**
+ * Marks speech a skill sends by itself (give's "bringing you…"), so it is never mistaken for
+ * something the model said: ask_agent took one for an answer in team trio3.
+ */
+export const AUTO_MARK = "[auto] ";
+export const autoText = (text: string) => AUTO_MARK + text;
+
 const TELL_MARK = "[tell] ";
 const ASK_MARK = "[ask] ";
 export const MAX_REQUESTS = 4;

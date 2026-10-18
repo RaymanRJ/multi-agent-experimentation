@@ -19,7 +19,7 @@ export const goTo: Skill = {
     "`x` and `z` (coordinates, e.g. a position someone told you; your own is in your observation). Walks in legs, " +
     `up to ${MAX_DISTANCE} blocks. Fails if the agent is out of sight (ask where they are, then use x and z), or ` +
     "if the way is blocked repeatedly. Aborts if a hostile comes within 8 blocks.",
-  args: { to: "string", x: "number", z: "number" },
+  args: { to: "string?", x: "number?", z: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;

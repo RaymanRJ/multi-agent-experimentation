@@ -122,7 +122,8 @@ export interface SkillContext {
   shouldStop: () => boolean;
 }
 
-export type SkillArgSpec = Record<string, "number" | "string">;
+/** An arg's type; a trailing "?" marks it optional (the skill has a default, or takes one arg or another). */
+export type SkillArgSpec = Record<string, "number" | "string" | "number?" | "string?">;
 
 /**
  * A goal an agent may pursue — not a mechanical operation. Skills are composed

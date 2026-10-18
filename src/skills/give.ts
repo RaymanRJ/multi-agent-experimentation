@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, withTimeout } from "./util.js";
-import { formatSpeech } from "../comms.js";
+import { autoText, formatSpeech } from "../comms.js";
 
 const { goals } = pathfinderPkg;
 
@@ -35,7 +35,7 @@ export const give: Skill = {
     "stick, stone_pickaxe), `count` (default: all you have). Fails if that agent is not in sight, if you hold none " +
     "of the item, or if they don't pick it up within a few seconds (the items are then left on the ground, where " +
     "they can pick_up them). It tells them in chat that it is coming, which pauses what they are doing.",
-  args: { to: "string", item: "string", count: "number" },
+  args: { to: "string", item: "string", count: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;
@@ -52,7 +52,7 @@ export const give: Skill = {
     const seen = findAgent(ctx, to);
     if (!seen) return { status: "failed", reason: `${to} is not in sight; ask where they are, or go to them first` };
     // Addressed by name, so it pauses their current skill: they stop walking off, and their model hears why.
-    bot.chat(formatSpeech(seen.username ?? to, `bringing you ${count} ${item}, stay where you are`));
+    bot.chat(formatSpeech(seen.username ?? to, autoText(`bringing you ${count} ${item}, stay where you are`)));
 
     for (let leg = 0; ; leg++) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
@@ -121,7 +121,7 @@ export const give: Skill = {
     }
     if (!picked) {
       // It's on the ground beside them: say so by name, which pauses them so their model sees it.
-      bot.chat(formatSpeech(seen.username ?? to, `the ${item} is on the ground beside you, use pick_up to take it`));
+      bot.chat(formatSpeech(seen.username ?? to, autoText(`the ${item} is on the ground beside you, use pick_up to take it`)));
       return {
         status: "failed",
         reason: `tossed ${gave} ${item} to ${to}, but they had not picked it up after ${PICKUP_WAIT_MS / 1000} s; it is on the ground beside them, and they have been told`,

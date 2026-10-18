@@ -246,7 +246,7 @@ export const tunnel: Skill = {
     "ore hidden inside rock, since mine_ore only finds ore you can see. Takes an optional `direction` (north, east, " +
     "south or west); by default it keeps going the way you last dug. Digs with your cheapest pickaxe, sparing an iron one " +
     "as descend does. Stops before lava, water or a drop. Returns how far it got and the ore now in sight, for mine_ore.",
-  args: { length: "number", direction: "string" },
+  args: { length: "number", direction: "string?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
     const bot = ctx.bot;

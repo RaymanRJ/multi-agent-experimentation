@@ -66,6 +66,10 @@ Read this at the start of a session; update it when something finishes or a new 
     - **`ask_agent` took `give`'s own chat line** ("bringing you 1 stone_shovel, stay where you
       are") as the answer, twice.
     - Sonnet answered in tool-call form first on 41 of its 79 calls (item 0): about half its cost.
+    - *Fixed after trio3:* the prompt gives the agent its name; skill args can be optional (`"number?"`,
+      so `go_to(to)`, `go_to(x, z)`, `give` without a count, `pick_up` without an item, `build_shelter`
+      and `tunnel` without their options all parse); a skill's own chat lines are marked `[auto]` and
+      `ask_agent` ignores them. Not yet tried in a team run.
     - Haiku called `pick_up` for a shovel 20 times, mostly while already holding it; qwen claimed to
       have handed over a sword it never had.
 

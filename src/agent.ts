@@ -90,6 +90,8 @@ const skills = comms ? SKILLS : SKILLS.filter((skill) => !COMMS_SKILLS.has(skill
 const team = String(argv["team"] ?? "").split(",").map((name) => name.trim()).filter(Boolean);
 if (team.length > 0) config.team = team;
 
+const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
+
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
     case "scripted":
@@ -106,7 +108,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
         console.error((error as Error).message);
         process.exit(1);
       }
-      return { policy: new LLMPolicy(backend, { memory, comms, stance, progress }), backend };
+      return { policy: new LLMPolicy(backend, { name: agentName, memory, comms, stance, progress }), backend };
     }
   }
 }
@@ -128,7 +130,6 @@ function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null): WorldSnaps
 }
 
 async function main(): Promise<void> {
-  const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
   const maxSteps = Number(argv["steps"]);
   const maxTicks = Number(argv["ticks"]);
   const budgetUSD = Number(argv["budget-usd"]);

@@ -12,6 +12,7 @@ The code is in `src/comms.ts` (chat), `src/interrupts.ts` (being called by name)
 |---|---|---|
 | **Narration** | `[act] gather_wood({"count":10}) — need logs for planks` | People watching. The agent posts one automatically each time it starts a skill. Other agents never hear it as a message. |
 | **Speech** | `@agent_gpt I'll take the stone, you get wood` or `Found iron at the cliff` | Other agents. The model writes it. `@name` addresses one agent; a line without `@` is for everyone. |
+| **Automatic** | `@haiku [auto] bringing you 1 stone_shovel, stay where you are` | The agent named. Sent by a skill by itself (`give`), not written by the model, and marked so: `ask_agent` never takes one for an answer. It still interrupts the agent named. |
 | **Request** | `@qwen [tell] give {"to":"sonnet","item":"oak_log","count":20}` or `@qwen [ask] how many logs do you have?` | The agent named. Sent by the `tell_agent` and `ask_agent` skills. It sees them as `requests`, not as messages; everyone else hears the line as ordinary chat. |
 
 ## Sending a message

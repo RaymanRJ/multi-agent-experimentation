@@ -44,6 +44,8 @@ export const MAX_SAY_CHARS = 200;
 const MAX_SAY_TO_CHARS = 40;
 
 export interface LLMPolicyOptions {
+  /** The agent's name in the world. Without it agents gave items to, and asked questions of, themselves (trio3). */
+  name?: string;
   memory: MemoryMode;
   comms: boolean;
   stance?: Stance;
@@ -188,7 +190,7 @@ export function buildSystemPrompt(
   if (options.comms) {
     fields.push('"say": {"to": string, "text": string} (optional)');
     extra.push(
-      "Other agents share this world. \"messages\" in the observation are what you recently heard and said. " +
+      "Other agents share this world. \"messages\" in the observation are what you recently heard from others. " +
         'Include "say" to talk: "to" is an agent name or "all". Speaking is free — it happens alongside your skill, ' +
         "with no extra step. Keep messages short. " +
         'Omit "say" when you have nothing worth saying. If someone addresses you by name, your current skill is paused so you can answer.',
@@ -202,6 +204,7 @@ export function buildSystemPrompt(
   const stance = STANCE_TEXT[options.stance ?? "neutral"];
   return [
     "You control a Minecraft agent by choosing its next high-level goal. You are given its observation as JSON.",
+    ...(options.name ? [`The agent's name is "${options.name}": other agents see it and address you by it.`] : []),
     '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell.',
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
@@ -209,7 +212,7 @@ export function buildSystemPrompt(
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
     '"ticksUntilNight" is how long until dark (20 ticks = 1 second); hostile mobs come out at night.',
     ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
-    "Skills (args spec: name -> type):",
+    'Skills (args spec: name -> type; a type ending in "?" is optional, so leave it out to use the default):',
     ...lines,
     `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,
     ...extra,
@@ -248,9 +251,13 @@ function parseDecision(text: string, skills: Skill[], options: LLMPolicyOptions)
   }
   const given = rawArgs as Record<string, unknown>;
   const args: Record<string, unknown> = {};
-  for (const [key, type] of Object.entries(skill.args)) {
+  for (const [key, spec] of Object.entries(skill.args)) {
     const value = given[key];
+    const optional = spec.endsWith("?");
+    const type = optional ? spec.slice(0, -1) : spec;
     if (value === undefined || value === null) {
+      // Left out on purpose: the skill uses its default (go_to takes `to` or `x` and `z`).
+      if (optional) continue;
       return { ok: false, error: `skill "${name}" is missing arg "${key}" (${type})` };
     }
     if (type === "number") {

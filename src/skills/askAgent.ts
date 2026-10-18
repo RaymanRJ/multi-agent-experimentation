@@ -1,5 +1,5 @@
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { formatSpeech, isNarration, MAX_CHAT, parseRequest, parseSpeech, requestText } from "../comms.js";
+import { AUTO_MARK, formatSpeech, isNarration, MAX_CHAT, parseRequest, parseSpeech, requestText } from "../comms.js";
 import { agentNamed } from "./tellAgent.js";
 
 /** Long enough for a busy agent to finish deciding; a local model takes 5-10 s. */
@@ -15,6 +15,9 @@ export const askAgent: Skill = {
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;
+    if (String(args["to"] ?? "").trim().toLowerCase() === bot.username.toLowerCase()) {
+      return { status: "failed", reason: `${bot.username} is you; ask another agent` };
+    }
     const to = agentNamed(bot, String(args["to"] ?? ""));
     if (!to) return { status: "failed", reason: `there is no other agent called "${String(args["to"] ?? "")}" in this world` };
     const question = String(args["question"] ?? "").trim();
@@ -29,7 +32,8 @@ export const askAgent: Skill = {
       const { to: addressee, text } = parseSpeech(message);
       // Only speech addressed to the asker is an answer. Their usual line to everyone is not: in team
       // trio2 every "answer" taken from those was a status update that ignored the question.
-      if (addressee.toLowerCase() === self && !parseRequest(text)) reply = text;
+      // Nor is a line a skill of theirs sent by itself (give's "bringing you…", trio3).
+      if (addressee.toLowerCase() === self && !parseRequest(text) && !text.startsWith(AUTO_MARK)) reply = text;
     };
     bot.on("chat", onChat);
     try {

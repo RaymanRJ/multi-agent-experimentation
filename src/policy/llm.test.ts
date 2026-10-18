@@ -260,3 +260,21 @@ test("full memory on a cloud backend keeps the start of the prompt stable betwee
   assert.ok(changes > 0, "the history did fill and get trimmed");
   assert.ok(changes <= sent.length / 4, `first turn changed ${changes} times in ${sent.length} calls`);
 });
+
+test("an optional arg may be left out; a required one may not", async () => {
+  const goTo: Skill = { name: "go_to", description: "Go.", args: { to: "string?", x: "number?", z: "number?" }, run: async () => ({ status: "success" }) };
+  const out = await new LLMPolicy(fakeBackend(['{"skill":"go_to","args":{"to":"sonnet"}}'])).decide(obs, [goTo]);
+  assert.deepEqual(out.decision?.args, { to: "sonnet" });
+  const xz = await new LLMPolicy(fakeBackend(['{"skill":"go_to","args":{"x":"-15","z":27}}'])).decide(obs, [goTo]);
+  assert.deepEqual(xz.decision?.args, { x: -15, z: 27 }, "a given optional arg is still type-checked");
+  const backend = fakeBackend(['{"skill":"gather_wood","args":{}}', '{"skill":"gather_wood","args":{"count":3}}']);
+  await new LLMPolicy(backend).decide(obs, skills);
+  assert.match(backend.users[1]!, /missing arg "count"/);
+});
+
+test("the prompt names the agent when it has a name, and explains optional args", () => {
+  const prompt = buildSystemPrompt(skills, { memory: "plan", comms: true, name: "haiku" });
+  assert.match(prompt, /The agent's name is "haiku"/);
+  assert.match(prompt, /a type ending in "\?" is optional/);
+  assert.doesNotMatch(buildSystemPrompt(skills), /name is/);
+});
