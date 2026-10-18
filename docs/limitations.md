@@ -76,7 +76,16 @@ building on it.
   enough to stop two agents cancelling each other's work, but it is a rule of thumb, not tuned.
 - **Narration in chat is limited to once every 1.5 seconds** to avoid the server kicking a bot for
   spam. In a burst of instant failures, other agents' view of what that agent is doing can lag.
-- **No prompt caching.** Paid runs resend the whole prompt each decision. Caching would cut cost,
-  especially with full memory.
+- **Prompt caching is built but not yet seen working on a real account.** It is checked only by
+  tests with fake API clients so far:
+  - Claude requests mark the system prompt and the history for caching.
+  - OpenAI caches long prompts by itself, and the report counts the hits.
+  - GPT-6 models have no listed cached price, so their cached tokens are billed at the full input
+    price in our numbers. Our numbers can overstate their cost, never understate it.
+  - The system prompt is about 1,300–1,800 tokens, which may be under some Claude models' minimum
+    for caching. Runs with no or plan memory then get no saving on that model.
+  - With full memory on a paid model, the history is now cut to half its budget when it fills,
+    rather than one exchange at a time. That keeps the cache hitting, but it also means the model
+    sees between 10,000 and 20,000 tokens of history rather than always about 20,000.
 - **Run logs are not backed up.** `runs/` is gitignored because logs contain full prompts. Copy
   it somewhere if the results matter.

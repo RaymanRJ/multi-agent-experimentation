@@ -9,7 +9,7 @@
 #   STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"
 #   STANCE=collaborative COMMS=on GOAL=shelter scripts/team.sh t2 "opus=claude:full@claude-opus-5-5 sol=gpt@gpt-6.1-sol"
 #
-# STANCE (neutral), COMMS (on), PROGRESS (off) and GOAL (tools) apply to every agent. @model sets the brain's
+# STANCE (neutral), COMMS (on), PROGRESS (off), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent. @model sets the brain's
 # model variable for that agent only, so two models from one provider can play together.
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/team-NAME.txt
 set -euo pipefail
@@ -23,6 +23,7 @@ scenario="${5:-sandbox}"
 stance="${STANCE:-neutral}"
 comms="${COMMS:-on}"
 progress="${PROGRESS:-off}"
+budget="${BUDGET_USD:-1.00}"
 goal="${GOAL:-tools}"
 port="${TEAM_PORT:-25600}"
 list="runs/team-$name.txt"
@@ -56,7 +57,7 @@ for rep in $(seq 1 "$reps"); do
     (
       [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"
       MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
-        --brain "$brain" --memory "$memory" --comms "$comms" --stance "$stance" --progress "$progress" --goal "$goal" \
+        --brain "$brain" --memory "$memory" --comms "$comms" --stance "$stance" --progress "$progress" --budget-usd "$budget" --goal "$goal" \
         --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" > "$out" 2>&1 || true
     ) &
     pids+=($!)

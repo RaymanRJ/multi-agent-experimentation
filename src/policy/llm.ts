@@ -30,6 +30,13 @@ export const OUTPUT_RESERVE_TOKENS = 1500;
  * differ by backend on purpose; record them when comparing "full" runs.
  */
 export const CLOUD_MEMORY_TOKEN_BUDGET = 20_000;
+/**
+ * When a cloud history outgrows its budget it is cut to this share of it in one go, not by one
+ * exchange per decision. Dropping the oldest turn every time would change the start of every
+ * prompt and defeat the provider's prompt cache; cutting in chunks keeps the start stable until
+ * the history fills again. The local model keeps one-at-a-time trimming (no cache to protect).
+ */
+export const CLOUD_HISTORY_REFILL = 0.5;
 
 /** Longest plan and spoken message we keep; longer ones are cut, not rejected. */
 export const MAX_PLAN_CHARS = 200;
@@ -80,6 +87,7 @@ export class LLMPolicy implements Policy {
   private readonly options: LLMPolicyOptions;
   private history: ChatTurn[] = [];
   private readonly historyTokens: number;
+  private readonly refill: number;
 
   constructor(private readonly backend: Backend, options: Partial<LLMPolicyOptions> = {}) {
     this.name = `llm:${backend.name}`;
@@ -89,6 +97,7 @@ export class LLMPolicy implements Policy {
       (backend.contextTokens
         ? backend.contextTokens - OUTPUT_RESERVE_TOKENS
         : backend.name === "ollama" ? FULL_MEMORY_TOKEN_BUDGET : CLOUD_MEMORY_TOKEN_BUDGET);
+    this.refill = backend.contextTokens || backend.name === "ollama" ? 1 : CLOUD_HISTORY_REFILL;
   }
 
   async decide(observation: Observation, skills: Skill[]): Promise<PolicyOutput> {
@@ -96,7 +105,7 @@ export class LLMPolicy implements Policy {
     const system = buildSystemPrompt(skills, this.options);
     const user: ChatTurn = { role: "user", content: JSON.stringify(observation) };
     const base: ChatTurn[] =
-      memory === "full" ? trimHistory(system, this.history, user, this.historyTokens) : [user];
+      memory === "full" ? trimHistory(system, this.history, user, this.historyTokens, this.refill) : [user];
     const calls: ModelCall[] = [];
     const retryTurns: ChatTurn[] = [];
     let lastError = "";
@@ -147,14 +156,16 @@ function retryMessage(error: string): string {
 }
 
 /**
- * History plus the new user turn, with the oldest user/assistant pairs dropped
- * until system + turns fit `budget`. Always keeps `latest`.
+ * History plus the new user turn. Once system + turns exceed `budget`, the oldest user/assistant
+ * pairs are dropped until they fit `budget * refill` (refill 1: just under the budget; 0.5: half of
+ * it, so the next several calls share their start). Always keeps `latest`. Exported for tests.
  */
-function trimHistory(system: string, history: ChatTurn[], latest: ChatTurn, budget: number): ChatTurn[] {
+export function trimHistory(system: string, history: ChatTurn[], latest: ChatTurn, budget: number, refill = 1): ChatTurn[] {
   let kept = history;
   const size = (turns: ChatTurn[]) =>
     estimateTokens(system) + turns.reduce((n, t) => n + estimateTokens(t.content), 0);
-  while (kept.length >= 2 && size([...kept, latest]) > budget) kept = kept.slice(2);
+  if (size([...kept, latest]) <= budget) return [...kept, latest];
+  while (kept.length >= 2 && size([...kept, latest]) > budget * refill) kept = kept.slice(2);
   return [...kept, latest];
 }
 

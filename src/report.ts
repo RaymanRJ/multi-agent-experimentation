@@ -59,6 +59,8 @@ export interface RunSummary {
   doneRefused: number;
   fallbackWaits: number;
   tokensIn: number;
+  /** Of tokensIn: read from the provider's prompt cache. */
+  tokensCached: number;
   tokensOut: number;
   costUSD: number | "unknown";
   milestones: Record<MilestoneName, MilestoneData | null>;
@@ -374,6 +376,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   let retryWaitMs = 0;
   let fallbackWaits = 0;
   let tokensIn = 0;
+  let tokensCached = 0;
   let tokensOut = 0;
   for (const step of steps) {
     const calls = Array.isArray(step.calls) ? step.calls : [];
@@ -384,6 +387,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
     for (const call of calls) {
       tokensIn += call.inputTokens;
+      tokensCached += call.cacheReadTokens ?? 0;
       tokensOut += call.outputTokens;
       providerRetries += call.providerRetries ?? 0;
       retryWaitMs += call.retryWaitMs ?? 0;
@@ -451,6 +455,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     doneRefused: steps.filter((s) => s.events?.includes("done refused")).length,
     fallbackWaits,
     tokensIn,
+    tokensCached,
     tokensOut,
     costUSD: costUsdValue,
     milestones,
@@ -835,6 +840,7 @@ function printTable(summaries: RunSummary[]) {
     ["Throttled", (s) => (s.providerRetries ? `${s.providerRetries} (${s.retryWaitS}s)` : "0"), true],
     ["Done refused", (s) => String(s.doneRefused), true],
     ["TokenIn", (s) => String(s.tokensIn), true],
+    ["Cached", (s) => (s.tokensIn ? `${Math.round((100 * s.tokensCached) / s.tokensIn)}%` : "-"), true],
     ["TokenOut", (s) => String(s.tokensOut), true],
     ["Cost(USD)", (s) => formatCost(s.costUSD), true],
   ]);

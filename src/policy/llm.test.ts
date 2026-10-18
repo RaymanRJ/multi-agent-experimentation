@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { LLMPolicy, STANCE_TEXT, buildSystemPrompt, FULL_MEMORY_TOKEN_BUDGET, estimateTokens } from "./llm.js";
+import { LLMPolicy, STANCE_TEXT, buildSystemPrompt, FULL_MEMORY_TOKEN_BUDGET, estimateTokens, trimHistory, CLOUD_HISTORY_REFILL } from "./llm.js";
 import type { Backend, ChatTurn, ModelCall, Observation, Skill } from "../types.js";
 
 function fakeBackend(texts: string[]): Backend & { users: string[]; sent: ChatTurn[][] } {
@@ -220,4 +220,36 @@ test("buildSystemPrompt - neutral gives no motive; the other stances differ by o
     const text = buildSystemPrompt(skills, { memory: "plan", comms: true, stance });
     assert.equal(text.replace(STANCE_TEXT[stance]! + "\n", ""), neutral);
   }
+});
+
+test("trimHistory - fits untouched; one-at-a-time trimming at refill 1; cut to half at refill 0.5", () => {
+  const turn = (role: "user" | "assistant", n: number): ChatTurn => ({ role, content: "x".repeat(400) + n }); // ~100 tokens each
+  const history: ChatTurn[] = [];
+  for (let i = 0; i < 10; i++) history.push(turn("user", i), turn("assistant", i));
+  const latest = turn("user", 99);
+  assert.equal(trimHistory("", history.slice(0, 4), latest, 10_000, 0.5).length, 5, "under budget: nothing dropped");
+  const local = trimHistory("", history, latest, 1500, 1);
+  const cloud = trimHistory("", history, latest, 1500, CLOUD_HISTORY_REFILL);
+  assert.ok(local.length - 1 <= 14 && local.length - 1 >= 12, `local keeps just under budget (${local.length - 1} turns)`);
+  assert.ok(cloud.length - 1 <= 6, `cloud cuts to about half (${cloud.length - 1} turns)`);
+  assert.equal(cloud[0]!.role, "user", "always starts on a user turn");
+  assert.equal(cloud.at(-1), latest);
+});
+
+test("full memory on a cloud backend keeps the start of the prompt stable between trims", async () => {
+  const sent: ChatTurn[][] = [];
+  const backend: Backend = {
+    name: "claude",
+    complete: async (_system, turns) => {
+      sent.push(turns);
+      return { backend: "claude", model: "claude-sonnet-5-5", inputTokens: 1, outputTokens: 1, ms: 1, text: '{"skill":"wait","args":{"seconds":1},"rationale":"r"}' };
+    },
+  };
+  const policy = new LLMPolicy(backend, { memory: "full", comms: false, historyTokens: 6000 });
+  for (let i = 0; i < 40; i++) await policy.decide({ ...obs, step: i + 1, recentEvents: ["e".repeat(800)] } as Observation, skills);
+  // Count how often the first turn changed between consecutive calls: once per trim, not every call.
+  let changes = 0;
+  for (let i = 1; i < sent.length; i++) if (sent[i]![0]!.content !== sent[i - 1]![0]!.content) changes++;
+  assert.ok(changes > 0, "the history did fill and get trimmed");
+  assert.ok(changes <= sent.length / 4, `first turn changed ${changes} times in ${sent.length} calls`);
 });

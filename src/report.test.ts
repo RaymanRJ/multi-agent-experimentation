@@ -858,3 +858,12 @@ test("doneRefused: counts each done the agent was told was premature", () => {
   assert.equal(summary.doneRefused, 2);
   assert.equal(summary.howEnded, "policy ended");
 });
+
+test("summarizeRun - prompt-cache reads are counted, and priced at the cached rate", () => {
+  const call = { backend: "claude", model: "claude-sonnet-5-5", inputTokens: 1_000_000, cacheReadTokens: 900_000, outputTokens: 0, ms: 1, text: "" };
+  const s = summarizeRun([makeStep({ step: 1, calls: [call] }), makeStep({ step: 2, calls: [call] })], "runs/x-a.jsonl");
+  assert.equal(s.tokensIn, 2_000_000);
+  assert.equal(s.tokensCached, 1_800_000);
+  // Per call: 100k plain at $2/M + 900k cached at $0.20/M = $0.38.
+  assert.ok(typeof s.costUSD === "number" && Math.abs(s.costUSD - 0.76) < 1e-9, String(s.costUSD));
+});

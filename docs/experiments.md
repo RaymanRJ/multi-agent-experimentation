@@ -39,7 +39,16 @@ CONDITIONS="scripted ollama:none ollama:full" GOALS="tools shelter" scripts/batc
 This runs every condition on every goal, 3 times each, for 12,000 ticks each, in the sandbox.
 Each run gets a fresh world on its own throwaway server, so your main world is never touched. A
 condition is `brain:memory`, and a paid model is named the same way, e.g. `claude:full`. Add
-`+progress` to turn on `--progress` for that condition, e.g. `ollama:none+progress`.
+`+progress` to turn on `--progress` for that condition, e.g. `ollama:none+progress`. Add `@model` to pick the model, so one batch can compare several models from one
+provider:
+
+```bash
+BUDGET_USD=15 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet-5-5 claude:plan@claude-opus-5-5" \
+  GOALS=outpost scripts/batch.sh p1 3 27000 survival
+```
+
+`BUDGET_USD` caps what each paid run may spend (default $1.00). A run that reaches it ends as
+"cost budget", so raise it for long goals: an outpost run on a large model can cost several dollars.
 
 The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved next to its run log.
 
@@ -84,6 +93,7 @@ It also has these columns:
 - **Furthest**: the furthest milestone the run reached (logs, wooden pickaxe, stone, stone pickaxe, shelter, survived the night).
 - **Re-asks**: answers the model got wrong and was asked again for.
 - **Throttled**: provider rate-limit retries.
+- **Cached**: the share of input tokens read from the provider's prompt cache, which are billed at a discount.
 - **Done refused**: times the model said "done" before the goal was met.
 
 For a one-page write-up of a single run, use `npm run summary`. It covers how the run ended, the
@@ -101,6 +111,30 @@ Each summary is written beside its log as `runs/<file>.summary.md`.
 To see why a run failed, open its log in the minds panel (`npm run minds`, then
 http://localhost:3010). It shows every decision: what the agent saw, what it chose and why, and
 what happened.
+
+## Running paid models
+
+Paid models cost real money, so start small and size the real test from what the first runs cost.
+
+1. **Set up the keys.** `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and/or
+   `OPENAI_API_KEY`. Set a monthly spend limit in each provider's console too.
+2. **Proof of concept: one short and one long run per model.**
+   ```bash
+   BUDGET_USD=3 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet-5-5 claude:plan@claude-opus-5-5" \
+     GOALS="tools" scripts/batch.sh poc1 1 12000 sandbox
+   BUDGET_USD=15 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet-5-5 claude:plan@claude-opus-5-5" \
+     GOALS="outpost" scripts/batch.sh poc2 1 27000 survival
+   ```
+   The same works for OpenAI with `gpt:plan@<model>`. A model with no price in
+   `src/backends/pricing.ts` refuses to start, so `--budget-usd` can always stop it.
+3. **Check the proof of concept.** `npm run report -- --batch poc2` and `npm run summary -- --batch poc2`:
+   - **Ended** is "goal met" or "time budget", not "brain unavailable" (a key or credit problem)
+     or "cost budget" (`BUDGET_USD` too low).
+   - **Cached** is above 0% after the first few decisions. If it stays at 0% for a model, its
+     minimum prompt length for caching is above our prompt's, and runs on it cost full price.
+   - **Cost(USD)** per run, to multiply out for the real test.
+4. **The real test:** the conditions you want to compare × at least 3 reps, with `BUDGET_USD` set a
+   little above the most expensive run seen in the proof of concept.
 
 ## Making a result trustworthy
 

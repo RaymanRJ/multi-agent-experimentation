@@ -5,6 +5,24 @@ import { BrainError, classify } from "./errors.js";
 /** The subset of the SDK client this backend uses — lets tests inject a fake. */
 export type MessagesClient = Pick<Anthropic, "messages">;
 
+const EPHEMERAL = { type: "ephemeral" } as const;
+
+/**
+ * The request with prompt-cache breakpoints: one after the system prompt (the same on every
+ * decision of a run), and one after the history that precedes the newest observation (full
+ * memory, where each call repeats the last one's turns). The provider then bills those prefixes
+ * at a tenth of the input price when the next call starts with them. Prompts shorter than the
+ * model's minimum cacheable length are simply not cached. Exported for tests.
+ */
+export function cachedRequest(system: string, turns: ChatTurn[]) {
+  const messages: Anthropic.MessageParam[] = turns.map((turn, i) =>
+    i === turns.length - 2
+      ? { role: turn.role, content: [{ type: "text", text: turn.content, cache_control: EPHEMERAL }] }
+      : { role: turn.role, content: turn.content },
+  );
+  return { system: [{ type: "text" as const, text: system, cache_control: EPHEMERAL }], messages };
+}
+
 export class AnthropicBackend implements Backend {
   readonly name: string;
   private readonly model: string;
@@ -37,8 +55,7 @@ export class AnthropicBackend implements Backend {
         model: this.model,
         // Room for extended thinking before the answer; only tokens actually produced are billed.
         max_tokens: 16_000,
-        system,
-        messages: turns,
+        ...cachedRequest(system, turns),
       })
       .catch((error: unknown) => {
         if (error instanceof Anthropic.APIError && error.status !== undefined) {
@@ -64,11 +81,16 @@ export class AnthropicBackend implements Backend {
       .map((block) => block.thinking)
       .join("");
 
+    // input_tokens counts only what came after the last cache breakpoint; the total is all three.
+    const cacheRead = response.usage.cache_read_input_tokens ?? 0;
+    const cacheWrite = response.usage.cache_creation_input_tokens ?? 0;
     return {
       backend: this.name,
       model: this.model,
-      inputTokens: response.usage.input_tokens,
+      inputTokens: response.usage.input_tokens + cacheRead + cacheWrite,
       outputTokens: response.usage.output_tokens,
+      ...(cacheRead && { cacheReadTokens: cacheRead }),
+      ...(cacheWrite && { cacheWriteTokens: cacheWrite }),
       ms: Date.now() - startMs,
       text,
       request: turns,
