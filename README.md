@@ -2,6 +2,18 @@
 
 What do AI agents do when they are given a goal, a set of tools, and then left alone?
 
+**Contents**
+
+- [The control loop](#the-control-loop)
+- [What an agent is given](#what-an-agent-is-given)
+- [What gets measured](#what-gets-measured)
+- [Getting started](#getting-started): [prerequisites](#1-install-the-prerequisites) · [get the code](#2-get-the-code) · [check your setup](#3-check-your-setup) · [first run](#4-start-your-first-run) · [watch](#5-watch-it-work) · [results](#6-read-the-results) · [paid models](#7-add-paid-models-optional) · [your own experiments](#8-run-your-own-agents-and-experiments) · [stop](#9-stop)
+- [Status](#status)
+- [Documentation](#documentation)
+- [Running experiments](#running-experiments)
+- [Details](#details): [architecture](#architecture) · [scenarios](#scenarios) · [software](#software)
+- [Licence](#licence)
+
 This is a testbed for running autonomous agents **hands-off**. Each agent gets an outcome to reach
 and a fixed set of tools to act with, and nothing else: no step-by-step instructions, no human
 stepping in when it gets stuck. Several agents can share one environment, each driven by a
