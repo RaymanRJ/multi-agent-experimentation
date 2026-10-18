@@ -34,9 +34,11 @@ building on it.
 
 - **No fighting, farming or chest storage.** An agent can only run from mobs (`flee`), eat food it
   already has, and keep everything in its inventory, or hand it to another agent (`give`).
-- **A `give` sometimes falls short.** Items are tossed at the receiver's feet. Near spawn an agent
-  can be standing in a tree canopy, and the items fall through to the ground below; it then has to
-  `pick_up` them. Of ten live hand-overs, two fell short this way, and one partly came back to the giver.
+- **`give` needs the receiver within reach of the giver.** The giver walks up beside them and drops
+  the items at its feet; 8 of 8 live hand-overs worked that way. Tossing from two blocks or more
+  overshot (1 of 5), and from one block the giver swept its own toss back up. A wall between them,
+  such as the giver standing inside its shelter, can still leave the items on the giver's side; the
+  receiver is then told by name that they are on the ground, so it can `pick_up` them.
 - **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. In b12 it
   walled one agent in, and once, underground, failed with two gaps left that it could not fill
   (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run.

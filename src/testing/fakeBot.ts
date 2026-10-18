@@ -144,6 +144,8 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
     on: (event: string, fn: (...args: unknown[]) => void) => listeners.set(event, [...(listeners.get(event) ?? []), fn]),
     removeListener: (event: string, fn: (...args: unknown[]) => void) => listeners.set(event, (listeners.get(event) ?? []).filter((f) => f !== fn)),
     lookAt: async () => {},
+    look: async () => {},
+    setControlState: (control: string, state: boolean) => calls.push(`${control} ${state ? "on" : "off"}`),
     toss: async (id: number, _metadata: unknown, count: number) => {
       calls.push(`toss ${count} ${registry.items[id]?.name}`);
     },

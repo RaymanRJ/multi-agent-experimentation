@@ -155,7 +155,7 @@ test("give - tosses no more than it holds, and succeeds when the teammate picks 
   const { bot, calls, emit, setInventory } = fakeBot({ inventory: { cobblestone: 5 }, entities: [teammate(1.5)] });
   const pending = findSkill("give")!.run(context(bot), { to: "QWEN", item: "cobblestone", count: 9 });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone"], "already beside them: no walking, and only the 5 it has");
+  assert.deepEqual(calls, ["chat @qwen bringing you 5 cobblestone, stay where you are", "toss 5 cobblestone", "back on", "back off"], "already beside them: no walking, only the 5 it has, then a step back");
   emit("playerCollect", { username: "someone_else" }, {});
   emit("playerCollect", { username: "qwen" }, {});
   setInventory({});

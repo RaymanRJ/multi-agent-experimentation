@@ -6,12 +6,17 @@ import { formatSpeech } from "../comms.js";
 
 const { goals } = pathfinderPkg;
 
-/** Close enough that a toss lands at their feet: thrown items fly a block or two. */
-const HAND_OVER = 2;
+/**
+ * Right beside them. A toss flies two or three blocks, past someone that close, so the items are
+ * dropped straight down instead: at the giver's feet, which is within the receiver's pickup reach.
+ */
+const HAND_OVER = 1;
 const LEGS = 3;
 const LEG_TIMEOUT_MS = 20_000;
 /** Tossed items can't be picked up for 2 s; then the receiver has to be standing on them. */
 const PICKUP_WAIT_MS = 8_000;
+/** About two blocks of walking backwards: out of reach of the toss, still in sight. */
+const STEP_BACK_TICKS = 12;
 
 function findAgent(ctx: SkillContext, name: string): Entity | undefined {
   const wanted = name.toLowerCase();
@@ -23,7 +28,7 @@ function findAgent(ctx: SkillContext, name: string): Entity | undefined {
 export const give: Skill = {
   name: "give",
   description:
-    "Walk to another agent and hand them items from your inventory: you toss the items at their feet and they " +
+    "Walk to another agent and hand them items from your inventory: you drop the items beside them and they " +
     "pick them up by standing there. Args: `to` (the agent's name, as in otherAgents), `item` (e.g. cobblestone, " +
     "stick, stone_pickaxe), `count` (default: all you have). Fails if that agent is not in sight, if you hold none " +
     "of the item, or if they don't pick it up within a few seconds (the items are then left on the ground, where " +
@@ -52,7 +57,7 @@ export const give: Skill = {
       const target = findAgent(ctx, to);
       if (!target) return { status: "failed", reason: `${to} is not in sight; ask where they are, or go to them first` };
       const distance = target.position.distanceTo(bot.entity.position);
-      if (distance <= HAND_OVER + 0.5) break;
+      if (distance <= HAND_OVER + 0.6) break;
       if (leg === LEGS) return { status: "failed", reason: `could not catch up with ${to}: still ${Math.round(distance)} blocks away; ask them to wait` };
       try {
         const { x, y, z } = target.position;
@@ -78,26 +83,36 @@ export const give: Skill = {
       bot.on("playerCollect", onCollect);
     });
     try {
-      // Aim at their feet, and let the server see the new heading: a toss flies the way it thinks you face.
+      // Face them (so stepping back moves away from them), look straight down, and let the server
+      // see the new heading before dropping: the drop goes the way it thinks you face.
       await bot.lookAt(target.position, true);
+      await bot.look(bot.entity.yaw, -Math.PI / 2, true);
       await bot.waitForTicks(2);
       await bot.toss(def.id, null, count);
     } catch (error) {
       return { status: "failed", reason: `could not toss the ${item}: ${(error as Error).message}` };
     }
     ctx.log(`tossed ${count} ${item} to ${to}`);
-    if (!(await collected)) {
-      const p = bot.entity.position.floored();
+    // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up.
+    bot.setControlState("back", true);
+    await bot.waitForTicks(STEP_BACK_TICKS);
+    bot.setControlState("back", false);
+
+    const picked = await collected;
+    await bot.waitForTicks(10);
+    const gave = held - bot.inventory.count(def.id, null);
+    if (gave <= 0) {
+      return { status: "failed", reason: `you tossed the ${item} but picked it all back up yourself; try again from a step further away` };
+    }
+    if (!picked) {
+      // It's on the ground beside them: say so by name, which pauses them so their model sees it.
+      bot.chat(formatSpeech(seen.username ?? to, `the ${item} is on the ground beside you, use pick_up to take it`));
       return {
         status: "failed",
-        reason: `tossed ${count} ${item} at ${to}'s feet, but they had not picked it up after ${PICKUP_WAIT_MS / 1000} s; it is on the ground near ${p.x}, ${p.y}, ${p.z}`,
-        detail: { tossed: count, item, to },
+        reason: `tossed ${gave} ${item} to ${to}, but they had not picked it up after ${PICKUP_WAIT_MS / 1000} s; it is on the ground beside them, and they have been told`,
+        detail: { tossed: gave, item, to },
       };
     }
-    // Standing close, the giver can sweep part of its own toss back up once the pickup delay ends.
-    await bot.waitForTicks(20);
-    const gave = held - bot.inventory.count(def.id, null);
-    if (gave <= 0) return { status: "failed", reason: `you tossed the ${item} but picked it all back up yourself; step back and try again` };
     if (gave < count) return { status: "success", reason: `${to} got ${gave} of the ${count} ${item}; the rest came back to you`, detail: { gave, item, to } };
     return { status: "success", detail: { gave, item, to } };
   },

@@ -80,7 +80,7 @@ export const gatherWood: Skill = {
     if (startedWith >= wanted) {
       return {
         status: "success",
-        reason: `you already have ${startedWith} logs, at least the ${wanted} asked for — no need to gather more`,
+        reason: `you already have ${startedWith} logs, at least the ${wanted} asked for, so none were gathered — count is the total to hold, not how many more: to hold ${startedWith + wanted}, ask for ${startedWith + wanted}`,
         detail: { gathered: 0, totalLogs: startedWith },
       };
     }
