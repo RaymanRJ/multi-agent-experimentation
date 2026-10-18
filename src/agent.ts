@@ -8,7 +8,10 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { readFileSync } from "node:fs";
 import { RunLog } from "./log.js";
+import { parseSteps } from "./minds.js";
+import { writeSummary } from "./summary.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
@@ -387,6 +390,12 @@ async function main(): Promise<void> {
   console.log(`[${agentName}] ended: ${ended} after ${elapsedTicks()} ticks, $${spentUSD.toFixed(4)}`);
   stopping = true;
   console.log(`[${agentName}] done — log at ${runLog.file}`);
+  try {
+    console.log(`[${agentName}] report at ${writeSummary(parseSteps(readFileSync(runLog.file, "utf8")), runLog.file)}`);
+  } catch (error) {
+    // The log is what matters; a report can be rebuilt from it later with npm run summary.
+    console.error(`[${agentName}] could not write the run report: ${(error as Error).message}`);
+  }
   bot.quit();
   setTimeout(() => process.exit(0), 500);
 }

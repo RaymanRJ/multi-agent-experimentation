@@ -1,7 +1,9 @@
 /**
- * A one-page Markdown summary of a run: how it ended, what it achieved, what it spent, what it
- * did, and what went wrong. Built from the run's log alone, so any past run can be summarised
- * without replaying it.
+ * A short Markdown report on how an agent behaved in one run: a verdict in plain sentences, a
+ * scorecard (decisions that worked, response to failure, loops, false "done" claims, think time,
+ * tokens, cost), progress, where the time went, what got in its way and, for a model, its own
+ * reasons. Built from the run's log alone, so any past run can be reported without replaying it.
+ * Every run writes one when it ends (src/agent.ts); this command rewrites them.
  *
  *   npm run summary                      # the newest run
  *   npm run summary -- runs/<file>.jsonl  # these runs
@@ -16,6 +18,7 @@ import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
 import { newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
 import { brainLabel, MILESTONES, parseSteps } from "./minds.js";
+import { GOAL_GAPS, goalTask } from "./scenario.js";
 
 const MILESTONE_LABELS: Record<string, string> = {
   logs: "Logs",
@@ -129,58 +132,182 @@ function outcomeLine(s: RunSummary): string {
   return `**Goal not met:** ${why[s.howEnded] ?? `the run stopped (${s.howEnded})`}.`;
 }
 
+/** A decision as one comparable string: craft {"item":"stone_pickaxe"}. */
+const said = (step: LoggedStep) => (step.decision ? `${step.decision.skill} ${JSON.stringify(step.decision.args ?? {})}` : "done");
+const pct = (n: number, of: number) => (of === 0 ? "-" : `${Math.round((100 * n) / of)}%`);
+const clip = (text: string, n = 200) => (text.length > n ? text.slice(0, n).trimEnd() + "…" : text);
+/** Stopped by the world (a mob, damage, dusk), not by the run ending. */
+const interrupted = (step: LoggedStep) => step.result?.status === "aborted" && step.result.reason !== "the run is ending" && step.result.reason !== "the time budget ran out";
+
+export interface Behaviour {
+  decisions: number;
+  succeeded: number;
+  failed: number;
+  interrupted: number;
+  /** Failures followed by another decision, and how many of those changed course. */
+  failuresWithNext: number;
+  changedCourse: number;
+  /** The longest run of one decision failing the same way, back to back. */
+  longestLoop: { count: number; decision: string; reason: string; from: number } | null;
+  /** Failures that repeat an earlier failure exactly: the same decision, failing the same way. */
+  repeatedFailures: number;
+  /** Decisions that named no skill. */
+  invalid: number;
+  /** Game ticks spent in each skill, and waiting on the brain ("thinking"): the world runs on meanwhile. */
+  ticksBySkill: Record<string, number>;
+}
+
+/** The world runs at 20 ticks a second while the brain thinks. */
+const TICKS_PER_MS = 20 / 1000;
+
+/** How the agent acted, as opposed to what it got: success rate, response to failure, loops. */
+export function behaviour(steps: LoggedStep[]): Behaviour {
+  const out: Behaviour = { decisions: 0, succeeded: 0, failed: 0, interrupted: 0, failuresWithNext: 0, changedCourse: 0, longestLoop: null, repeatedFailures: 0, invalid: 0, ticksBySkill: {} };
+  let loop: Behaviour["longestLoop"] = null;
+  const failedBefore = new Set<string>();
+  const spend = (what: string, ticks: number) => {
+    if (ticks > 0) out.ticksBySkill[what] = (out.ticksBySkill[what] ?? 0) + ticks;
+  };
+  steps.forEach((step, i) => {
+    const next = steps[i + 1];
+    const status = step.result?.status;
+    // A step's ticks are stamped once its skill ends, so the span since the last step is the
+    // brain's thinking followed by the skill itself.
+    const span = Math.max(0, (step.ticks ?? 0) - (steps[i - 1]?.ticks ?? 0));
+    const thinking = Math.min(span, Math.round((step.decisionMs ?? 0) * TICKS_PER_MS));
+    spend("thinking", thinking);
+    spend(step.decision?.skill ?? "done", span - thinking);
+    if (step.decision) out.decisions++;
+    if (status === "failed") {
+      const key = `${said(step)} ${problemKey(step.result?.reason ?? "")}`;
+      if (failedBefore.has(key)) out.repeatedFailures++;
+      failedBefore.add(key);
+    }
+    if (status === "success") out.succeeded++;
+    if (status === "failed") out.failed++;
+    if (interrupted(step)) out.interrupted++;
+    if (step.result?.reason?.startsWith("no such skill")) out.invalid++;
+    if (status === "failed" && step.decision && next && (next.decision || next.result)) {
+      out.failuresWithNext++;
+      if (said(next) !== said(step)) out.changedCourse++;
+    }
+    const reason = problemKey(step.result?.reason ?? "");
+    const prev = steps[i - 1];
+    const continues = loop && prev && status === "failed" && said(prev) === said(step) && problemKey(prev.result?.reason ?? "") === reason;
+    if (continues) loop!.count++;
+    else loop = status === "failed" ? { count: 1, decision: said(step), reason: step.result?.reason ?? "", from: step.step } : null;
+    if (loop && loop.count > (out.longestLoop?.count ?? 1)) out.longestLoop = { ...loop };
+  });
+  return out;
+}
+
+/** The model's own reason for a step: its rationale, or for a "done" the rationale in its reply. */
+function rationale(step: LoggedStep): string | null {
+  if (step.decision?.rationale) return step.decision.rationale;
+  const text = step.calls?.[step.calls.length - 1]?.text;
+  if (!text) return null;
+  const match = text.match(/"rationale"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  return match ? match[1]!.replace(/\\"/g, '"').replace(/\\n/g, " ") : null;
+}
+
+/** What the preset goal still lacked at the end, as the run's own goal check words it. */
+function stillLacking(s: RunSummary, steps: LoggedStep[]): string[] {
+  if (s.goalMet !== false) return [];
+  const gaps = GOAL_GAPS[goalTask(s.goalName)];
+  const last = steps[steps.length - 1];
+  if (!gaps || !last) return [];
+  const inventory = last.inventoryAfter ?? last.observation.inventory;
+  return gaps({ skill: "done", status: "success", inventory, shelterBuilt: !!s.milestones["shelter"], nightSurvivedSinceShelter: false });
+}
+
+/** Three to six plain sentences on how the run went, built from the numbers below them. */
+function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: string[]): string[] {
+  const lines: string[] = [];
+  const reached = MILESTONES.filter((m) => s.milestones[m]);
+  const furthest = reached[reached.length - 1];
+  if (s.goalMet === true) lines.push(`Met its goal in ${b.decisions} decisions and ${gameTime(s.ticksToGoal ?? 0)} of game time.`);
+  else if (lacking.length) lines.push(`Did not meet its goal. Still outstanding at the end: ${lacking.join("; ")}.`);
+  else lines.push(`Did not meet its goal${furthest ? `; it got as far as: ${MILESTONE_LABELS[furthest]!.toLowerCase()}` : ""}.`);
+  lines.push(`${pct(b.succeeded, b.decisions)} of its decisions worked (${b.succeeded} of ${b.decisions}).`);
+  if (b.failuresWithNext > 0) {
+    const rate = b.changedCourse / b.failuresWithNext;
+    const tone = rate >= 0.7 ? "usually changed course" : rate >= 0.4 ? "changed course about half the time" : "mostly repeated itself";
+    lines.push(`After a failure it ${tone} (${b.changedCourse} of ${b.failuresWithNext}).`);
+  }
+  if (b.repeatedFailures >= 3) {
+    lines.push(`${b.repeatedFailures} of its ${b.failed} failures repeated a decision that had already failed the same way.`);
+  }
+  if (b.longestLoop && b.longestLoop.count >= 3) {
+    lines.push(`Its longest loop: \`${b.longestLoop.decision}\` failed ${b.longestLoop.count} times in a row from step ${b.longestLoop.from} with "${clip(b.longestLoop.reason, 90)}".`);
+  }
+  const shares = Object.entries(b.ticksBySkill).filter(([what]) => what !== "thinking").sort((x, y) => y[1] - x[1]);
+  const total = Object.values(b.ticksBySkill).reduce((n, t) => n + t, 0);
+  if (shares[0] && total > 0) lines.push(`Most of its game time went on \`${shares[0][0]}\` (${pct(shares[0][1], total)}).`);
+  const thinking = b.ticksBySkill["thinking"] ?? 0;
+  if (thinking > 0 && total > 0) lines.push(`The world ran on for ${pct(thinking, total)} of the run while it was thinking.`);
+  if (s.doneRefused > 0) lines.push(`It claimed to be done ${s.doneRefused} time${s.doneRefused > 1 ? "s" : ""} before the goal was met.`);
+  if (s.deaths > 0) lines.push(`It died ${s.deaths} time${s.deaths > 1 ? "s" : ""}, losing what it carried each time.`);
+  if (b.invalid > 0) lines.push(`${b.invalid} decision${b.invalid > 1 ? "s" : ""} named a skill that does not exist.`);
+  return lines;
+}
+
 export function renderSummary(steps: LoggedStep[], file: string): string {
   const s = summarizeRun(steps, file);
+  const b = behaviour(steps);
   const first = steps[0];
   const last = steps[steps.length - 1];
   const ticks = last?.ticks ?? 0;
   const brain = brainLabel(steps);
   const config = first?.config;
   const scripted = s.brain === "scripted";
+  const lacking = stillLacking(s, steps);
   const lines: string[] = [];
   const add = (...more: string[]) => lines.push(...more);
 
-  add(`# Run summary: ${s.agentName}`, "", outcomeLine(s), "", `> ${s.goal}`, "");
+  const settings = scripted
+    ? ["no model: the scripted baseline"]
+    : [`memory ${s.memory ?? "-"}`, `progress list ${s.progress ? "on" : "off"}`, `stance ${s.stance ?? "-"}`, `chat ${s.comms ? "on" : "off"}`];
+  add(`# Run report: ${s.agentName}`, "");
+  add(`${brain.label} (${brain.detail}) · goal **${s.goalName}** · ${s.scenario} · ${settings.join(" · ")} · ${first?.at.slice(0, 10) ?? ""}`, "");
+  add(outcomeLine(s), "", `> ${s.goal}`, "");
 
-  add("## Setup", "", "| | |", "|---|---|");
-  add(`| Brain | ${brain.label} (${brain.detail}) |`);
-  add(`| Goal | ${s.goalName} |`, `| World | ${s.scenario} |`);
+  add("## Verdict", "", ...verdict(s, b, steps, lacking).map((l) => `- ${l}`), "");
+
+  add("## Scorecard", "", "| | |", "|---|---|");
+  add(`| Decisions | ${b.decisions} |`);
+  add(`| Worked / failed / interrupted | ${b.succeeded} / ${b.failed} / ${b.interrupted} |`);
+  add(`| Changed course after a failure | ${b.failuresWithNext ? `${b.changedCourse} of ${b.failuresWithNext} (${pct(b.changedCourse, b.failuresWithNext)})` : "-"} |`);
+  add(`| Failures repeating an earlier failure | ${b.failed ? `${b.repeatedFailures} of ${b.failed}` : "-"} |`);
+  add(`| Longest loop of one failing decision | ${b.longestLoop ? `${b.longestLoop.count}× from step ${b.longestLoop.from}` : "none"} |`);
   if (!scripted) {
-    add(`| Memory | ${s.memory ?? "-"} |`, `| Progress list | ${s.progress ? "on" : "off"} |`);
-    add(`| Stance | ${s.stance ?? "-"} |`, `| Chat | ${s.comms ? "on" : "off"} |`);
+    add(`| False "done" claims | ${s.doneRefused} |`);
+    add(`| Unusable answers (re-asked, or no such skill) | ${s.retries} re-asked, ${b.invalid} no such skill |`);
   }
-  add(`| Started | ${first?.at.replace("T", " ").slice(0, 16) ?? "-"} UTC |`);
-  if (config?.episode) add(`| Episode | ${config.episode} |`);
-  add(`| Log | \`${file}\` |`, "");
-
-  add("## At a glance", "", "| | |", "|---|---|");
-  add(`| Ended | ${s.howEnded} |`);
-  add(`| Game time used | ${gameTime(ticks)} (a full day is 20:00) |`);
-  if (first && last) add(`| Real time | ${wallTime(new Date(last.at).getTime() - new Date(first.at).getTime())} |`);
-  add(`| Decisions | ${s.decisions} |`, `| Deaths | ${s.deaths} |`);
-  const ys = steps.map((step) => step.observation.position.y);
-  if (ys.length) add(`| Height range | y=${Math.min(...ys)} to y=${Math.max(...ys)} (sea level is 63) |`);
+  add(`| Deaths | ${s.deaths} |`);
+  add(`| Game time used | ${gameTime(ticks)} of a 20:00 day${first && last ? `, in ${wallTime(new Date(last.at).getTime() - new Date(first.at).getTime())} of real time` : ""} |`);
   if (!scripted) {
-    add(`| Typical think time | ${(s.decisionMsMedian / 1000).toFixed(1)} s per decision |`);
-    add(`| Tokens | ${s.tokensIn.toLocaleString("en-US")} in, ${s.tokensOut.toLocaleString("en-US")} out |`);
+    add(`| Thinking time per decision | ${(s.decisionMsMedian / 1000).toFixed(1)} s median, ${(s.decisionMsP90 / 1000).toFixed(1)} s slowest tenth |`);
+    const perDecision = b.decisions ? Math.round(s.tokensIn / b.decisions) : 0;
+    add(`| Tokens | ${s.tokensIn.toLocaleString("en-US")} in (${perDecision.toLocaleString("en-US")} a decision), ${s.tokensOut.toLocaleString("en-US")} out${s.tokensCached ? `, ${pct(s.tokensCached, s.tokensIn)} of input from cache` : ""} |`);
     add(`| Cost | ${s.costUSD === "unknown" ? "unknown" : `$${s.costUSD.toFixed(4)}`} |`);
-    add(`| False "done" claims | ${s.doneRefused} |`, `| Answers re-asked | ${s.retries} |`);
   }
   add("");
 
-  add("## Milestones", "", "| Milestone | Reached | Step | Game time |", "|---|---|---|---|");
+  add("## Progress", "", "| Milestone | Reached at |", "|---|---|");
   for (const name of MILESTONES) {
     const m = s.milestones[name];
-    add(`| ${MILESTONE_LABELS[name]} | ${m ? "yes" : "no"} | ${m ? m.step : "-"} | ${m ? gameTime(m.gameTicks) : "-"} |`);
+    add(`| ${MILESTONE_LABELS[name]} | ${m ? `step ${m.step}, ${gameTime(m.gameTicks)}` : "not reached"} |`);
   }
-  add("", "These are the same six for every goal; for iron or diamond, see the final inventory.", "");
+  add("");
 
-  const skills = Object.entries(s.skillCounts).sort((a, b) => {
-    const n = (c: typeof a[1]) => c.success + c.failed + c.aborted;
-    return n(b[1]) - n(a[1]);
-  });
-  add("## What it did", "", "| Skill | Times | Succeeded | Failed | Stopped early |", "|---|---|---|---|---|");
-  for (const [skill, c] of skills) add(`| ${skill} | ${c.success + c.failed + c.aborted} | ${c.success} | ${c.failed} | ${c.aborted} |`);
+  const totalTicks = Object.values(b.ticksBySkill).reduce((n, t) => n + t, 0);
+  const skills = Object.entries(s.skillCounts).sort((x, y) => (b.ticksBySkill[y[0]] ?? 0) - (b.ticksBySkill[x[0]] ?? 0));
+  add("## Where the time went", "", "| Skill | Share of game time | Times | Worked | Failed | Interrupted |", "|---|---|---|---|---|---|");
+  for (const [skill, c] of skills) {
+    if (skill === "unknown") continue;
+    add(`| ${skill} | ${pct(b.ticksBySkill[skill] ?? 0, totalTicks)} | ${c.success + c.failed + c.aborted} | ${c.success} | ${c.failed} | ${c.aborted} |`);
+  }
+  if (b.ticksBySkill["thinking"]) add(`| *(waiting on the ${scripted ? "policy" : "model"})* | ${pct(b.ticksBySkill["thinking"], totalTicks)} | | | | |`);
   add("");
 
   const problems = new Map<string, { example: string; count: number; skills: Set<string> }>();
@@ -193,11 +320,27 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     p.skills.add(step.decision?.skill ?? "done");
     problems.set(key, p);
   }
-  const top = [...problems.values()].sort((a, b) => b.count - a.count).slice(0, TOP_PROBLEMS);
-  add("## What went wrong", "");
+  const top = [...problems.values()].sort((x, y) => y.count - x.count).slice(0, TOP_PROBLEMS);
+  add("## What got in its way", "");
   if (top.length === 0) add("Nothing failed.");
-  for (const p of top) add(`- **${p.count}×** (${[...p.skills].join(", ")}): ${p.example.length > 220 ? p.example.slice(0, 220) + "…" : p.example}`);
+  for (const p of top) add(`- **${p.count}×** (${[...p.skills].join(", ")}): ${clip(p.example, 220)}`);
   add("");
+
+  if (!scripted) {
+    const quotes: Array<[string, LoggedStep | undefined]> = [
+      ["At the start", steps.find((st) => st.decision)],
+      ...(b.longestLoop && b.longestLoop.count >= 3 ? [[`In its longest loop (step ${b.longestLoop.from})`, steps.find((st) => st.step === b.longestLoop!.from)] as [string, LoggedStep | undefined]] : []),
+      ["At the end", [...steps].reverse().find((st) => rationale(st))],
+    ];
+    const seen = new Set<number>();
+    const quoted = quotes.flatMap(([when, st]) => {
+      const why = st && !seen.has(st.step) ? rationale(st) : null;
+      if (!st || !why) return [];
+      seen.add(st.step);
+      return [`- **${when}**, choosing \`${st.decision?.skill ?? "done"}\`: "${clip(why)}"`];
+    });
+    if (quoted.length) add("## In its own words", "", ...quoted, "");
+  }
 
   const notable: string[] = [];
   newEventsPerStep(steps).forEach((events, i) => {
@@ -209,22 +352,32 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     if (step.events?.includes("done refused")) notable.push(`- Step ${step.step}: said "done" too early and was told: ${step.result?.reason ?? ""}`);
     if (step.decision?.say) notable.push(`- Step ${step.step}: said to ${step.decision.say.to}: "${step.decision.say.text}"`);
   }
-  if (notable.length) add("## Notable moments", "", ...notable.slice(0, 20), ...(notable.length > 20 ? [`- …and ${notable.length - 20} more`] : []), "");
+  if (notable.length) add("## Notable moments", "", ...notable.slice(0, 12), ...(notable.length > 12 ? [`- …and ${notable.length - 12} more`] : []), "");
 
   const story = phases(steps);
-  add("## The run, step by step", "", "Consecutive decisions of the same skill are folded into one line.", "");
+  add("<details><summary>The run, step by step</summary>", "", "Consecutive decisions of the same skill are folded into one line.", "");
   for (const p of story.slice(0, MAX_PHASES)) {
     const range = p.from === p.to ? `Step ${p.from}` : `Steps ${p.from}–${p.to}`;
-    const tally = [p.success && `${p.success} ok`, p.failed && `${p.failed} failed`, p.aborted && `${p.aborted} stopped early`].filter(Boolean).join(", ");
-    const gained = Object.entries(p.gained).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([item, n]) => `+${n} ${words(item)}`).join(", ");
+    const tally = [p.success && `${p.success} ok`, p.failed && `${p.failed} failed`, p.aborted && `${p.aborted} interrupted`].filter(Boolean).join(", ");
+    const gained = Object.entries(p.gained).sort((x, y) => y[1] - x[1]).slice(0, 4).map(([item, n]) => `+${n} ${words(item)}`).join(", ");
     add(`- ${range}: **${p.skill}**${p.count > 1 ? ` ×${p.count}` : ""}${tally ? ` (${tally})` : ""}${gained ? `: ${gained}` : ""}`);
   }
   if (story.length > MAX_PHASES) add(`- …${story.length - MAX_PHASES} more stretches, to step ${last?.step}`);
-  add("");
+  add("", "</details>", "");
 
-  const inventory = Object.entries(last?.inventoryAfter ?? last?.observation.inventory ?? {}).sort((a, b) => b[1] - a[1]);
-  add("## Final inventory", "", inventory.length ? inventory.map(([item, n]) => `${n} ${words(item)}`).join(", ") : "Empty.", "");
+  const inventory = Object.entries(last?.inventoryAfter ?? last?.observation.inventory ?? {}).sort((x, y) => y[1] - x[1]);
+  add("<details><summary>Final inventory and run details</summary>", "");
+  add(inventory.length ? inventory.map(([item, n]) => `${n} ${words(item)}`).join(", ") : "Empty inventory.", "");
+  add(`Started ${first?.at.replace("T", " ").slice(0, 16) ?? "-"} UTC${config?.episode ? ` · episode ${config.episode}` : ""} · log \`${file}\``, "");
+  add("Milestones are the same six for every goal; for iron or diamond, see the inventory.", "", "</details>");
   return lines.join("\n");
+}
+
+/** Writes the report beside its log; returns the path written. */
+export function writeSummary(steps: LoggedStep[], file: string): string {
+  const out = file.replace(/\.jsonl$/, ".summary.md");
+  writeFileSync(out, renderSummary(steps, file) + "\n");
+  return out;
 }
 
 function batchFiles(name: string): string[] {
@@ -255,8 +408,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.error(`${file}: no steps logged, skipped`);
       continue;
     }
-    const out = file.replace(/\.jsonl$/, ".summary.md");
-    writeFileSync(out, renderSummary(steps, file) + "\n");
-    console.log(out);
+    console.log(writeSummary(steps, file));
   }
 }
