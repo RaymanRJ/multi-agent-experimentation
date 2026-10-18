@@ -220,4 +220,10 @@ export interface RunConfig {
   progress?: boolean;
   /** Absent in logs written before stances existed; their prompt leaned collaborative. */
   stance?: Stance;
+  /** The run's limits: in-game time budget, dollar cap, and the safety cap on decisions. Absent in older logs. */
+  ticks?: number;
+  budgetUSD?: number;
+  maxSteps?: number;
+  /** The server commands that set up the world for this run's scenario. Absent in older logs. */
+  world?: string[];
 }

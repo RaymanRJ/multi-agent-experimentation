@@ -76,6 +76,10 @@ const config: RunConfig = {
   comms,
   stance,
   progress,
+  ticks: Number(argv["ticks"]),
+  budgetUSD: Number(argv["budget-usd"]),
+  maxSteps: Number(argv["steps"]),
+  world: scenario.setup,
 };
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {

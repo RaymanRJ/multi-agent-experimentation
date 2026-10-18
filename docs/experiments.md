@@ -117,7 +117,8 @@ npm run summary -- --batch b10          # every run in a batch
 
 To see why a run failed, open its log in the minds panel (`npm run minds`, then
 http://localhost:3010). It shows every decision: what the agent saw, what it chose and why, and
-what happened.
+what happened. Its **Run setup** button opens the world settings, the run's limits and the full
+system prompt the model was given.
 
 ## Running paid models
 

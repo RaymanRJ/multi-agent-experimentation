@@ -11,6 +11,7 @@ import { pathToFileURL } from "node:url";
 import type { LoggedStep, ModelCall } from "./types.js";
 import { costUSD } from "./backends/pricing.js";
 import { summarizeRun, type MilestoneName } from "./report.js";
+import { SCENARIOS, presetName } from "./scenario.js";
 
 /** Runs older than this are not listed. */
 export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -222,6 +223,55 @@ export function timeline(steps: LoggedStep[]): TimelineItem[] {
   });
 }
 
+export interface RunSetup {
+  scenario: string;
+  /** Server commands that set up the world; null in logs from before they were recorded. */
+  world: string[] | null;
+  goal: string;
+  /** "outpost" for a preset goal, "scenario default" with no --goal, null for a goal written in quotes. */
+  preset: string | null;
+  brain: string;
+  memory: string | null;
+  comms: boolean | null;
+  progress: boolean | null;
+  stance: string | null;
+  episode: string | null;
+  ticks: number | null;
+  budgetUSD: number | null;
+  maxSteps: number | null;
+  spawn: { x: number; y: number; z: number };
+  startedAt: string;
+  /** The system prompt as first sent to the model; null for the scripted baseline. */
+  system: string | null;
+}
+
+/** How a run was set up — the world, its limits, and the full prompt — for the panel's setup dialog. */
+export function runSetup(steps: LoggedStep[]): RunSetup | null {
+  const first = steps[0];
+  if (!first) return null;
+  const config = first.config;
+  const model = steps.some((s) => (s.calls ?? []).length > 0);
+  const brain = brainLabel(steps);
+  return {
+    scenario: first.observation.scenario,
+    world: config?.world ?? null,
+    goal: first.observation.goal,
+    preset: presetName(first.observation.goal) ?? (first.observation.goal === SCENARIOS[first.observation.scenario]?.goal ? "scenario default" : null),
+    brain: model ? `${brain.label} (${brain.detail})` : brain.label,
+    memory: model ? (config?.memory ?? null) : null,
+    comms: config?.comms ?? null,
+    progress: model ? (config?.progress ?? null) : null,
+    stance: model ? (config?.stance ?? null) : null,
+    episode: config?.episode ?? null,
+    ticks: config?.ticks ?? null,
+    budgetUSD: model ? (config?.budgetUSD ?? null) : null,
+    maxSteps: config?.maxSteps ?? null,
+    spawn: first.observation.position,
+    startedAt: first.at,
+    system: steps.find((s) => s.system)?.system ?? null,
+  };
+}
+
 /** The latest observation, trimmed to what the panel shows as "now". */
 function current(steps: LoggedStep[]) {
   const last = steps.at(-1)!;
@@ -306,6 +356,10 @@ export function startServer(port: number, dir = "runs") {
       const row = run && runRow(file!, run.steps, run.mtimeMs, Date.now());
       if (!run || !row) return json(res, 404, { error: "no such run" });
       json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps) });
+    } else if (url.pathname === "/api/setup") {
+      const setup = runSetup(findRun(dir, file)?.steps ?? []);
+      if (!setup) return json(res, 404, { error: "no such run" });
+      json(res, 200, setup);
     } else if (url.pathname === "/api/call") {
       const run = findRun(dir, file);
       const step = run?.steps.find((s) => s.step === Number(url.searchParams.get("step")));

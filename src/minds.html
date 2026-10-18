@@ -130,6 +130,18 @@ main { overflow-y: auto; min-width: 0; }
 .callbox { margin-top: 8px; }
 .callbox .turn { margin-top: 8px; }
 .callbox .role { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
+.setup-btn { margin-top: 10px; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+.setup-btn:hover { border-color: var(--accent); color: var(--accent); }
+dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); border: 1px solid var(--line); border-radius: 12px; padding: 0; background: var(--panel); color: var(--fg); }
+dialog::backdrop { background: rgba(0, 0, 0, .45); }
+.dlg-head { position: sticky; top: 0; display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.dlg-head h3 { margin: 0; font-size: 17px; flex: 1; }
+.dlg-close { background: none; border: 0; font-size: 22px; line-height: 1; cursor: pointer; color: var(--mute); }
+.dlg-body { padding: 4px 18px 18px; }
+.dlg-body h4 { margin: 16px 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14px; }
+.kv .k { color: var(--mute); }
+.quote { padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; font-size: 14.5px; }
 pre { margin: 0; font: 12.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 @media (max-width: 900px) {
@@ -155,6 +167,7 @@ pre { margin: 0; font: 12.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; ba
     </div>
     <div id="runs"></div>
   </aside>
+  <dialog id="setup" aria-labelledby="setup-title"></dialog>
   <main><div class="wrap" id="detail"><div class="empty">No runs in the last 6 hours — start one with <code>npm run agent</code>.</div></div></main>
 </div>
 <script>
@@ -257,6 +270,34 @@ function callView(step) {
     h("div", { class: "turn" }, h("div", { class: "role" }, "Model replied"), h("pre", {}, pretty(c.text))))),
     data.system ? h("details", { class: "turn" }, h("summary", { class: "small" }, "System prompt"), h("pre", {}, data.system)) : null);
 }
+/** The run's setup in a modal: what the world was, what limited the run, and everything the model was told. */
+function openSetup() {
+  const dlg = $("setup"), file = selected;
+  const head = h("div", { class: "dlg-head" }, h("h3", { id: "setup-title" }, "Run setup"), h("button", { class: "dlg-close", "aria-label": "Close", onclick: () => dlg.close() }, "×"));
+  dlg.replaceChildren(head, h("div", { class: "dlg-body small" }, "Loading…"));
+  if (!dlg.open) dlg.showModal();
+  fetch("/api/setup?file=" + encodeURIComponent(file)).then((r) => (r.ok ? r.json() : null)).then((s) => {
+    if (file !== selected || !dlg.open) return;
+    if (!s) { dlg.replaceChildren(head, h("div", { class: "dlg-body" }, "No setup found for this run.")); return; }
+    const rows = (pairs) => h("div", { class: "kv" }, pairs.filter(([, v]) => v != null && v !== "").flatMap(([k, v]) => [h("div", { class: "k" }, k), h("div", {}, v)]));
+    const onOff = (b) => (b == null ? null : b ? "on" : "off");
+    const notLogged = h("span", { style: "color:var(--faint)" }, "not recorded in this log");
+    dlg.replaceChildren(head, h("div", { class: "dlg-body" },
+      h("h4", {}, "Goal"),
+      h("div", { class: "quote" }, s.goal),
+      h("div", { class: "small", style: "color:var(--mute)" }, s.preset === "scenario default" ? "The scenario's default goal (no --goal given)." : s.preset ? "Preset goal \u201c" + s.preset + "\u201d: code checks whether it is met, and the run ends when it is." : "A goal written in quotes: no check in code, so it runs until the model ends it or a limit does."),
+      h("h4", {}, "World"),
+      rows([["Scenario", s.scenario], ["Server setup", s.world ? h("pre", {}, s.world.join("\n")) : notLogged], ["Spawned at", s.spawn.x + ", " + s.spawn.y + ", " + s.spawn.z], ["Started", new Date(s.startedAt).toLocaleString()]]),
+      h("h4", {}, "Agent"),
+      rows([["Brain", s.brain], ["Memory", s.memory], ["Progress list", onOff(s.progress)], ["Stance", s.stance], ["Chat", onOff(s.comms)], ["Episode", s.episode]]),
+      h("h4", {}, "Limits"),
+      rows([["Time budget", s.ticks != null ? num(s.ticks) + " ticks (" + game(s.ticks) + " of game time)" : notLogged], ["Cost cap", s.budgetUSD != null ? "$" + s.budgetUSD.toFixed(2) : null], ["Decision cap", s.maxSteps != null ? num(s.maxSteps) + " (a safety cap)" : null]]),
+      h("h4", {}, "System prompt"),
+      s.system ? h("pre", { style: "max-height:none" }, s.system) : h("div", { class: "small", style: "color:var(--faint)" }, "None: the scripted baseline uses no model."),
+      s.system ? h("div", { class: "small", style: "color:var(--mute)" }, "Each decision also sends an observation that carries the goal above; open a step's model call to see one.") : null));
+  }).catch(() => {});
+}
+$("setup").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }); // click on the backdrop closes it
 function pretty(text) { try { return JSON.stringify(JSON.parse(text), null, 2); } catch { const m = /\{[\s\S]*\}/.exec(text); if (m) { try { return text.replace(m[0], JSON.stringify(JSON.parse(m[0]), null, 2)); } catch {} } return text; } }
 
 function itemView(g) {
@@ -308,7 +349,8 @@ function renderDetail() {
       h("div", {},
         h("h2", {}, "Agent: " + r.agent),
         h("div", { class: "brain" }, r.brain + " · " + r.brainDetail + (r.memory ? " · memory: " + r.memory : "") + (r.comms != null ? " · comms " + (r.comms ? "on" : "off") : "") + (r.stance ? " · " + r.stance : "") + " · " + r.scenario),
-        h("div", { class: "goal" }, h("b", {}, "Goal: "), r.goal)),
+        h("div", { class: "goal" }, h("b", {}, "Goal: "), r.goal),
+        h("button", { class: "setup-btn", onclick: openSetup }, "Run setup: world, limits and full prompt")),
       h("div", { class: "spacer" }), statusBadge(r)),
     h("div", { class: "stats" },
       stat("Decisions", num(decisions)),

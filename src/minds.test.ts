@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agentNameFromFile, brainLabel, extractThink, formatCost, inventoryDelta, runRow, runStatus, STALLED_MS, sumCost, timeline } from "./minds.js";
+import { agentNameFromFile, brainLabel, extractThink, formatCost, inventoryDelta, runRow, runSetup, runStatus, STALLED_MS, sumCost, timeline } from "./minds.js";
 import type { LoggedStep, ModelCall } from "./types.js";
 
 const call = (backend: string, model: string, i = 1000, o = 1000, text = ""): ModelCall => ({
@@ -79,4 +79,24 @@ test("runRow summarises progress and the run's end", () => {
   assert.equal(row.milestones["wooden_pickaxe"], 2);
   assert.equal(row.milestones["stone"], null);
   assert.equal(row.ticks, 200);
+});
+
+test("runSetup gathers the world, limits and prompt, and says what an older log never recorded", () => {
+  const config = { episode: "batch-poc2-1", memory: "plan" as const, comms: false, progress: false, stance: "neutral" as const, ticks: 27000, budgetUSD: 5, maxSteps: 200, world: ["difficulty normal"] };
+  const model = runSetup([step(1, { config, calls: [call("claude", "claude-opus-5-5")], system: "You control a Minecraft agent." }), step(2, { config })])!;
+  assert.equal(model.preset, null);
+  assert.deepEqual(model.world, ["difficulty normal"]);
+  assert.equal(model.ticks, 27000);
+  assert.equal(model.budgetUSD, 5);
+  assert.equal(model.brain, "claude-opus-5-5 (claude)");
+  assert.equal(model.system, "You control a Minecraft agent.");
+
+  const old = runSetup([step(1, { observation: obs({ goal: "Craft a stone pickaxe. Once you have it, end the episode." }), config: { episode: "e", memory: "plan", comms: true } })])!;
+  assert.equal(old.preset, "tools");
+  assert.equal(old.world, null);
+  assert.equal(old.ticks, null);
+  assert.equal(old.brain, "Scripted baseline");
+  assert.equal(old.memory, null, "the scripted baseline has no memory setting");
+  assert.equal(old.system, null);
+  assert.equal(runSetup([]), null);
 });
