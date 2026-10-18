@@ -51,8 +51,12 @@ export function loadRun(file: string): Run | null {
 }
 
 const pct = (n: number, of: number) => (of === 0 ? "-" : `${Math.round((100 * n) / of)}%`);
-const money = (usd: number | "unknown") => (usd === "unknown" ? "?" : usd === 0 ? "free" : `$${usd.toFixed(2)}`);
+/** Under a cent shows to four places: GPT-6 Luna's whole run cost $0.0045, not "$0.00". */
+const money = (usd: number | "unknown") => (usd === "unknown" ? "?" : usd === 0 ? "free" : usd < 0.01 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`);
 const words = (name: string) => name.replace(/_/g, " ");
+/** 182,070 -> "182k", 2,954 -> "3.0k", 640 -> "640". */
+export const tokens = (n: number) => (n >= 100_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+const inOut = (tokensIn: number, tokensOut: number) => (tokensIn + tokensOut === 0 ? "-" : `${tokens(tokensIn)} / ${tokens(tokensOut)}`);
 const clip = (text: string, n: number) => (text.length > n ? `${text.slice(0, n).trimEnd()}…` : text);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const TOOL = /^(wooden|stone|iron|golden|diamond)_(pickaxe|axe|sword|shovel|hoe)$/;
@@ -111,15 +115,15 @@ function outcome(run: Run): string {
 /** The at-a-glance table: one row per run. */
 function glance(runs: Run[]): string[] {
   const rows = [
-    "| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Unusable answers | Deaths | Cost |",
-    "|---|---|---|---|---|---|---|---|---|---|",
+    "| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Unusable answers | Deaths | Tokens in / out | Cost |",
+    "|---|---|---|---|---|---|---|---|---|---|---|",
   ];
   for (const run of runs) {
     const { b, s } = run;
     rows.push(
       `| ${s.agentName} | ${run.model} | ${outcome(run)} | ${b.decisions} | ${pct(b.succeeded, b.decisions)} | ` +
         `${b.failuresWithNext ? `${b.changedCourse} of ${b.failuresWithNext}` : "-"} | ${b.longestLoop && b.longestLoop.count >= 3 ? `${b.longestLoop.count}× \`${b.longestLoop.decision.split(" ")[0]}\`` : "-"} | ` +
-        `${s.retries ? `${s.retries} of ${s.totalModelCalls} calls` : "-"} | ${s.deaths || "-"} | ${money(s.costUSD)} |`,
+        `${s.retries ? `${s.retries} of ${s.totalModelCalls} calls` : "-"} | ${s.deaths || "-"} | ${inOut(s.tokensIn, s.tokensOut)} | ${money(s.costUSD)} |`,
     );
   }
   return rows;
@@ -139,7 +143,7 @@ function byModel(runs: Run[]): string[] {
     models.set(label, [...(models.get(label) ?? []), run]);
   }
   if ([...models.values()].every((group) => group.length < 2)) return [];
-  const rows = [`| Model${varying.length ? " and condition" : ""} | Runs | Goal met | 95% range | Median time to goal | Median decisions | Cost per run |`, "|---|---|---|---|---|---|---|"];
+  const rows = [`| Model${varying.length ? " and condition" : ""} | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |`, "|---|---|---|---|---|---|---|---|"];
   for (const [model, group] of models) {
     const met = group.filter((run) => run.s.goalMet === true);
     const [lo, hi] = wilson(met.length, group.length);
@@ -147,7 +151,9 @@ function byModel(runs: Run[]): string[] {
     const ticks = median(met.map((run) => run.s.ticksToGoal ?? 0));
     const costs = group.map((run) => run.s.costUSD).filter((c): c is number => c !== "unknown");
     const cost = costs.length ? costs.reduce((a, c) => a + c, 0) / costs.length : "unknown";
-    rows.push(`| ${model} | ${group.length} | ${met.length} of ${group.length} | ${Math.round(lo * 100)}–${Math.round(hi * 100)}% | ${ticks === null ? "-" : gameTime(ticks)} | ${median(group.map((run) => run.b.decisions))} | ${money(cost as number | "unknown")} |`);
+    const mean = (xs: number[]) => Math.round(xs.reduce((a, x) => a + x, 0) / xs.length);
+    const perRun = inOut(mean(group.map((run) => run.s.tokensIn)), mean(group.map((run) => run.s.tokensOut)));
+    rows.push(`| ${model} | ${group.length} | ${met.length} of ${group.length} | ${Math.round(lo * 100)}–${Math.round(hi * 100)}% | ${ticks === null ? "-" : gameTime(ticks)} | ${median(group.map((run) => run.b.decisions))} | ${perRun} | ${money(cost as number | "unknown")} |`);
   }
   return ["", "By model:", "", ...rows];
 }
@@ -255,7 +261,9 @@ export function renderComparison(runs: Run[], title: string): string {
   const total = costs.every((c) => c !== "unknown") ? (costs as number[]).reduce((a, c) => a + c, 0) : "unknown";
   const dates = runs.map((run) => run.steps[0]!.at.slice(0, 10)).sort();
   add(`# ${title}`, "");
-  add(`${plural(runs.length, "run")} · ${dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`} · total cost ${money(total as number | "unknown")}`, "");
+  const tokensIn = runs.reduce((a, run) => a + run.s.tokensIn, 0);
+  const tokensOut = runs.reduce((a, run) => a + run.s.tokensOut, 0);
+  add(`${plural(runs.length, "run")} · ${dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`} · ${inOut(tokensIn, tokensOut)} tokens in / out · total cost ${money(total as number | "unknown")}`, "");
 
   const goals = new Map<string, Run[]>();
   for (const run of runs) goals.set(run.s.goal, [...(goals.get(run.s.goal) ?? []), run]);
@@ -271,9 +279,10 @@ export function renderComparison(runs: Run[], title: string): string {
       for (const [episode, members] of teams) {
         const met = members.every((run) => run.s.goalMet === true);
         const cost = members.reduce((a, run) => a + (run.s.costUSD === "unknown" ? 0 : run.s.costUSD), 0);
+        const teamTokens = inOut(members.reduce((a, run) => a + run.s.tokensIn, 0), members.reduce((a, run) => a + run.s.tokensOut, 0));
         const longest = Math.max(...members.map((run) => run.s.ticksToGoal ?? run.steps.at(-1)?.ticks ?? 0));
         const teamLabel = episode.replace(/^team-/, "").replace(/-(\d+)$/, ", rep $1");
-        add(`### Team ${teamLabel}: ${met ? `goal met in ${gameTime(longest)} of game time` : "goal not met"} · ${money(cost)}`, "");
+        add(`### Team ${teamLabel}: ${met ? `goal met in ${gameTime(longest)} of game time` : "goal not met"} · ${teamTokens} tokens in / out · ${money(cost)}`, "");
         add(...glance(members), "", ...teamSection(members), "");
       }
     }
@@ -289,6 +298,7 @@ export function renderComparison(runs: Run[], title: string): string {
   add("", "<details><summary>How to read this</summary>", "");
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
   add("- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.");
+  add("- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.");
   add("- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/backends/pricing.ts`).");
   add("- Each agent's full report is beside its log: `<log>.summary.md`.", "");
   add("Logs:", "", ...runs.map((run) => `- \`${run.file}\``), "", "</details>");

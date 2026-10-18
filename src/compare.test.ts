@@ -55,4 +55,13 @@ test("renderComparison - a team episode reads as who did what, with handovers on
   assert.match(text, /\*\*a\*\* \(Claude Haiku 4\.5\): made stone axe; gave stone axe to b;/);
   assert.match(text, /\*\*b\*\* .*received stone axe from a; .*ended holding stone axe\./);
   assert.match(text, /0:00 — a made a stone axe/);
+  assert.match(text, /\| 200 \/ 20 \| \$0\.0004 \|/, "tokens in / out beside cost");
+  assert.match(text, /300 \/ 30 tokens in \/ out/, "and in total");
+});
+
+test("tokens - short and readable", async () => {
+  const { tokens } = await import("./compare.js");
+  assert.equal(tokens(640), "640");
+  assert.equal(tokens(2954), "3.0k");
+  assert.equal(tokens(182_070), "182k");
 });
