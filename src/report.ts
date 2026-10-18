@@ -122,7 +122,7 @@ export function markEpisodes(summaries: RunSummary[]): void {
  *
  * Returns: array of arrays, one per step, containing the new events for that step.
  */
-function newEventsPerStep(steps: LoggedStep[]): string[][] {
+export function newEventsPerStep(steps: LoggedStep[]): string[][] {
   const result: string[][] = [];
   let prevWindow: string[] = [];
 

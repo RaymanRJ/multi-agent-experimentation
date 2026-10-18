@@ -30,6 +30,7 @@ Then watch:
 ```bash
 npm install                 # once, for the report and experiment scripts
 npm run report              # how each run went: outcome, decisions, tokens, cost
+npm run summary             # a one-page Markdown write-up of the newest run
 ./stop.sh                   # stop the agents (./stop.sh --all also stops Minecraft)
 ```
 

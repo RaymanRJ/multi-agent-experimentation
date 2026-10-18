@@ -86,6 +86,18 @@ It also has these columns:
 - **Throttled**: provider rate-limit retries.
 - **Done refused**: times the model said "done" before the goal was met.
 
+For a one-page write-up of a single run, use `npm run summary`. It covers how the run ended, the
+milestones, time and token use, every skill used and how often it failed, the most common
+problems, a condensed step-by-step story and the final inventory:
+
+```bash
+npm run summary                         # the newest run
+npm run summary -- runs/<file>.jsonl    # a particular run
+npm run summary -- --batch b10          # every run in a batch
+```
+
+Each summary is written beside its log as `runs/<file>.summary.md`.
+
 To see why a run failed, open its log in the minds panel (`npm run minds`, then
 http://localhost:3010). It shows every decision: what the agent saw, what it chose and why, and
 what happened.

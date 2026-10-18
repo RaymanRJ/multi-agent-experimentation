@@ -103,6 +103,7 @@ npm run agent -- --brain ollama --stance competitive  # stance: neutral (default
 npm run agent -- --brain ollama --goal outpost --progress on  # list what the preset goal still lacks each step
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
 npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI
+npm run summary -- --batch b5                         # one Markdown page per run, beside its log
 
 scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
