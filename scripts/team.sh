@@ -61,7 +61,7 @@ for rep in $(seq 1 "$reps"); do
     outs+=("$out")
     var="$(model_var "$brain")"
     viewargs=()
-    if [ "$view" = on ]; then viewargs=(--view "$viewport"); echo "    $agent: watch at http://localhost:$viewport"; viewport=$((viewport + 1)); fi
+    if [ "$view" = on ]; then viewargs=(--view "$viewport"); echo "    $agent: watch at http://localhost:$viewport"; viewport=$((viewport + 1)); [ "$viewport" = 3010 ] && viewport=3011; fi   # 3010 is the minds panel
     (
       [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"
       MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
