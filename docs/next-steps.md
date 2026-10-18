@@ -33,8 +33,18 @@ Read this at the start of a session; update it when something finishes or a new 
     a shelter (fixed: `build_shelter` won't dig beside lava or water).
   - Repeated chat ("Gathering 10 more logs…") interrupted teammates over and over (fixed: the same
     words from the same sender interrupt only once).
+  - **First real teamwork** (team trio1: Haiku, Sonnet and qwen, all fixes in): goal met in 8,100
+    ticks for $0.33. Sonnet proposed the split, made all four tools, built the two-storey shelter,
+    then handed qwen an axe and Haiku a shovel with `give` (both worked). Haiku lost most of its run
+    to `mine_stone` under water. qwen asked for logs it already held 28 times; told that `count` is a
+    total, it raised its count twice (10, then 20, then 40) but kept looping.
 
 ## Open, most wanted first
+
+0. **Sonnet 5.5 answers in tool-call form first, every time.** In trio1 each of its decisions came
+   back as `<invoke name="gather_wood">…` (stop reason `tool_use`) instead of JSON, and was re-asked:
+   13 decisions, 26 calls, about double the cost. Fix before any paid comparison: accept that form,
+   or ask for the decision through real tool use or structured output.
 
 1. **A comparison of goals and agents.** The owner wants, eventually, a breakdown of each goal and
    how the agents behaved, to compare across goals, models and team set-ups (who did what, what they
@@ -45,8 +55,9 @@ Read this at the start of a session; update it when something finishes or a new 
 3. **Confirm recent fixes on the free model:** an outpost batch with `--progress` off and on (3 runs
    each, ~2 h), then the two open baseline problems in `docs/limitations.md` (waiting out the night in
    the sandbox; `mine_ore` failing to reach ore it can see).
-4. **`mine_stone` dig timeouts** ("digging stone timed out after 20000ms") took most of Sonnet's
-   `tools` run and both agents' time in a team run. Not investigated.
+4. **`mine_stone` is slow and unsafe:** dig timeouts ("digging stone timed out after 20000ms") took
+   most of Sonnet's `tools` run and both agents' time in a team run, and in trio1 it kept Haiku
+   mining under water until it ran out of air (5,000 ticks). Not investigated.
 5. **The panel shows a run only after its first decision ends,** which can be minutes. An agent
    could write a start line when it joins.
 6. **Extended thinking for Claude** (`--thinking on`) was discussed and left off for now: it costs
