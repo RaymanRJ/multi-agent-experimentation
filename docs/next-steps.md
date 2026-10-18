@@ -73,6 +73,14 @@ Read this at the start of a session; update it when something finishes or a new 
     - Haiku called `pick_up` for a shovel 20 times, mostly while already holding it; qwen claimed to
       have handed over a sword it never had.
 
+- **Team quad1** (18 October; Haiku, Sonnet, GPT-6 Luna and qwen, with every fix above): **goal met
+  in 4:54 of game time for $0.28** (trio3: 15:56, $1.28). Sonnet made all four stone tools by 1:49
+  and handed a sword to Luna, an axe to Haiku and a shovel to qwen; Luna built the two-storey
+  shelter, its first and only build, in 10 decisions for under half a cent. Nobody died. qwen still
+  looped (`gather_wood` 13 times) but ended holding the shovel it was given. Sonnet's re-asks fell
+  from about half its calls to 9 of 25; all 9 were it calling a skill's name as a tool instead of
+  `decide` (fixed after the run: read as choosing that skill; live, 4 of 4 decisions in one call).
+  Nobody used `tell_agent` or `ask_agent`. One run, not a comparison.
 - **Prompt changes on 18 October, after trio3:** the collaborative stance lost "so share what you
   find and split the work" (it steered the model); `air` now says what 0 means (2 health a second
   while under water, not instant death); `gather_wood` says every kind of log counts and makes the

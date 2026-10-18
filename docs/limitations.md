@@ -33,7 +33,9 @@ building on it.
     its model's price in `src/backends/pricing.ts`, or a paid run refuses to start.
   - **Claude decides through a tool; GPT and the local model write JSON text.** Claude is offered a
     `decide` tool (not forced), because Sonnet 5.5 otherwise wrote its decision as tool-call syntax
-    in text on about half its calls, each one re-asked. OpenAI's reasoning models refuse tools on
+    in text on about half its calls, each one re-asked. With the tool it sometimes calls a skill's
+    name as a tool instead (`mine_stone`); that is read as choosing the skill, but such a decision
+    carries no rationale, plan or message. OpenAI's reasoning models refuse tools on
     the Chat Completions API unless reasoning is switched off, so GPT is not offered it; moving GPT
     to the Responses API would allow both. The system prompt is the same either way.
 - **The `iron` goal has been met only twice** (batch b13, sandbox, one day, three runs per

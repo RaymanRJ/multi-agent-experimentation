@@ -81,7 +81,17 @@ export class AnthropicBackend implements Backend {
       .map((block) => block.text)
       .join("");
 
-    const used = response.content.find((block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === tool?.name);
+    // The decision tool, or failing that a call to some other tool name: Sonnet 5.5 sometimes calls
+    // a skill by name as though it were a tool (team quad1: 9 of 25 calls). Read that as choosing
+    // the skill; the policy still rejects a name that is no skill.
+    const calls = response.content.filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
+    const decided = calls.find((block) => block.name === tool?.name);
+    const other = decided ? undefined : calls[0];
+    const toolInput = decided
+      ? JSON.stringify(decided.input)
+      : other && tool
+        ? JSON.stringify({ skill: other.name, args: other.input ?? {} })
+        : undefined;
 
     // Thinking is kept (separately from the answer) so the log shows what was paid for.
     const thinking = response.content
@@ -100,8 +110,9 @@ export class AnthropicBackend implements Backend {
       ...(cacheRead && { cacheReadTokens: cacheRead }),
       ...(cacheWrite && { cacheWriteTokens: cacheWrite }),
       ms: Date.now() - startMs,
-      text,
-      ...(used && { toolInput: JSON.stringify(used.input) }),
+      // A call to another tool name is noted in the text, so the log shows what the model did.
+      text: other && tool ? `${text}${text ? "\n" : ""}(called a tool named "${other.name}" instead of "${tool.name}")` : text,
+      ...(toolInput && { toolInput }),
       request: turns,
       ...(thinking && { thinking }),
       ...(response.stop_reason && { stopReason: response.stop_reason }),

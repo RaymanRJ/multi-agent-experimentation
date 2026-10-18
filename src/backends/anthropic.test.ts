@@ -181,3 +181,20 @@ test("AnthropicBackend - offers the decision tool without forcing it, and return
   await plain.complete("System", [{ role: "user", content: "{}" }]);
   assert.strictEqual((seen[1] as { tools?: unknown }).tools, undefined, "no tool asked for, none sent");
 });
+
+test("AnthropicBackend - a call to a skill's name as a tool is read as choosing that skill, and noted", async () => {
+  const tool = { name: "decide", description: "Submit.", schema: { type: "object", properties: {} } };
+  const backend = new AnthropicBackend({
+    name: "claude",
+    model: "claude-sonnet-5-5",
+    apiKey: "k",
+    client: fakeClient({
+      content: [{ type: "tool_use", id: "t1", name: "gather_wood", input: { count: 12 } }],
+      stop_reason: "tool_use",
+      usage: { input_tokens: 10, output_tokens: 5 },
+    }),
+  });
+  const call = await backend.complete("System", [{ role: "user", content: "{}" }], tool);
+  assert.strictEqual(call.toolInput, '{"skill":"gather_wood","args":{"count":12}}');
+  assert.match(call.text, /called a tool named "gather_wood" instead of "decide"/);
+});
