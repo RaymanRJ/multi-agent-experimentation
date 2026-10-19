@@ -15,6 +15,8 @@ const MAX_TOTAL_MS = 4 * 60_000;
 /**
  * Exposed stone further below than this is skipped. Walking to it meant dropping into caves and
  * ravines; one agent fell 22 blocks into a flooded cave and drowned. Digging down is safer.
+ * Measured from where the call started: measured from the bot's feet each time, stone six below
+ * then six below that walked Sonnet 20 blocks down into the same cave in one call (batch p3).
  */
 const MAX_DROP_TO_STONE = 6;
 /** How far down to dig for stone when none is exposed. Overworld stone is usually 3-5 blocks down. */
@@ -123,6 +125,7 @@ export const mineStone: Skill = {
     const skipped = new Set<string>();
     const key = (position: Vec3) => `${position.x},${position.y},${position.z}`;
     let mined = 0;
+    const startFeet = bot.entity.position.y;
 
     while (cobbleHeld(ctx) < wanted) {
       if (ctx.shouldStop()) {
@@ -148,11 +151,10 @@ export const mineStone: Skill = {
       }
 
       let block: Block | null = null;
-      const feet = bot.entity.position.y;
       // Filtered inside the search, not after it: the nearest few hundred stone blocks are nearly all
       // buried, so a search for stone then a filter for open stone found none and dug down instead.
       const usable = (candidate: Block) =>
-        candidate.position.y >= feet - MAX_DROP_TO_STONE && !skipped.has(key(candidate.position)) && exposure(ctx, candidate.position) === "open";
+        candidate.position.y >= startFeet - MAX_DROP_TO_STONE && !skipped.has(key(candidate.position)) && exposure(ctx, candidate.position) === "open";
       for (const radius of SEARCH_RADII) {
         // Nearest first keeps travel short (findBlocks is not distance-sorted for every case);
         // stone beside another agent last, so two agents don't dig the same pit.
