@@ -183,9 +183,10 @@ export function newEventsPerStep(steps: LoggedStep[]): string[][] {
  * - otherwise: "n/a"
  *
  * survivedNight:
- * - true: nightReached && deaths === 0 && a later observation has isDay true
- * - false: nightReached && deaths > 0
- * - "unknown": night never came, or the run ended during the night without a death
+ * - true: a night ended with the agent alive through all of it (a later observation has isDay
+ *   true), or an outpost run met its goal, which the agent checks itself and ends at that sunrise
+ * - false: no night was survived, and the agent died during one
+ * - "unknown": night never came, or the run ended during the night without a death there
  *   (ending in the dark is not dying — it just leaves the question open)
  *
  * Milestones are reached in order: logs → wooden_pickaxe → stone → stone_pickaxe → shelter → survived_night
@@ -334,31 +335,10 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     if (goalMet) goalStep = last;
   }
 
-  // Night reached and survived night
-  let nightReached = false;
-  let survivedNight: boolean | "unknown" = "unknown";
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
-    const obs = step?.observation;
-    if (obs && !obs.isDay) {
-      nightReached = true;
-      // Check if we survived (no deaths and day comes again)
-      if (deaths === 0) {
-        // Look for isDay true after this point
-        for (let j = i + 1; j < steps.length; j++) {
-          const nextObs = steps[j]?.observation;
-          if (nextObs && nextObs.isDay) {
-            survivedNight = true;
-            break;
-          }
-        }
-        // Night reached, no deaths, but the run ended before daylight: stays "unknown".
-      } else {
-        survivedNight = false;
-      }
-      break;
-    }
-  }
+  // A night survived alive: a death at night loses that night (as in the agent's own goal check).
+  const nightReached = steps.some((s) => s.observation && !s.observation.isDay);
+  const night = nightSurvived(steps, newEvents, task === "outpost" && goalMet === true);
+  const survivedNight: boolean | "unknown" = night.at !== null ? true : night.diedAtNight ? false : "unknown";
 
   // Decisions and timing
   const decisions = steps.filter((s) => s.decision !== null).length;
@@ -416,7 +396,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   const costUsdValue: number | "unknown" = unknownModel ? "unknown" : totalCost;
 
   // Compute milestones
-  const milestones = computeMilestones(steps, newEvents);
+  const milestones = computeMilestones(steps, newEvents, night.at);
   const milestonesOrder: MilestoneName[] = ["logs", "wooden_pickaxe", "stone", "stone_pickaxe", "shelter", "survived_night"];
   let furthestMilestone: MilestoneName | null = null;
   for (const name of milestonesOrder) {
@@ -470,7 +450,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
  * Compute milestones reached during the run.
  * Milestones are tracked in order: logs → wooden_pickaxe → stone → stone_pickaxe → shelter → survived_night
  */
-function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<MilestoneName, MilestoneData | null> {
+function computeMilestones(steps: LoggedStep[], newEvents: string[][], nightAt: number | null): Record<MilestoneName, MilestoneData | null> {
   const result: Record<MilestoneName, MilestoneData | null> = {
     logs: null,
     wooden_pickaxe: null,
@@ -562,47 +542,51 @@ function computeMilestones(steps: LoggedStep[], newEvents: string[][]): Record<M
       result.shelter = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
     }
 
-    if (!result.survived_night) {
-      // survived_night is true when nightReached && deaths === 0 && day comes again
-      let nightReached = false;
-      let deaths = 0;
-      // Count deaths from new events up to this step
-      for (let j = 0; j <= i; j++) {
-        const eventList = newEvents[j];
-        if (eventList) {
-          for (const event of eventList) {
-            if (event.includes("died") || event.includes("respawned")) {
-              deaths++;
-            }
-          }
-        }
-        const checkObs = steps[j]?.observation;
-        if (checkObs && !checkObs.isDay) {
-          nightReached = true;
-        }
-      }
-
-      if (nightReached && deaths === 0) {
-        // Check if day comes again after night
-        for (let j = i; j >= 0; j--) {
-          const checkObs = steps[j]?.observation;
-          if (checkObs && !checkObs.isDay) {
-            // Found night, now check if day comes after
-            for (let k = j + 1; k <= i; k++) {
-              const dayObs = steps[k]?.observation;
-              if (dayObs && dayObs.isDay) {
-                result.survived_night = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
-                break;
-              }
-            }
-            break;
-          }
-        }
-      }
+    if (!result.survived_night && i === nightAt) {
+      result.survived_night = { step: step.step, gameTicks: ticksAt, wallMs, decisions: decisionsSoFar, tokens: cumulativeTokens, costUSD: cumulativeCost };
     }
   }
 
   return result;
+}
+
+/**
+ * The index of the step at which a night was first survived alive, and whether the agent died
+ * during a night. A death at night loses that night; the next one counts from its start. A run
+ * whose goal needs the night (outpost) and was met has survived it on its last step: the agent
+ * checks that itself, and the run ends at that sunrise, before any daytime observation.
+ */
+export function nightSurvived(steps: LoggedStep[], newEvents: string[][], goalMetWithNight: boolean): { at: number | null; diedAtNight: boolean } {
+  let inNight = false;
+  let forfeited = false;
+  let diedAtNight = false;
+  let lastNightLost = false;
+  let prevDark = false;
+  for (let i = 0; i < steps.length; i++) {
+    const obs = steps[i]?.observation;
+    if (!obs) continue;
+    const dark = !obs.isDay;
+    const died = (newEvents[i] ?? []).some((e) => e.includes("died") || e.includes("respawned"));
+    // The death happened between the last observation and this one: at night if either was dark.
+    if (died && (dark || prevDark)) {
+      forfeited = true;
+      diedAtNight = true;
+    }
+    if (dark) {
+      if (!inNight && !forfeited) lastNightLost = false; // a fresh night
+      inNight = true;
+    } else if (inNight) {
+      if (!forfeited) return { at: i, diedAtNight };
+      inNight = false;
+      forfeited = false;
+      lastNightLost = true;
+    }
+    prevDark = dark;
+  }
+  // Not if its last night had a death in it: logs from before the agent's check was fixed
+  // (19 October) could record "goal met" after one.
+  if (goalMetWithNight && steps.length && !forfeited && !lastNightLost) return { at: steps.length - 1, diedAtNight };
+  return { at: null, diedAtNight };
 }
 
 /**

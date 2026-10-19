@@ -116,9 +116,11 @@ Read this at the start of a session; update it when something finishes or a new 
 1. **A comparison of goals and agents: done 18 October** (`npm run compare`, `src/compare.ts`).
    Every team run and batch writes `runs/compare-<team|batch>-<name>.md`: by goal, by model and
    condition, and for teams who did what, requests and a timeline. Extend it as questions come up.
-2. **The long paid test** (proof of concept, step 2 of the runbook in `docs/experiments.md`): one
-   `outpost` run each on Haiku, Sonnet and Opus, survival, 27,000 ticks, `BUDGET_USD=5`. Estimated
-   about $5 in total; ask before running.
+2. **The long paid test: done 19 October (batch p2), 3 of 4 met.** One `outpost` run each in survival:
+   Sonnet, Opus and GPT-6 Luna met it ($0.24, $0.33, $0.02); Haiku died at night, and its "goal met"
+   came from a bug in our night check (fixed: a death at night now forfeits that night, in the
+   agent's check and the report). $0.88 in all. Written up in `docs/results/2026-10-outpost.md`.
+   Next, if wanted: 3 runs each (about $2.70 at these costs), and Haiku's flooded shelter.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

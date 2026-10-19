@@ -295,6 +295,26 @@ test("survivedNight: unknown when the run ends during the night without a death"
   assert.equal(summary.survivedNight, "unknown");
 });
 
+test("survivedNight: a death in the day doesn't count against the night; one at night loses it", () => {
+  const at = (step: number, isDay: boolean, recentEvents: string[] = []) =>
+    makeStep({ step, observation: makeObservation({ isDay, recentEvents }), decision: { skill: "wait", args: {} }, result: { status: "success" } });
+  const dayDeath = summarizeRun([at(1, true), at(2, true, ["you died and respawned"]), at(3, false, ["you died and respawned"]), at(4, true, ["you died and respawned"])], "x-a.jsonl");
+  assert.equal(dayDeath.survivedNight, true);
+  assert.equal(dayDeath.milestones["survived_night"]?.step, 4);
+  const nightDeath = summarizeRun([at(1, false), at(2, false, ["you died and respawned"]), at(3, true, ["you died and respawned"])], "x-a.jsonl");
+  assert.equal(nightDeath.survivedNight, false);
+  assert.equal(nightDeath.milestones["survived_night"], null);
+});
+
+test("survivedNight: an outpost run that met its goal survived its night, though it ends at sunrise", () => {
+  const outpost = (step: number, isDay: boolean, extra: Partial<LoggedStep> = {}) =>
+    makeStep({ step, observation: makeObservation({ isDay, goal: GOALS["outpost"]! }), decision: { skill: "wait", args: {} }, result: { status: "success" }, ...extra });
+  const s = summarizeRun([outpost(1, true), outpost(2, false), outpost(3, false, { ended: "goal met" })], "x-a.jsonl");
+  assert.equal(s.goalMet, true);
+  assert.equal(s.survivedNight, true);
+  assert.equal(s.milestones["survived_night"]?.step, 3);
+});
+
 test("retries: count calls beyond the first per step", () => {
   const steps: LoggedStep[] = [
     makeStep({
@@ -866,4 +886,14 @@ test("summarizeRun - prompt-cache reads are counted, and priced at the cached ra
   assert.equal(s.tokensCached, 1_800_000);
   // Per call: 100k plain at $2/M + 900k cached at $0.20/M = $0.38.
   assert.ok(typeof s.costUSD === "number" && Math.abs(s.costUSD - 0.76) < 1e-9, String(s.costUSD));
+});
+
+test("survivedNight: a 'goal met' outpost log whose last night had a death in it is not credited", () => {
+  // Logs from before 19 October: the agent's check let a death at night through.
+  const outpost = (step: number, isDay: boolean, extra: Partial<LoggedStep> = {}, recentEvents: string[] = []) =>
+    makeStep({ step, observation: makeObservation({ isDay, goal: GOALS["outpost"]!, recentEvents }), decision: { skill: "wait", args: {} }, result: { status: "success" }, ...extra });
+  const s = summarizeRun([outpost(1, true), outpost(2, false), outpost(3, false, {}, ["you died and respawned"]), outpost(4, true, { ended: "goal met" }, ["you died and respawned"])], "x-a.jsonl");
+  assert.equal(s.goalMet, true, "the log says so");
+  assert.equal(s.survivedNight, false);
+  assert.equal(s.milestones["survived_night"], null);
 });

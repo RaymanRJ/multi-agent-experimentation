@@ -151,6 +151,36 @@ export function isNight(timeOfDay: number): boolean {
   return timeOfDay >= 13000 && timeOfDay < 23000;
 }
 
+/**
+ * Whether a whole night has passed since the shelter was built, alive. A death forfeits the night
+ * it happens in: the next one has to be survived from its start. Sleeping counts (a bed can be used
+ * from dusk, and the night is skipped before it reaches isNight).
+ */
+export class NightWatch {
+  survived = false;
+  private inNight = false;
+  private forfeited = false;
+
+  /** On every game tick: has the shelter been built, the time of day, whether the agent is asleep. */
+  tick(shelterBuilt: boolean, timeOfDay: number, sleeping: boolean): void {
+    if (this.survived) return;
+    const night = isNight(timeOfDay) || sleeping;
+    if (this.forfeited) {
+      if (!night) this.forfeited = false; // the night it died in is over
+      return;
+    }
+    if (!shelterBuilt) return;
+    if (night) this.inNight = true;
+    else if (this.inNight) this.survived = true;
+  }
+
+  died(): void {
+    if (this.survived) return;
+    this.inNight = false;
+    this.forfeited = true;
+  }
+}
+
 /** "tools" for "tools-guided": the task a preset sets, whatever help it gives. Success is judged per task. */
 export function goalTask(preset: string): string {
   return preset.replace(/-guided$/, "");
