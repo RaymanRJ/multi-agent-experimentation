@@ -133,6 +133,9 @@ Read this at the start of a session; update it when something finishes or a new 
    `sleep` (beds from about 12,541, as in the game). Before, the observation called 12000 night and
    `sleep` called it day; Haiku noticed. Runs from here are not comparable with earlier ones on
    anything time-related. p4 was stopped after one run to fix this; Haiku runs come first.
+   **Agents can now hunt and shear** (19 October, the owner's call: `hunt` may target anything,
+   other agents included). Observations list `animals`; beds are reachable through wool. Checked
+   live on a test server; no model has used them yet.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

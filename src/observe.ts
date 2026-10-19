@@ -3,6 +3,7 @@ import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
 import { isNight, ticksUntilNight } from "./daytime.js";
+import { ANIMAL_TYPES } from "./skills/creatures.js";
 import { droppedNearby } from "./skills/pickUp.js";
 
 const NEARBY_RADIUS = 24;
@@ -74,12 +75,16 @@ export function observe(
   }
 
   const hostiles: Array<{ name: string; distance: number }> = [];
+  const animals: Array<{ name: string; distance: number }> = [];
   const otherAgents: Observation["otherAgents"] = [];
   for (const entity of Object.values(bot.entities)) {
     if (!entity || entity === bot.entity) continue;
     const distance = entity.position.distanceTo(position);
     if (entity.type === "hostile" && distance <= NEARBY_RADIUS) {
       hostiles.push({ name: entity.name ?? "unknown", distance: Math.round(distance) });
+    }
+    if (ANIMAL_TYPES.has(entity.type) && distance <= NEARBY_RADIUS) {
+      animals.push({ name: entity.name ?? "unknown", distance: Math.round(distance) });
     }
     if (entity.type === "player" && entity.username) {
       const doing = distance <= SIGHT_RADIUS ? opts.activities?.get(entity.username) : undefined;
@@ -114,6 +119,7 @@ export function observe(
     inventory: countInventory(bot),
     nearbyBlocks,
     hostiles: hostiles.slice(0, 5),
+    ...(animals.length ? { animals: animals.sort((a, b) => a.distance - b.distance).slice(0, 5) } : {}),
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };

@@ -59,8 +59,16 @@ building on it.
 
 ## What agents can't do
 
-- **No fighting, farming or chest storage.** An agent can only run from mobs (`flee`), eat food it
-  already has, and keep everything in its inventory, or hand it to another agent (`give`).
+- **Fighting is melee only, and new (19 October).** `hunt` kills animals, mobs or other agents with a
+  sword, an axe or bare hands; there are no bows, shields or armour use. Checked live once each
+  (sheep, cow, zombie, another bot), never yet in a model's run. An agent that is attacked is told only
+  that it took damage, not who hit it, so a fight between agents is visible in the attacker's log but
+  not to the victim. The run report doesn't count attacks on agents yet.
+- **No farming or chest storage.** Food comes from what an agent starts with or `hunt`s; everything
+  is kept in its inventory, or handed to another agent (`give`).
+- **Animals are scarce near spawn.** The start area is dark oak forest. On a fresh copy of the world
+  the loaded area held 1 cow, 6 pigs, 1 chicken and no sheep; `sandbox` also turns off mob spawning,
+  so what the world was generated with is all there is.
 - **`give` needs the receiver within reach of the giver.** The giver walks up beside them and drops
   the items at its feet; 8 of 8 live hand-overs worked that way. Tossing from two blocks or more
   overshot (1 of 5), and from one block the giver swept its own toss back up. A wall between them,

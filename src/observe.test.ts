@@ -76,3 +76,13 @@ test("observe - dusk is still day, counting down to 13000; dawn counts to the ne
   const dawn = observe(fakeBot({ timeOfDay: 23500 }).bot, base);
   assert.deepEqual([dawn.isDay, dawn.ticksUntilNight], [true, 13500]);
 });
+
+test("observe - animals nearest first, and left out when there are none", () => {
+  assert.equal("animals" in observe(fakeBot().bot, base), false);
+  const entities = [
+    { name: "cow", type: "animal", position: { x: 10.5, y: 64, z: 0.5 } },
+    { name: "sheep", type: "animal", position: { x: 3.5, y: 64, z: 0.5 } },
+    { name: "zombie", type: "hostile", position: { x: 5.5, y: 64, z: 0.5 } },
+  ];
+  assert.deepEqual(observe(fakeBot({ entities }).bot, base).animals, [{ name: "sheep", distance: 3 }, { name: "cow", distance: 10 }]);
+});

@@ -74,6 +74,8 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   eat: ["damage", "hostile", "dusk", "night", "message"],
   sleep: ["damage", "hostile", "dusk", "night", "message"],
   build_shelter: ["dusk", "night"],
+  // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
+  hunt: ["damage", "hostile"],
   ask_agent: ["message"],
 };
 

@@ -83,6 +83,8 @@ export interface Observation {
   canCraft?: string[];
   nearbyBlocks: Record<string, number>;
   hostiles: Array<{ name: string; distance: number }>;
+  /** Animals nearby (cows, sheep, fish…), nearest first, at most five. Omitted when none. */
+  animals?: Array<{ name: string; distance: number }>;
   /**
    * Other players the bot can see. `doing` is their current skill, read from their
    * narration — only within sight (SIGHT_RADIUS), since it is something you see, not

@@ -511,7 +511,8 @@ async function ensureTable(
 /** Things worth telling a model it can make; intermediates (planks, sticks, tables) are left to craft itself. */
 const WORTH_CRAFTING = [
   "wooden_pickaxe", "stone_pickaxe", "iron_pickaxe",
-  "wooden_axe", "stone_axe", "wooden_sword", "stone_sword", "stone_shovel", "furnace",
+  "wooden_axe", "stone_axe", "wooden_sword", "stone_sword", "iron_sword", "stone_shovel", "furnace",
+  "shears", "white_bed",
   "diamond_pickaxe", "diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots",
 ];
 

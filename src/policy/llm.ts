@@ -237,6 +237,7 @@ export function buildSystemPrompt(
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
+    '"animals" lists animals near you, nearest first.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
     '"underground" appears only when you are under the ground: how many blocks of solid ground lie between your head and the open sky.',
     '"recentEvents" lists what happened lately, newest last: how your last decisions went, interruptions, and a note when you have made the same decision several times in a row.',
