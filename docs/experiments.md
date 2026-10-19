@@ -52,6 +52,10 @@ BUDGET_USD=15 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet
 
 The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved next to its run log.
 
+To watch, add `VIEW=on`: each run serves its 3D view at http://localhost:3007 (or `VIEW_PORT`). The
+runs go one at a time, so the same address shows whichever run is going. The viewer only watches;
+nothing extra joins the world, so watching doesn't change the experiment.
+
 ## Several agents together: `team.sh`
 
 ```bash

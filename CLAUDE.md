@@ -119,7 +119,7 @@ npm run report -- --by condition --batch b5           # one row per condition, s
 npm run summary -- --batch b5                         # rebuild each run's behaviour report (written at run end)
 npm run compare -- --team trio3                       # one readable report across runs: by goal, model, and who did what (written at run end)
 
-scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env)
+scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env; VIEW=on to watch at :3007)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
 STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; watch at :3007, :3008
 
