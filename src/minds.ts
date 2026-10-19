@@ -128,7 +128,7 @@ function readLive(dir: string, file: string, lastStep: number): { live: LiveStep
 }
 
 /** A panel row for an agent that has started but not yet decided anything. */
-export function startingRow(file: string, start: RunStart, mtimeMs: number, now: number): RunRow {
+export function startingRow(file: string, start: RunStart, mtimeMs: number, now: number, live: LiveStep | null = null): RunRow {
   const status: RunStatus = now - mtimeMs > STALLED_MS ? "stopped" : "starting";
   return {
     file,
@@ -145,7 +145,9 @@ export function startingRow(file: string, start: RunStart, mtimeMs: number, now:
     goal: start.goal,
     scenario: start.scenario,
     step: 0,
-    doing: null,
+    // Its first decision is made but nothing is logged until that skill ends.
+    doing: status === "starting" ? (live?.skill ?? null) : null,
+    live: status === "starting" ? live : null,
     milestones: Object.fromEntries(MILESTONES.map((name) => [name, null])),
     goalMet: "n/a",
     ticks: 0,
@@ -179,6 +181,8 @@ export interface RunRow {
   scenario: string;
   step: number;
   doing: string | null;
+  /** The decision being carried out, when it is newer than the last logged step. */
+  live?: LiveStep | null;
   milestones: Record<string, number | null>;
   goalMet: boolean | "n/a";
   ticks: number;
@@ -216,6 +220,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     scenario: first.observation.scenario,
     step: last.step,
     doing: status === "running" ? (live?.skill ?? null) : null,
+    live: status === "running" ? live : null,
     milestones,
     goalMet: summary.goalMet,
     ticks: last.ticks ?? 0,
@@ -424,7 +429,8 @@ export function listRuns(dir: string, now: number = Date.now()): RunRow[] {
     if (rows.some((row) => row.file === log)) continue;
     try {
       const start = JSON.parse(readFileSync(join(dir, name), "utf8")) as RunStart;
-      rows.push(startingRow(log, start, statSync(join(dir, name)).mtimeMs, now));
+      const live = readLive(dir, log, 0);
+      rows.push(startingRow(log, start, Math.max(statSync(join(dir, name)).mtimeMs, live?.mtimeMs ?? 0), now, live?.live ?? null));
     } catch {
       // Half-written or unreadable: it will be listed on the next poll, or by its log.
     }

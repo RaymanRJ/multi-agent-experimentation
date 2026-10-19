@@ -118,6 +118,9 @@ test("listRuns - an agent that has started but not decided is listed as starting
     writeFileSync(join(dir, log), "");
     assert.equal(listRuns(dir)[0]?.status, "starting", "an empty log is still starting");
     assert.equal(listRuns(dir, Date.now() + 11 * 60_000)[0]?.status, "stopped", "no decision in ten minutes: stopped");
+    const { liveFileFor } = await import("./minds.js");
+    writeFileSync(join(dir, liveFileFor(log)), JSON.stringify({ step: 1, skill: "gather_wood", args: { count: 16 }, startedAt: new Date().toISOString() }));
+    assert.deepEqual([listRuns(dir)[0]?.status, listRuns(dir)[0]?.doing], ["starting", "gather_wood"], "its first decision, before anything is logged");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
