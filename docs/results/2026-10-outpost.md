@@ -124,11 +124,49 @@ stone pickaxe before digging, and in two it then held, keeping its tools. One ru
 underground and still met the goal. Three runs can't show the fix is complete; being caught
 underground at night is still possible.
 
+## The model on today's code, and the loop it can't leave (b15, b16)
+
+*Batch b15, 18–19 October: the model with plan memory, `--progress` off and on, three runs each,
+on main after the team-run changes (requests between agents, the drowning fixes, the agent's own
+name, optional skill arguments, and `gather_wood` reporting a request for logs already held as a
+failure). Batch b16, 19 October: three runs with plan memory and progress off, on the code b12 ran
+(`4bfbe1d`: b12's `1d049ee` plus three commits that touch only paid models and batch options), to
+check whether those changes were to blame. Both survival, 27,000 ticks.*
+
+| Batch | Code | Met | Longest run of `gather_wood` in a row, per run |
+|---|---|---|---|
+| b12, plan memory | b12's | 2/6 | 88, 68, 3, 78, 4, 4 |
+| b16 | b12's | 0/3 | 72, 5, 106 |
+| b15 | today's | 0/6 | 72, 145, 153, 35, 98, 125 |
+
+- **The model asks for logs it already holds, over and over, on both versions of the code.** In
+  a b16 run it chose `gather_wood(4)` 106 times in a row while holding 10 logs. Each time it was
+  told "you already have 10 logs, at least the 4 asked for — no need to gather more". What it
+  lacked was cobblestone, and it never chose `mine_stone`. b9 had the same loop (about 180 times).
+- **The repetition note doesn't change its mind.** Every third identical decision, the agent is
+  told so ("your last 48 decisions were the same gather_wood({"count":4}) and all got the same
+  result"). In b15 it chose the same decision again after 290 of 293 such notes; in that b16 run,
+  after 42 of 43. **We don't break the loop for it:** the model is told plainly what it is doing,
+  and not acting on that is the model's failure, so it is measured, not worked around. The run
+  report now says how often the agent was told and kept on, and the comparison has a column for it.
+- **There are two loops, and only one is new to look at.** At night, mobs interrupt `gather_wood`
+  and the model chooses it again: b12's long runs were all this kind, as were two of b15's. In the
+  morning, it asks for logs it holds: that started within the first six decisions in four of six
+  b15 runs, and in one of nine runs on b12's code.
+- **Whether today's code makes the morning loop more likely can't be told from this.** 4 of 6
+  against 1 of 9 is suggestive, but the samples are small. Replaying the stuck moment to the model
+  six to eight times, with today's prompt and messages and with b12's, gave `gather_wood` every
+  time, so neither the prompt changes nor the new failure message explains it at that moment.
+- **Pooled, the model met the outpost goal in 2 of 9 runs on b12's code and 0 of 6 on today's.**
+  b12's 2 of 6 did not repeat in b16. Losing the morning to the loop means facing the night with
+  logs and no tools: b15's runs died 1–13 times, mostly to zombies.
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a
   stronger model, or a skill that does "build the shelter before dark" by itself. That would be
   the code doing more, as the project's rule says it should.
 - The repetition warning is not enough for a 4B model with plan memory. Its own plan tells it to
-  repeat.
+  repeat. b15 and b16 confirm it on both versions of the code. By the owner's decision the code
+  will not stop the loop for the model: it is reported as the model's failure.
 - The `flee` skill needs a way out of pits. See [limitations](../limitations.md).

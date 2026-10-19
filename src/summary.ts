@@ -153,6 +153,8 @@ export interface Behaviour {
   repeatedFailures: number;
   /** Decisions that named no skill. */
   invalid: number;
+  /** Times the agent was told its last decisions were all the same, and how often it chose the same again. */
+  repeatNotes: { shown: number; keptOn: number };
   /** Game ticks spent in each skill, and waiting on the brain ("thinking"): the world runs on meanwhile. */
   ticksBySkill: Record<string, number>;
 }
@@ -160,9 +162,12 @@ export interface Behaviour {
 /** The world runs at 20 ticks a second while the brain thinks. */
 const TICKS_PER_MS = 20 / 1000;
 
+/** The note the agent adds to recentEvents every third identical decision (agent.ts); group 1 is the decision. */
+const REPEAT_NOTE = /^your last \d+ decisions were the same (\w+\(.*\)) and (?:each succeeded|all got the same result)$/;
+
 /** How the agent acted, as opposed to what it got: success rate, response to failure, loops. */
 export function behaviour(steps: LoggedStep[]): Behaviour {
-  const out: Behaviour = { decisions: 0, succeeded: 0, failed: 0, interrupted: 0, failuresWithNext: 0, changedCourse: 0, longestLoop: null, repeatedFailures: 0, invalid: 0, ticksBySkill: {} };
+  const out: Behaviour = { decisions: 0, succeeded: 0, failed: 0, interrupted: 0, failuresWithNext: 0, changedCourse: 0, longestLoop: null, repeatedFailures: 0, invalid: 0, repeatNotes: { shown: 0, keptOn: 0 }, ticksBySkill: {} };
   let loop: Behaviour["longestLoop"] = null;
   const failedBefore = new Set<string>();
   const spend = (what: string, ticks: number) => {
@@ -190,6 +195,14 @@ export function behaviour(steps: LoggedStep[]): Behaviour {
     if (status === "failed" && step.decision && next && (next.decision || next.result)) {
       out.failuresWithNext++;
       if (said(next) !== said(step)) out.changedCourse++;
+    }
+    // The note stays among recentEvents for a few steps; count it on the step it first appears.
+    const seen = new Set(steps[i - 1]?.observation?.recentEvents ?? []);
+    for (const event of step.observation?.recentEvents ?? []) {
+      const note = event.match(REPEAT_NOTE);
+      if (!note || seen.has(event)) continue;
+      out.repeatNotes.shown++;
+      if (step.decision && `${step.decision.skill}(${JSON.stringify(step.decision.args)})` === note[1]) out.repeatNotes.keptOn++;
     }
     const reason = problemKey(step.result?.reason ?? "");
     const prev = steps[i - 1];
@@ -273,6 +286,9 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   if (b.longestLoop && b.longestLoop.count >= 3) {
     lines.push(`Its longest loop: \`${b.longestLoop.decision}\` failed ${b.longestLoop.count} times in a row from step ${b.longestLoop.from} with "${clip(b.longestLoop.reason, 90)}".`);
   }
+  if (b.repeatNotes.keptOn > 0) {
+    lines.push(`It was told ${b.repeatNotes.shown} time${b.repeatNotes.shown > 1 ? "s" : ""} that its last decisions were all the same, and chose the same again ${b.repeatNotes.keptOn === b.repeatNotes.shown ? "every time" : `${b.repeatNotes.keptOn} times`}.`);
+  }
   const shares = Object.entries(b.ticksBySkill).filter(([what]) => what !== "thinking").sort((x, y) => y[1] - x[1]);
   const total = Object.values(b.ticksBySkill).reduce((n, t) => n + t, 0);
   if (shares[0] && total > 0) lines.push(`Most of its game time went on \`${shares[0][0]}\` (${pct(shares[0][1], total)}).`);
@@ -324,6 +340,7 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
   add(`| Changed course after a failure | ${b.failuresWithNext ? `${b.changedCourse} of ${b.failuresWithNext} (${pct(b.changedCourse, b.failuresWithNext)})` : "-"} |`);
   add(`| Failures repeating an earlier failure | ${b.failed ? `${b.repeatedFailures} of ${b.failed}` : "-"} |`);
   add(`| Longest loop of one failing decision | ${b.longestLoop ? `${b.longestLoop.count}× from step ${b.longestLoop.from}` : "none"} |`);
+  add(`| Told it was repeating itself, and kept on | ${b.repeatNotes.shown ? `${b.repeatNotes.keptOn} of ${b.repeatNotes.shown}` : "-"} |`);
   if (!scripted) {
     add(`| False "done" claims | ${s.doneRefused} |`);
     add(`| Unusable answers (re-asked, or no such skill) | ${s.retries} re-asked, ${b.invalid} no such skill |`);

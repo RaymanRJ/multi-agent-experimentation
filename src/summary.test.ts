@@ -61,6 +61,18 @@ test("behaviour - worked, failed and interrupted; response to failure; repeats a
   assert.equal(b.invalid, 1);
 });
 
+test("behaviour - counts repeat notes once each, and whether the agent chose the same again", () => {
+  const note = 'your last 3 decisions were the same craft({"item":"stone_pickaxe"}) and all got the same result';
+  const other = 'your last 3 decisions were the same gather_wood({"count":4}) and each succeeded';
+  const told = (n: number, item: string, events: string[]) => failing(n, item, undefined, { observation: { ...obs(), recentEvents: events } });
+  const steps = [
+    told(4, "stone_pickaxe", [note]), // kept on
+    told(5, "stone_pickaxe", [note]), // the same note, still showing: not counted again
+    told(6, "stone_axe", [note, other]), // changed course after the second note
+  ];
+  assert.deepEqual(behaviour(steps).repeatNotes, { shown: 2, keptOn: 1 });
+});
+
 test("behaviour - game time splits into thinking and doing", () => {
   // 600 ticks per step; 10 s of thinking is 200 of them.
   const steps = [step(1, "mine_stone", "success", { decisionMs: 10_000 }), step(2, "wait", "success", { decisionMs: 10_000 })];
