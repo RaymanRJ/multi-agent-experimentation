@@ -122,3 +122,24 @@ test("listRuns - an agent that has started but not decided is listed as starting
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("listRuns - shows what the agent is doing now from its live file, not the last finished step", async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { listRuns, liveFileFor } = await import("./minds.js");
+  const dir = mkdtempSync(join(tmpdir(), "minds-"));
+  try {
+    const log = "2026-10-18T10-00-00-000Z-haiku.jsonl";
+    const done = step(1, { decision: { skill: "craft", args: { item: "wooden_pickaxe" } }, at: new Date().toISOString() });
+    writeFileSync(join(dir, log), JSON.stringify(done) + "\n");
+    assert.equal(listRuns(dir)[0]?.doing, null, "no live file: deciding");
+    const live = (n: number) => JSON.stringify({ step: n, skill: "mine_stone", args: { count: 9 }, startedAt: new Date().toISOString() });
+    writeFileSync(join(dir, liveFileFor(log)), live(2));
+    assert.equal(listRuns(dir)[0]?.doing, "mine_stone", "decided and running, not yet logged");
+    writeFileSync(join(dir, liveFileFor(log)), live(1));
+    assert.equal(listRuns(dir)[0]?.doing, null, "a live step already logged is over");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

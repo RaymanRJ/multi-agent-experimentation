@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
-import { brainLabel, parseSteps, startFileFor, type RunStart } from "./minds.js";
+import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
@@ -439,6 +439,13 @@ async function main(): Promise<void> {
 
     console.log(`[${agentName}] step ${step}: ${decision.skill}(${JSON.stringify(decision.args)})`);
     narrate(bot, `${decision.skill}(${JSON.stringify(decision.args)})${decision.rationale ? ` — ${decision.rationale}` : ""}`);
+    // For the minds panel: the log gets this step only when the skill ends. Never worth failing a run over.
+    try {
+      const live: LiveStep = { step, skill: decision.skill, args: decision.args, ...(decision.rationale ? { rationale: decision.rationale } : {}), startedAt: new Date().toISOString() };
+      writeFileSync(liveFileFor(runLog.file), JSON.stringify(live));
+    } catch {
+      // the panel falls back to the last logged step
+    }
     lastPlan = decision.plan ?? lastPlan;
     // Said to itself, a message reaches nobody (qwen gave its coordinates that way in trio2): say it to everyone.
     const sayTo = decision.say?.to.toLowerCase() === agentName.toLowerCase() ? "all" : decision.say?.to ?? "all";

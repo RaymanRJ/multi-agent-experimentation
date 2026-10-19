@@ -349,7 +349,8 @@ function renderDetail() {
   const last = items[items.length - 1];
   const decisions = items.filter((i) => i.skill).length;
   const scroll = document.querySelector("main").scrollTop;
-  const doing = r.status === "running" ? (last && last.skill && !last.status ? last : last) : null;
+  // What it is doing now: decided, but not logged until the skill ends (see liveFileFor in minds.ts).
+  const live = r.status === "running" ? detail.live : null;
   box.replaceChildren(
     h("div", { class: "head" },
       h("div", {},
@@ -368,9 +369,12 @@ function renderDetail() {
       h("div", { class: "ladder" }, MILESTONES.map(([k, label]) => h("div", { class: "rung" + (r.milestones[k] ? " on" : "") }, h("div", { class: "ball" }, "✓"), h("div", {}, label), h("div", { class: "at" }, r.milestones[k] ? "step " + r.milestones[k] : "—"))))),
     h("div", { class: "card now" },
       h("div", {},
-        h("h3", {}, r.status === "running" ? "Latest decision · next one in progress" : "Final decision"),
-        doing || last ? h("div", { class: "doing" }, (last && last.skill ? words(last.skill) + " " + argText(last.args) : last && last.ended ? "Run ended: " + last.ended : "—")) : null,
-        last && last.rationale ? h("div", { class: "why" }, last.rationale) : null,
+        h("h3", {}, live ? "Doing now · since " + new Date(live.startedAt).toLocaleTimeString() : r.status === "running" ? "Latest decision · deciding the next one" : "Final decision"),
+        live
+          ? h("div", { class: "doing" }, words(live.skill) + " " + argText(live.args))
+          : h("div", { class: "doing" }, (last && last.skill ? words(last.skill) + " " + argText(last.args) : last && last.ended ? "Run ended: " + last.ended : "—")),
+        live ? (live.rationale ? h("div", { class: "why" }, live.rationale) : null) : last && last.rationale ? h("div", { class: "why" }, last.rationale) : null,
+        live && last && last.skill ? h("div", { class: "why" }, "Before that: " + words(last.skill) + " " + argText(last.args) + (last.status ? " · " + last.status : "")) : null,
         cur.plan ? h("div", { class: "plan" }, h("b", {}, "Its plan: "), cur.plan) : null,
         h("div", { class: "vitals" },
           h("span", {}, "❤ " + cur.health + "/20"), h("span", {}, "🍗 " + cur.food + "/20"), h("span", {}, cur.isDay ? "☀ day" : "☾ night"),
@@ -401,7 +405,7 @@ function loadDetail() {
   fetch("/api/run?file=" + encodeURIComponent(want)).then((r) => (r.ok ? r.json() : null)).then((j) => {
     if (want !== selected) return;
     if (!j) { detail = null; renderDetail(); return; }
-    const sig = j.timeline.length + "|" + j.run.status + "|" + JSON.stringify(j.timeline[j.timeline.length - 1] || null);
+    const sig = j.timeline.length + "|" + j.run.status + "|" + (j.live ? j.live.step : "") + "|" + JSON.stringify(j.timeline[j.timeline.length - 1] || null);
     detail = j;
     if (linkedStep && !detailSig) expanded.add("c" + linkedStep[1]); // #file=…&step=N opens that step's model call
     if (sig !== detailSig) { detailSig = sig; renderDetail(); }

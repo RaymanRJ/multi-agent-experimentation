@@ -102,6 +102,31 @@ export interface RunStart {
 
 export const startFileFor = (log: string) => log.replace(/\.jsonl$/, ".start.json");
 
+/**
+ * The decision an agent is carrying out now. The log gets a step only once its skill has finished,
+ * which for mine_stone can be minutes, so the agent writes this beside it the moment it decides.
+ */
+export const liveFileFor = (log: string) => log.replace(/\.jsonl$/, ".live.json");
+
+export interface LiveStep {
+  step: number;
+  skill: string;
+  args: Record<string, unknown>;
+  rationale?: string;
+  startedAt: string;
+}
+
+/** The live decision, if it is newer than the last logged step; with its file's age, for "stopped". */
+function readLive(dir: string, file: string, lastStep: number): { live: LiveStep; mtimeMs: number } | null {
+  try {
+    const name = liveFileFor(file);
+    const live = JSON.parse(readFileSync(join(dir, name), "utf8")) as LiveStep;
+    return live.step > lastStep ? { live, mtimeMs: statSync(join(dir, name)).mtimeMs } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** A panel row for an agent that has started but not yet decided anything. */
 export function startingRow(file: string, start: RunStart, mtimeMs: number, now: number): RunRow {
   const status: RunStatus = now - mtimeMs > STALLED_MS ? "stopped" : "starting";
@@ -164,7 +189,7 @@ export interface RunRow {
   lastAt: number;
 }
 
-export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: number): RunRow | null {
+export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: number, live: LiveStep | null = null): RunRow | null {
   const first = steps[0];
   const last = steps.at(-1);
   if (!first || !last) return null;
@@ -190,7 +215,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     goal: first.observation.goal,
     scenario: first.observation.scenario,
     step: last.step,
-    doing: status === "running" && last.decision ? last.decision.skill : null,
+    doing: status === "running" ? (live?.skill ?? null) : null,
     milestones,
     goalMet: summary.goalMet,
     ticks: last.ticks ?? 0,
@@ -388,7 +413,8 @@ export function listRuns(dir: string, now: number = Date.now()): RunRow[] {
   const rows: RunRow[] = [];
   for (const file of runFiles(dir, now)) {
     const loaded = load(dir, file);
-    const row = loaded && runRow(file, loaded.steps, loaded.mtimeMs, now);
+    const live = loaded && readLive(dir, file, loaded.steps.at(-1)?.step ?? 0);
+    const row = loaded && runRow(file, loaded.steps, Math.max(loaded.mtimeMs, live?.mtimeMs ?? 0), now, live?.live ?? null);
     if (row) rows.push(row);
   }
   // Agents that have started but logged nothing yet, listed under their log's name so the row
@@ -427,9 +453,10 @@ export function startServer(port: number, dir = "runs") {
       json(res, 200, { now: Date.now(), runs: listRuns(dir) });
     } else if (url.pathname === "/api/run") {
       const run = findRun(dir, file);
-      const row = run && runRow(file!, run.steps, run.mtimeMs, Date.now());
+      const live = run && readLive(dir, file!, run.steps.at(-1)?.step ?? 0);
+      const row = run && runRow(file!, run.steps, Math.max(run.mtimeMs, live?.mtimeMs ?? 0), Date.now(), live?.live ?? null);
       if (!run || !row) return json(res, 404, { error: "no such run" });
-      json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps) });
+      json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps), live: row.status === "running" ? (live?.live ?? null) : null });
     } else if (url.pathname === "/api/setup") {
       const setup = runSetup(findRun(dir, file)?.steps ?? []);
       if (!setup) return json(res, 404, { error: "no such run" });
