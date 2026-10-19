@@ -120,7 +120,9 @@ Read this at the start of a session; update it when something finishes or a new 
    Sonnet, Opus and GPT-6 Luna met it ($0.24, $0.33, $0.02); Haiku died at night, and its "goal met"
    came from a bug in our night check (fixed: a death at night now forfeits that night, in the
    agent's check and the report). $0.88 in all. Written up in `docs/results/2026-10-outpost.md`.
-   Next, if wanted: 3 runs each (about $2.70 at these costs), and Haiku's flooded shelter.
+   Haiku's "flooded shelter" was a false drowning alarm: mineflayer reads any nearby creature's
+   air as the bot's (fixed in `src/breathFix.ts`, checked live). Next, if wanted: 3 runs each
+   (about $2.70 at these costs).
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

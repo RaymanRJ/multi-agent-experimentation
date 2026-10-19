@@ -118,6 +118,12 @@ building on it.
 
 ## Rough edges in the code
 
+- **Our own air reading works around a mineflayer bug (19 October).** mineflayer 4.39 sets
+  `bot.oxygenLevel` from any entity's air, so creatures near water made agents "drown" on dry land.
+  `src/breathFix.ts` restores the bot's own value; any new script that creates a bot and reads air
+  must call `fixOwnAir(bot)` (the agent and `src/try.ts` do). Runs before this had false "under
+  water" interrupts and `air` in their observations.
+
 - **Two gaps in the drowning reflex, left on purpose (18 October).** A skill is stopped when air
   falls to half, and the code swims the agent out before the model decides, so the model is told
   afterwards and never asked to handle the water. Not covered:
