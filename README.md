@@ -342,15 +342,16 @@ flowchart TB
     MF <-->|"Minecraft protocol"| PAPER
     RCON -.->|"difficulty / gamerules"| PAPER
 
-    A -.->|"what should I do next?"| CLAUDE
-    B -.->|"what should I do next?"| GPT
-    C -.->|"what should I do next?"| LOCAL
+    A ==>|"what should I do next? · paid"| CLAUDE
+    B ==>|"what should I do next? · paid"| GPT
+    C ==>|"what should I do next? · free"| LOCAL
 
     PAPER --> VIEW
 
-    %% The model calls: paid (blue) and free (green), dashed and drawn heavier than the rest.
-    linkStyle 6,7 stroke:#2563eb,stroke-width:2.5px,stroke-dasharray:6 4
-    linkStyle 8 stroke:#0e9f6e,stroke-width:2.5px,stroke-dasharray:6 4
+    %% The model calls: thick, paid in blue and free in green. Not dashed: GitHub drew dashes on
+    %% some of these lines and not others.
+    linkStyle 6,7 stroke:#2563eb
+    linkStyle 8 stroke:#0e9f6e
 
     classDef free fill:#ecfdf5,stroke:#0e9f6e,color:#064e3b
     classDef paid fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
@@ -362,8 +363,8 @@ flowchart TB
     class SKILLS ours
 ```
 
-**Only the blue dashed lines cost money:** each agent's question to Claude or GPT. The green one,
-to the local model, is free, and so is everything else, all of which runs on your machine.
+**Only the thick blue lines cost money:** each agent's question to Claude or GPT. The thick green
+one, to the local model, is free, and so is everything else, all of which runs on your machine.
 
 The amber box is the part we write. Mineflayer supplies *primitives* — break one block, place one
 block, walk to a coordinate. A **skill** is a goal: `gather_wood(10)` must find a reachable tree,
