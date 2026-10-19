@@ -1,114 +1,304 @@
 # multi-agent-experimentation
 
-A testbed for running several AI agents in one shared environment — each driven by a different
-model, including one that runs locally for free — and measuring what they cost, where they
-cooperate, and where they get in each other's way.
+What do AI agents do when they are given a goal, a set of tools, and then left alone?
 
-Minecraft is the environment, but it is **not the point**. It was chosen because agent behaviour
-is normally invisible: it happens in API calls and log files, and when it fails you get a stack
-trace with no story attached. In a game world you can watch three agents walk into the same
-forest and either coordinate or collide. Swap the environment for a codebase, a ticket queue, or
-a data pipeline and everything else here stays the same.
+**Contents**
 
-## Quick start
+- [The control loop](#the-control-loop)
+- [What an agent is given](#what-an-agent-is-given)
+- [What gets measured](#what-gets-measured)
+- [Why this matters beyond the game](#why-this-matters-beyond-the-game)
+- [Getting started](#getting-started): [prerequisites](#1-install-the-prerequisites) · [get the code](#2-get-the-code) · [check your setup](#3-check-your-setup) · [first run](#4-start-your-first-run) · [watch](#5-watch-it-work) · [results](#6-read-the-results) · [paid models](#7-add-paid-models-optional) · [your own experiments](#8-run-your-own-agents-and-experiments) · [stop](#9-stop)
+- [Status](#status)
+- [Documentation](#documentation)
+- [Running experiments](#running-experiments)
+- [Details](#details): [architecture](#architecture) · [scenarios](#scenarios) · [software](#software)
+- [Licence](#licence)
 
-You need Docker and [Ollama](https://ollama.com/) running, and Node 25+. No Minecraft purchase and
-no API key are needed: the free local model plays on its own.
+This is a testbed for running autonomous agents **hands-off**. Each agent gets an outcome to reach
+and a fixed set of tools to act with, and nothing else: no step-by-step instructions, no human
+stepping in when it gets stuck. Several agents can share one environment, each driven by a
+different model, including one that runs locally for free. We measure whether they reach the goal,
+how they plan, how they recover when something fails, whether they work together, and what it all
+costs.
 
-```bash
-./start.sh --check          # says what's missing, starts nothing
-./start.sh                  # Minecraft server, minds panel and one agent per available brain
-```
+**Minecraft is only the environment, and a convenient one.** It is free to run, it can be watched
+as it happens, it is rich enough that goals take real planning, it keeps running while a model
+thinks, and a fixed seed makes runs repeatable. None of that is the subject. The agents, their
+tools, the control loop, the logs and the reports would stay the same if the environment were a
+codebase, a ticket queue or a data pipeline.
 
-A run lasts one in-game day (about 20 minutes) and then the agent stops by itself. For a
-two-minute try, use `./start.sh --ticks 2400`. `./start.sh --help` lists every option.
-
-Then watch:
-- **The agent's view:** http://localhost:3007, a 3D view of the world as the Ollama agent sees it.
-- **Its decisions:** http://localhost:3010 (the minds panel), with what it saw, chose and why for every step.
-
-```bash
-npm install                 # once, for the report and experiment scripts
-npm run report              # how each run went: outcome, decisions, tokens, cost
-npm run summary             # rebuild the newest run's report on how the agent behaved (every run writes one)
-npm run compare -- --team t1  # one readable report comparing a team run's or batch's agents (written at the end)
-./stop.sh                   # stop the agents (./stop.sh --all also stops Minecraft)
-```
-
-To add Claude or GPT, put their keys in `.env` (`cp .env.example .env`). They start only when a
-key is set. Set a monthly spend limit in each provider's console as well.
-
----
-
-## How it works
+## The control loop
 
 The rule the whole repo follows: **the model decides, the code does.**
 
-- A Minecraft server (in Docker) is the shared world.
-- Each **agent** is a Node.js process that joins the world as a player.
-- When an agent needs to choose, it builds a short summary of its situation (an *observation*)
-  and asks its **brain**, a model, which **skill** to run next, such as `gather_wood(10)` or
-  `build_shelter()`.
-- The skill is our code. It does the work, which can take many seconds of game time, and reports
-  back in plain words, such as "need 2 more planks — gather wood first".
-- The model only chooses between skills. It never steers.
+The environment moves on in real time (20 ticks a second); a model takes seconds to answer. So the
+model is never in the control loop. It chooses a **goal**, a tool call such as `gather_wood(10)`
+or `build_shelter()`, and deterministic code carries it out: it finds its own targets, retries,
+gives up cleanly, and reports back in plain words ("need 2 more planks: gather wood first"). The
+model is consulted again only when that goal succeeds, fails, or something important happens.
 
-The brain can be fixed rules (`scripted`, the control), a free local model (Ollama), or a paid
-one (Claude, GPT, Gemini, Grok and others through one interface). Every decision is logged, with
-the exact prompt and answer, so any run can be replayed and costed later.
+```mermaid
+sequenceDiagram
+    participant W as Environment
+    participant Body as Agent body
+    participant Brain as Model
+
+    W->>Body: state (position, inventory, health, time, threats)
+    Body->>Body: compress to a short briefing
+    Body->>Brain: "what should I do next?"
+    Brain-->>Body: goal: e.g. gather_wood(10)
+    loop deterministic, no model involved
+        Body->>W: low-level actions until the goal completes or fails
+    end
+    Body->>Brain: only on completion, failure, or a significant event
+```
+
+This is the most important design decision here. Put the model in the control loop and the agent
+is slow, expensive, and overtaken by events before it finishes thinking. Keep it out, and the
+same agent can work through a whole in-game day on a few dozen decisions. When an agent needs a new
+ability, the answer is a new tool (deterministic code), not more consulting of the model.
+
+## What an agent is given
+
+- **A goal, stated as an outcome:** "Make a stone pickaxe, axe, sword and shovel, build a shelter,
+  then survive the night." Never the steps. (Step-by-step `-guided` versions exist only to measure
+  how much a model needs that help.)
+- **Tools, and only tools.** A fixed list of skills, each with a plain description of what it
+  does and how it fails. Nothing happens outside that list. See [docs/skills.md](docs/skills.md).
+- **Observations:** a short summary of its situation (what it holds, what is nearby, its health,
+  the time, who else is around), not a dump of the environment.
+- **Feedback:** every tool reports success or failure in words the model can replan against.
+- **Optionally, other agents:** it can see them, talk to them, ask them questions, ask them to do
+  things and hand them items. See [docs/communication.md](docs/communication.md).
+
+What it is *not* given: advice. The harness adds facts, never suggestions: it says when the agent
+has made the same decision several times running, refuses a premature "done" and says what is still
+missing (a false claim of success is itself a result worth counting), and, as its own experimental
+condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: an
+agent under water swims out before it is asked anything.
+
+## What gets measured
+
+Every decision is logged with the exact prompt and answer, so any run can be replayed and costed
+afterwards without calling a model again. From the logs:
+
+- **Outcome:** goal met or not, and how long it took.
+- **Behaviour:** how many decisions worked, whether the agent changed course after a failure, how
+  long it looped, how often it falsely claimed to be done.
+- **Teamwork:** who did what, what was handed over, who asked whom for what, and whether they did it.
+- **Cost:** tokens in and out, dollars, and time spent waiting on the model.
+
+Each run writes its own report, and every batch or team run ends with one readable comparison
+across all of its agents (`npm run compare`).
+
+## Why this matters beyond the game
+
+Businesses are starting to hand work to AI agents: answering support tickets, reconciling
+invoices, keeping data pipelines running, triaging alerts at night. The promise is the same as in
+this project: give the agent a goal and access to the right systems, and let it get on with it,
+without a person checking every step.
+
+That raises practical questions, and they are hard to answer by watching real business systems,
+where an agent's work is buried in logs and its mistakes surface weeks later. Here every decision
+can be watched as it happens and replayed afterwards, and the goal is either met or it isn't. The
+environment is a game; the questions are the same ones a company faces.
+
+| What we saw | What it could mean for you |
+|---|---|
+| **The tools mattered more than the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts. | Before paying for a bigger model, invest in the systems and integrations the agent works through. An agent is only as reliable as the tools you give it, and a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. |
+| **Keeping the model out of the step-by-step work.** The model chooses *what* to do; ordinary code does it. This is the design the project is built on rather than a measured result: a model takes seconds to answer while the world keeps moving, so letting it steer every step was never workable. | Let the AI make the judgement calls and leave execution to proven software. An agent that improvises every click and keystroke is slow, expensive and fragile. |
+| **Agents claim success they haven't reached.** Small models regularly said "done" when the goal wasn't met. | Never take an agent's word that a job is finished. Check the outcome independently (was the refund actually issued?) before anyone relies on it. |
+| **Cheaper models loop.** The small model repeated the same failing action dozens of times, even when told exactly what was wrong. The larger models changed course about half the time or more. | Budget and monitor for repetition. Set limits on time and spend per task, watch for an agent doing the same thing over and over, and match the model to how much judgement the work needs. |
+| **Cost varies enormously, and isn't the same as quality.** A single decision cost from nothing (a model on our own machine) to up to about $0.02 (Claude Sonnet); GPT-6 Luna's cost about $0.0005, ten or more times less. In one team run that cheapest paid model built the shelter, and its whole run cost under half a cent. | Price per decision tells you little on its own. Measure cost per *completed task* on your own work: a cheap model that finishes can beat an expensive one, and a free local model keeps data in-house. |
+| **Teams of agents can split the work, but need ground rules.** In one run, four agents on four different models met a shared goal: one made every tool and handed them out, another built the shelter. Along the way, agents didn't know their own names until told, and interrupted each other so often that work kept getting cancelled. | Multi-agent setups are workable, but the coordination has to be designed: who each agent is, how work is handed over, and when one may interrupt another. Those rules belong in the system, not left to the agents to work out. |
+| **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
+| **Every decision is recorded.** Each choice is logged with exactly what the agent saw and why it chose, so any run can be replayed and audited, and its cost traced to the cent. | Insist on the same from any agent you deploy. When something goes wrong, you need to see what it knew and why it acted, not just the end result. |
+
+**In short:** autonomous agents can do useful work unattended, but how reliable they are depends far
+more on the systems around them (good tools, independent checks of the outcome, firm limits,
+complete records) than on which model sits in the middle. That is the part of the work this project
+is about, and it carries over to any business system.
+
+**A caveat:** these are early results from a small number of runs, mostly with one local model, in
+a game. They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
+says what has and hasn't been tested.
+
+## Getting started
+
+A step-by-step guide from a fresh machine to your first hands-off run. No Minecraft purchase and no
+API key are needed: the free local model runs on its own.
+
+### 1. Install the prerequisites
+
+You need **Docker** (it runs the environment), **[Ollama](https://ollama.com/)** (it runs the free
+local model on your machine) and **Node.js 25 or newer** (it runs the agents). Developed on an
+Apple Silicon Mac; other platforms are expected to work but are less tested.
+
+| | Docker | Ollama (local model) | Notes |
+|---|---|---|---|
+| **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
+| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
+| **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run everything from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
+| **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
+
+Without a GPU, expect several seconds to half a minute per decision from the local model. Keep the
+default non-thinking model (`qwen3:4b-instruct`): reasoning models are too slow for the 120-second
+decision timeout on CPU. Ollama runs on the host, not in Docker, because containers on a Mac can't
+use its GPU.
+
+### 2. Get the code
+
+```bash
+git clone https://github.com/RaymanRJ/multi-agent-experimentation.git
+cd multi-agent-experimentation
+npm install
+```
+
+### 3. Check your setup
+
+```bash
+./start.sh --check
+```
+
+This starts nothing. It checks Docker, Ollama and the local model, and says exactly what is
+missing and how to fix it. The first full start pulls the model (about 2.5 GB) if you don't have
+it yet.
+
+### 4. Start your first run
+
+```bash
+./start.sh --ticks 2400         # a two-minute try
+./start.sh                      # a full in-game day, about 20 minutes
+```
+
+`start.sh` starts the environment (a game server in Docker), the minds panel and one agent per
+available model, gives each its goal, and steps back. A run ends by itself when the goal is met,
+when the model says it is done, or when its time runs out. The game server accepts any player name
+without an account check (the bots need that), so keep it on your own machine or network and never
+expose port 25565 to the internet. To set the conditions:
+
+```bash
+./start.sh --scenario survival --goal outpost --ticks 27000   # threats at night, a long goal
+./start.sh --goal "Mine 10 stone"                             # any goal, in quotes
+./start.sh --memory full --comms off --stance collaborative   # what the agents remember and how they regard each other
+./start.sh --help                                             # every option and preset goal
+```
+
+### 5. Watch it work
+
+- **What it decides:** http://localhost:3010, the minds panel. For every step: what the agent saw,
+  what it chose and why, what happened, and what it cost. **Run setup** shows the full prompt.
+- **What it sees:** a 3D view around each agent: http://localhost:3007 for the local model, 3008
+  for Claude, 3009 for GPT.
+
+### 6. Read the results
+
+```bash
+npm run report                  # how each run went: outcome, decisions, tokens, cost
+npm run summary                 # a readable report on how the newest run's agent behaved
+npm run compare -- --team t1    # one readable comparison across a team run's or batch's agents
+```
+
+Every run writes its own report beside its log in `runs/` when it ends; team runs and batches also
+write the comparison.
+
+### 7. Add paid models (optional)
+
+```bash
+cp .env.example .env            # then put ANTHROPIC_API_KEY and/or OPENAI_API_KEY in it
+```
+
+Claude and GPT agents start only when their key is set; the defaults are Claude Haiku 4.5 and
+GPT-6 Luna (change them with `ANTHROPIC_MODEL` and `OPENAI_MODEL`). Never commit `.env`: this repo
+is public.
+
+- **Spending.** `--budget-usd` (default $1.00) stops a run before it overspends, but the real guard
+  against a surprise bill is a monthly spend limit in the Anthropic and OpenAI consoles: set one
+  when you create a key.
+- **Bad keys and empty accounts** are caught before the agent joins: each makes one tiny call
+  first and stops with the provider's message. If credits run out mid-run, the run ends as `brain
+  unavailable` and the report marks it, and every other agent in that run, as not comparable. Rate
+  limits and overloads are retried with backoff.
+
+### 8. Run your own agents and experiments
+
+```bash
+npm run agent -- --brain scripted                              # no model: the fixed-rules baseline
+npm run agent -- --brain ollama --goal shelter --view          # one agent, watched at :3007
+npm run agent -- --brain claude --goal tools --view 3008       # one port per agent to watch several
+STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t1 "haiku=claude@claude-haiku-4-5 qwen=ollama"
+```
+
+These need the environment running: `./start.sh` starts it, or `docker compose up -d` on its own
+(the team and batch scripts start their own). The last line is a team: several agents in one fresh
+environment with a shared goal. For fair
+comparisons across models and conditions, see [Running experiments](#running-experiments) and
+[docs/experiments.md](docs/experiments.md).
+
+### 9. Stop
+
+```bash
+./stop.sh                       # stop the agents and the minds panel
+./stop.sh --all                 # also stop the environment
+```
+
+To walk around the environment yourself, you need Minecraft Java Edition 1.21.1 (connect to
+`localhost`); nothing else needs it.
+
+## Status
+
+**Working, and being measured.** Agents run hands-off on preset goals checked by code (tools,
+shelter, an outpost that has to last the night, iron, diamond, and a team goal), alone or several
+to a shared environment, with memory, stance and communication settings, comparison batches on
+fresh worlds, reports with confidence intervals, and a panel showing every decision.
+
+The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5, Sonnet 5.5 and Opus
+5.5, and GPT-6 Luna. Only the local model has been through repeated comparison batches so far.
+
+**What we've found so far** (details in [docs/results/](docs/results/)):
+- **Fixing the tools mattered more than anything about the model.** The biggest improvements came
+  from making skills find better targets, fail more clearly and avoid hazards.
+- **Memory helps a small model, a self-written plan can hurt it.** Full conversation memory worked
+  best for the local model; a plan it wrote itself led it to follow that stale plan into loops.
+- **Small models claim success they haven't reached.** The harness now refuses a premature "done"
+  and says what is missing.
+- **Small models loop.** The local model repeats a failing decision dozens of times, even when told
+  exactly what is wrong: in the team runs it changed course after about one failure in ten, the
+  Claude models after about half or more.
+- **Long goals are hard for a small model.** On the outpost goal (tools, shelter, survive the night)
+  the local model met it in 3 of 18 runs in its latest batch; it usually makes the tools, then
+  fails to build the shelter or loses its tools to threats.
+- **Hands-off teams can work.** In one run (one run, not yet a comparison), four agents on four
+  models met a shared goal in under five minutes of game time for $0.28: one made every tool and
+  handed them out, another built the shelter.
+
+What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
 
 ## Documentation
 
 | Read | For |
 |---|---|
-| [docs/skills.md](docs/skills.md) | Every skill an agent can use, how it works and how it fails |
-| [docs/communication.md](docs/communication.md) | How agents see and talk to each other, and the three stances |
-| [docs/experiments.md](docs/experiments.md) | Running a fair comparison and reading the report |
+| [docs/skills.md](docs/skills.md) | Every tool (skill) an agent can use, how it works and how it fails |
+| [docs/communication.md](docs/communication.md) | How agents see, talk to and ask things of each other, and the three stances |
+| [docs/experiments.md](docs/experiments.md) | Running a fair comparison and reading the reports |
 | [docs/results/](docs/results/) | What the experiments so far have found |
 | [docs/limitations.md](docs/limitations.md) | What is untested, missing or rough |
 | [docs/next-steps.md](docs/next-steps.md) | Where things stand, what's open, and setting up a new machine |
 | [CLAUDE.md](CLAUDE.md) | Conventions for changing the code |
 
----
-
-## Status
-
-**MVP.** The full loop works with the free local model and the scripted baseline:
-- one or several agents in a shared world;
-- preset goals, checked by code: tools, shelter, an outpost that has to last the night, iron, diamond (not yet met in a full run), and a team goal;
-- memory and stance settings;
-- comparison batches with fresh worlds;
-- a report with confidence intervals;
-- a panel that shows every decision.
-
-Claude models (Haiku, Sonnet, Opus) have run single tests and team runs, but no comparison batch
-yet. Several agents can work as a team on a shared goal and hand each other items (`team-camp`).
-
-**What we've found so far** (free local model, details in [docs/results/](docs/results/)):
-- Fixing the skill code mattered more than anything about the model.
-- Full conversation memory works best. A self-written plan makes this small model *worse*: it
-  follows its own stale plan into loops.
-- Small models often claim success they haven't reached. The harness now refuses a premature
-  "done" and says what is missing.
-- The long outpost goal (tools, shelter, survive the night) is beyond this model so far: 1 of 18
-  model runs, against 5 of 6 for the baseline in the last two batches. It makes the tools but rarely
-  builds the shelter.
-
-What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
-
----
-
 ## Running experiments
 
 ```bash
 CONDITIONS="scripted ollama:none ollama:full" GOALS="tools shelter" scripts/batch.sh b10 3 12000 sandbox
-STANCE=competitive scripts/team.sh t2 "qa=ollama:full qb=ollama:full"
-npm run report -- --by condition --batch b10
+STANCE=collaborative GOAL=team-camp scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"
+npm run compare -- --batch b10
 ```
 
-The first line runs one agent per world across several conditions. The second puts several agents
-in one world. The third summarises a batch, one row per condition, with success rates and 95%
-intervals. Everything is explained in [docs/experiments.md](docs/experiments.md).
+The first line runs one agent per environment across several conditions. The second puts several
+agents in one environment with a shared goal. The third writes a readable comparison of a batch:
+by goal, by model and condition, with success rates and 95% intervals. Everything is explained in
+[docs/experiments.md](docs/experiments.md).
 
 ---
 
@@ -118,7 +308,7 @@ intervals. Everything is explained in [docs/experiments.md](docs/experiments.md)
 
 ```mermaid
 flowchart TB
-    subgraph WORLD["THE WORLD — free"]
+    subgraph WORLD["THE ENVIRONMENT — free"]
         PAPER["<b>Paper Minecraft Server</b><br/>itzg/minecraft-server · Docker<br/>owns world state &amp; rules"]
         RCON["<b>RCON</b><br/>runtime scenario toggle"]
     end
@@ -152,11 +342,16 @@ flowchart TB
     MF <-->|"Minecraft protocol"| PAPER
     RCON -.->|"difficulty / gamerules"| PAPER
 
-    A -.->|"what should I do next?"| CLAUDE
-    B -.->|"what should I do next?"| GPT
-    C -.->|"what should I do next?"| LOCAL
+    A ==>|"what should I do next? · paid"| CLAUDE
+    B ==>|"what should I do next? · paid"| GPT
+    C ==>|"what should I do next? · free"| LOCAL
 
     PAPER --> VIEW
+
+    %% The model calls: thick, paid in blue and free in green. Not dashed: GitHub drew dashes on
+    %% some of these lines and not others.
+    linkStyle 6,7 stroke:#2563eb
+    linkStyle 8 stroke:#0e9f6e
 
     classDef free fill:#ecfdf5,stroke:#0e9f6e,color:#064e3b
     classDef paid fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
@@ -168,7 +363,8 @@ flowchart TB
     class SKILLS ours
 ```
 
-**Only the dotted lines cost money.** Everything else runs locally for free.
+**Only the thick blue lines cost money:** each agent's question to Claude or GPT. The thick green
+one, to the local model, is free, and so is everything else, all of which runs on your machine.
 
 The amber box is the part we write. Mineflayer supplies *primitives* — break one block, place one
 block, walk to a coordinate. A **skill** is a goal: `gather_wood(10)` must find a reachable tree,
@@ -182,44 +378,17 @@ talk to each other is in [docs/communication.md](docs/communication.md).
 
 ---
 
-### The control loop
-
-A game ticks 20 times per second; a model takes seconds to answer. So the model never touches
-the controls. It picks a **goal**; deterministic code executes it.
-
-```mermaid
-sequenceDiagram
-    participant W as World
-    participant Body as Agent body
-    participant Brain as Model
-
-    W->>Body: state (position, inventory, health, time, threats)
-    Body->>Body: compress to a short briefing
-    Body->>Brain: "what should I do next?"
-    Brain-->>Body: goal — e.g. gather_wood(10)
-    loop deterministic, no model involved
-        Body->>W: low-level actions until the goal completes or fails
-    end
-    Body->>Brain: only on completion, failure, or a significant event
-```
-
-This is the single most important design rule in the repo. Put the model in the control loop and
-the agent is slow, expensive, and dead before it finishes thinking.
-
----
-
 ### Scenarios
 
-The same world runs in two modes, flipped with one setting. They are not difficulty levels —
+The same environment runs in two modes, flipped with one setting. They are not difficulty levels:
 they test different things.
 
-| Scenario | World | Question it answers |
+| Scenario | Conditions | Question it answers |
 |---|---|---|
-| `sandbox` | Peaceful. No hostiles, no clock. Open-ended goal. | Can agents self-direct and stay coordinated with nothing forcing their hand? |
-| `survival` | Hostile mobs, hunger, a hard deadline at nightfall. | Can agents plan under constraint and recover when the plan fails? |
+| `sandbox` | No threats, no deadline. | Can agents direct themselves, and stay coordinated, with nothing forcing their hand? |
+| `survival` | Threats, hunger, a hard deadline (nightfall). | Can agents plan under pressure and recover when the plan fails? |
 
-The relaxed mode is the harder test — pressure supplies focus, an open goal does not. Toggling is
-a single RCON call plus a swap of the goal given to the agents, so runs stay comparable.
+The two differ only in the environment's settings and the goal text, so runs stay comparable.
 
 #### What is held fixed, and what is not
 
@@ -240,6 +409,11 @@ a single RCON call plus a swap of the goal given to the agents, so runs stay com
 
 ### Software
 
+Most of this stack is the environment. The parts that matter to the experiment are the agent
+processes, the skill library and the model adapters; everything Minecraft-specific could be
+replaced without touching them.
+
+
 | Component | What it does | Cost |
 |---|---|---|
 | [Docker](https://www.docker.com/) + Compose | Runs the server; keeps Java off the host | free |
@@ -255,7 +429,7 @@ a single RCON call plus a swap of the goal given to the agents, so runs stay com
 | [OpenAI API](https://platform.openai.com/) | GPT as a brain | usage-based |
 | Minecraft Java Edition | **Optional.** Only needed to walk around the world yourself | ~$30 one-time |
 
-#### Why no Minecraft purchase is required
+#### About the environment: why no Minecraft purchase is required
 
 "Minecraft" is two separate pieces of software. The **server** is free and always has been. The
 **client** — the graphical game — is the part that costs money. Bots need neither: mineflayer
@@ -266,54 +440,6 @@ Buy the client only when you want your own eyes in the world. `prismarine-viewer
 until then.
 
 ---
-
-### What start.sh does
-
-```bash
-./start.sh --scenario survival --goal shelter --ticks 12000   # options: ./start.sh --help
-```
-
-It checks Docker and Ollama, pulls the model if missing, starts the server, then the minds panel
-(http://localhost:3010) and one agent per available brain (viewers on :3007 ollama, :3008 claude,
-:3009 gpt). Claude and GPT start only if their key is set. Ollama stays on the host (Metal GPU);
-containers reach it at `host.docker.internal:11434`. To join yourself, use Minecraft Java 1.21.1
-at `localhost`.
-
-#### On Linux, Windows, or an Intel Mac
-
-Developed on an Apple Silicon Mac; other platforms are expected to work but are less tested.
-Run `./start.sh --check` first; it checks the setup without starting anything.
-
-| | Docker | Ollama (local model) | Notes |
-|---|---|---|---|
-| **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
-| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
-| **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run `./start.sh` from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
-| **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
-
-Without a GPU, expect several seconds to half a minute per decision from the local model. Use a
-non-thinking model (the default `qwen3:4b-instruct`): reasoning models are too slow for the
-120-second decision timeout on CPU. Linux machines with an NVIDIA GPU can instead run Ollama in a
-container: `docker compose --profile ollama-docker up -d ollama` (untested).
-
-Manual path:
-
-```bash
-cp .env.example .env        # API keys optional — the local agent needs none
-docker compose up -d        # Paper server on :25565
-npm install
-npm run agent -- --scenario sandbox --brain scripted   # no model; proves the loop
-```
-
-Never commit `.env`. This repo is public.
-
-**Paid brains and credits.** `--budget-usd` (default $1.00) stops one run before it overspends, but
-the real guard against a surprise bill is a monthly spend limit in the Anthropic and OpenAI
-consoles — set one when you create a key. Each model agent makes one tiny call before joining the
-world, so a bad key or an empty account stops it at startup with the provider's message. If credits
-run out mid-run, the run ends as `brain unavailable` (no retries) and `npm run report` marks it, and
-every other agent in that episode, as not comparable. Rate limits and overloads are retried with
-backoff instead.
 
 ## Licence
 
