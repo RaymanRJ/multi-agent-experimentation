@@ -6,8 +6,9 @@ choose it and deterministic code would do it.
 
 ## Skills
 
-1. **`hunt` / `fight`: attack a mob or animal.** Also the only way to wool without shears (a sheep drops 1). The biggest gap. Agents can't attack anything,
-   so there is no food beyond what they start with and no defence but `flee`. A creeper killed
+1. **`hunt` / `fight`: attack a mob or animal.** The biggest gap. Agents can't attack anything,
+   so there is no food beyond what they start with and no defence but `flee`, and no wool without
+   shears (a killed sheep drops 1). A creeper killed
    Sonnet in p2, and Haiku died at night; both might have gone differently. It would also let agents
    attack each other, which changes what the experiment allows: the owner decides whether it covers
    animals and hostile mobs only, or players too.
