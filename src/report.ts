@@ -72,7 +72,7 @@ export interface RunSummary {
    * provider's failure, not the model's; "episode incomplete" means another agent in the
    * same episode lost its brain, so this run played a world with one agent missing.
    */
-  validity: "valid" | "brain unavailable" | "episode incomplete";
+  validity: "valid" | "brain unavailable" | "episode incomplete" | "lost connection";
 }
 
 /**
@@ -442,7 +442,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     milestones,
     furthestMilestone,
     episode: steps[0]?.config?.episode ?? null,
-    validity: howEnded === "brain unavailable" ? "brain unavailable" : "valid",
+    validity: howEnded === "brain unavailable" ? "brain unavailable" : lostConnection(steps, howEnded) ? "lost connection" : "valid",
   };
 }
 
@@ -556,6 +556,18 @@ function computeMilestones(steps: LoggedStep[], newEvents: string[][], nightAt: 
  * whose goal needs the night (outpost) and was met has survived it on its last step: the agent
  * checks that itself, and the run ends at that sunrise, before any daytime observation.
  */
+/**
+ * The connection to the game server dropped, so the run says nothing about the model. Logs since
+ * 19 October record it as "disconnected"; before that the agent crashed without an end, and the
+ * last step shows the game going silent (batch p3, Opus: "Timeout waiting for 4 ticks").
+ */
+export function lostConnection(steps: LoggedStep[], howEnded: RunSummary["howEnded"]): boolean {
+  if (howEnded === "disconnected") return true;
+  if (howEnded !== "step limit / stopped") return false;
+  const reason = steps[steps.length - 1]?.result?.reason ?? "";
+  return /Timeout waiting for \d+ ticks|client timed out|lost the connection/.test(reason);
+}
+
 export function nightSurvived(steps: LoggedStep[], newEvents: string[][], goalMetWithNight: boolean): { at: number | null; diedAtNight: boolean } {
   let inNight = false;
   let forfeited = false;

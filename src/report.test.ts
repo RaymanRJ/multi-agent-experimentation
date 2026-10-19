@@ -897,3 +897,12 @@ test("survivedNight: a 'goal met' outpost log whose last night had a death in it
   assert.equal(s.survivedNight, false);
   assert.equal(s.milestones["survived_night"], null);
 });
+
+test("lostConnection - a recorded disconnect, or an older log whose last step shows the game going silent", async () => {
+  const { lostConnection } = await import("./report.js");
+  const last = (reason: string) => [makeStep({ step: 1, result: { status: "failed", reason } })];
+  assert.equal(lostConnection([], "disconnected"), true);
+  assert.equal(lostConnection(last("wait hit an unexpected error: Timeout waiting for 4 ticks after 5200ms"), "step limit / stopped"), true);
+  assert.equal(lostConnection(last("need 3 more cobblestone"), "step limit / stopped"), false);
+  assert.equal(lostConnection(last("Timeout waiting for 4 ticks"), "time budget"), false, "a run that ended properly is judged by how it ended");
+});

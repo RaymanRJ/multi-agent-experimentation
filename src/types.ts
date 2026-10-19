@@ -266,7 +266,8 @@ export type EndReason =
   | "cost budget"     // paid model calls reached the dollar cap
   | "brain failed"    // three failed decisions in a row
   | "brain unavailable" // the provider refused for good: no credits, quota, bad key — not the model's fault
-  | "step limit";     // the safety cap on decisions
+  | "step limit"      // the safety cap on decisions
+  | "disconnected";   // the connection to the game server dropped: not the model's doing, so not a valid run
 
 export interface RunConfig {
   /** Shared by every agent launched together, so their logs can be merged into one episode. */

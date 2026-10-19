@@ -125,6 +125,7 @@ function outcomeLine(s: RunSummary): string {
     "time budget": "the time budget ran out",
     "model ended": 'the model said "done" twice in a row',
     "model gave up": "the model gave up",
+    disconnected: "the connection to the game server dropped, so this run says nothing about the model and is left out of comparisons",
     "step limit": "it hit the safety cap on decisions",
     "cost budget": "it reached its spending cap",
     "brain failed": "the model failed to answer three times in a row",

@@ -105,7 +105,10 @@ The per-run table adds why each run ended:
 - **model gave up**: the model chose `give_up`, saying why it can't meet the goal (the run report
   quotes the reason, and the minds panel shows it);
 - **brain unavailable**: a bad key or no credits;
-- **step limit**: the safety cap on decisions (`--steps`) was hit.
+- **step limit**: the safety cap on decisions (`--steps`) was hit;
+- **disconnected**: the connection to the game server dropped. Such a run is marked not valid
+  ("lost connection") and left out of success rates, as are older logs that end in the game going
+  silent (Opus in p3).
 
 It also has these columns:
 - **Furthest**: the furthest milestone the run reached (logs, wooden pickaxe, stone, stone pickaxe, shelter, survived the night).

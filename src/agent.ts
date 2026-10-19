@@ -23,7 +23,7 @@ import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import { costUSD, PRICED_MODELS } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
-import { STANCES, type Backend, type ModelCall, type EndReason, type LoggedStep, type MemoryMode, type Policy, type RunConfig, type ScenarioName, type SkillContext, type Stance } from "./types.js";
+import { STANCES, type Backend, type ModelCall, type EndReason, type LoggedStep, type MemoryMode, type Observation, type Policy, type RunConfig, type ScenarioName, type SkillContext, type Stance } from "./types.js";
 
 const { pathfinder } = pathfinderPkg;
 
@@ -213,6 +213,15 @@ async function main(): Promise<void> {
   bot.on("health", checkInterrupts);
 
   bot.on("kicked", (reason) => console.error(`[${agentName}] kicked: ${reason}`));
+  // A dropped connection (batch p3: Opus, mid-night) used to crash the agent with nothing logged
+  // about why, and the report counted the run as a valid failure. Stop and say so instead.
+  let disconnected = false;
+  bot.on("end", (reason) => {
+    if (stopping) return; // our own quit at the end of the run
+    disconnected = true;
+    stopping = true;
+    console.error(`[${agentName}] lost the connection to the server: ${reason}`);
+  });
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
@@ -324,7 +333,12 @@ async function main(): Promise<void> {
   // below only catches identical decisions (Haiku asked qwen 17 questions in trio2).
   let asking = { key: "", count: 0 };
 
+  let lastObservation: Observation | null = null;
+  let lastStep = 0;
+  try {
   for (let step = 1; !ended; step++) {
+    lastStep = step;
+    if (disconnected) break;
     const surfaced = await escapeWater();
     const asked = buffer?.pending() ?? { requests: [], mark: 0 };
     const observation = observe(bot, {
@@ -339,10 +353,12 @@ async function main(): Promise<void> {
         ? { stillNeeded: goalGaps(goalState("", "")) }
         : {}),
     });
+    lastObservation = observation;
     stepEvents = surfaced ? [surfaced] : [];
     let responses: LoggedStep["responses"];
     const write = (fields: Omit<LoggedStep, "step" | "at" | "observation" | "config" | "ticks" | "ended" | "responses">) => {
       // Checked last, so a goal met or a model "done" on the final step wins.
+      if (!ended && disconnected) ended = "disconnected";
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
@@ -512,6 +528,16 @@ async function main(): Promise<void> {
       stepEvents.push(note);
     }
     write({ decision, result, events: stepEvents, ...extra });
+  }
+  } catch (error) {
+    if (!disconnected) throw error; // anything else is a real crash, as before
+  }
+  if (disconnected && ended !== "disconnected") {
+    // Lost between steps or mid-step: one more line says so, with the last thing it saw.
+    ended = "disconnected";
+    if (lastObservation) {
+      runLog.write({ step: lastStep, at: new Date().toISOString(), observation: lastObservation, decision: null, result: { status: "aborted", reason: "lost the connection to the game server" }, decisionMs: 0, calls: [], config, ticks: elapsedTicks(), ended });
+    }
   }
 
   console.log(`[${agentName}] ended: ${ended} after ${elapsedTicks()} ticks, $${spentUSD.toFixed(4)}`);
