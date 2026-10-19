@@ -115,14 +115,15 @@ function outcome(run: Run): string {
 /** The at-a-glance table: one row per run. */
 function glance(runs: Run[]): string[] {
   const rows = [
-    "| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Unusable answers | Deaths | Tokens in / out | Cost |",
-    "|---|---|---|---|---|---|---|---|---|---|---|",
+    "| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|",
   ];
   for (const run of runs) {
     const { b, s } = run;
     rows.push(
       `| ${s.agentName} | ${run.model} | ${outcome(run)} | ${b.decisions} | ${pct(b.succeeded, b.decisions)} | ` +
         `${b.failuresWithNext ? `${b.changedCourse} of ${b.failuresWithNext}` : "-"} | ${b.longestLoop && b.longestLoop.count >= 3 ? `${b.longestLoop.count}× \`${b.longestLoop.decision.split(" ")[0]}\`` : "-"} | ` +
+        `${b.repeatNotes.shown ? `${b.repeatNotes.keptOn} of ${b.repeatNotes.shown}` : "-"} | ` +
         `${s.retries ? `${s.retries} of ${s.totalModelCalls} calls` : "-"} | ${s.deaths || "-"} | ${inOut(s.tokensIn, s.tokensOut)} | ${money(s.costUSD)} |`,
     );
   }

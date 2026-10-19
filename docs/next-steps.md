@@ -1,7 +1,7 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 18 October 2026.*
+*Last updated 19 October 2026.*
 
 ## Setting up a new machine
 
@@ -111,9 +111,14 @@ Read this at the start of a session; update it when something finishes or a new 
 2. **The long paid test** (proof of concept, step 2 of the runbook in `docs/experiments.md`): one
    `outpost` run each on Haiku, Sonnet and Opus, survival, 27,000 ticks, `BUDGET_USD=5`. Estimated
    about $5 in total; ask before running.
-3. **Confirm recent fixes on the free model:** an outpost batch with `--progress` off and on (3 runs
-   each, ~2 h), then the two open baseline problems in `docs/limitations.md` (waiting out the night in
-   the sandbox; `mine_ore` failing to reach ore it can see).
+3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
+   plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
+   2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times
+   in a row) and choose the same again after nearly every repetition note. The owner's call: that
+   is the model's failure, to be reported, not fixed in code. The run report and comparison now
+   count how often an agent was told it was repeating itself and kept on. Written up in
+   `docs/results/2026-10-outpost.md`. Still open from `docs/limitations.md`: waiting out the night
+   in the sandbox, and `mine_ore` failing to reach ore it can see.
 4. **`mine_stone` is slow:** the drowning is fixed (0a; trio3 had none), but "digging stone timed
    out after 20000ms" still appears in trio3 (Haiku and qwen), with walking and exploring timeouts.
    The under-water digging explained some of it, not all. Not yet investigated.

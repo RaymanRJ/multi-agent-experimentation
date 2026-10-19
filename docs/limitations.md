@@ -80,6 +80,11 @@ building on it.
     want of cobblestone. Since fixed, but not yet confirmed: a failed craft now says when the
     item is already held, and the cobblestone message names `mine_stone`.
   - **A run with the goal all but met ended on two "done"s** before the night it had to survive.
+  - **The model repeats one decision dozens of times after being told it is doing so** (b15, b16):
+    `gather_wood` for logs it already holds, up to 153 times in a row, choosing the same again
+    after 290 of 293 repetition notes. It happens on b12's code too. This is left to the model on
+    purpose: the code says what is happening, and the report flags an agent that kept on ("Told it
+    was repeating itself, and kept on"), but nothing stops the loop for it.
   - **Full memory fills the local model's 8,192-token window** (~7,200 tokens per call), and
     five of six runs gave up early.
   - **`build_shelter` sometimes can't clear dirt or grass from its own floor,** and `smelt`

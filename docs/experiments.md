@@ -111,7 +111,8 @@ It also has these columns:
 Every run also writes a short report on how the agent behaved, beside its log as
 `runs/<file>.summary.md`, when it ends. It starts with a verdict in plain sentences, then:
 - **a scorecard:** decisions that worked, how often it changed course after a failure, failures
-  that repeated an earlier one exactly, its longest loop, false "done" claims, unusable answers,
+  that repeated an earlier one exactly, its longest loop, how often it was told it was repeating
+  itself and kept on, false "done" claims, unusable answers,
   deaths, think time, tokens and cost;
 - **progress** through the milestones;
 - **where the game time went,** by skill and waiting on the model;
@@ -131,7 +132,8 @@ npm run summary -- --batch b10          # every run in a batch
 runs, `runs/compare-team-<name>.md` or `runs/compare-batch-<name>.md`. For each goal:
 
 - **an at-a-glance table,** one row per agent: the outcome, decisions, how many worked, whether it
-  changed course after failing, its longest loop, unusable answers, deaths and cost;
+  changed course after failing, its longest loop, how often it kept on after being told it was
+  repeating itself, unusable answers, deaths and cost;
 - **by model and condition,** when a goal was run more than once: how often it was met (with a 95%
   range), the median time and decisions, and the cost per run;
 - **for a team,** who made, built and handed over what, what they asked of each other and whether it
