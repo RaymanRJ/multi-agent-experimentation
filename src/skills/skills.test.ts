@@ -205,6 +205,8 @@ test("go_to - gives up when every leg is blocked, and is done at once when alrea
   assert.equal(blocked.status, "failed");
   assert.match(blocked.reason!, /blocked 3 times/);
   assert.equal((await run("go_to", { entities: [teammate(2)] }, { to: "qwen" })).status, "success");
+  assert.equal((await run("go_to", {}, { x: 0, z: 0 })).status, "success", "already at x and z");
+  assert.match((await run("go_to", {}, { x: 0, y: 90, z: 0 })).reason!, /blocked 3 times .* 26 blocks short/, "but not at the height asked for");
 });
 
 test("build_shelter - won't clear a space with lava beside it", async () => {

@@ -16,10 +16,11 @@ export const goTo: Skill = {
   name: "go_to",
   description:
     "Walk to another agent or to a place. Args: `to` (an agent's name, if you can see them in otherAgents), or " +
-    "`x` and `z` (coordinates, e.g. a position someone told you; your own is in your observation). Walks in legs, " +
+    "`x` and `z` (coordinates, e.g. a position someone told you; your own is in your observation), and optionally `y`, " +
+    "a height to reach; without it only x and z count. Walks in legs, " +
     `up to ${MAX_DISTANCE} blocks. Fails if the agent is out of sight (ask where they are, then use x and z), or ` +
     "if the way is blocked repeatedly. Aborts if a hostile comes within 8 blocks.",
-  args: { to: "string?", x: "number?", z: "number?" },
+  args: { to: "string?", x: "number?", y: "number?", z: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;
@@ -28,7 +29,7 @@ export const goTo: Skill = {
       Object.values(bot.entities).find(
         (e) => e && e !== bot.entity && e.type === "player" && e.username?.toLowerCase() === to.toLowerCase(),
       );
-    let target: { x: number; z: number };
+    let target: { x: number; y?: number; z: number };
     if (to) {
       if (to.toLowerCase() === bot.username.toLowerCase()) return { status: "failed", reason: "you are already where you are" };
       const seen = agent();
@@ -37,10 +38,17 @@ export const goTo: Skill = {
     } else {
       const x = asNumber(args["x"], NaN), z = asNumber(args["z"], NaN);
       if (!Number.isFinite(x) || !Number.isFinite(z)) return { status: "failed", reason: "say where to go: `to` an agent's name, or `x` and `z`" };
-      target = { x, z };
+      const y = asNumber(args["y"], NaN);
+      target = { x, z, ...(Number.isFinite(y) ? { y } : {}) };
     }
     const here = () => bot.entity.position;
-    const left = () => Math.hypot(target.x - here().x, target.z - here().z);
+    // With a height asked for, it counts towards the distance; otherwise only the ground plan does.
+    // Measured from the block the bot stands in, as the pathfinder's goal is: from its exact position,
+    // a bot the pathfinder had already brought within range could be a fraction short, forever.
+    const left = () => {
+      const at = here().floored();
+      return Math.hypot(target.x - at.x, target.y === undefined ? 0 : target.y - at.y, target.z - at.z);
+    };
     if (left() > MAX_DISTANCE) return { status: "failed", reason: `that is ${Math.round(left())} blocks away, more than ${MAX_DISTANCE}; go part of the way first` };
     const report = () => ({ position: { x: Math.round(here().x), y: Math.round(here().y), z: Math.round(here().z) }, blocksLeft: Math.round(left()) });
 
@@ -61,11 +69,15 @@ export const goTo: Skill = {
       const seen = to ? agent() : undefined;
       if (seen) target = { x: seen.position.x, z: seen.position.z };
       const step = Math.min(1, LEG / left());
-      const leg = { x: here().x + (target.x - here().x) * step, z: here().z + (target.z - here().z) * step };
+      const leg = {
+        x: here().x + (target.x - here().x) * step,
+        y: target.y === undefined ? here().y : here().y + (target.y - here().y) * step,
+        z: here().z + (target.z - here().z) * step,
+      };
       try {
         const goal = step === 1 && seen
           ? new goals.GoalNear(seen.position.x, seen.position.y, seen.position.z, ARRIVED - 1)
-          : new goals.GoalNear(leg.x, here().y, leg.z, ARRIVED);
+          : new goals.GoalNear(leg.x, leg.y, leg.z, ARRIVED);
         await withTimeout(bot.pathfinder.goto(goal), LEG_TIMEOUT_MS, "walking");
       } catch (error) {
         bot.pathfinder.setGoal(null);
