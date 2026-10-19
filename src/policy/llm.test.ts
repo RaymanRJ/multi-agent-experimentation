@@ -67,6 +67,20 @@ test("done ends the episode", async () => {
   assert.equal(out.calls.length, 1);
 });
 
+test("give_up ends the episode with the model's reason, and needs one", async () => {
+  const out = await new LLMPolicy(fakeBackend(['{"skill":"give_up","args":{"reason":"no trees in reach"},"rationale":"stuck"}'])).decide(obs, skills);
+  assert.deepEqual(out.decision, { skill: "give_up", args: { reason: "no trees in reach" }, rationale: "stuck" });
+  const bare = await new LLMPolicy(fakeBackend(['{"skill":"give_up"}', '{"skill":"give_up","args":{"reason":"lost"}}'])).decide(obs, skills);
+  assert.equal(bare.calls.length, 2, "a give_up with no reason is asked again");
+  assert.deepEqual(bare.decision?.args, { reason: "lost" });
+});
+
+test("the prompt explains recentEvents and both ways to end", () => {
+  const prompt = buildSystemPrompt(skills, { memory: "plan", comms: false });
+  assert.match(prompt, /"recentEvents" lists what happened lately/);
+  assert.match(prompt, /\{"skill": "done"\} once your goal is met, or \{"skill": "give_up", "args": \{"reason": string\}\}/);
+});
+
 test("string number args are coerced", async () => {
   const out = await new LLMPolicy(fakeBackend(['{"skill":"gather_wood","args":{"count":"7"}}'])).decide(obs, skills);
   assert.deepEqual(out.decision?.args, { count: 7 });
@@ -296,7 +310,7 @@ test("decisionTool - the same fields the prompt asks for, skills named, extras b
   const { decisionTool } = await import("./llm.js");
   const full = decisionTool(skills, { memory: "plan", comms: true }).schema as { properties: Record<string, { enum?: string[] }> };
   assert.deepEqual(Object.keys(full.properties), ["skill", "args", "rationale", "plan", "say"]);
-  assert.deepEqual(full.properties["skill"]!.enum, ["gather_wood", "wait", "done"]);
+  assert.deepEqual(full.properties["skill"]!.enum, ["gather_wood", "wait", "done", "give_up"]);
   const bare = decisionTool(skills, { memory: "none", comms: false }).schema as { properties: Record<string, unknown> };
   assert.deepEqual(Object.keys(bare.properties), ["skill", "args", "rationale"]);
 });

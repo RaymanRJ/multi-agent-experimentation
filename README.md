@@ -76,7 +76,7 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 
 What it is *not* given: advice. The harness adds facts, never suggestions: it says when the agent
 has made the same decision several times running, refuses a premature "done" and says what is still
-missing (a false claim of success is itself a result worth counting), and, as its own experimental
+missing, lets it give up with a reason (and flags that it did) (a false claim of success is itself a result worth counting), and, as its own experimental
 condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: an
 agent under water swims out before it is asked anything.
 
@@ -87,7 +87,8 @@ afterwards without calling a model again. From the logs:
 
 - **Outcome:** goal met or not, and how long it took.
 - **Behaviour:** how many decisions worked, whether the agent changed course after a failure, how
-  long it looped, how often it falsely claimed to be done.
+  long it looped, whether it kept on after being told it was repeating itself, how often it falsely
+  claimed to be done, and whether it gave up, and why.
 - **Teamwork:** who did what, what was handed over, who asked whom for what, and whether they did it.
 - **Cost:** tokens in and out, dollars, and time spent waiting on the model.
 
@@ -176,7 +177,7 @@ it yet.
 
 `start.sh` starts the environment (a game server in Docker), the minds panel and one agent per
 available model, gives each its goal, and steps back. A run ends by itself when the goal is met,
-when the model says it is done, or when its time runs out. The game server accepts any player name
+when the model says it is done or gives up, or when its time runs out. The game server accepts any player name
 without an account check (the bots need that), so keep it on your own machine or network and never
 expose port 25565 to the internet. To set the conditions:
 

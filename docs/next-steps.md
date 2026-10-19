@@ -86,6 +86,14 @@ Read this at the start of a session; update it when something finishes or a new 
   while under water, not instant death); `gather_wood` says every kind of log counts and makes the
   same things. Team runs trio1–trio3 had the old wording.
 
+- **Prompt changes on 19 October, after b15 and b16:** the prompt now says what `recentEvents` is
+  (it carries the repetition note, and had never been explained), and offers `give_up` with a
+  reason beside `done`. Runs before this compare with runs after only loosely. Live: qwen gave up on
+  an impossible goal ("fly to the moon") at its first decision. On `tools` (two short sandbox runs,
+  6,000 ticks) it never gave up, and still looped on `gather_wood` for logs it held (43 and 28 times
+  in a row), choosing the same again after all 23 repetition notes: explaining `recentEvents` didn't
+  change that.
+
 ## Open, most wanted first
 
 0. **Sonnet's tool-call answers: fixed 18 October.** Claude is now offered a `decide` tool (not

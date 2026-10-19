@@ -42,6 +42,9 @@ export const CLOUD_HISTORY_REFILL = 0.5;
 /** Longest plan and spoken message we keep; longer ones are cut, not rejected. */
 export const MAX_PLAN_CHARS = 200;
 export const MAX_SAY_CHARS = 200;
+/** Not a skill: it ends the run, like "done", but as the model admitting it can't reach the goal. */
+export const GIVE_UP = "give_up";
+const MAX_GIVE_UP_CHARS = 300;
 const MAX_SAY_TO_CHARS = 40;
 
 export interface LLMPolicyOptions {
@@ -165,7 +168,7 @@ export class LLMPolicy implements Policy {
  */
 export function decisionTool(skills: Skill[], options: LLMPolicyOptions = DEFAULT_OPTIONS): DecisionTool {
   const properties: Record<string, unknown> = {
-    skill: { type: "string", enum: [...skills.map((s) => s.name), "done"], description: 'The skill to run next, or "done" to end the episode.' },
+    skill: { type: "string", enum: [...skills.map((s) => s.name), "done", GIVE_UP], description: `The skill to run next, "done" once the goal is met, or "${GIVE_UP}" to stop because you cannot meet it.` },
     args: { type: "object", description: "The skill's args, as in its args spec." },
     rationale: { type: "string" },
   };
@@ -235,13 +238,15 @@ export function buildSystemPrompt(
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
+    '"recentEvents" lists what happened lately, newest last: how your last decisions went, interruptions, and a note when you have made the same decision several times in a row.',
     '"ticksUntilNight" is how long until dark (20 ticks = 1 second); hostile mobs come out at night.',
     ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
     'Skills (args spec: name -> type; a type ending in "?" is optional, so leave it out to use the default):',
     ...lines,
     `Reply with ONLY a JSON object: {${fields.join(", ")}}.`,
     ...extra,
-    'To end the episode reply {"skill": "done"}.',
+    'To end the episode reply {"skill": "done"} once your goal is met, or ' +
+      `{"skill": "${GIVE_UP}", "args": {"reason": string}} to stop because you cannot meet it, saying why.`,
   ].join("\n");
 }
 
@@ -264,10 +269,17 @@ function parseDecision(text: string, skills: Skill[], options: LLMPolicyOptions)
   const name = obj["skill"];
   if (typeof name !== "string") return { ok: false, error: 'missing string field "skill"' };
   if (name === "done") return { ok: true, decision: null };
+  if (name === GIVE_UP) {
+    const reason = (obj["args"] as Record<string, unknown> | undefined)?.["reason"];
+    if (typeof reason !== "string" || !reason.trim()) return { ok: false, error: `${GIVE_UP} needs "args": {"reason": string}: say why you are stopping` };
+    const decision: Decision = { skill: GIVE_UP, args: { reason: reason.trim().slice(0, MAX_GIVE_UP_CHARS) } };
+    if (typeof obj["rationale"] === "string") decision.rationale = obj["rationale"];
+    return { ok: true, decision };
+  }
 
   const skill = skills.find((s) => s.name === name);
   if (!skill) {
-    return { ok: false, error: `unknown skill "${name}"; valid: ${skills.map((s) => s.name).join(", ")}, done` };
+    return { ok: false, error: `unknown skill "${name}"; valid: ${skills.map((s) => s.name).join(", ")}, done, ${GIVE_UP}` };
   }
 
   const rawArgs = obj["args"] ?? {};

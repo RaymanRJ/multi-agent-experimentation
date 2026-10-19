@@ -101,6 +101,16 @@ test("renderSummary - a failed model run: verdict, scorecard, sections and its o
   assert.match(md, /\*\*At the end\*\*, choosing `done`: "I give up on stone"/, "the rationale of a done comes from its reply");
 });
 
+test("renderSummary - a run the model gave up on says so first, with its reason", () => {
+  const steps: LoggedStep[] = [
+    failing(1, "stone_pickaxe"),
+    { ...step(2, "give_up", "failed"), decision: { skill: "give_up", args: { reason: "no stone I can reach" } }, result: { status: "failed", reason: "gave up: no stone I can reach" }, ended: "model gave up" as const },
+  ];
+  const md = renderSummary(steps, "runs/x-agent.jsonl");
+  assert.match(md, /\*\*Goal not met:\*\* the model gave up/);
+  assert.match(md, /- It gave up after 2 decisions and 1:00 of game time, saying: "no stone I can reach"/);
+});
+
 test("renderSummary - a met goal, and a scripted run without the model-only parts", () => {
   const base = { at: "2026-10-17T10:00:00.000Z", config: { brain: "scripted" } as unknown as LoggedStep["config"] };
   const steps: LoggedStep[] = [
