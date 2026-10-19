@@ -13,6 +13,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 
 import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
+import { fixOwnAir } from "./breathFix.js";
 import { findSkill, SKILLS } from "./skills/index.js";
 import { movementsFor } from "./skills/util.js";
 import type { SkillContext } from "./types.js";
@@ -39,6 +40,7 @@ const bot = mineflayer.createBot({
   auth: "offline",
 });
 bot.loadPlugin(pathfinder);
+fixOwnAir(bot);
 bot.on("kicked", (reason) => console.error(`kicked: ${reason}`));
 bot.on("error", (error) => console.error(`error: ${error.message}`));
 

@@ -179,9 +179,11 @@ run. Total cost $0.88.*
   hint, not a finding.
 - **Haiku's success was false, from a bug in our goal check (fixed).** A death at night was meant to
   forfeit that night, but the flag was set again on the next tick because it was still night. Haiku
-  built its shelter by 5:25, tried to `sleep` nine times with no bed, then at about 16,200 found
-  itself under water inside the shelter (how the water got in was not investigated), swam out,
-  could not rebuild beside the water, and a spider killed it at about 18,900. It gathered wood and
+  built its shelter by 5:25 and tried to `sleep` nine times with no bed. At about 16,200 it was
+  told it was under water and running out of air, though it was standing dry in its shelter: a
+  bug in mineflayer reads any nearby creature's air as the bot's (here, creatures in a flooded
+  cave beside its mining shaft; fixed, see below). It fled the shelter into the night, could not
+  rebuild beside the water it found, and a spider killed it at about 18,900. It gathered wood and
   re-made all four tools at dawn, which the faulty check counted as the goal. Re-checked against
   the corrected rule, every other outpost success so far (the baseline's and qwen's in b8–b14, and
   the other three here) stands.
@@ -191,6 +193,14 @@ run. Total cost $0.88.*
 - **Nights differed.** Sonnet waited in its shelter for the whole night (27 `wait`s). Opus did the
   same until just before dawn, then stepped out. Luna left its shelter twice during the night, to
   rebuild and explore, and came back.
+- **A false drowning alarm, from mineflayer (fixed).** mineflayer sets the bot's air from any
+  entity's air update, never checking it is the bot's. Reproduced at Haiku's spot: standing dry in
+  the shelter, the bot's "air" fell from 20 to 10 and jumped to 400 (an axolotl has 6,000 ticks of
+  air); in 30 seconds it took 360 updates from other creatures. `src/breathFix.ts` now restores the
+  bot's own value after every update; live, it stays at 20 when dry and falls 20 → 7 with the head
+  in water. Of 49 "under water" interrupts in the logs so far, 45 were not followed by the
+  swim-out reflex (which runs whenever the head really is in water), so most were probably this
+  false alarm: 36 of them in two of qwen's b15 runs, and a few in every paid run and in quad1.
 - **Cost:** Luna did it for 2 cents; the three Claude models for 24–33 cents each. Haiku's prompt
   is below its minimum for caching, so it paid full price for every token.
 

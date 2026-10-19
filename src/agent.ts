@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, parseSteps, startFileFor, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
+import { fixOwnAir } from "./breathFix.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -182,6 +183,7 @@ async function main(): Promise<void> {
     auth: "offline",
   });
   bot.loadPlugin(pathfinder);
+  fixOwnAir(bot); // mineflayer reports any nearby creature's air as the bot's
 
   const recentEvents: string[] = [];
   const buffer = attachComms(bot, agentName, comms);
