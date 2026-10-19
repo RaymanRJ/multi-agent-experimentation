@@ -151,8 +151,10 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
 - **The repo is public (since 18 October): work on a branch and open a pull request.** `main` is
   protected by the `protect-main` ruleset: no direct pushes, force pushes or deletion; a pull request
   with one approval, resolved conversations and a passing `test` check (CI). The owner is the only
-  collaborator and can't approve their own pull request, so they merge with the admin bypass, which
-  works only through a pull request. Pushing a branch still needs asking. Pull requests from outside
+  collaborator and can't approve their own pull request, so they merge with the admin bypass. Since
+  19 October that bypass is "always": the admin (only the owner) can also push and force-push to
+  `main` directly; everyone else is held to the rules. Claude still pushes only when asked, by a
+  branch and a pull request unless told otherwise. Pushing a branch still needs asking. Pull requests from outside
   contributors run CI only after the owner approves them, and workflows may use only GitHub's own
   actions.
 - **Never change `src/` under a running batch or team run.** Work in a worktree under
