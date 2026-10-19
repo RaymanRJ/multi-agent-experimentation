@@ -2,6 +2,8 @@
 
 What do AI agents do when they are given a goal, a set of tools, and then left alone?
 
+A short overview of the project is on [rrjamal.ca](https://rrjamal.ca/projects/multi-agent-experimentation).
+
 **Contents**
 
 - [The control loop](#the-control-loop)
