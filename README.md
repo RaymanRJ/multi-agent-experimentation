@@ -348,6 +348,10 @@ flowchart TB
 
     PAPER --> VIEW
 
+    %% The model calls: paid (blue) and free (green), dashed and drawn heavier than the rest.
+    linkStyle 6,7 stroke:#2563eb,stroke-width:2.5px,stroke-dasharray:6 4
+    linkStyle 8 stroke:#0e9f6e,stroke-width:2.5px,stroke-dasharray:6 4
+
     classDef free fill:#ecfdf5,stroke:#0e9f6e,color:#064e3b
     classDef paid fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
     classDef world fill:#f8fafc,stroke:#475569,color:#0f172a
@@ -358,7 +362,8 @@ flowchart TB
     class SKILLS ours
 ```
 
-**Only the dotted lines cost money.** Everything else runs locally for free.
+**Only the blue dashed lines cost money:** each agent's question to Claude or GPT. The green one,
+to the local model, is free, and so is everything else, all of which runs on your machine.
 
 The amber box is the part we write. Mineflayer supplies *primitives* — break one block, place one
 block, walk to a coordinate. A **skill** is a goal: `gather_wood(10)` must find a reachable tree,
