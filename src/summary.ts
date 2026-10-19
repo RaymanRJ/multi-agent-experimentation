@@ -124,6 +124,7 @@ function outcomeLine(s: RunSummary): string {
   const why: Record<string, string> = {
     "time budget": "the time budget ran out",
     "model ended": 'the model said "done" twice in a row',
+    "model gave up": "the model gave up",
     "step limit": "it hit the safety cap on decisions",
     "cost budget": "it reached its spending cap",
     "brain failed": "the model failed to answer three times in a row",
@@ -274,6 +275,10 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   if (s.goalMet === true) lines.push(`Met its goal in ${b.decisions} decisions and ${gameTime(s.ticksToGoal ?? 0)} of game time.`);
   else if (lacking.length) lines.push(`Did not meet its goal. Still outstanding at the end: ${lacking.join("; ")}.`);
   else lines.push(`Did not meet its goal${furthest ? `; it got as far as: ${MILESTONE_LABELS[furthest]!.toLowerCase()}` : ""}.`);
+  const last = steps[steps.length - 1];
+  if (last?.ended === "model gave up") {
+    lines.push(`It gave up after ${b.decisions} decision${b.decisions === 1 ? "" : "s"} and ${gameTime(last.ticks ?? 0)} of game time, saying: "${clip(String(last.decision?.args["reason"] ?? ""), 200)}"`);
+  }
   lines.push(`${pct(b.succeeded, b.decisions)} of its decisions worked (${b.succeeded} of ${b.decisions}).`);
   if (b.failuresWithNext > 0) {
     const rate = b.changedCourse / b.failuresWithNext;

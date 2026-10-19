@@ -179,7 +179,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     file,
     agent: agentNameFromFile(file) ?? file,
     status,
-    ended: last.ended ?? (status === "stopped" ? "stopped without an end reason" : null),
+    ended: last.ended === "model gave up" ? `model gave up: "${String(last.decision?.args["reason"] ?? "")}"` : last.ended ?? (status === "stopped" ? "stopped without an end reason" : null),
     brain: brain.label,
     brainDetail: brain.detail,
     memory: calls.length > 0 ? (last.config?.memory ?? null) : null, // the scripted baseline has no memory setting

@@ -64,6 +64,11 @@ piece built against it simultaneously. This has already bitten this project's pl
   tokenizers differ between providers and wall-clock measures the hardware. With a preset goal, a
   "done" before the goal is met is refused once and told so; a second "done" in a row ends the run.
   The report counts refusals as "Done refused": a false claim of success is data, not noise.
+  `give_up` (with a reason) is the other way out: the model saying it can't, which ends the run at
+  once as "model gave up" and is flagged in the report and the minds panel. Like "done" it is not a
+  skill, and the prompt describes it without saying when to use it. Loops are the model's to break:
+  the code tells it it is repeating itself, and the report counts whether it kept on, but never
+  stops the loop for it.
 - **Goals state outcomes, not steps.** Preset goals (`tools`, `shelter`) say what to achieve; the
   `-guided` variants spell out the steps and exist to measure how much a model needs that help.
   What the game requires reaches the model through skill descriptions, failure messages and

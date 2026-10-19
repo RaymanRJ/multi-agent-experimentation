@@ -18,7 +18,7 @@ import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
-import { LLMPolicy } from "./policy/llm.js";
+import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
 import { costUSD, PRICED_MODELS } from "./backends/pricing.js";
 import { BrainError, preflight } from "./backends/errors.js";
@@ -415,6 +415,14 @@ async function main(): Promise<void> {
       console.log(`[${agentName}] goal met by the team`);
       ended = "goal met";
       write({ decision, result: { status: "aborted", reason: "the team's goal was met while deciding" }, ...extra });
+      break;
+    }
+    if (decision.skill === GIVE_UP) {
+      // Not refused like an early "done": the model says it can't, and that is the result.
+      const reason = String(decision.args["reason"]);
+      console.log(`[${agentName}] GAVE UP: ${reason}`);
+      ended = "model gave up";
+      write({ decision, result: { status: "failed", reason: `gave up: ${reason}` }, events: ["gave up"], ...extra });
       break;
     }
 

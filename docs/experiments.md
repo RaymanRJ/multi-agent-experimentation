@@ -98,6 +98,8 @@ The per-run table adds why each run ended:
 - **goal met**;
 - **time budget**: the time ran out;
 - **model ended**: the model said "done" twice in a row;
+- **model gave up**: the model chose `give_up`, saying why it can't meet the goal (the run report
+  quotes the reason, and the minds panel shows it);
 - **brain unavailable**: a bad key or no credits;
 - **step limit**: the safety cap on decisions (`--steps`) was hit.
 

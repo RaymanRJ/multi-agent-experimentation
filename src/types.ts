@@ -257,6 +257,7 @@ export interface LoggedStep {
 export type EndReason =
   | "goal met"        // a deterministic check on a preset goal passed
   | "model ended"     // the policy returned no decision ("done")
+  | "model gave up"   // the model chose give_up; its reason is the last step's result
   | "time budget"     // the in-game time budget ran out
   | "cost budget"     // paid model calls reached the dollar cap
   | "brain failed"    // three failed decisions in a row
