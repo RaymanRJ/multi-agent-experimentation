@@ -49,17 +49,18 @@ test("a different hostile appearing near a known one interrupts", () => {
   assert.match(w.check({ ...calm, hostiles: [zombie(5, 1), zombie(5, 2)] })!, /came within/);
 });
 
-test("day to night interrupts; starting at night does not", () => {
-  assert.equal(createWatch({ ...calm, timeOfDay: 11000 }).check({ ...calm, timeOfDay: 11999 }), null);
-  assert.match(createWatch(calm).check({ ...calm, timeOfDay: 12000 })!, /night is falling/);
+test("day to night interrupts at 13000, when hostiles spawn; starting at night or at dawn does not", () => {
+  assert.equal(createWatch({ ...calm, timeOfDay: 12000 }).check({ ...calm, timeOfDay: 12999 }), null, "dusk is not night");
+  assert.match(createWatch(calm).check({ ...calm, timeOfDay: 13000 })!, /night is falling/);
   const night = createWatch({ ...calm, timeOfDay: 14000 });
   assert.equal(night.check({ ...calm, timeOfDay: 15000 }), null);
+  assert.equal(createWatch({ ...calm, timeOfDay: 23500 }).check({ ...calm, timeOfDay: 23900 }), null, "dawn is past 13000 but not night");
 });
 
 test("dusk interrupts a skill started in daylight, with the time left; not one started at dusk", () => {
-  assert.equal(createWatch(calm).check({ ...calm, timeOfDay: 10799 }), null);
-  assert.match(createWatch(calm).check({ ...calm, timeOfDay: 10800 })!, /sun is setting — night falls in about 60 seconds/);
-  assert.equal(createWatch({ ...calm, timeOfDay: 10900 }).check({ ...calm, timeOfDay: 11500 }), null);
+  assert.equal(createWatch(calm).check({ ...calm, timeOfDay: 11799 }), null);
+  assert.match(createWatch(calm).check({ ...calm, timeOfDay: 11800 })!, /sun is setting — night falls in about 60 seconds/);
+  assert.equal(createWatch({ ...calm, timeOfDay: 11900 }).check({ ...calm, timeOfDay: 12500 }), null);
 });
 
 test("build_shelter is not cut short by dusk or nightfall", () => {

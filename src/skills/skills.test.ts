@@ -47,10 +47,11 @@ test("wait - clamps its seconds and stops when the run ends", async () => {
   assert.deepEqual([stopped.status, stopped.reason], ["aborted", "the run is ending"]);
 });
 
-test("sleep - refuses by day, with monsters near, and with no bed", async () => {
-  assert.match((await run("sleep", { timeOfDay: 6000 })).reason!, /daytime/);
+test("sleep - refuses outside the hours beds work, with monsters near, and with no bed", async () => {
+  assert.match((await run("sleep", { timeOfDay: 12191 })).reason!, /too early to sleep: beds can be used from about 12542 \(18 seconds from now\)/);
+  assert.match((await run("sleep", { timeOfDay: 23500 })).reason!, /it is morning, too late to sleep/);
   assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /monsters nearby/);
-  assert.equal((await run("sleep", { timeOfDay: 18000 })).reason, "no bed nearby or in inventory");
+  assert.match((await run("sleep", { timeOfDay: 12600 })).reason!, /no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep/);
 });
 
 test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is", async () => {

@@ -180,7 +180,12 @@ function bestPlan(
             (parents.length > 0 && /_(block|nugget)$/.test(itemName(bot, entry.id)))),
       ),
   );
-  for (const recipe of onlyPreferredWood(bot, forward)) {
+  // Re-dyeing recipes (white dye + black bed = white bed) send the search down chains of dyes, and
+  // "need 1 more black_dye and 3 more blue_wool" read as the way to make a bed. Use them only when
+  // nothing else makes the item.
+  const usesDye = (recipe: Recipe) => recipe.delta.some((entry) => entry.count < 0 && itemName(bot, entry.id).endsWith("_dye"));
+  const undyed = forward.some((recipe) => !usesDye(recipe)) ? forward.filter((recipe) => !usesDye(recipe)) : forward;
+  for (const recipe of onlyPreferredWood(bot, undyed)) {
     const times = timesFor(recipe, count);
     const missing = missingFor(bot, recipe, times, depth, tableOk, chain);
     const tie = best !== null && total(missing) === total(best.missing);

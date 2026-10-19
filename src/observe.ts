@@ -2,6 +2,7 @@ import type { Bot } from "mineflayer";
 import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
+import { isNight, ticksUntilNight } from "./daytime.js";
 import { droppedNearby } from "./skills/pickUp.js";
 
 const NEARBY_RADIUS = 24;
@@ -108,8 +109,8 @@ export function observe(
     // A player in a cave sees the rock overhead; the bot only has its height, which says nothing on its own.
     ...(overhead >= UNDERGROUND_MIN ? { underground: overhead } : {}),
     timeOfDay,
-    isDay: timeOfDay < 12000,
-    ...(timeOfDay < 12000 ? { ticksUntilNight: 12000 - timeOfDay } : {}),
+    isDay: !isNight(timeOfDay),
+    ...(isNight(timeOfDay) ? {} : { ticksUntilNight: ticksUntilNight(timeOfDay) }),
     inventory: countInventory(bot),
     nearbyBlocks,
     hostiles: hostiles.slice(0, 5),

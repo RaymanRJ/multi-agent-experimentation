@@ -2,6 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { opensOnClick, threatened, withTimeout } from "./util.js";
+import { BEDS_FROM, BEDS_UNTIL, bedRefusal } from "../daytime.js";
 
 const { goals } = pathfinderPkg;
 
@@ -40,20 +41,15 @@ export const sleep: Skill = {
   name: "sleep",
   description:
     "Sleep through the night in a bed: finds a bed within 32 blocks (or places one from your inventory), walks to it and sleeps " +
-    "until morning or until woken. Takes no arguments. Only works at night. Fails with `it is daytime — can only sleep at night`, " +
-    "`no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
+    `until morning or until woken. Takes no arguments. Beds can only be used from about ${BEDS_FROM} until ${BEDS_UNTIL} ` +
+    "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
     "The night is only skipped when every player is asleep; otherwise this fails and says so.",
   args: {},
 
   async run(ctx: SkillContext): Promise<SkillResult> {
     const bot = ctx.bot;
-    if (bot.time.isDay) {
-      return {
-        status: "failed",
-        reason: "it is daytime — can only sleep at night",
-        detail: { timeOfDay: bot.time.timeOfDay },
-      };
-    }
+    const refusal = bedRefusal(bot.time.timeOfDay, bot.isRaining);
+    if (refusal) return { status: "failed", reason: refusal, detail: { timeOfDay: bot.time.timeOfDay } };
     const danger = threatened(ctx, MONSTER_RANGE);
     if (danger) return { status: "failed", reason: `monsters nearby: ${danger}` };
 
@@ -68,7 +64,9 @@ export const sleep: Skill = {
       });
       if (placed) bedBlock = bot.findBlock({ matching: bedIds, maxDistance: 6 });
     }
-    if (!bedBlock) return { status: "failed", reason: "no bed nearby or in inventory" };
+    if (!bedBlock) {
+      return { status: "failed", reason: "no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep" };
+    }
 
     const { x, y, z } = bedBlock.position;
     try {
@@ -84,7 +82,7 @@ export const sleep: Skill = {
       const reason = /monster/i.test(message)
         ? "monsters nearby"
         : /day/i.test(message)
-          ? "it is daytime — can only sleep at night"
+          ? (bedRefusal(bot.time.timeOfDay, bot.isRaining) ?? "the game says it is not yet time to sleep")
           : `could not sleep: ${message}`;
       return { status: "failed", reason };
     }

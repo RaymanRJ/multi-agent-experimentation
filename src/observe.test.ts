@@ -12,7 +12,7 @@ test("observe - position, vitals, inventory and time, compressed", () => {
   assert.equal(o.health, 18);
   assert.equal(o.food, 12);
   assert.equal(o.isDay, true);
-  assert.equal(o.ticksUntilNight, 3000);
+  assert.equal(o.ticksUntilNight, 4000, "night starts at 13000");
   assert.deepEqual(o.inventory, { oak_log: 3, cobblestone: 2 });
 });
 
@@ -68,4 +68,11 @@ test("observe - underground only under 3 or more blocks of ground, not under a s
   assert.equal("underground" in observe(fakeBot().bot, base), false, "open sky");
   assert.equal("underground" in observe(fakeBot({ blocks: rock(1) }).bot, base), false, "a roof");
   assert.equal(observe(fakeBot({ blocks: rock(20) }).bot, base).underground, 20);
+});
+
+test("observe - dusk is still day, counting down to 13000; dawn counts to the next night", () => {
+  const dusk = observe(fakeBot({ timeOfDay: 12191 }).bot, base);
+  assert.deepEqual([dusk.isDay, dusk.ticksUntilNight], [true, 809]);
+  const dawn = observe(fakeBot({ timeOfDay: 23500 }).bot, base);
+  assert.deepEqual([dawn.isDay, dawn.ticksUntilNight], [true, 13500]);
 });

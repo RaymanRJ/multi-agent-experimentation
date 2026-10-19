@@ -147,9 +147,8 @@ function missing(inventory: Record<string, number>, items: string[]): string[] {
 }
 
 /** Night as far as the goal is concerned: from when hostiles spawn until they burn at sunrise. */
-export function isNight(timeOfDay: number): boolean {
-  return timeOfDay >= 13000 && timeOfDay < 23000;
-}
+export { isNight } from "./daytime.js";
+import { isNight } from "./daytime.js";
 
 /**
  * Whether a whole night has passed since the shelter was built, alive. A death forfeits the night

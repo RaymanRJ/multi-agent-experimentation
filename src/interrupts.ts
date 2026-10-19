@@ -44,10 +44,8 @@ export const LOW_AIR = 10;
 export const HOSTILE_RADIUS = 6;
 /** A hostile already known at the start only interrupts if it closes in by this much. */
 export const CLOSING_MARGIN = 2;
-/** Same cut-off as Observation.isDay. */
-export const NIGHT_START = 12000;
-/** About a minute before NIGHT_START: still time to get under cover. */
-export const DUSK_START = 10800;
+export { NIGHT_START, DUSK_START } from "./daytime.js";
+import { DUSK_START, NIGHT_START, isNight } from "./daytime.js";
 /**
  * After a message interrupts a skill, further messages wait this long before they can interrupt
  * again. Without it two agents replying to each other abort each other's every skill.
@@ -89,7 +87,9 @@ export interface Watch {
 export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): Watch {
   const off = new Set(suppressed);
   const startDistance = new Map(start.hostiles.map((h) => [h.id, h.distance]));
-  const startedDay = start.timeOfDay < NIGHT_START;
+  // Night falls during the skill: not night when it started, night now. (At dawn the time is past
+  // NIGHT_START but it is not night.)
+  const startedDay = !isNight(start.timeOfDay);
   const startDirected = start.directed ?? 0;
   // Damage is a drop from the highest health seen, so healing then being hit again counts.
   let peakHealth = start.health;
@@ -118,7 +118,7 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
       }
     }
 
-    if (!off.has("night") && startedDay && now.timeOfDay >= NIGHT_START) {
+    if (!off.has("night") && startedDay && isNight(now.timeOfDay)) {
       return ["night", "interrupted: night is falling"];
     }
 
