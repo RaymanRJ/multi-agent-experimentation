@@ -161,6 +161,39 @@ check whether those changes were to blame. Both survival, 27,000 ticks.*
   b12's 2 of 6 did not repeat in b16. Losing the morning to the loop means facing the night with
   logs and no tools: b15's runs died 1–13 times, mostly to zombies.
 
+## Paid models, one run each (p2)
+
+*Batch p2, 19 October, on main after the `give_up` change: Claude Haiku 4.5, Sonnet 5.5 and Opus 5.5
+and GPT-6 Luna, plan memory, progress list off, survival, 27,000 ticks, one run each, capped at $5 a
+run. Total cost $0.88.*
+
+| Model | Met | Tools and shelter by | Decisions | Worked | Deaths | Tokens in / out | Cached | Cost |
+|---|---|---|---|---|---|---|---|---|
+| Haiku 4.5 | **no** (logged as met: see below) | 5:25 | 54 | 69% | 1, at night | 200k / 20.1k | 0% | $0.30 |
+| Sonnet 5.5 | yes | 9:08 | 48 | 79% | 1, by day | 215k / 13.6k | 86% | $0.24 |
+| Opus 5.5 | yes | 7:46 | 32 | 66% | 0 | 144k / 9.5k | 85% | $0.33 |
+| GPT-6 Luna | yes | 2:47 | 44 | 77% | 0 | 118k / 10.3k | 86% | $0.02 |
+
+- **Three of four met a goal the free model met in 2 of its last 15 runs with plan memory,** each in under 55
+  decisions (qwen: 150–200). None looped, gave up or used a nonexistent skill. One run each is a
+  hint, not a finding.
+- **Haiku's success was false, from a bug in our goal check (fixed).** A death at night was meant to
+  forfeit that night, but the flag was set again on the next tick because it was still night. Haiku
+  built its shelter by 5:25, tried to `sleep` nine times with no bed, then at about 16,200 found
+  itself under water inside the shelter (how the water got in was not investigated), swam out,
+  could not rebuild beside the water, and a spider killed it at about 18,900. It gathered wood and
+  re-made all four tools at dawn, which the faulty check counted as the goal. Re-checked against
+  the corrected rule, every other outpost success so far (the baseline's and qwen's in b8–b14, and
+  the other three here) stands.
+- **Sonnet was killed by a creeper while it was deciding.** It chose to craft with a creeper 11
+  blocks away ("crafting is quick"); the creeper closed in, and it exploded during Sonnet's 2.3-second
+  decision to `flee`, which then started after the death. The game doesn't wait for the model.
+- **Nights differed.** Sonnet waited in its shelter for the whole night (27 `wait`s). Opus did the
+  same until just before dawn, then stepped out. Luna left its shelter twice during the night, to
+  rebuild and explore, and came back.
+- **Cost:** Luna did it for 2 cents; the three Claude models for 24–33 cents each. Haiku's prompt
+  is below its minimum for caching, so it paid full price for every token.
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a

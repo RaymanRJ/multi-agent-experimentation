@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, parseSteps, startFileFor, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
@@ -214,18 +214,12 @@ async function main(): Promise<void> {
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
-  let nightSinceShelter = false;
-  let nightSurvivedSinceShelter = false;
+  const night = new NightWatch();
   bot.on("death", () => {
     recentEvents.push("you died and respawned");
-    if (!nightSurvivedSinceShelter) nightSinceShelter = false; // dying forfeits this night
+    night.died(); // dying forfeits the night it happens in
   });
-  bot.on("time", () => {
-    if (!shelterBuilt || nightSurvivedSinceShelter) return;
-    // Sleeping counts: a bed can be used from dusk, and the night is skipped before it reaches isNight.
-    if (isNight(bot.time.timeOfDay) || bot.isSleeping) nightSinceShelter = true;
-    else if (nightSinceShelter) nightSurvivedSinceShelter = true;
-  });
+  bot.on("time", () => night.tick(shelterBuilt, bot.time.timeOfDay, bot.isSleeping));
 
   const board = team.length > 1 ? new TeamBoard("runs", config.episode, agentName, team.includes(agentName) ? team : [...team, agentName]) : null;
   const collaborative = board !== null && stance === "collaborative";
@@ -233,7 +227,7 @@ async function main(): Promise<void> {
   let ownGoalMet = false;
   let toldTeamWaiting = false;
   let shelterStoreys = 0;
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter, shelterStoreys });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();

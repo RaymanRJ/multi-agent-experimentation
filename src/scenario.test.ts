@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOALS, GOAL_CHECKS, GOAL_GAPS, SCENARIOS, goalTask, isNight, presetName, resolveGoal } from "./scenario.js";
+import { GOALS, GOAL_CHECKS, GOAL_GAPS, SCENARIOS, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
 
 test("resolveGoal - no goal uses the scenario's own", () => {
   assert.equal(resolveGoal(SCENARIOS.survival, undefined), SCENARIOS.survival.goal);
@@ -121,4 +121,37 @@ test("team-camp - every member must carry a stone tool, and the shelter must hav
   assert.equal(check(hoarded), false);
   assert.deepEqual(gaps(hoarded), ["qwen carries no stone tool"]);
   assert.deepEqual(gaps({ ...base, shelterStoreys: 1, members: { haiku: kit } }), ["nobody on the team has built a two-storey shelter yet"]);
+});
+
+test("NightWatch - a night survived after the shelter, alive, from dusk to sunrise", () => {
+  const w = new NightWatch();
+  w.tick(false, 14000, false); // a night before the shelter doesn't count
+  w.tick(false, 1000, false);
+  assert.equal(w.survived, false);
+  w.tick(true, 12000, false);
+  w.tick(true, 14000, false);
+  assert.equal(w.survived, false, "still dark");
+  w.tick(true, 23100, false);
+  assert.equal(w.survived, true);
+  w.died();
+  assert.equal(w.survived, true, "a death after the night doesn't undo it");
+});
+
+test("NightWatch - dying at night forfeits that night; the next one must be survived", () => {
+  const w = new NightWatch();
+  w.tick(true, 14000, false);
+  w.died();
+  w.tick(true, 18000, false); // still the same night, after respawning
+  w.tick(true, 23100, false); // its sunrise
+  assert.equal(w.survived, false, "the night it died in is lost");
+  w.tick(true, 14000, false);
+  w.tick(true, 23100, false);
+  assert.equal(w.survived, true);
+});
+
+test("NightWatch - sleeping through the night counts", () => {
+  const w = new NightWatch();
+  w.tick(true, 12600, true); // in bed at dusk, before isNight
+  w.tick(true, 0, false); // the night was skipped
+  assert.equal(w.survived, true);
 });
