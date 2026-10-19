@@ -1,7 +1,7 @@
 import type { Bot } from "mineflayer";
 import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
-import { isExposed } from "./skills/util.js";
+import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
 import { droppedNearby } from "./skills/pickUp.js";
 
 const NEARBY_RADIUS = 24;
@@ -90,6 +90,7 @@ export function observe(
   for (const { name, count } of droppedNearby(bot)) itemsOnGround[name] = (itemsOnGround[name] ?? 0) + count;
 
   const timeOfDay = bot.time.timeOfDay;
+  const overhead = groundAbove(bot);
 
   const observation: Observation = {
     step: opts.step,
@@ -104,6 +105,8 @@ export function observe(
     food: Math.round(bot.food),
     // What a player sees as the bubble bar: only there while it is going down.
     ...(bot.oxygenLevel !== undefined && bot.oxygenLevel < 20 ? { air: Math.round(bot.oxygenLevel) } : {}),
+    // A player in a cave sees the rock overhead; the bot only has its height, which says nothing on its own.
+    ...(overhead >= UNDERGROUND_MIN ? { underground: overhead } : {}),
     timeOfDay,
     isDay: timeOfDay < 12000,
     ...(timeOfDay < 12000 ? { ticksUntilNight: 12000 - timeOfDay } : {}),

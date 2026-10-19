@@ -143,6 +143,26 @@ export function isExposed(bot: Bot, point: { offset(dx: number, dy: number, dz: 
   return FACES.some(([dx, dy, dz]) => bot.blockAt(point.offset(dx, dy, dz))?.boundingBox === "empty");
 }
 
+/** Fewer solid blocks overhead than this is a roof (a shelter's is one layer, two storeys two), not ground. */
+export const UNDERGROUND_MIN = 3;
+/** The overworld's build limit (1.21). */
+const WORLD_TOP = 320;
+
+/**
+ * Solid blocks between the bot's head and the top of the world, leaves not counted: 0 under open
+ * sky or a tree. A count of UNDERGROUND_MIN or more means the bot is under the ground.
+ */
+export function groundAbove(bot: Bot): number {
+  const head = bot.entity.position.floored().offset(0, 2, 0);
+  let solid = 0;
+  for (let y = head.y; y < WORLD_TOP; y++) {
+    const block = bot.blockAt(head.offset(0, y - head.y, 0));
+    if (!block) break;
+    if (block.boundingBox === "block" && !block.name.endsWith("_leaves")) solid++;
+  }
+  return solid;
+}
+
 /** Lava or water touching this block, if any: breaking it could flood or burn the bot. */
 export function liquidBeside(bot: Bot, point: { offset(dx: number, dy: number, dz: number): any }): string | null {
   for (const [dx, dy, dz] of FACES) {

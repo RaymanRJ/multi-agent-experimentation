@@ -120,6 +120,19 @@ test("descend and tunnel - need a pickaxe, and keep an iron one for ore", async 
   assert.match(saving.reason!, /stopped to save your iron_pickaxe \(10 uses left\) for mining ore/);
 });
 
+test("climb_out - done under open sky; won't dig beside water, or start from it with nowhere dry", async () => {
+  const sky = await run("climb_out", { blocks: floor(64, "stone") });
+  assert.deepEqual([sky.status, sky.reason], ["success", "already under open sky"]);
+  const roof: Record<string, string> = { ...floor(64, "stone") };
+  for (let y = 66; y < 80; y++) for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) roof[`${x},${y},${z}`] = "stone";
+  for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) roof[`${x},66,${z}`] = "water";
+  const wet = await run("climb_out", { inventory: { wooden_pickaxe: 1 }, blocks: roof });
+  assert.equal(wet.status, "failed");
+  assert.match(wet.reason!, /under 14 blocks of ground: every way up is unsafe \((\w+: water behind the stone; ){4}straight up: above: water behind the stone\) — tunnel or walk somewhere else/);
+  const swimming = await run("climb_out", { blocks: { ...roof, "0,64,0": "water" } });
+  assert.match(swimming.reason!, /in water, and could not reach dry ground within 8 blocks/);
+});
+
 test("runSkill - an error a skill didn't catch becomes a failed result, and the pathfinder is stopped", async () => {
   const { bot } = fakeBot();
   let cleared = false;

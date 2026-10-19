@@ -62,3 +62,10 @@ test("observe - optional fields appear only when given", () => {
   assert.ok(full.canCraft?.includes("wooden_pickaxe"));
   assert.equal("stillNeeded" in observe(fakeBot().bot, { ...base, stillNeeded: [] }), false, "an empty list is left out");
 });
+
+test("observe - underground only under 3 or more blocks of ground, not under a shelter roof", () => {
+  const rock = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`0,${66 + i},0`, "stone"]));
+  assert.equal("underground" in observe(fakeBot().bot, base), false, "open sky");
+  assert.equal("underground" in observe(fakeBot({ blocks: rock(1) }).bot, base), false, "a roof");
+  assert.equal(observe(fakeBot({ blocks: rock(20) }).bot, base).underground, 20);
+});

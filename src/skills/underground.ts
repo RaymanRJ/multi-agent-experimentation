@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { asNumber, groundAbove, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -105,20 +105,26 @@ async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
 }
 
 /**
- * One step from the bot's feet along `heading`, `dy` up or down (-1 for a stair, 0 for a tunnel).
- * Checks everything first, digs, then walks in. Returns null on success or why it refused.
+ * One step from the bot's feet along `heading`, `dy` up or down (-1 for a stair down, 0 for a
+ * tunnel, 1 for a stair up). Checks everything first, digs, then walks in. Returns null on success
+ * or why it refused.
  */
 async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): Promise<string | null> {
   const feet = bot.entity.position.floored();
   const next = feet.offset(heading.dx, dy, heading.dz);
-  // A stair needs headroom over the step down as well as space for feet and head.
-  const cells = dy < 0 ? [next.offset(0, 2, 0), next.offset(0, 1, 0), next] : [next.offset(0, 1, 0), next];
+  // A stair down needs headroom over the step as well as space for feet and head; a stair up needs
+  // room over the bot's own head to jump.
+  const cells =
+    dy < 0 ? [next.offset(0, 2, 0), next.offset(0, 1, 0), next]
+    : dy > 0 ? [feet.offset(0, 2, 0), next.offset(0, 1, 0), next]
+    : [next.offset(0, 1, 0), next];
   for (const cell of cells) {
     const problem = unsafe(bot, cell);
     if (problem) return problem;
   }
   let landing = next;
-  for (let drop = 0; drop < MAX_SAFE_DROP && badFloor(bot, landing) === "a drop into a cave"; drop++) {
+  // Only a step across or down may land lower; a stair up stands on the block it climbs onto.
+  for (let drop = 0; dy <= 0 && drop < MAX_SAFE_DROP && badFloor(bot, landing) === "a drop into a cave"; drop++) {
     const below = landing.offset(0, -1, 0);
     if (bot.blockAt(below)?.boundingBox !== "empty" || unsafe(bot, below)) break;
     landing = below;
@@ -161,6 +167,41 @@ async function toGround(bot: Bot): Promise<string | null> {
     }
   }
   return "standing on a tree and could not climb down to the ground";
+}
+
+/** True when the bot is in water or floating on it: its feet or head in water, or no solid block underfoot. */
+function inWater(bot: Bot): boolean {
+  const feet = bot.entity.position.floored();
+  if ([feet, feet.offset(0, 1, 0)].some((cell) => bot.blockAt(cell)?.name === "water")) return true;
+  return bot.blockAt(feet.offset(0, -1, 0))?.name === "water";
+}
+
+/**
+ * A staircase can't start from water: every first step would dig beside it. So first walk to the
+ * nearest dry place to stand within 8 blocks, highest first, since the way out is up.
+ * Returns why it could not, or null when on dry ground (already, or now).
+ */
+async function outOfWater(bot: Bot): Promise<string | null> {
+  if (!inWater(bot)) return null;
+  const ids = Object.values(bot.registry.blocksByName).filter((b) => b.boundingBox === "block").map((b) => b.id);
+  const here = bot.entity.position;
+  const dry = (cell: Vec3) => {
+    const block = bot.blockAt(cell);
+    return !!block && block.boundingBox === "empty" && block.name !== "water" && block.name !== "lava";
+  };
+  const spots = bot
+    .findBlocks({ matching: ids, maxDistance: 8, count: 512 })
+    .filter((p) => dry(p.offset(0, 1, 0)) && dry(p.offset(0, 2, 0)) && !liquidBeside(bot, p.offset(0, 1, 0)))
+    .sort((a, b) => b.y - a.y || a.distanceTo(here) - b.distanceTo(here));
+  for (const spot of spots.slice(0, 5)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y + 1, spot.z)), 15_000, "getting out of the water");
+      if (!inWater(bot)) return null;
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+  }
+  return "in water, and could not reach dry ground within 8 blocks to dig from";
 }
 
 /** Exposed ore within 16 blocks, by name: what the model can now go and mine. */
@@ -276,6 +317,109 @@ export const tunnel: Skill = {
         return { status: "success", reason: `stopped after ${dug} blocks: ${problem} ahead.${brokenSince(bot, tools)}`, detail: report() };
       }
     }
+    const broke = brokenSince(bot, tools);
+    return { status: "success", ...(broke && { reason: broke.trim() }), detail: report() };
+  },
+};
+
+/** Blocks a climb may stand on, in the order it spends them: cheap ones first, logs last (they make tools). */
+const PILLAR_BLOCKS = [
+  "cobblestone", "dirt", "cobbled_deepslate", "stone", "andesite", "diorite", "granite", "netherrack", "gravel", "sand",
+  "oak_planks", "spruce_planks", "birch_planks", "jungle_planks", "acacia_planks", "dark_oak_planks", "mangrove_planks", "cherry_planks",
+  "oak_log", "spruce_log", "birch_log", "jungle_log", "acacia_log", "dark_oak_log", "mangrove_log", "cherry_log",
+];
+
+/**
+ * Up one block where there is nothing to cut a stair into (an open cave): clear the block over the
+ * head, then jump and place a block underfoot at the top of the jump, as a player builds a pillar.
+ * Returns null on success or why it could not.
+ */
+async function pillar(bot: Bot): Promise<string | null> {
+  const feet = bot.entity.position.floored();
+  const problem = unsafe(bot, feet.offset(0, 2, 0));
+  if (problem) return `above: ${problem}`;
+  const floor = bot.blockAt(feet.offset(0, -1, 0));
+  if (!floor || floor.boundingBox !== "block") return "not standing on solid ground";
+  const held = countInventory(bot);
+  const name = PILLAR_BLOCKS.find((block) => (held[block] ?? 0) > 0);
+  const item = name && bot.inventory.items().find((i) => i.name === name);
+  if (!item) return "nothing to stand on: building up needs a block such as dirt, cobblestone, planks or logs";
+  await clear(bot, [feet.offset(0, 2, 0)]);
+  await bot.equip(item, "hand");
+  bot.pathfinder.setGoal(null);
+  await bot.lookAt(feet.offset(0.5, 0, 0.5), true);
+  bot.setControlState("jump", true);
+  try {
+    for (let tick = 0; tick < 20 && bot.entity.position.y < feet.y + 1; tick++) await bot.waitForTicks(1);
+    if (bot.entity.position.y < feet.y + 1) return "could not jump high enough to build up";
+    await withTimeout(bot.placeBlock(floor, new Vec3(0, 1, 0)), 3000, "placing a block underfoot");
+  } catch (error) {
+    return `could not build up: ${(error as Error).message}`;
+  } finally {
+    bot.setControlState("jump", false);
+  }
+  for (let tick = 0; tick < 20 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+  return bot.entity.position.floored().y > feet.y ? null : "the block underfoot did not hold";
+}
+
+export const climbOut: Skill = {
+  name: "climb_out",
+  description:
+    "Dig a staircase up until there is open sky above you: the way back to the surface from a cave or a mine. Uses your " +
+    "cheapest pickaxe, sparing an iron one as descend does, or your hands when you have none (much slower through stone). " +
+    "Checks every block before breaking it and turns away from lava and water; if you are in water it first moves to dry " +
+    "ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
+    "from your inventory (dirt or cobblestone first, logs last). Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
+    "it again to continue.",
+  args: {},
+
+  async run(ctx: SkillContext): Promise<SkillResult> {
+    const bot = ctx.bot;
+    const startY = Math.floor(bot.entity.position.y);
+    const report = () => ({ y: Math.floor(bot.entity.position.y), climbed: Math.floor(bot.entity.position.y) - startY, groundAbove: groundAbove(bot) });
+    if (groundAbove(bot) === 0) return { status: "success", reason: "already under open sky", detail: report() };
+    const tools = countInventory(bot);
+    // No pickaxe, or only one being saved for ore: dig by hand. Getting out matters more.
+    await equipDigger(bot);
+    const wet = await outOfWater(bot);
+    if (wet) return { status: "failed", reason: wet, detail: report() };
+
+    const startedAt = Date.now();
+    let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
+    while (groundAbove(bot) > 0) {
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+      const danger = threatened(ctx);
+      if (danger) return { status: "aborted", reason: `stopped climbing because ${danger}`, detail: report() };
+      if (Date.now() - startedAt > MAX_SKILL_MS) {
+        return { status: "failed", reason: `climbed to y=${Math.floor(bot.entity.position.y)}, still under ${groundAbove(bot)} blocks of ground, before running out of time — call climb_out again to continue.${brokenSince(bot, tools)}`, detail: report() };
+      }
+      await equipDigger(bot);
+      let moved = false;
+      const refusals: string[] = [];
+      for (let turn = 0; turn < 4 && !moved; turn++) {
+        const index = (heading + turn) % 4;
+        const problem = await step(bot, HEADINGS[index]!, 1).catch((error: Error) => error.message);
+        if (problem === null) {
+          heading = index;
+          moved = true;
+        } else {
+          refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+        }
+      }
+      if (!moved) {
+        // No rock to cut a step into: build up instead.
+        const built = await pillar(bot).catch((error: Error) => error.message);
+        if (built === null) continue;
+        refusals.push(`straight up: ${built}`);
+        lastHeading.set(bot.username, (heading + 1) % 4);
+        return {
+          status: "failed",
+          reason: `stopped at y=${Math.floor(bot.entity.position.y)}, under ${groundAbove(bot)} blocks of ground: every way up is unsafe (${refusals.join("; ")}) — tunnel or walk somewhere else and try again.${brokenSince(bot, tools)}`,
+          detail: report(),
+        };
+      }
+    }
+    lastHeading.set(bot.username, heading);
     const broke = brokenSince(bot, tools);
     return { status: "success", ...(broke && { reason: broke.trim() }), detail: report() };
   },

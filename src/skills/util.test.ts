@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nearestUncrowded, opensOnClick } from "./util.js";
+import { groundAbove, nearestUncrowded, opensOnClick } from "./util.js";
 
 test("opensOnClick - tables, furnaces, beds and doors open; building blocks don't", () => {
   for (const name of ["crafting_table", "furnace", "chest", "red_bed", "oak_door", "spruce_trapdoor", "stone_button"]) {
@@ -26,4 +26,13 @@ test("build_shelter layout - one storey needs 43 blocks, two storeys 87 with a h
   assert.equal(count(two), 87);
   assert.equal(Math.max(...two.roof.map((c) => c.y)), 5);
   assert.equal(two.roof.filter((c) => c.y === 2).length, 8, "a floor of 9 cells less the hatch");
+});
+
+test("groundAbove - solid blocks over the head, leaves not counted", async () => {
+  const { fakeBot, floor } = await import("../testing/fakeBot.js");
+  assert.equal(groundAbove(fakeBot({ blocks: floor(64) }).bot), 0, "open sky");
+  assert.equal(groundAbove(fakeBot({ blocks: { ...floor(64), "0,70,0": "oak_leaves" } }).bot), 0, "under a tree");
+  assert.equal(groundAbove(fakeBot({ blocks: { "0,66,0": "oak_planks" } }).bot), 1, "a shelter roof");
+  const cave = { "0,66,0": "stone", "0,67,0": "stone", "0,68,0": "water", "0,75,0": "dirt", "0,76,0": "grass_block" };
+  assert.equal(groundAbove(fakeBot({ blocks: cave }).bot), 4, "water isn't solid");
 });

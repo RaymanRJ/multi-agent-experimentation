@@ -10,7 +10,7 @@ import { mineStone } from "./mineStone.js";
 import { buildShelter } from "./buildShelter.js";
 import { mineOre } from "./mineOre.js";
 import { smelt } from "./smelt.js";
-import { descend, tunnel } from "./underground.js";
+import { climbOut, descend, tunnel } from "./underground.js";
 import { give } from "./give.js";
 import { pickUp } from "./pickUp.js";
 import { goTo } from "./goTo.js";
@@ -29,7 +29,7 @@ export const SKILLS: Skill[] = [
   gatherWood, wait,
   explore, eat, flee, sleep,
   craft, mineStone, buildShelter,
-  mineOre, smelt, descend, tunnel,
+  mineOre, smelt, descend, tunnel, climbOut,
   give, pickUp, goTo,
   tellAgent, askAgent,
 ];

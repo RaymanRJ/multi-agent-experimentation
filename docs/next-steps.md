@@ -121,8 +121,12 @@ Read this at the start of a session; update it when something finishes or a new 
    came from a bug in our night check (fixed: a death at night now forfeits that night, in the
    agent's check and the report). $0.88 in all. Written up in `docs/results/2026-10-outpost.md`.
    Haiku's "flooded shelter" was a false drowning alarm: mineflayer reads any nearby creature's
-   air as the bot's (fixed in `src/breathFix.ts`, checked live). Next, if wanted: 3 runs each
-   (about $2.70 at these costs).
+   air as the bot's (fixed in `src/breathFix.ts`, checked live). 3 runs each (batch p3) started
+   19 October. In p3, Sonnet's first run lost two-thirds of its time stuck in the flooded cave under
+   spawn: `mine_stone` measured its 6-block drop limit from the bot's feet each time, so it walked
+   20 blocks down in one call, and no skill could get back up. Fixed after p3 on branch `climb-out`
+   (`mine_stone` measures from where the call started; new `climb_out` skill; observations show
+   `underground`), each checked live on a test server.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times
