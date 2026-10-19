@@ -48,10 +48,14 @@ test("wait - clamps its seconds and stops when the run ends", async () => {
 });
 
 test("sleep - refuses outside the hours beds work, with monsters near, and with no bed", async () => {
-  assert.match((await run("sleep", { timeOfDay: 12191 })).reason!, /too early to sleep: beds can be used from about 12542 \(18 seconds from now\)/);
+  assert.match((await run("sleep", { timeOfDay: 12191 })).reason!, /too early to sleep: beds can be used from about 12541 \(18 seconds from now\)/);
   assert.match((await run("sleep", { timeOfDay: 23500 })).reason!, /it is morning, too late to sleep/);
   assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /monsters nearby/);
   assert.match((await run("sleep", { timeOfDay: 12600 })).reason!, /no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep/);
+  const { bot } = fakeBot({ timeOfDay: 18000, blocks: { ...floor(64), "2,64,0": "red_bed" } });
+  (bot as unknown as { parseBedMetadata: () => { occupied: boolean } }).parseBedMetadata = () => ({ occupied: true });
+  const taken = await findSkill("sleep")!.run(context(bot), {});
+  assert.match(taken.reason!, /^every bed nearby is taken by someone sleeping in it, and you have none to put down/);
 });
 
 test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is", async () => {

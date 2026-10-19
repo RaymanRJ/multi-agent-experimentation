@@ -1,5 +1,6 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
+import type { Block } from "prismarine-block";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { opensOnClick, threatened, withTimeout } from "./util.js";
 import { BEDS_FROM, BEDS_UNTIL, bedRefusal } from "../daytime.js";
@@ -48,7 +49,7 @@ export const sleep: Skill = {
 
   async run(ctx: SkillContext): Promise<SkillResult> {
     const bot = ctx.bot;
-    const refusal = bedRefusal(bot.time.timeOfDay, bot.isRaining);
+    const refusal = bedRefusal(bot.time.timeOfDay);
     if (refusal) return { status: "failed", reason: refusal, detail: { timeOfDay: bot.time.timeOfDay } };
     const danger = threatened(ctx, MONSTER_RANGE);
     if (danger) return { status: "failed", reason: `monsters nearby: ${danger}` };
@@ -56,7 +57,15 @@ export const sleep: Skill = {
     const bedIds = Object.values(bot.registry.blocksByName)
       .filter((b) => b.name.endsWith("_bed"))
       .map((b) => b.id);
-    let bedBlock = bot.findBlock({ matching: bedIds, maxDistance: BED_RANGE });
+    // Another agent may be lying in the nearest bed: take a free one, else put down our own.
+    // (mineflayer's parser is on the bot but missing from its type definitions.)
+    const occupied = (block: Block) => (bot as unknown as { parseBedMetadata(b: Block): { occupied: boolean | number } }).parseBedMetadata(block).occupied;
+    const beds = bot
+      .findBlocks({ matching: bedIds, maxDistance: BED_RANGE, count: 32 })
+      .map((point) => bot.blockAt(point))
+      .filter((block): block is Block => block !== null);
+    const taken = beds.filter((block) => occupied(block)).length;
+    let bedBlock = beds.find((block) => !occupied(block)) ?? null;
     if (!bedBlock) {
       const placed = await placeBed(ctx).catch((error: Error) => {
         ctx.log(`placing bed failed: ${error.message}`);
@@ -65,7 +74,8 @@ export const sleep: Skill = {
       if (placed) bedBlock = bot.findBlock({ matching: bedIds, maxDistance: 6 });
     }
     if (!bedBlock) {
-      return { status: "failed", reason: "no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep" };
+      const why = taken ? "every bed nearby is taken by someone sleeping in it, and you have none to put down" : "no bed nearby or in inventory";
+      return { status: "failed", reason: `${why} — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep` };
     }
 
     const { x, y, z } = bedBlock.position;
@@ -82,7 +92,9 @@ export const sleep: Skill = {
       const reason = /monster/i.test(message)
         ? "monsters nearby"
         : /day/i.test(message)
-          ? (bedRefusal(bot.time.timeOfDay, bot.isRaining) ?? "the game says it is not yet time to sleep")
+          ? (bedRefusal(bot.time.timeOfDay) ?? "the game says it is not yet time to sleep")
+          : /occupied/i.test(message)
+            ? "someone else got into the bed first — try sleep again for another bed"
           : `could not sleep: ${message}`;
       return { status: "failed", reason };
     }

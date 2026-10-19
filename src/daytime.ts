@@ -11,10 +11,12 @@ export const NIGHT_END = 23000;
 export const DAY_LENGTH = 24000;
 /** A minute before NIGHT_START: still time to get under cover. */
 export const DUSK_START = NIGHT_START - 1200;
-/** When the game lets a player into bed: from dusk in clear weather (a little earlier in rain) until just before sunrise. */
-export const BEDS_FROM = 12542;
-export const BEDS_FROM_IN_RAIN = 12010;
-export const BEDS_UNTIL = 23460;
+/**
+ * When a player can get into bed: from dusk until just before sunrise. The game allows a little
+ * earlier in rain, but mineflayer refuses outside these hours whatever the weather, so so do we.
+ */
+export const BEDS_FROM = 12541;
+export const BEDS_UNTIL = 23459;
 
 export function isNight(timeOfDay: number): boolean {
   return timeOfDay >= NIGHT_START && timeOfDay < NIGHT_END;
@@ -27,8 +29,8 @@ export function ticksUntilNight(timeOfDay: number): number {
 }
 
 /** Null when a bed can be used now, or why not: the game refuses outside these hours. */
-export function bedRefusal(timeOfDay: number, raining: boolean): string | null {
-  const from = raining ? BEDS_FROM_IN_RAIN : BEDS_FROM;
+export function bedRefusal(timeOfDay: number): string | null {
+  const from = BEDS_FROM;
   if (timeOfDay >= from && timeOfDay < BEDS_UNTIL) return null;
   const wait = timeOfDay < from ? from - timeOfDay : DAY_LENGTH - timeOfDay + from;
   const when = timeOfDay < from ? "too early to sleep" : "it is morning, too late to sleep";

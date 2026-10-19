@@ -130,7 +130,7 @@ Read this at the start of a session; update it when something finishes or a new 
    Ideas not yet started (hunting, chests, farming, shearing, torches) are in `docs/ideas.md`.
    **Day and night now have one definition** (`src/daytime.ts`, 19 October): night is 13000-23000,
    when hostiles spawn, for the observation (`isDay`, `ticksUntilNight`), the interrupts, the goal and
-   `sleep` (beds from about 12,542, as in the game). Before, the observation called 12000 night and
+   `sleep` (beds from about 12,541, as in the game). Before, the observation called 12000 night and
    `sleep` called it day; Haiku noticed. Runs from here are not comparable with earlier ones on
    anything time-related. p4 was stopped after one run to fix this; Haiku runs come first.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
