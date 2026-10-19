@@ -69,6 +69,11 @@ building on it.
 - **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. In b12 it
   walled one agent in, and once, underground, failed with two gaps left that it could not fill
   (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run.
+- **How the outpost goal treats deaths (the owner's decision, 19 October).** A death doesn't end a
+  run: the agent respawns with nothing and carries on, as a player would. Only a death at night
+  counts against the goal, by losing that night; a death by day costs time and everything carried,
+  and the report counts it. The check also doesn't enforce "before nightfall" from the goal text: it
+  looks at what the agent holds at the end, not when the tools were made.
 - **The model rarely completes the outpost goal** (3 of 18 runs in b12; see
   `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
   (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
