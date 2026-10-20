@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
-import { summarizeRun, wilson, type RunSummary } from "./report.js";
+import { isDeath, newEventsPerStep, summarizeRun, wilson, type RunSummary } from "./report.js";
 import { parseSteps } from "./minds.js";
 import { behaviour, gameTime, requests, verdictLines, type Behaviour, type Requests } from "./summary.js";
 
@@ -218,7 +218,8 @@ function teamSection(runs: Run[]): string[] {
   const start = Math.min(...runs.map((run) => new Date(run.steps[0]!.at).getTime()));
   const moments: Array<{ at: number; text: string }> = [];
   for (const { run } of all) {
-    for (const step of run.steps) {
+    const fresh = newEventsPerStep(run.steps);
+    for (const [i, step] of run.steps.entries()) {
       const at = new Date(step.at).getTime();
       const d = step.decision;
       const who = run.s.agentName;
@@ -227,7 +228,7 @@ function teamSection(runs: Run[]): string[] {
         if (d.skill === "build_shelter") moments.push({ at, text: `${who} built a ${Number(step.result.detail?.["storeys"] ?? 1) >= 2 ? "two-storey " : ""}shelter` });
         if (d.skill === "give") moments.push({ at, text: `${who} gave ${words(String(d.args["item"]))} to ${d.args["to"]}` });
       }
-      for (const event of step.events ?? []) if (/died|respawned/.test(event)) moments.push({ at, text: `${who} died` });
+      for (const event of fresh[i] ?? []) if (isDeath(event)) moments.push({ at, text: `${who} died` });
       if (step.ended) moments.push({ at, text: `${who}'s run ended: ${step.ended}` });
     }
   }

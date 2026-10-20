@@ -129,6 +129,9 @@ export function markEpisodes(summaries: RunSummary[]): void {
  *
  * Returns: array of arrays, one per step, containing the new events for that step.
  */
+/** The agent's own death, as it records it; not another agent saying "I respawned" in chat. */
+export const isDeath = (event: string) => event === "you died and respawned";
+
 export function newEventsPerStep(steps: LoggedStep[]): string[][] {
   const result: string[][] = [];
   let prevWindow: string[] = [];
@@ -270,9 +273,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   const newEvents = newEventsPerStep(steps);
   for (const eventList of newEvents) {
     for (const event of eventList) {
-      if (event.includes("died") || event.includes("respawned")) {
-        deaths++;
-      }
+      if (isDeath(event)) deaths++;
     }
   }
 

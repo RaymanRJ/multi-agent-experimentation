@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
-import { hitList, hitPair, newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
+import { hitList, hitPair, isDeath, newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
 import { brainLabel, MILESTONES, parseSteps } from "./minds.js";
 import { GOAL_GAPS, TEAM_GOALS, goalTask } from "./scenario.js";
 
@@ -419,7 +419,7 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
   const notable: string[] = [];
   newEventsPerStep(steps).forEach((events, i) => {
     for (const event of events) {
-      if (/died|respawned/.test(event)) notable.push(`- Step ${steps[i]!.step}: ${event}`);
+      if (isDeath(event)) notable.push(`- Step ${steps[i]!.step}: ${event}`);
     }
   });
   for (const step of steps) {

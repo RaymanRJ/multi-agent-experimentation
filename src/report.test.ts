@@ -75,17 +75,19 @@ test("howEnded: step limit when last step is not policy ended or brain failed", 
   assert.equal(summary.howEnded, "step limit / stopped");
 });
 
+const DIED = "you died and respawned";
+
 test("deaths: dedupe death events across steps", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
-      observation: makeObservation({ recentEvents: ["you died"] }),
-      decision: { skill: "respawn", args: {} },
+      observation: makeObservation({ recentEvents: [DIED] }),
+      decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 2,
-      observation: makeObservation({ recentEvents: ["you died", "other event"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other event"] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
@@ -96,22 +98,19 @@ test("deaths: dedupe death events across steps", () => {
 
 test("deaths: count multiple distinct death events", () => {
   const steps: LoggedStep[] = [
-    makeStep({
-      step: 1,
-      observation: makeObservation({ recentEvents: ["you died"] }),
-    }),
-    makeStep({
-      step: 2,
-      observation: makeObservation({ recentEvents: ["you died", "respawned"] }),
-    }),
-    makeStep({
-      step: 3,
-      observation: makeObservation({ recentEvents: ["respawned", "you died"] }),
-    }),
+    makeStep({ step: 1, observation: makeObservation({ recentEvents: [DIED] }) }),
+    makeStep({ step: 2, observation: makeObservation({ recentEvents: [DIED, "night is falling", DIED] }) }),
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
-  // Step 1: new=["you died"]=1, Step 2: overlap at "you died", new=["respawned"]=1, Step 3: overlap at "respawned", new=["you died"]=1
-  assert.equal(summary.deaths, 3, "counts 'you died' and 'respawned' events across steps");
+  assert.equal(summary.deaths, 2);
+});
+
+test("deaths: another agent saying it respawned is not a death", () => {
+  const steps: LoggedStep[] = [
+    makeStep({ step: 1, observation: makeObservation({ recentEvents: ['lc said to you: "I respawned with no inventory"'] }) }),
+    makeStep({ step: 2, observation: makeObservation({ recentEvents: ['interrupted: lc said to you: "I died and respawned near spawn"'] }) }),
+  ];
+  assert.equal(summarizeRun(steps, "test-run.jsonl").deaths, 0);
 });
 
 test("goalMet: shelter met when build_shelter succeeds", () => {
@@ -265,7 +264,7 @@ test("survivedNight: false when night reached but deaths > 0", () => {
     }),
     makeStep({
       step: 2,
-      observation: makeObservation({ isDay: false, recentEvents: ["you died"] }),
+      observation: makeObservation({ isDay: false, recentEvents: [DIED] }),
       decision: { skill: "respawn", args: {} },
       result: { status: "success" },
     }),
@@ -609,25 +608,25 @@ test("deaths: two distinct death events in different steps", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
-      observation: makeObservation({ recentEvents: ["you died"] }),
+      observation: makeObservation({ recentEvents: [DIED] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 2,
-      observation: makeObservation({ recentEvents: ["you died", "other"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other"] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 3,
-      observation: makeObservation({ recentEvents: ["you died", "other", "you died"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other", DIED] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
-  // Step 1: new=["you died"]=1, Step 2: overlap=1, new=["other"]=0, Step 3: overlap=2, new=["you died"]=1
+  // Step 1: new=[DIED]=1, Step 2: overlap=1, new=["other"]=0, Step 3: overlap=2, new=[DIED]=1
   assert.equal(summary.deaths, 2);
 });
 
@@ -635,27 +634,27 @@ test("deaths: same death visible across 3 windows counts as 1", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
-      observation: makeObservation({ recentEvents: ["you died"] }),
+      observation: makeObservation({ recentEvents: [DIED] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 2,
-      observation: makeObservation({ recentEvents: ["you died", "other"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other"] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 3,
-      observation: makeObservation({ recentEvents: ["you died", "other", "explore start"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other", "explore start"] }),
       decision: { skill: "explore", args: {} },
       result: { status: "success" },
     }),
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
-  // Step 1: new events = ["you died"] = 1 (matches "died")
-  // Step 2: prev=["you died"], current=["you died","other"], overlap=1, new=["other"] = 0
-  // Step 3: prev=["you died","other"], current=["you died","other","explore start"], overlap=2, new=["explore start"] = 0
+  // Step 1: new events = [DIED] = 1 (matches "died")
+  // Step 2: prev=[DIED], current=[DIED,"other"], overlap=1, new=["other"] = 0
+  // Step 3: prev=[DIED,"other"], current=[DIED,"other","explore start"], overlap=2, new=["explore start"] = 0
   // Total deaths: 1
   assert.equal(summary.deaths, 1);
 });
@@ -664,13 +663,13 @@ test("deaths: multiple death events in window", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
-      observation: makeObservation({ recentEvents: ["you died", "other", "you died"] }),
+      observation: makeObservation({ recentEvents: [DIED, "other", DIED] }),
       decision: { skill: "wait", args: {} },
       result: { status: "success" },
     }),
   ];
   const summary = summarizeRun(steps, "test-run.jsonl");
-  // Step 1: new = ["you died", "other", "you died"] = 2 events matching "died"
+  // Step 1: new = [DIED, "other", DIED] = 2 events matching "died"
   assert.equal(summary.deaths, 2);
 });
 
@@ -678,13 +677,13 @@ test("deaths: 6+ new events (full window shift)", () => {
   const steps: LoggedStep[] = [
     makeStep({
       step: 1,
-      observation: makeObservation({ recentEvents: ["event1", "event2", "event3", "event4", "event5", "you died"] }),
+      observation: makeObservation({ recentEvents: ["event1", "event2", "event3", "event4", "event5", DIED] }),
       decision: { skill: "explore", args: {} },
       result: { status: "success" },
     }),
     makeStep({
       step: 2,
-      observation: makeObservation({ recentEvents: ["new1", "new2", "new3", "new4", "new5", "you died"] }),
+      observation: makeObservation({ recentEvents: ["new1", "new2", "new3", "new4", "new5", DIED] }),
       decision: { skill: "respawn", args: {} },
       result: { status: "success" },
     }),
