@@ -131,7 +131,10 @@ export const buildShelter: Skill = {
       if (!block || block.boundingBox !== "block") continue;
       try {
         if (!bot.canDigBlock(block)) throw new Error("cannot dig");
-        await withTimeout(bot.dig(block), 10_000, "clearing interior");
+        // Bare hands take 10 s on cobblestone, as long as the old limit (Haiku in p5 had a stone pickaxe).
+        const tool = bot.pathfinder.bestHarvestTool(block);
+        if (tool) await bot.equip(tool, "hand");
+        await withTimeout(bot.dig(block), Math.max(10_000, bot.digTime(block) + 2000), "clearing interior");
       } catch {
         return {
           status: "failed",
