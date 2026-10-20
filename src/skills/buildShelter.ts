@@ -160,6 +160,9 @@ export const buildShelter: Skill = {
         if (tool) await bot.equip(tool, "hand");
         await withTimeout(bot.dig(block), Math.max(10_000, bot.digTime(block) + 2000), "clearing interior");
       } catch {
+        // An interrupt (a spider, a hit) stops the dig; that is not the block's fault (Haiku in p5 was told
+        // twice that dirt "cannot be cleared"). Aborted lets the agent give the interrupt as the reason.
+        if (ctx.shouldStop()) return { status: "aborted", reason: "interrupted while clearing the space" };
         return {
           status: "failed",
           reason: `the 3x3 space around me is blocked by ${block.name} that I cannot clear — move to open flat ground`,
