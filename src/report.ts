@@ -28,6 +28,8 @@ export interface RunSummary {
   howEnded: EndReason | "policy ended" | "step limit / stopped";
   skillCounts: Record<string, { success: number; failed: number; aborted: number }>;
   deaths: number;
+  /** The lowest food level (0-20) seen in any observation; 20 when nothing was logged. */
+  lowestFood: number;
   /** Hits on other agents and from them, by the other agent's name (from each step's `hits`). */
   hitsGiven: Record<string, number>;
   hitsTaken: Record<string, number>;
@@ -252,6 +254,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
+  const lowestFood = Math.min(20, ...steps.map((step) => step.observation?.food ?? 20));
   const hitsGiven: Record<string, number> = {};
   const hitsTaken: Record<string, number> = {};
   const self = agentNamePart.toLowerCase();
@@ -429,6 +432,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     howEnded,
     skillCounts,
     deaths,
+    lowestFood,
     hitsGiven,
     hitsTaken,
     goalMet,
@@ -840,6 +844,7 @@ function printTable(summaries: RunSummary[]) {
     ["Ended", (s) => s.howEnded || "", false],
     ["Valid", (s) => (s.validity === "valid" ? "yes" : `no: ${s.validity}`), false],
     ["Deaths", (s) => String(s.deaths), true],
+    ["Food low", (s) => String(s.lowestFood), true],
     ["Hits given/taken", (s) => hitPair(s), true],
     ["Goal", (s) => formatGoalMet(s.goalMet), false],
     ["Outcome", (s) => formatGoalMet(s.outcome), false],

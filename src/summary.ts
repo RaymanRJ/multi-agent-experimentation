@@ -356,6 +356,7 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     add(`| Unusable answers (re-asked, or no such skill) | ${s.retries} re-asked, ${b.invalid} no such skill |`);
   }
   add(`| Deaths | ${s.deaths} |`);
+  add(`| Lowest food (of 20) | ${s.lowestFood} |`);
   add(`| Hits on / from other agents | ${hitPair(s) === "-" ? "-" : `${hitList(s.hitsGiven, "on") || "none"} / ${hitList(s.hitsTaken, "from") || "none"}`} |`);
   add(`| Game time used | ${gameTime(ticks)} of a 20:00 day${first && last ? `, in ${wallTime(new Date(last.at).getTime() - new Date(first.at).getTime())} of real time` : ""} |`);
   if (!scripted) {
