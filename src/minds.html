@@ -60,6 +60,9 @@ main { overflow-y: auto; min-width: 0; }
 .head h2 { margin: 0; font-size: 24px; line-height: 1.2; }
 .head .brain { color: var(--mute); margin-top: 2px; }
 .head .goal { margin-top: 8px; font-size: 15px; }
+.head .view { margin-top: 4px; }
+.head .view a { color: var(--accent); }
+.run .port { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
 .head .goal b { font-weight: 600; }
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .badge.running { background: var(--ok-soft); color: var(--ok); }
@@ -237,6 +240,9 @@ function statusBadge(r) {
 }
 function pips(r) { return h("div", { class: "pips", title: MILESTONES.map(([k, l]) => (r.milestones[k] ? "✓ " : "· ") + l).join("\n") }, MILESTONES.map(([k]) => h("span", { class: "pip" + (r.milestones[k] ? " on" : "") }))); }
 
+// The viewer is served by the agent on the same machine as this panel.
+const viewUrl = (port) => location.protocol + "//" + (location.hostname || "localhost") + ":" + port;
+
 function renderList() {
   const box = $("runs");
   const live = runs.filter((r) => r.status === "running" || r.status === "starting");
@@ -244,7 +250,7 @@ function renderList() {
   $("summary").textContent = live.length + " running · " + done.length + " finished (last 6h)";
   const row = (r) => h("button", { class: "run" + (r.file === selected ? " sel" : ""), onclick: () => { $("follow").checked = false; save(); select(r.file); } },
     h("div", { class: "top" }, h("span", { class: "dot " + (r.status === "running" || r.status === "starting" ? "running" : r.status === "stopped" ? "stopped" : isMet(r) ? "met" : "") }),
-      h("span", { class: "name" }, r.agent), h("span", { class: "when" }, r.status === "starting" ? (r.doing ? words(r.doing) : "starting") : r.status === "running" ? (r.doing ? words(r.doing) : "thinking") : ago(now() - r.lastAt))),
+      h("span", { class: "name" }, r.agent), r.view ? h("span", { class: "port", title: "its viewer is on port " + r.view }, ":" + r.view) : null, h("span", { class: "when" }, r.status === "starting" ? (r.doing ? words(r.doing) : "starting") : r.status === "running" ? (r.doing ? words(r.doing) : "thinking") : ago(now() - r.lastAt))),
     h("div", { class: "meta", title: r.brain + " · " + r.brainDetail }, r.brain + (r.brainDetail.includes("context") ? " " + r.brainDetail.replace(/^local · /, "").replace(" context", "") : "") + (r.memory ? " · memory " + r.memory : "") + " · " + (r.status === "starting" ? "joining" : r.status === "running" ? "step " + r.step : r.ended)),
     pips(r));
   const kids = [];
@@ -396,6 +402,7 @@ function renderDetail() {
       h("div", {},
         h("h2", {}, "Agent: " + r.agent),
         h("div", { class: "brain" }, r.brain + " · " + r.brainDetail + (r.memory ? " · memory: " + r.memory : "") + (r.comms != null ? " · comms " + (r.comms ? "on" : "off") : "") + (r.stance ? " · " + r.stance : "") + " · " + r.scenario),
+        r.view ? h("div", { class: "view" }, "Viewer: ", h("a", { href: viewUrl(r.view), target: "_blank", rel: "noopener" }, viewUrl(r.view).replace(/^https?:\/\//, ""))) : null,
         h("div", { class: "goal" }, h("b", {}, "Goal: "), r.goal),
         h("button", { class: "setup-btn", onclick: openSetup }, "Run setup: world, limits and full prompt")),
       h("div", { class: "spacer" }), statusBadge(r)),

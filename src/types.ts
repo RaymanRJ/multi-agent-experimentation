@@ -304,4 +304,6 @@ export interface RunConfig {
   world?: string[];
   /** Every agent launched as one team (`--team`), this one included. Absent for an agent alone. */
   team?: string[];
+  /** The port its viewer (`--view`) is served on, for as long as it runs. Absent when nobody is watching. */
+  view?: number;
 }

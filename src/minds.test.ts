@@ -81,6 +81,14 @@ test("runRow summarises progress and the run's end", () => {
   assert.equal(row.ticks, 200);
 });
 
+test("runRow gives the viewer's port only while the run goes on", () => {
+  const config = { episode: "team-t-1", memory: "plan" as const, comms: true, view: 3008 };
+  const running = [step(1, { config, ticks: 100 })];
+  assert.equal(runRow("2026-10-17T00-00-00-000Z-lb.jsonl", running, 1000, 1000)!.view, 3008);
+  assert.equal(runRow("2026-10-17T00-00-00-000Z-lb.jsonl", [step(1, { config: { ...config, view: undefined } })], 1000, 1000)!.view, null, "no viewer");
+  assert.equal(runRow("2026-10-17T00-00-00-000Z-lb.jsonl", [step(1, { config, ended: "time budget" })], 1000, 1000)!.view, null, "its viewer stopped with it");
+});
+
 test("runSetup gathers the world, limits and prompt, and says what an older log never recorded", () => {
   const config = { episode: "batch-poc2-1", memory: "plan" as const, comms: false, progress: false, stance: "neutral" as const, ticks: 27000, budgetUSD: 5, maxSteps: 200, world: ["difficulty normal"] };
   const model = runSetup([step(1, { config, calls: [call("claude", "claude-opus-5-5")], system: "You control a Minecraft agent." }), step(2, { config })])!;
