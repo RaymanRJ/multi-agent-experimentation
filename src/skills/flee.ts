@@ -142,8 +142,12 @@ export const flee: Skill = {
         stuck = true;
       }
       // With no way out the pathfinder sometimes gives up without an error and without moving.
+      // Cornered only if it never got away: after a run, the result below says how far and who is left.
       if (stuck || ctx.bot.entity.position.distanceTo(before) < 2) {
-        if (++failedLegs >= MAX_FAILED_LEGS) return cornered();
+        if (++failedLegs >= MAX_FAILED_LEGS) {
+          if (covered() < 4) return cornered();
+          break;
+        }
       }
     }
 
