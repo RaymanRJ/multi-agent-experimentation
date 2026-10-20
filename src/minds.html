@@ -208,15 +208,22 @@ function deathWhen(d) {
   }
   return parts.length ? parts.join(", ") : "step " + d.step;
 }
+// Newest three by default; the button shows them all. Kept across refreshes, reset when another agent is picked.
+let deathsOpen = false;
+const DEATHS_SHOWN = 3;
 function deathsCard(deaths) {
   if (!deaths || !deaths.length) return null;
+  const newest = deaths.slice().reverse();
+  const shown = deathsOpen ? newest : newest.slice(0, DEATHS_SHOWN);
+  const more = newest.length - DEATHS_SHOWN;
   return h("div", { class: "card" },
-    h("div", { class: "tl-head" }, h("h3", {}, "Deaths · " + deaths.length), h("span", { class: "hint" }, "in-game day and time · what killed it · where · clock time")),
-    h("div", { class: "deaths" }, deaths.map((d) => h("div", { class: "death" },
+    h("div", { class: "tl-head" }, h("h3", {}, "Deaths · " + deaths.length), h("span", { class: "hint" }, "newest first · in-game day and time · what killed it · where · clock time")),
+    h("div", { class: "deaths" }, shown.map((d) => h("div", { class: "death" },
       h("span", { class: "when" }, deathWhen(d)),
       h("span", { class: "cause" }, d.cause ? d.cause.replace(/^was /, "") : "cause not recorded"),
       h("span", { class: "where" }, d.where ? d.where.x + ", " + d.where.y + ", " + d.where.z : "—"),
-      h("span", { class: "clock" }, new Date(d.at).toLocaleTimeString() + " · step " + d.step)))));
+      h("span", { class: "clock" }, new Date(d.at).toLocaleTimeString() + " · step " + d.step)))),
+    more > 0 ? h("button", { class: "setup-btn", onclick: () => { deathsOpen = !deathsOpen; renderDetail(); } }, deathsOpen ? "Show the newest " + DEATHS_SHOWN : "Show all " + deaths.length + " (" + more + " more)") : null);
 }
 function game(ticks) { if (!ticks) return "0:00"; const s = Math.round(ticks / 20); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 function argText(args) { const parts = Object.entries(args || {}).map(([k, v]) => (k === "count" ? "count " + v : k === "item" ? words(v) : words(k) + " " + words(v))); return parts.join(", "); }
@@ -427,7 +434,7 @@ function renderDetail() {
 let detailSig = "";
 function select(file) {
   if (file !== selected) {
-    selected = file; detail = null; detailSig = ""; expanded.clear(); document.querySelector("main").scrollTop = 0;
+    selected = file; detail = null; detailSig = ""; expanded.clear(); deathsOpen = false; document.querySelector("main").scrollTop = 0;
     if (file) history.replaceState(null, "", "#file=" + encodeURIComponent(file));
   }
   renderList();
