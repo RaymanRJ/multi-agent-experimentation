@@ -629,6 +629,8 @@ export const craft: Skill = {
         };
       }
     } catch (error) {
+      // Interrupted mid-craft (damage, a mob): say so; the agent puts the interrupt's reason in.
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
       return { status: "failed", reason: `crafting ${name} failed: ${(error as Error).message}` };
     }
 
