@@ -263,6 +263,11 @@ export interface LoggedStep {
   ticks?: number;
   /** Hits between this agent and other agents during the step, either way, by username. */
   hits?: Array<{ by: string; on: string }>;
+  /**
+   * The agent's deaths during the step: where, what the game said killed it ("was slain by Zombie";
+   * null if no death message came), and when (ticks since the run began, and the time of day).
+   */
+  deaths?: Array<{ x: number; y: number; z: number; cause: string | null; ticks: number; timeOfDay: number }>;
   /** Inventory once the step's skill finished — observations are taken before, so the last result is otherwise lost. */
   inventoryAfter?: Record<string, number>;
   /** The requests shown in this step's observation, and what this decision did about each. */

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agentNameFromFile, brainLabel, extractThink, formatCost, inventoryDelta, runRow, runSetup, runStatus, STALLED_MS, sumCost, timeline } from "./minds.js";
+import { agentNameFromFile, brainLabel, deathsOf, extractThink, formatCost, inventoryDelta, runRow, runSetup, runStatus, STALLED_MS, sumCost, timeline } from "./minds.js";
 import type { LoggedStep, ModelCall } from "./types.js";
 
 const call = (backend: string, model: string, i = 1000, o = 1000, text = ""): ModelCall => ({
@@ -145,4 +145,22 @@ test("listRuns - shows what the agent is doing now from its live file, not the l
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("deathsOf - the run log's own record of each death, or for older logs the death event, without a cause", () => {
+  const obs = (recentEvents: string[]) => ({ position: { x: 0, y: 64, z: 0 }, recentEvents }) as unknown as LoggedStep["observation"];
+  const at = "2026-10-20T10:00:00.000Z";
+  const recorded = [
+    { step: 1, at, observation: obs([]), decision: null, result: null, decisionMs: 0, calls: [] },
+    { step: 2, at, observation: obs([]), decision: null, result: null, decisionMs: 0, calls: [], deaths: [{ x: 4, y: 70, z: -9, cause: "was slain by Zombie", ticks: 26000, timeOfDay: 14000 }] },
+  ] as unknown as LoggedStep[];
+  assert.deepEqual(deathsOf(recorded), [{ step: 2, at, ticks: 26000, timeOfDay: 14000, where: { x: 4, y: 70, z: -9 }, cause: "was slain by Zombie" }]);
+  const older = [
+    { step: 1, at, observation: obs(["you died at 3,65,7 and respawned; what you carried was dropped there and disappears 5 minutes after you died"]), decision: null, result: null, decisionMs: 0, calls: [] },
+    { step: 2, at, observation: obs(["you died at 3,65,7 and respawned; what you carried was dropped there and disappears 5 minutes after you died", 'lb said to you: "I respawned"']), decision: null, result: null, decisionMs: 0, calls: [] },
+    { step: 3, at, observation: obs(["you died and respawned"]), decision: null, result: null, decisionMs: 0, calls: [] },
+  ] as unknown as LoggedStep[];
+  const old = deathsOf(older);
+  assert.equal(old.length, 2, "the same death seen again is one death; a teammate's chat is none");
+  assert.deepEqual(old.map((d) => [d.step, d.where, d.cause]), [[1, { x: 3, y: 65, z: 7 }, null], [3, null, null]]);
 });

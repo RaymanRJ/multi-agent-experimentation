@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { LoggedStep, ModelCall } from "./types.js";
 import { costUSD } from "./backends/pricing.js";
-import { summarizeRun, type MilestoneName } from "./report.js";
+import { isDeath, newEventsPerStep, summarizeRun, type MilestoneName } from "./report.js";
 import { SCENARIOS, presetName } from "./scenario.js";
 
 /** Runs older than this are not listed. */
@@ -230,6 +230,32 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     startedAt: first.at,
     lastAt: Number.isNaN(lastAt) ? mtimeMs : Math.max(lastAt, mtimeMs),
   };
+}
+
+export interface DeathRow {
+  step: number;
+  /** Real time of the step it was logged on. */
+  at: string;
+  /** Ticks since the run began, when known; time of day (0-24000), when known. */
+  ticks: number | null;
+  timeOfDay: number | null;
+  where: { x: number; y: number; z: number } | null;
+  /** As the game said it: "was slain by Zombie". Null in logs from before it was recorded. */
+  cause: string | null;
+}
+
+/** Every death in a run, oldest first: from the run log's own record, or for older logs from the death event. */
+export function deathsOf(steps: LoggedStep[]): DeathRow[] {
+  if (steps.some((s) => s.deaths?.length)) {
+    return steps.flatMap((s) => (s.deaths ?? []).map((d) => ({ step: s.step, at: s.at, ticks: d.ticks, timeOfDay: d.timeOfDay, where: { x: d.x, y: d.y, z: d.z }, cause: d.cause })));
+  }
+  const fresh = newEventsPerStep(steps);
+  return steps.flatMap((s, i) =>
+    (fresh[i] ?? []).filter(isDeath).map((event) => {
+      const at = /^you died at (-?\d+),(-?\d+),(-?\d+)/.exec(event);
+      return { step: s.step, at: s.at, ticks: null, timeOfDay: null, where: at ? { x: Number(at[1]), y: Number(at[2]), z: Number(at[3]) } : null, cause: null };
+    }),
+  );
 }
 
 /** What changed in the inventory over one step: {"cobblestone": 3, "stick": -2}. */
@@ -462,7 +488,7 @@ export function startServer(port: number, dir = "runs") {
       const live = run && readLive(dir, file!, run.steps.at(-1)?.step ?? 0);
       const row = run && runRow(file!, run.steps, Math.max(run.mtimeMs, live?.mtimeMs ?? 0), Date.now(), live?.live ?? null);
       if (!run || !row) return json(res, 404, { error: "no such run" });
-      json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps), live: row.status === "running" ? (live?.live ?? null) : null });
+      json(res, 200, { run: row, now: current(run.steps), timeline: timeline(run.steps), deaths: deathsOf(run.steps), live: row.status === "running" ? (live?.live ?? null) : null });
     } else if (url.pathname === "/api/setup") {
       const setup = runSetup(findRun(dir, file)?.steps ?? []);
       if (!setup) return json(res, 404, { error: "no such run" });

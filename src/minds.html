@@ -74,6 +74,11 @@ main { overflow-y: auto; min-width: 0; }
 .stat .v { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; }
 
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.deaths { display: grid; gap: 6px; }
+.death { display: grid; grid-template-columns: 9em 1fr 9em 9em; gap: 10px; font-size: 13px; }
+.death .cause { color: var(--bad); }
+.death .where, .death .clock { color: var(--mute); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .death { grid-template-columns: 1fr 1fr; } }
 .card h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
 
 .ladder { display: flex; align-items: flex-start; }
@@ -193,6 +198,26 @@ const num = (n) => Number(n).toLocaleString();
 function ago(ms) { const s = Math.max(0, Math.round(ms / 1000)); if (s < 60) return s + "s ago"; if (s < 3600) return Math.floor(s / 60) + "m ago"; return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m ago"; }
 function dur(ms) { const s = ms / 1000; if (s < 10) return s.toFixed(1) + "s"; if (s < 60) return Math.round(s) + "s"; return Math.floor(s / 60) + "m " + Math.round(s % 60) + "s"; }
 /** 20 ticks a second; a Minecraft day is 24,000 ticks (20 minutes). */
+/** "day 2, 21:40, night" from ticks since the run began and the time of day (6:00 is tick 0). */
+function deathWhen(d) {
+  const parts = [];
+  if (d.ticks != null) parts.push("day " + (Math.floor(d.ticks / 24000) + 1));
+  if (d.timeOfDay != null) {
+    const mins = Math.floor(((d.timeOfDay / 1000 + 6) % 24) * 60);
+    parts.push(String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0") + (d.timeOfDay >= 13000 && d.timeOfDay < 23000 ? ", night" : ", day"));
+  }
+  return parts.length ? parts.join(", ") : "step " + d.step;
+}
+function deathsCard(deaths) {
+  if (!deaths || !deaths.length) return null;
+  return h("div", { class: "card" },
+    h("div", { class: "tl-head" }, h("h3", {}, "Deaths · " + deaths.length), h("span", { class: "hint" }, "in-game day and time · what killed it · where · clock time")),
+    h("div", { class: "deaths" }, deaths.map((d) => h("div", { class: "death" },
+      h("span", { class: "when" }, deathWhen(d)),
+      h("span", { class: "cause" }, d.cause ? d.cause.replace(/^was /, "") : "cause not recorded"),
+      h("span", { class: "where" }, d.where ? d.where.x + ", " + d.where.y + ", " + d.where.z : "—"),
+      h("span", { class: "clock" }, new Date(d.at).toLocaleTimeString() + " · step " + d.step)))));
+}
 function game(ticks) { if (!ticks) return "0:00"; const s = Math.round(ticks / 20); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 function argText(args) { const parts = Object.entries(args || {}).map(([k, v]) => (k === "count" ? "count " + v : k === "item" ? words(v) : words(k) + " " + words(v))); return parts.join(", "); }
 function now() { return Date.now() + serverOffset; }
@@ -368,12 +393,14 @@ function renderDetail() {
       h("div", { class: "spacer" }), statusBadge(r)),
     h("div", { class: "stats" },
       stat("Decisions", num(decisions)),
+      stat("Deaths", num((detail.deaths || []).length), (detail.deaths || []).map((d) => deathWhen(d) + ": " + (d.cause || "cause not recorded")).join("\n")),
       stat("Game time", game(r.ticks), num(r.ticks) + " ticks · a day is 20:00"),
       stat("Typical think time", r.medianMs ? dur(r.medianMs) : "instant", "median per decision"),
       stat("Tokens", num(r.tokens)),
       stat("Cost", r.cost)),
     h("div", { class: "card" }, h("h3", {}, "Progress"),
       h("div", { class: "ladder" }, MILESTONES.map(([k, label]) => h("div", { class: "rung" + (r.milestones[k] ? " on" : "") }, h("div", { class: "ball" }, "✓"), h("div", {}, label), h("div", { class: "at" }, r.milestones[k] ? "step " + r.milestones[k] : "—"))))),
+    deathsCard(detail.deaths),
     h("div", { class: "card now" },
       h("div", {},
         h("h3", {}, live ? "Doing now · since " + new Date(live.startedAt).toLocaleTimeString() : r.status === "running" ? "Latest decision · deciding the next one" : "Final decision"),

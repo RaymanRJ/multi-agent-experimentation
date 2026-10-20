@@ -254,11 +254,42 @@ async function main(): Promise<void> {
   // The shelters this agent has slept in a bed inside, for goals that ask for one shared shelter.
   const sleptIn = new Set<string>();
   const night = new NightWatch();
+  // Deaths in the current step, for the run log and the minds panel.
+  let stepDeaths: NonNullable<LoggedStep["deaths"]> = [];
+  const deathEvent = (d: { x: number; y: number; z: number; cause: string | null }) =>
+    `you died at ${d.x},${d.y},${d.z} and respawned${d.cause ? `; you ${d.cause.replace(/^was /, "were ")}` : ""}; what you carried was dropped there and disappears 5 minutes after you died`;
   bot.on("death", () => {
     // Where, so it can go back: a player sees where they fell. Dropped items vanish after 5 minutes.
     const { x, y, z } = bot.entity.position.floored();
-    recentEvents.push(`you died at ${x},${y},${z} and respawned; what you carried was dropped there and disappears 5 minutes after you died`);
+    const death = { x, y, z, cause: null as string | null, ticks: bot.time.age - startAge, timeOfDay: bot.time.timeOfDay };
+    stepDeaths.push(death);
+    recentEvents.push(deathEvent(death));
     night.died(); // dying forfeits the night it happens in
+  });
+  // The game's death message ("la was slain by Zombie"), which the player who died sees too. It can
+  // come just before or just after the death itself, so it fills in the latest death still without one.
+  let pendingCause: { cause: string; at: number } | null = null;
+  bot.on("message", (message: { translate?: string; toString(): string }) => {
+    const text = message.toString();
+    if (!message.translate?.startsWith("death.") || !text.startsWith(`${agentName} `)) return;
+    const cause = text.slice(agentName.length + 1);
+    const open = [...stepDeaths].reverse().find((d) => d.cause === null);
+    if (!open) { pendingCause = { cause, at: Date.now() }; return; }
+    const before = deathEvent(open);
+    open.cause = cause;
+    const i = recentEvents.lastIndexOf(before);
+    if (i >= 0) recentEvents[i] = deathEvent(open);
+  });
+  bot.on("death", () => {
+    // A death message that arrived first belongs to this death.
+    if (pendingCause && Date.now() - pendingCause.at < 3000) {
+      const open = stepDeaths.at(-1)!;
+      const before = deathEvent(open);
+      open.cause = pendingCause.cause;
+      const i = recentEvents.lastIndexOf(before);
+      if (i >= 0) recentEvents[i] = deathEvent(open);
+    }
+    pendingCause = null;
   });
   bot.on("time", () => night.tick(shelterBuilt, bot.time.timeOfDay, bot.isSleeping));
 
@@ -426,8 +457,9 @@ async function main(): Promise<void> {
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
-      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), ...(stepHits.length ? { hits: stepHits } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), ...(stepHits.length ? { hits: stepHits } : {}), ...(stepDeaths.length ? { deaths: stepDeaths } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
       stepHits = [];
+      stepDeaths = [];
     };
 
     const startedAt = Date.now();
