@@ -263,6 +263,12 @@ goal in run 2 despite 10 of these.
   the others were rarely told.
 - **Cost:** Luna 1–3 cents a run; Claude 15–48 cents. Haiku still never caches.
 
+## After the p5 fixes (p6)
+
+*Batch p6, 20 October, on main at 011c8ef: the same models, settings and run order as p5. Total
+cost $1.66.* **12 of 12 met** (p5: 4 of 12), no deaths, no damage taken, no craft timeouts, no one
+left a shelter at night. Written up on its own in [2026-10-p6.md](2026-10-p6.md).
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a

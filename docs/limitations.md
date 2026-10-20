@@ -23,11 +23,12 @@ building on it.
   - Logs already keep any thinking a provider returns (`thinking` on each call), so nothing else
     needs to change to read it.
 - **Paid models have been compared on one goal only, three runs each.** Haiku 4.5, Sonnet 5.5,
-  Opus 5.5 and GPT-6 Luna ran `outpost` in batches p2 (once each), p3 (stopped early) and p5 (three
-  each: Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0). With three runs the intervals all overlap, so the
-  models are not yet ranked. No paid model has run `iron` or `diamond`; Haiku and Sonnet have
+  Opus 5.5 and GPT-6 Luna ran `outpost` in batches p2 (once each), p3 (stopped early), p5 (three
+  each: Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0) and p6 (the same after the p5 fixes: 12 of 12). On
+  this goal they now differ only in cost and decisions; the models are not yet ranked on anything
+  harder. No paid model has run `iron` or `diamond`; Haiku and Sonnet have
   played team runs.
-  - Prompt caching works on Sonnet, Opus and Luna (about 86–88% of input cached in p5). Haiku 4.5
+  - Prompt caching works on Sonnet, Opus and Luna (about 83–88% of input cached in p5 and p6). Haiku 4.5
     never caches: our prompt is below its minimum.
   - Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its model's
     price in `src/backends/pricing.ts`, or a paid run refuses to start.
@@ -167,13 +168,13 @@ building on it.
     rather than one exchange at a time. That keeps the cache hitting, but it also means the model
     sees between 10,000 and 20,000 tokens of history rather than always about 20,000.
 - **A crafting table sometimes ignores the bot's click** and never opens. Seen in about a dozen
-  logs up to p5; never reproduced in about 30 crafts on a test server, so the cause is unknown.
+  logs up to p5, in none of p6's 12 runs; never reproduced in about 30 crafts on a test server, so the cause is unknown.
   Since 20 October it costs one failed craft of about 8 seconds (the bot steps up and tries once
   more) rather than a run of 15-second timeouts.
 - **A shelter is closed once built (since 20 October).** Its floor is filled where the ground has
   holes, and its doorway is filled in behind the builder; the pathfinder digs back out through any
   wall when the agent leaves. Before that the doorway stayed open (in p5 mobs walked in on agents
-  waiting inside) and the floor was taken as found (poc6's shelter stood over a 2-deep hole). While
+  waiting inside; in p6, with it closed, no agent took any damage) and the floor was taken as found (poc6's shelter stood over a 2-deep hole). While
   the agent is inside with every block in place, its observation says `inShelter` and a hostile
   nearby no longer interrupts it; damage still does. In poc6, before this, Luna left a closed
   shelter at night because a zombie came within 6 blocks.

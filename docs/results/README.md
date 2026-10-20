@@ -5,6 +5,7 @@ What the batches measured, written up so they can be read without the logs.
 | Write-up | Question |
 |---|---|
 | [2026-10-outpost.md](2026-10-outpost.md) | Can an agent make four stone tools and a shelter before dark, and survive the night? The local model, the scripted baseline, then the paid models. |
+| [2026-10-p6.md](2026-10-p6.md) | The paid models on the outpost goal again, after the p5 fixes: 12 of 12 met. |
 | [2026-10-iron.md](2026-10-iron.md) | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [2026-10-local-model-memory.md](2026-10-local-model-memory.md) | What does memory (none, plan, full) do for a small local model? |
 

@@ -1,7 +1,7 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 19 October 2026.*
+*Last updated 20 October 2026.*
 
 ## Setting up a new machine
 
@@ -144,7 +144,11 @@ Read this at the start of a session; update it when something finishes or a new 
    in `docs/results/2026-10-outpost.md`. **Tool wear (20 October):** tools in their last quarter of life
    are listed as `wearingOut` with uses left, and a tool breaking adds "your stone_pickaxe broke" to
    `recentEvents` (`src/toolWear.ts`; checked live). Before, a pickaxe just vanished: 32 times in the
-   logs, none in p5. Next: run p6 on the fixed code to measure the change.
+   logs, none in p5.
+   **Batch p6 (20 October, same setup as p5, on 011c8ef): 12 of 12 met, no deaths, no damage taken,
+   $1.66.** No craft timeouts, every shelter closed, no one left at night. `outpost` no longer
+   separates the models; it measures cost (Luna ~1 cent a run, the Claude models 13–22) and
+   decisions (20–33). Written up in `docs/results/2026-10-p6.md`. Next: the team goal `team-homestead`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times
