@@ -8,6 +8,13 @@ What the batches measured, written up so they can be read without the logs.
 | [2026-10-iron.md](2026-10-iron.md) | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [2026-10-local-model-memory.md](2026-10-local-model-memory.md) | What does memory (none, plan, full) do for a small local model? |
 
+## Generated reports
+
+`batches/<name>/` holds what the code wrote at the end of each real batch (from p5 on): the batch
+comparison (`README.md`), success per condition with intervals (`conditions.md`) and every run's
+behaviour report, step by step. They carry no prompts. `scripts/publish-reports.sh <name>` copies
+them out of `runs/`.
+
 ## Batch names
 
 A batch is a set of runs started together, on one version of the code, with one command
