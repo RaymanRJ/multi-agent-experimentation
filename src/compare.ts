@@ -296,9 +296,13 @@ export function renderComparison(runs: Run[], title: string): string {
   }
 
   add("## In a sentence or two each", "");
+  // Reps reuse agent names, so say which rep each line is from.
+  const repOf = (run: Run) => run.steps[0]!.config?.team?.length ? /-(\d+)$/.exec(run.steps[0]!.config?.episode ?? "")?.[1] : undefined;
+  const severalReps = new Set(runs.map(repOf)).size > 1;
   for (const run of runs) {
     const verdict = verdictLines(run.steps, run.file).slice(0, 3).join(" ");
-    add(`- **${run.s.agentName}** (${run.model}): ${verdict}`);
+    const rep = severalReps && repOf(run) ? `, rep ${repOf(run)}` : "";
+    add(`- **${run.s.agentName}** (${run.model}${rep}): ${verdict}`);
   }
   add("", "<details><summary>How to read this</summary>", "");
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
