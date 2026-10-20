@@ -156,6 +156,14 @@ Read this at the start of a session; update it when something finishes or a new 
    first, $0.29. Seven fixes from their logs (flee's false "cornered", death counts, the death
    place, sleep and craft messages, the report crash, rep labels). Written up in
    `docs/results/2026-10-team-homestead.md`. Next, if wanted: the same team with `--progress on`.
+   **`team-base` (20 October, the owner's call):** one large shared shelter that everyone sleeps in,
+   instead of `team-homestead`'s any two-storey shelter. `build_shelter` now goes into a shelter within 32 blocks
+   (its own or a teammate's) instead of building another, and closes it behind the agent. `size:
+   "large"` (5×5, room for four beds) can be built in parts by several agents. `sleep` puts beds inside
+   the shelter, and says who was awake when the night did not pass. Teammates' shelters within sight are
+   in the observation (`shelters`). Checked live with two bots: a large two-storey built in two parts,
+   left and gone back into, and both beds put down inside, so the night passed. Next: a Luna proof
+   run, then the Opus, Sonnet and Luna team on `team-base`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

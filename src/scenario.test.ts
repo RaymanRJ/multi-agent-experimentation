@@ -185,3 +185,24 @@ test("team-homestead - every member sleeps and carries an iron pickaxe, a two-st
   // Alone, an agent is a team of one.
   assert.deepEqual(gaps({ skill: "", status: "", inventory: { iron_pickaxe: 1 }, shelterBuilt: true, nightSurvivedSinceShelter: false, shelterStoreys: 2, sleptInBed: true, chests }), []);
 });
+
+test("team-base - one large two-storey shelter that every member slept inside, iron pickaxes and meat as team-homestead", () => {
+  const gaps = GOAL_GAPS["team-base"]!, check = GOAL_CHECKS["team-base"]!;
+  const chests = { "1,64,1": { holds: { cooked_mutton: 10 }, seenAt: 1 } };
+  const base = { x: 0, y: 64, z: 0, storeys: 2, size: 5 as const, complete: true };
+  const hut = { x: 40, y: 64, z: 0, storeys: 2, size: 3 as const, complete: true };
+  const done = {
+    skill: "sleep", status: "success", inventory: {}, shelterBuilt: true, nightSurvivedSinceShelter: false, chests,
+    shelters: [hut, base],
+    members: { qa: { iron_pickaxe: 1 }, qb: { iron_pickaxe: 1 } },
+    membersSleptIn: { qa: ["0,64,0"], qb: ["40,64,0", "0,64,0"] },
+  };
+  assert.equal(check(done), true);
+  // Slept, but in a different shelter: not the shared one.
+  assert.deepEqual(gaps({ ...done, membersSleptIn: { qa: ["0,64,0"], qb: ["40,64,0"] } }), ["qb has not slept in a bed inside the large shelter at 0,64,0"]);
+  // Only small huts, or a large one left unfinished.
+  assert.deepEqual(gaps({ ...done, shelters: [hut, { ...base, complete: false }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
+  assert.deepEqual(gaps({ ...done, shelters: [{ ...base, storeys: 1 }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
+  assert.ok(TEAM_GOALS.has("team-base"));
+  assert.match(GOALS["team-base"]!, /one large two-storey shelter/);
+});

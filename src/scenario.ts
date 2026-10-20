@@ -1,6 +1,7 @@
 import { Rcon } from "rcon-client";
 import type { ScenarioName } from "./types.js";
 import { inChests, type ChestViews } from "./team.js";
+import { spotKey, type ShelterSpot } from "./skills/buildShelter.js";
 
 export interface Scenario {
   name: ScenarioName;
@@ -114,6 +115,13 @@ export const GOALS: Record<string, string> = {
     "Over the next three days, your team must build a two-storey shelter, every one of you must sleep in a bed, " +
     "every one of you must end up carrying an iron pickaxe, and you must leave at least 10 cooked meat in a chest. " +
     "It does not matter who does what. The episode ends by itself once the team has all of that.",
+  // team-homestead with one home: in thome1 three agents built 36 huts between them and the night never
+  // passed, since the night skips only when every player is asleep.
+  "team-base":
+    "Over the next three days, your team must build one large two-storey shelter that is home to all of you, " +
+    "every one of you must sleep in a bed inside it, every one of you must end up carrying an iron pickaxe, " +
+    "and you must leave at least 10 cooked meat in a chest. It does not matter who does what. " +
+    "The episode ends by itself once the team has all of that.",
   iron: "Craft an iron pickaxe. Once you have it, end the episode.",
   diamond: "Make a piece of diamond armor. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
@@ -132,7 +140,7 @@ export const DIAMOND_ARMOR = ["diamond_helmet", "diamond_chestplate", "diamond_l
  * Goals judged on the whole team: the check sees every member's inventory added together, each
  * member's own inventory, and a shelter built by any of them. Alone, an agent is a team of one.
  */
-export const TEAM_GOALS = new Set(["team-camp", "team-homestead"]);
+export const TEAM_GOALS = new Set(["team-camp", "team-homestead", "team-base"]);
 
 /** The stone tools the outpost goal asks for. */
 export const OUTPOST_TOOLS = ["stone_pickaxe", "stone_axe", "stone_sword", "stone_shovel"];
@@ -156,6 +164,12 @@ export interface GoalState {
   membersSlept?: Record<string, boolean>;
   /** Each team member's own inventory, by name, for team goals that ask something of every member. */
   members?: Record<string, Record<string, number>>;
+  /** Every shelter the agent (or, for a team goal, any member) built or worked on. */
+  shelters?: ShelterSpot[];
+  /** The shelters (by "x,y,z") this agent has slept in a bed inside. */
+  sleptIn?: string[];
+  /** The same for each team member, by name. */
+  membersSleptIn?: Record<string, string[]>;
 }
 
 export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
@@ -167,6 +181,7 @@ export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
     shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
   "team-camp": (state) => GOAL_GAPS["team-camp"]!(state).length === 0,
   "team-homestead": (state) => GOAL_GAPS["team-homestead"]!(state).length === 0,
+  "team-base": (state) => GOAL_GAPS["team-base"]!(state).length === 0,
 };
 
 /**
@@ -204,7 +219,29 @@ export const GOAL_GAPS: Record<string, (state: GoalState) => string[]> = {
   },
 };
 
-/** Cooked meat for `team-homestead`: any kind counts. */
+/** The shelter `team-base` asks for: large, two storeys, finished. */
+const isBase = (spot: ShelterSpot) => (spot.size ?? 3) === 5 && spot.storeys >= 2 && spot.complete !== false;
+
+GOAL_GAPS["team-base"] = ({ shelters, members, membersSleptIn, sleptIn, chests, inventory }) => {
+  const held = members ?? { you: inventory };
+  const sleptBy = membersSleptIn ?? { you: sleptIn ?? [] };
+  const bases = (shelters ?? []).filter(isBase);
+  // The base everyone has slept in, or failing that, the one most of them have.
+  const best = bases
+    .map((spot) => ({ spot, sleepers: Object.values(sleptBy).filter((keys) => keys.includes(spotKey(spot))).length }))
+    .sort((a, b) => b.sleepers - a.sleepers)[0];
+  const meat = COOKED_MEAT.reduce((n, item) => n + (inChests(chests)[item] ?? 0), 0);
+  return [
+    ...(best ? [] : ["nobody on the team has finished a large two-storey shelter yet"]),
+    ...(best
+      ? Object.entries(sleptBy).filter(([, keys]) => !keys.includes(spotKey(best.spot))).map(([name]) => `${name} has not slept in a bed inside the large shelter at ${spotKey(best.spot)}`)
+      : []),
+    ...Object.entries(held).filter(([, items]) => (items["iron_pickaxe"] ?? 0) === 0).map(([name]) => `${name} carries no iron_pickaxe`),
+    ...(meat >= HOMESTEAD_MEAT ? [] : [`the chests the team has opened hold ${meat} cooked meat, not ${HOMESTEAD_MEAT}`]),
+  ];
+};
+
+/** Cooked meat for `team-homestead` and `team-base`: any kind counts. */
 export const COOKED_MEAT = ["cooked_beef", "cooked_porkchop", "cooked_chicken", "cooked_mutton", "cooked_rabbit", "cooked_cod", "cooked_salmon"];
 export const HOMESTEAD_MEAT = 10;
 

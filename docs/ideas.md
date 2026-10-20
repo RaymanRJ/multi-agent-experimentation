@@ -28,6 +28,15 @@ and for one agent, and has steps that depend on each other, so that splitting th
 Stated as outcomes, like every preset goal; what the game requires reaches the model through skill
 descriptions and failure messages, not the goal text.
 
+### `team-base` (20 October): `team-homestead` with one home
+
+The same as `team-homestead`, except the shelter must be one large two-storey shelter (5×5 inside)
+that every member has slept in a bed inside. The owner's call after thome1. That run's agents built
+36 huts between them, and the night never passed: it skips only when every player is asleep.
+Beds together also move each agent's respawn point home, away from the mobs at world spawn. Made
+possible by `build_shelter` going into a nearby shelter, a large size built in parts, `sleep` putting
+beds inside, and a sleep failure naming who was awake.
+
 ### `team-homestead` (built and first run 20 October, thome1: 0 of 3; see `docs/results/2026-10-team-homestead.md`)
 
 > Over three days, keep everyone fed, build a two-storey shelter with a bed for each of you, make an
