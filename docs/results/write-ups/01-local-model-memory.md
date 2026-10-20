@@ -17,7 +17,7 @@ it into loops. Spelling out the steps in the goal turned out to be unnecessary.
   wooden pickaxe, mine stone, craft the stone pickaxe) and *build a shelter*.
 - **How the model plays.** It never controls the character directly. It picks a high-level skill
   ("gather 10 logs", "craft a stone pickaxe"); our code carries it out and reports back. See
-  [skills](../skills.md).
+  [skills](../../skills.md).
 - **What we compared:**
   - **Scripted baseline:** fixed rules, no model. It shows what the task needs, and whether the
     model adds anything.

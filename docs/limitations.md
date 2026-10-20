@@ -27,7 +27,7 @@ building on it.
   each: Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0) and p6 (the same after the p5 fixes: 12 of 12). On
   this goal they now differ only in cost and decisions; the models are not yet ranked on anything
   harder. No paid model has run `iron` or `diamond`. Opus, Sonnet and Luna have played
-  `team-homestead` together (thome1, 0 of 3; `docs/results/2026-10-team-homestead.md`).
+  `team-homestead` together (thome1, 0 of 3; `docs/results/write-ups/05-team-homestead.md`).
   - Prompt caching works on Sonnet, Opus and Luna (about 83–88% of input cached in p5 and p6). Haiku 4.5
     never caches: our prompt is below its minimum.
   - Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its model's
@@ -42,7 +42,7 @@ building on it.
 - **The `iron` goal has been met only twice** (batch b13, sandbox, one day, three runs per
   condition): both by the model with `--progress on` (2/3). The model without it and the
   baseline went 0/3. Too few runs to credit the progress list. Details in
-  `docs/results/2026-10-iron.md`. Open problems found there, none fixed:
+  `docs/results/write-ups/03-iron.md`. Open problems found there, none fixed:
   - **The baseline waits out the night above y=55 even in the peaceful sandbox,** losing about
     11,000 ticks in two of three runs. The rule is meant for survival.
   - **`mine_ore` often can't reach iron it can see** ("out of reach", 20-second dig timeouts),
@@ -97,7 +97,7 @@ building on it.
   and the report counts it. The check also doesn't enforce "before nightfall" from the goal text: it
   looks at what the agent holds at the end, not when the tools were made.
 - **The local model rarely completes the outpost goal** (3 of 18 runs in b12; see
-  `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
+  `docs/results/write-ups/02-outpost.md`). `--progress on` got it to try the shelter more often
   (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
   - **The baseline's outpost goes on to dig for iron** after its shelter, and the flooded-cave
     fix now takes it away from the shelter to do so. It fell from 3/3 in b10 to 1/3. Now

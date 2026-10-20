@@ -1,5 +1,7 @@
 # Batch p6
 
+*Built from the run logs on 2026-10-20 by the report code at 59cc27d (`scripts/publish-reports.sh p6`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
+
 12 runs · 2026-10-20 · 1472k / 77.2k tokens in / out · total cost $1.66
 
 ## Goal: outpost

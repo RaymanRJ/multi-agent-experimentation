@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy a batch's generated reports into docs/results/batches/NAME/, for committing. Logs stay in
+# Copy a batch's generated reports into docs/results/batch-reports/<date>-<time>-NAME/, for committing. Logs stay in
 # runs/ (see docs/results/README.md); these reports carry no prompts, only what the logs showed.
 #
 #   scripts/publish-reports.sh p5
@@ -16,7 +16,13 @@ name="${1:?usage: publish-reports.sh BATCH}"
 if [ -s "runs/team-$name.txt" ]; then kind=team; else kind=batch; fi
 list="runs/$kind-$name.txt"
 compare="runs/compare-$kind-$name.md"
-dest="docs/results/batches/$name"
+# Folders are named by when the first run started, so they sort in the order the runs happened
+# (batch names don't: b13 ran before b12). A batch published before keeps its folder.
+dest="$(ls -d docs/results/batch-reports/*-"$name" 2>/dev/null | head -1 || true)"
+if [ -z "$dest" ]; then
+  started="$(head -1 "$list" | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}' | head -1 | sed -E 's/T([0-9]{2})-([0-9]{2})/-\1\2/')"
+  dest="docs/results/batch-reports/${started:-undated}-$name"
+fi
 [ -s "$list" ] || { echo "ERROR: no run list at $list" >&2; exit 1; }
 [ -s "$compare" ] || { echo "ERROR: no comparison at $compare (npm run compare -- --$kind $name)" >&2; exit 1; }
 

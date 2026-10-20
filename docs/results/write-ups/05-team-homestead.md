@@ -5,7 +5,7 @@ Luna in one world, collaborative stance, chat on, plan memory, progress list off
 `team-homestead`, 72,000 ticks (three in-game days, about an hour of real time), three reps, each
 on a fresh world, capped at $3 per agent per rep. Total cost $9.67. The first run of this goal,
 so a baseline: nothing earlier compares.*
-Generated reports: [batches/thome1](batches/thome1/).
+Generated reports: [batch-reports/2026-10-20-0930-thome1](../batch-reports/2026-10-20-0930-thome1/).
 
 > Over the next three days, your team must build a two-storey shelter, every one of you must sleep
 > in a bed, every one of you must end up carrying an iron pickaxe, and you must leave at least 10

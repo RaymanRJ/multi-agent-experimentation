@@ -119,7 +119,7 @@ Read this at the start of a session; update it when something finishes or a new 
 2. **The long paid test: done 19 October (batch p2), 3 of 4 met.** One `outpost` run each in survival:
    Sonnet, Opus and GPT-6 Luna met it ($0.24, $0.33, $0.02); Haiku died at night, and its "goal met"
    came from a bug in our night check (fixed: a death at night now forfeits that night, in the
-   agent's check and the report). $0.88 in all. Written up in `docs/results/2026-10-outpost.md`.
+   agent's check and the report). $0.88 in all. Written up in `docs/results/write-ups/02-outpost.md`.
    Haiku's "flooded shelter" was a false drowning alarm: mineflayer reads any nearby creature's
    air as the bot's (fixed in `src/breathFix.ts`, checked live). 3 runs each (batch p3) started
    19 October. In p3, Sonnet's first run lost two-thirds of its time stuck in the flooded cave under
@@ -141,21 +141,21 @@ Read this at the start of a session; update it when something finishes or a new 
    craft timeout at a table. Fixed after p5, each checked live: the shelter closes its doorway
    behind the builder, table crafts no longer hang, the shelter digs with the best tool and says
    when it was interrupted. The other failures were agents leaving the shelter at night. Written up
-   in `docs/results/2026-10-outpost.md`. **Tool wear (20 October):** tools in their last quarter of life
+   in `docs/results/write-ups/02-outpost.md`. **Tool wear (20 October):** tools in their last quarter of life
    are listed as `wearingOut` with uses left, and a tool breaking adds "your stone_pickaxe broke" to
    `recentEvents` (`src/toolWear.ts`; checked live). Before, a pickaxe just vanished: 32 times in the
    logs, none in p5.
    **Batch p6 (20 October, same setup as p5, on 011c8ef): 12 of 12 met, no deaths, no damage taken,
    $1.66.** No craft timeouts, every shelter closed, no one left at night. `outpost` no longer
    separates the models; it measures cost (Luna ~1 cent a run, the Claude models 13–22) and
-   decisions (20–33). Written up in `docs/results/2026-10-p6.md`. Next: the team goal `team-homestead`.
+   decisions (20–33). Written up in `docs/results/write-ups/04-p6-outpost-after-fixes.md`. Next: the team goal `team-homestead`.
    **Team run thome1 (20 October; Opus, Sonnet, Luna, collaborative, three reps of three days): 0 of
    3, $9.67.** Every team built the shelter; two of three stored 10 cooked meat; two of three got
    two of three members into a bed; none ended with iron pickaxes for everyone (iron came on day 3
    and was lost in deaths). 48 deaths, mostly at night outside a shelter. Proof run hpoc (three Luna)
    first, $0.29. Seven fixes from their logs (flee's false "cornered", death counts, the death
    place, sleep and craft messages, the report crash, rep labels). Written up in
-   `docs/results/2026-10-team-homestead.md`. Next, if wanted: the same team with `--progress on`.
+   `docs/results/write-ups/05-team-homestead.md`. Next, if wanted: the same team with `--progress on`.
    **`team-base` (20 October, the owner's call):** one large shared shelter that everyone sleeps in,
    instead of `team-homestead`'s any two-storey shelter. `build_shelter` now goes into a shelter within 32 blocks
    (its own or a teammate's) instead of building another, and closes it behind the agent. `size:
@@ -170,7 +170,7 @@ Read this at the start of a session; update it when something finishes or a new 
    in a row) and choose the same again after nearly every repetition note. The owner's call: that
    is the model's failure, to be reported, not fixed in code. The run report and comparison now
    count how often an agent was told it was repeating itself and kept on. Written up in
-   `docs/results/2026-10-outpost.md`. Still open from `docs/limitations.md`: waiting out the night
+   `docs/results/write-ups/02-outpost.md`. Still open from `docs/limitations.md`: waiting out the night
    in the sandbox, and `mine_ore` failing to reach ore it can see.
 4. **`mine_stone` is slow:** the drowning is fixed (0a; trio3 had none), but "digging stone timed
    out after 20000ms" still appears in trio3 (Haiku and qwen), with walking and exploring timeouts.

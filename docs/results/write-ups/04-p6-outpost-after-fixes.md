@@ -5,14 +5,14 @@ Luna, plan memory, progress list off, survival, `outpost` (four stone tools and 
 dark, then survive the night), 27,000 ticks, three runs each, capped at $1.50 a run. Total cost
 $1.66. The same goal, models, settings and run order as p5, so the two are comparable. What differs
 is the code (below) and the herds of animals now placed near spawn.*
-Generated reports: [batches/p6](batches/p6/).
+Generated reports: [batch-reports/2026-10-20-0428-p6](../batch-reports/2026-10-20-0428-p6/).
 
 **Each run is one agent alone.** `scripts/batch.sh` runs the 12 runs one after another, not
 side by side. Before each one it regenerates the world from the same seed, then starts a single
 agent in it. The models never shared a world or met each other. Each faced the same terrain from
 the same starting point, so differences between runs come from the model and the game's
 randomness (mob spawns, animal movement), not from another agent. The models played together only
-in the team run ([2026-10-team-homestead.md](2026-10-team-homestead.md)).
+in the team run ([05-team-homestead.md](05-team-homestead.md)).
 
 ## In one paragraph
 
@@ -105,4 +105,4 @@ Running alongside p6, on a branch, and merged after it: chests (`store`, `take`)
 unlocked at join, agents told who hit whom, and the `team-homestead` goal. That goal is three days
 long. The team needs a two-storey shelter, a bed slept in by every member, an iron pickaxe for every
 member, and 10 cooked meat in a chest. Hunger, iron, beds and sharing all have to happen there. It
-is written up in [2026-10-team-homestead.md](2026-10-team-homestead.md) once it has run.
+is written up in [05-team-homestead.md](05-team-homestead.md) once it has run.

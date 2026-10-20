@@ -41,16 +41,18 @@ was hoped. A failure is one of three things, and each is handled differently:
 
 ## Writing up
 
-- `docs/results/<topic>.md`: a section per batch, in the form of the p5 section of
-  `2026-10-outpost.md`. In italics: batch, dates, models and conditions, **the commit it ran on**,
+- `docs/results/write-ups/`: a section per batch in the write-up for its topic, in the form of the p5
+  section of `write-ups/02-outpost.md`; a new topic gets the next number (`06-…`) and a row in
+  `docs/results/README.md`. In italics: batch, dates, models and conditions, **the commit it ran on**,
   total cost, and whether it is comparable with earlier batches. Then a table per model (met, 95%
   interval, deaths per run, cost), then "Why the failures failed", run by run, each marked as our
   code, the game or the model, then what was fixed after, then smaller findings. Numbers come from
   the reports and logs, never from memory.
-- `scripts/publish-reports.sh <name>` for real batches (not `poc` or dev runs), and commit
-  `docs/results/batches/<name>/`.
+- `scripts/publish-reports.sh <name>` for real batches and team runs (not `poc` or dev runs), and
+  commit the folder it writes, `docs/results/batch-reports/<date>-<time>-<name>/`; add the run's row to
+  the table in `docs/results/README.md`, in start order.
 - `docs/next-steps.md`: one paragraph under the open item, with the result and what is next.
 - `docs/limitations.md`: add what is newly known, and **remove or correct what the batch made
   out of date** (it fell behind once; check every entry the batch touched).
-- If the owner asked for a report file, write it as markdown in `docs/results/` and say where.
+- If the owner asked for a report file, write it as markdown in `docs/results/write-ups/` and say where.
 - Commit locally, one sentence per commit message. Don't push.

@@ -37,7 +37,7 @@ Beds together also move each agent's respawn point home, away from the mobs at w
 possible by `build_shelter` going into a nearby shelter, a large size built in parts, `sleep` putting
 beds inside, and a sleep failure naming who was awake.
 
-### `team-homestead` (built and first run 20 October, thome1: 0 of 3; see `docs/results/2026-10-team-homestead.md`)
+### `team-homestead` (built and first run 20 October, thome1: 0 of 3; see `docs/results/write-ups/05-team-homestead.md`)
 
 > Over three days, keep everyone fed, build a two-storey shelter with a bed for each of you, make an
 > iron pickaxe for each of you, and leave 10 cooked meat in a chest at the shelter.

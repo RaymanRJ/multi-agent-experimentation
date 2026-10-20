@@ -1,6 +1,6 @@
 # Skill usage since p5
 
-*Built from the run logs by `npm run skills -- --batch p5 --batch p6 --team thome1 --title "Skill usage since p5" --out docs/results/skills.md`. Logs stay in `runs/` (not committed).*
+*Built from the run logs by `npm run skills -- --batch p5 --batch p6 --team thome1 --title "Skill usage since p5" --out docs/results/skill-usage.md`. Logs stay in `runs/` (not committed).*
 
 ## Skills used
 

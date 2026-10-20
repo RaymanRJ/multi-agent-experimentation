@@ -1,20 +1,28 @@
 # Results
 
-What the batches measured, written up so they can be read without the logs.
+What the batches measured. Two kinds of file, both in the order things happened:
 
-| Write-up | Question |
-|---|---|
-| [2026-10-outpost.md](2026-10-outpost.md) | Can an agent make four stone tools and a shelter before dark, and survive the night? The local model, the scripted baseline, then the paid models. |
-| [2026-10-p6.md](2026-10-p6.md) | The paid models on the outpost goal again, after the p5 fixes: 12 of 12 met. |
-| [2026-10-team-homestead.md](2026-10-team-homestead.md) | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
-| [2026-10-iron.md](2026-10-iron.md) | Can the local model mine, smelt and craft an iron pickaxe in a day? |
-| [2026-10-local-model-memory.md](2026-10-local-model-memory.md) | What does memory (none, plan, full) do for a small local model? |
+- **[`write-ups/`](write-ups/)**: what a set of batches found, read from their logs and written by hand,
+  numbered in the order they were started. A write-up can cover several batches over several days.
+- **[`batch-reports/`](batch-reports/)**: what the code reported for each batch or team run, one folder
+  per run, named by when its first run started, in UTC (`2026-10-17-2006-b13` ran before `2026-10-17-2302-b12`).
+  The table under [Batch reports](#batch-reports) lists them in that order, with the write-up for each.
+
+| Write-up | Dates | Batches | Question |
+|---|---|---|---|
+| [01 Local-model memory](write-ups/01-local-model-memory.md) | 16–17 Oct | b1, b4–b7 | What does memory (none, plan, full) do for a small local model? |
+| [02 Outpost](write-ups/02-outpost.md) | 17–20 Oct | b8–b10, b12, b14–b16, p2, p3, p5 | Can an agent make four stone tools and a shelter before dark, and survive the night? The local model, the scripted baseline, then the paid models. |
+| [03 Iron](write-ups/03-iron.md) | 17 Oct | b11, b13 | Can the local model mine, smelt and craft an iron pickaxe in a day? |
+| [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
+| [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
+
+[`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
 ## Skill usage
 
-[skills.md](skills.md) counts, for every real batch and team run since p5, how many runs chose
+[skill-usage.md](skill-usage.md) counts, for every real batch and team run since p5, how many runs chose
 each skill, how often it worked, its share of game time, and how common it was in goal-met runs
-against the rest; then the same per goal. Each batch's comparison (`batches/<name>/README.md`) has
+against the rest; then the same per goal. Each batch's comparison (`batch-reports/<folder>/README.md`) has
 the table for its own runs. Rebuild it with the command at its top after a new batch.
 
 Read it with the skills' own rules in mind:
@@ -32,9 +40,9 @@ As of thome1:
   `hunt`ing sheep.
 - **`tell_agent` was used once**, against 13 `ask_agent` questions.
 
-## Generated reports
+## Batch reports
 
-`batches/<name>/` holds the reports built from each real batch's logs: the batch comparison
+`batch-reports/<date>-<time>-<name>/` holds the reports built from each real batch's logs: the batch comparison
 (`README.md`, including which skills were used), success per condition with intervals
 (`conditions.md`) and every run's behaviour report, step by step. They carry no prompts.
 `scripts/publish-reports.sh <name>` builds them from `runs/`; for a team run each agent's report is
@@ -45,31 +53,31 @@ report code. Each report says which code built it. Where a number differs from i
 write-up was made at the time and the report code has been fixed since. Proof runs (`poc`) and dev
 runs that no write-up uses are not published.
 
-| Run | Date | Goal | Who | Met | Written up in |
+| Run | Started | Goal | Who | Met | Written up in |
 |---|---|---|---|---|---|
-| [b1](batches/b1/) | 16 Oct | `tools-guided`, `shelter-guided` | qwen3 4B, scripted | 18 of 24 | [local-model memory](2026-10-local-model-memory.md) |
-| [b4](batches/b4/) | 17 Oct | `tools-guided` | qwen3 4B, scripted | 11 of 12 | [local-model memory](2026-10-local-model-memory.md) |
-| [b5](batches/b5/) | 17 Oct | `tools`, `shelter`, `shelter-guided` | qwen3 4B, scripted | 32 of 36 | [local-model memory](2026-10-local-model-memory.md) |
-| [b6](batches/b6/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 6 of 12 | [local-model memory](2026-10-local-model-memory.md) |
-| [b7](batches/b7/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 9 of 12 | [local-model memory](2026-10-local-model-memory.md) |
-| [b8](batches/b8/) | 17 Oct | `outpost` | qwen3 4B, scripted | 1 of 12 | [outpost](2026-10-outpost.md) |
-| [b9](batches/b9/) | 17 Oct | `outpost` | qwen3 4B, scripted | 3 of 12 | [outpost](2026-10-outpost.md) |
-| [b10](batches/b10/) | 17 Oct | `outpost` | scripted | 3 of 3 | [outpost](2026-10-outpost.md) |
-| [b11](batches/b11/) | 17 Oct | `iron` | qwen3 4B, scripted | 0 of 2 | [iron](2026-10-iron.md) |
-| [b12](batches/b12/) | 17 Oct | `outpost` | qwen3 4B, scripted | 4 of 21 | [outpost](2026-10-outpost.md) |
-| [b13](batches/b13/) | 17 Oct | `iron` | qwen3 4B, scripted | 2 of 9 | [iron](2026-10-iron.md) |
-| [b14](batches/b14/) | 18 Oct | `outpost` | scripted | 3 of 3 | [outpost](2026-10-outpost.md) |
-| [b15](batches/b15/) | 18 Oct | `outpost` | qwen3 4B | 0 of 6 | [outpost](2026-10-outpost.md) |
-| [trio1](batches/trio1/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [trio2](batches/trio2/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | 0 of 1 | [next steps](../next-steps.md) |
-| [trio3](batches/trio3/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [quad1](batches/quad1/) | 18 Oct | `team-camp` | Haiku, Sonnet, Luna, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [b16](batches/b16/) | 19 Oct | `outpost` | qwen3 4B | 0 of 3 | [outpost](2026-10-outpost.md) |
-| [p2](batches/p2/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 3 of 4 | [outpost](2026-10-outpost.md) |
-| [p3](batches/p3/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | stopped early | [outpost](2026-10-outpost.md) |
-| [p5](batches/p5/) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](2026-10-outpost.md) |
-| [p6](batches/p6/) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](2026-10-p6.md) |
-| [thome1](batches/thome1/) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](2026-10-team-homestead.md) |
+| [b1](batch-reports/2026-10-16-2227-b1/) | 16 Oct | `tools-guided`, `shelter-guided` | qwen3 4B, scripted | 18 of 24 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b4](batch-reports/2026-10-17-0215-b4/) | 17 Oct | `tools-guided` | qwen3 4B, scripted | 11 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b5](batch-reports/2026-10-17-0249-b5/) | 17 Oct | `tools`, `shelter`, `shelter-guided` | qwen3 4B, scripted | 32 of 36 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b6](batch-reports/2026-10-17-0454-b6/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 6 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b7](batch-reports/2026-10-17-0653-b7/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 9 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b8](batch-reports/2026-10-17-0809-b8/) | 17 Oct | `outpost` | qwen3 4B, scripted | 1 of 12 | [outpost](write-ups/02-outpost.md) |
+| [b9](batch-reports/2026-10-17-1211-b9/) | 17 Oct | `outpost` | qwen3 4B, scripted | 3 of 12 | [outpost](write-ups/02-outpost.md) |
+| [b10](batch-reports/2026-10-17-1556-b10/) | 17 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
+| [b11](batch-reports/2026-10-17-1655-b11/) | 17 Oct | `iron` | qwen3 4B, scripted | 0 of 2 | [iron](write-ups/03-iron.md) |
+| [b13](batch-reports/2026-10-17-2006-b13/) | 17 Oct | `iron` | qwen3 4B, scripted | 2 of 9 | [iron](write-ups/03-iron.md) |
+| [b12](batch-reports/2026-10-17-2302-b12/) | 17 Oct | `outpost` | qwen3 4B, scripted | 4 of 21 | [outpost](write-ups/02-outpost.md) |
+| [b14](batch-reports/2026-10-18-1403-b14/) | 18 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
+| [trio1](batch-reports/2026-10-18-1900-trio1/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [trio2](batch-reports/2026-10-18-2133-trio2/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | 0 of 1 | [next steps](../next-steps.md) |
+| [trio3](batch-reports/2026-10-18-2207-trio3/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [quad1](batch-reports/2026-10-18-2256-quad1/) | 18 Oct | `team-camp` | Haiku, Sonnet, Luna, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [b15](batch-reports/2026-10-18-2314-b15/) | 18 Oct | `outpost` | qwen3 4B | 0 of 6 | [outpost](write-ups/02-outpost.md) |
+| [b16](batch-reports/2026-10-19-0322-b16/) | 19 Oct | `outpost` | qwen3 4B | 0 of 3 | [outpost](write-ups/02-outpost.md) |
+| [p2](batch-reports/2026-10-19-1650-p2/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 3 of 4 | [outpost](write-ups/02-outpost.md) |
+| [p3](batch-reports/2026-10-19-1923-p3/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | stopped early | [outpost](write-ups/02-outpost.md) |
+| [p5](batch-reports/2026-10-19-2207-p5/) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](write-ups/02-outpost.md) |
+| [p6](batch-reports/2026-10-20-0428-p6/) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](write-ups/04-p6-outpost-after-fixes.md) |
+| [thome1](batch-reports/2026-10-20-0930-thome1/) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](write-ups/05-team-homestead.md) |
 
 ## Batch names
 

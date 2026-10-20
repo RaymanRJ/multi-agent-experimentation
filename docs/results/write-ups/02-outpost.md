@@ -267,7 +267,7 @@ goal in run 2 despite 10 of these.
 
 *Batch p6, 20 October, on main at 011c8ef: the same models, settings and run order as p5. Total
 cost $1.66.* **12 of 12 met** (p5: 4 of 12), no deaths, no damage taken, no craft timeouts, no one
-left a shelter at night. Written up on its own in [2026-10-p6.md](2026-10-p6.md).
+left a shelter at night. Written up on its own in [04-p6-outpost-after-fixes.md](04-p6-outpost-after-fixes.md).
 
 ## What this suggests (not acted on)
 
@@ -277,4 +277,4 @@ left a shelter at night. Written up on its own in [2026-10-p6.md](2026-10-p6.md)
 - The repetition warning is not enough for a 4B model with plan memory. Its own plan tells it to
   repeat. b15 and b16 confirm it on both versions of the code. By the owner's decision the code
   will not stop the loop for the model: it is reported as the model's failure.
-- The `flee` skill needs a way out of pits. See [limitations](../limitations.md).
+- The `flee` skill needs a way out of pits. See [limitations](../../limitations.md).
