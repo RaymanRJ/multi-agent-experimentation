@@ -4,7 +4,7 @@ What the batches measured. Two kinds of file, both in the order things happened:
 
 - **[`write-ups/`](write-ups/)**: what a set of batches found, read from their logs and written by hand,
   numbered in the order they were started. A write-up can cover several batches over several days.
-- **[`batch-reports/`](batch-reports/)**: what the code reported for each batch, one folder per batch,
+- **[`batch-reports/`](batch-reports/)**: what the code reported for each batch, one page per batch,
   named by when its first run started, in UTC (`2026-10-17-2006-b13` ran before `2026-10-17-2302-b12`).
   The table under [Batch reports](#batch-reports) lists them in that order, with the write-up for each.
 
@@ -20,7 +20,7 @@ From smallest to largest:
 | **Batch** | A set of runs started with one command, on one version of the code: every condition, each repeated. Runs go one after another, each agent alone in its own world. A batch has a short name. | p6: 4 models × 3 reps = 12 runs, about 4 hours |
 | **Team run** | Like a batch, but several agents play together in one world, started together. One rep is one game with the whole team, so a team run of 3 agents and 3 reps is 9 runs. Here "batch" covers team runs too. | thome1: Opus, Sonnet and Luna together, 3 reps = 9 runs |
 | **Proof run** (`poc`) | A small batch, usually one cheap run, to check a code change works before spending on a real batch. Not published. | poc7: one Luna run |
-| **Batch report** | What the code writes at the end of a batch, from the logs alone: success per condition, every run's scorecard and step list, which skills were used. No judgement. | [`batch-reports/2026-10-20-0428-p6/`](batch-reports/2026-10-20-0428-p6/) |
+| **Batch report** | What the code writes at the end of a batch, from the logs alone: success per condition, every run's scorecard, which skills were used. No judgement. | [`batch-reports/2026-10-20-0428-p6.md`](batch-reports/2026-10-20-0428-p6.md) |
 | **Write-up** | What a person concluded from one or more batches, after reading the logs: why runs failed (our code, the game or the model), what was fixed, and whether batches compare. | [`04-p6-outpost-after-fixes.md`](write-ups/04-p6-outpost-after-fixes.md) |
 
 | Write-up | Dates | Batches | Question |
@@ -37,7 +37,7 @@ From smallest to largest:
 
 [skill-usage.md](skill-usage.md) counts, for every real batch and team run since p5, how many runs chose
 each skill, how often it worked, its share of game time, and how common it was in goal-met runs
-against the rest; then the same per goal. Each batch's comparison (`batch-reports/<folder>/README.md`) has
+against the rest; then the same per goal. Each batch's report (`batch-reports/<date>-<time>-<name>.md`) has
 the table for its own runs. Rebuild it with the command at its top after a new batch.
 
 Read it with the skills' own rules in mind:
@@ -57,11 +57,12 @@ As of thome1:
 
 ## Batch reports
 
-`batch-reports/<date>-<time>-<name>/` holds the reports built from each real batch's logs: the batch comparison
-(`README.md`, including which skills were used), success per condition with intervals
-(`conditions.md`) and every run's behaviour report, step by step. They carry no prompts.
-`scripts/publish-reports.sh <name>` builds them from `runs/`; for a team run each agent's report is
-`<agent>-<rep>.md`.
+`batch-reports/<date>-<time>-<name>.md` is the report built from each real batch's logs, one page: the
+batch comparison (each run's scorecard, who did what, which skills were used), then success per condition
+with intervals. It carries no prompts. `scripts/publish-reports.sh <name>` builds it from `runs/`; runs
+are named by agent, `<agent>-<rep>` in a team run. Each run's step-by-step behaviour report stays in
+`runs/` beside its log (`npm run summary`), unpublished like the logs: until 20 October they were
+published too, 245 pages that repeated the comparisons and that almost no one would open.
 
 Batches before p5 were rebuilt on 20 October from the logs kept on this machine, with that day's
 report code. Each report says which code built it. Where a number differs from its write-up, the
@@ -70,29 +71,29 @@ runs that no write-up uses are not published.
 
 | Run | Started | Goal | Who | Met | Written up in |
 |---|---|---|---|---|---|
-| [b1](batch-reports/2026-10-16-2227-b1/) | 16 Oct | `tools-guided`, `shelter-guided` | qwen3 4B, scripted | 18 of 24 | [local-model memory](write-ups/01-local-model-memory.md) |
-| [b4](batch-reports/2026-10-17-0215-b4/) | 17 Oct | `tools-guided` | qwen3 4B, scripted | 11 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
-| [b5](batch-reports/2026-10-17-0249-b5/) | 17 Oct | `tools`, `shelter`, `shelter-guided` | qwen3 4B, scripted | 32 of 36 | [local-model memory](write-ups/01-local-model-memory.md) |
-| [b6](batch-reports/2026-10-17-0454-b6/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 6 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
-| [b7](batch-reports/2026-10-17-0653-b7/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 9 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
-| [b8](batch-reports/2026-10-17-0809-b8/) | 17 Oct | `outpost` | qwen3 4B, scripted | 1 of 12 | [outpost](write-ups/02-outpost.md) |
-| [b9](batch-reports/2026-10-17-1211-b9/) | 17 Oct | `outpost` | qwen3 4B, scripted | 3 of 12 | [outpost](write-ups/02-outpost.md) |
-| [b10](batch-reports/2026-10-17-1556-b10/) | 17 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
-| [b11](batch-reports/2026-10-17-1655-b11/) | 17 Oct | `iron` | qwen3 4B, scripted | 0 of 2 | [iron](write-ups/03-iron.md) |
-| [b13](batch-reports/2026-10-17-2006-b13/) | 17 Oct | `iron` | qwen3 4B, scripted | 2 of 9 | [iron](write-ups/03-iron.md) |
-| [b12](batch-reports/2026-10-17-2302-b12/) | 17 Oct | `outpost` | qwen3 4B, scripted | 4 of 21 | [outpost](write-ups/02-outpost.md) |
-| [b14](batch-reports/2026-10-18-1403-b14/) | 18 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
-| [trio1](batch-reports/2026-10-18-1900-trio1/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [trio2](batch-reports/2026-10-18-2133-trio2/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | 0 of 1 | [next steps](../next-steps.md) |
-| [trio3](batch-reports/2026-10-18-2207-trio3/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [quad1](batch-reports/2026-10-18-2256-quad1/) | 18 Oct | `team-camp` | Haiku, Sonnet, Luna, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
-| [b15](batch-reports/2026-10-18-2314-b15/) | 18 Oct | `outpost` | qwen3 4B | 0 of 6 | [outpost](write-ups/02-outpost.md) |
-| [b16](batch-reports/2026-10-19-0322-b16/) | 19 Oct | `outpost` | qwen3 4B | 0 of 3 | [outpost](write-ups/02-outpost.md) |
-| [p2](batch-reports/2026-10-19-1650-p2/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 3 of 4 | [outpost](write-ups/02-outpost.md) |
-| [p3](batch-reports/2026-10-19-1923-p3/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | stopped early | [outpost](write-ups/02-outpost.md) |
-| [p5](batch-reports/2026-10-19-2207-p5/) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](write-ups/02-outpost.md) |
-| [p6](batch-reports/2026-10-20-0428-p6/) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](write-ups/04-p6-outpost-after-fixes.md) |
-| [thome1](batch-reports/2026-10-20-0930-thome1/) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](write-ups/05-team-homestead.md) |
+| [b1](batch-reports/2026-10-16-2227-b1.md) | 16 Oct | `tools-guided`, `shelter-guided` | qwen3 4B, scripted | 18 of 24 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b4](batch-reports/2026-10-17-0215-b4.md) | 17 Oct | `tools-guided` | qwen3 4B, scripted | 11 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b5](batch-reports/2026-10-17-0249-b5.md) | 17 Oct | `tools`, `shelter`, `shelter-guided` | qwen3 4B, scripted | 32 of 36 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b6](batch-reports/2026-10-17-0454-b6.md) | 17 Oct | `tools`, `shelter` | qwen3 4B | 6 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b7](batch-reports/2026-10-17-0653-b7.md) | 17 Oct | `tools`, `shelter` | qwen3 4B | 9 of 12 | [local-model memory](write-ups/01-local-model-memory.md) |
+| [b8](batch-reports/2026-10-17-0809-b8.md) | 17 Oct | `outpost` | qwen3 4B, scripted | 1 of 12 | [outpost](write-ups/02-outpost.md) |
+| [b9](batch-reports/2026-10-17-1211-b9.md) | 17 Oct | `outpost` | qwen3 4B, scripted | 3 of 12 | [outpost](write-ups/02-outpost.md) |
+| [b10](batch-reports/2026-10-17-1556-b10.md) | 17 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
+| [b11](batch-reports/2026-10-17-1655-b11.md) | 17 Oct | `iron` | qwen3 4B, scripted | 0 of 2 | [iron](write-ups/03-iron.md) |
+| [b13](batch-reports/2026-10-17-2006-b13.md) | 17 Oct | `iron` | qwen3 4B, scripted | 2 of 9 | [iron](write-ups/03-iron.md) |
+| [b12](batch-reports/2026-10-17-2302-b12.md) | 17 Oct | `outpost` | qwen3 4B, scripted | 4 of 21 | [outpost](write-ups/02-outpost.md) |
+| [b14](batch-reports/2026-10-18-1403-b14.md) | 18 Oct | `outpost` | scripted | 3 of 3 | [outpost](write-ups/02-outpost.md) |
+| [trio1](batch-reports/2026-10-18-1900-trio1.md) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [trio2](batch-reports/2026-10-18-2133-trio2.md) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | 0 of 1 | [next steps](../next-steps.md) |
+| [trio3](batch-reports/2026-10-18-2207-trio3.md) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [quad1](batch-reports/2026-10-18-2256-quad1.md) | 18 Oct | `team-camp` | Haiku, Sonnet, Luna, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [b15](batch-reports/2026-10-18-2314-b15.md) | 18 Oct | `outpost` | qwen3 4B | 0 of 6 | [outpost](write-ups/02-outpost.md) |
+| [b16](batch-reports/2026-10-19-0322-b16.md) | 19 Oct | `outpost` | qwen3 4B | 0 of 3 | [outpost](write-ups/02-outpost.md) |
+| [p2](batch-reports/2026-10-19-1650-p2.md) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 3 of 4 | [outpost](write-ups/02-outpost.md) |
+| [p3](batch-reports/2026-10-19-1923-p3.md) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | stopped early | [outpost](write-ups/02-outpost.md) |
+| [p5](batch-reports/2026-10-19-2207-p5.md) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](write-ups/02-outpost.md) |
+| [p6](batch-reports/2026-10-20-0428-p6.md) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](write-ups/04-p6-outpost-after-fixes.md) |
+| [thome1](batch-reports/2026-10-20-0930-thome1.md) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](write-ups/05-team-homestead.md) |
 
 ## Batch names
 

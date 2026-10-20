@@ -49,7 +49,7 @@ was hoped. A failure is one of three things, and each is handled differently:
   code, the game or the model, then what was fixed after, then smaller findings. Numbers come from
   the reports and logs, never from memory.
 - `scripts/publish-reports.sh <name>` for real batches and team runs (not `poc` or dev runs), and
-  commit the folder it writes, `docs/results/batch-reports/<date>-<time>-<name>/`; add the run's row to
+  commit the page it writes, `docs/results/batch-reports/<date>-<time>-<name>.md`; add the run's row to
   the table in `docs/results/README.md`, in start order.
 - `docs/next-steps.md`: one paragraph under the open item, with the result and what is next.
 - `docs/limitations.md`: add what is newly known, and **remove or correct what the batch made
