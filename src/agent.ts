@@ -13,6 +13,7 @@ import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
+import { watchBreaks } from "./toolWear.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -226,6 +227,7 @@ async function main(): Promise<void> {
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
   const night = new NightWatch();
+  watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
   bot.on("death", () => {
     recentEvents.push("you died and respawned");
     night.died(); // dying forfeits the night it happens in

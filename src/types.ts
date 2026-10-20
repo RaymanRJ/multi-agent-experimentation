@@ -79,6 +79,8 @@ export interface Observation {
   /** By day, ticks until night (20 ticks = 1 second). Omitted at night. */
   ticksUntilNight?: number;
   inventory: Record<string, number>;
+  /** Uses left on tools with a quarter of their life or less left. Omitted when none. */
+  wearingOut?: Record<string, number>;
   /** Useful items (tools, furnace) not yet held that craft could make from the inventory now. Omitted when none. */
   canCraft?: string[];
   nearbyBlocks: Record<string, number>;

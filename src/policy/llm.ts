@@ -236,6 +236,7 @@ export function buildSystemPrompt(
     '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell.',
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
+    '"wearingOut" lists tools close to breaking, with how many uses each has left; a tool that breaks is gone.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
     '"animals" lists animals near you, nearest first.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',

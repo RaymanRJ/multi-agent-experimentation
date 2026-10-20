@@ -1,4 +1,5 @@
 import type { Bot } from "mineflayer";
+import { wearingOut } from "./toolWear.js";
 import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
@@ -123,6 +124,8 @@ export function observe(
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };
+  const worn = wearingOut(bot);
+  if (Object.keys(worn).length > 0) observation.wearingOut = worn;
   const craftable = craftableNow(bot);
   if (craftable.length > 0) observation.canCraft = craftable;
   if (Object.keys(itemsOnGround).length > 0) observation.itemsOnGround = itemsOnGround;
