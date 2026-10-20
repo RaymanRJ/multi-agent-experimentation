@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOALS, GOAL_CHECKS, GOAL_GAPS, SCENARIOS, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOALS, GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, herdCommands, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
 
 test("resolveGoal - no goal uses the scenario's own", () => {
   assert.equal(resolveGoal(SCENARIOS.survival, undefined), SCENARIOS.survival.goal);
@@ -154,4 +154,14 @@ test("NightWatch - sleeping through the night counts", () => {
   w.tick(true, 12600, true); // in bed at dusk, before isNight
   w.tick(true, 0, false); // the night was skipped
   assert.equal(w.survived, true);
+});
+
+test("herds - both scenarios place the same animals, each with its own tag, in force-loaded chunks", () => {
+  const herd = herdCommands();
+  for (const scenario of Object.values(SCENARIOS)) assert.deepEqual(scenario.setup.filter((c) => herd.includes(c)), herd);
+  const summons = herd.filter((c) => c.includes(" summon "));
+  assert.equal(summons.length, HERDS.reduce((n, h) => n + h.count, 0));
+  const tags = summons.map((c) => c.match(/tag=(\S+)\]/)![1]);
+  assert.equal(new Set(tags).size, tags.length, "a tag per animal, so placing twice adds nothing");
+  assert.equal(herd.filter((c) => c.startsWith("forceload add")).length, herd.filter((c) => c.startsWith("forceload remove")).length);
 });

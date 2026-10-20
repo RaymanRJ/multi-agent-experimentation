@@ -9,6 +9,40 @@ export interface Scenario {
 }
 
 /**
+ * Animals placed at the start, the same in both scenarios. Spawn is in dark oak forest, whose canopy
+ * keeps the ground too dark for farm animals: a fresh world has none within 64 blocks of spawn and
+ * 3 sheep within 128 (survey, 20 October), and they only come back slowly. Agents explore 32 blocks
+ * at a time, so food and wool were out of reach in practice. Each herd stands on open grass 45–60
+ * blocks from spawn (8, 38); `y` is the ground there on this seed.
+ */
+export const HERDS = [
+  { animal: "sheep", count: 6, x: 8, y: 76, z: 83 }, // south
+  { animal: "cow", count: 4, x: 40, y: 70, z: 70 }, // south-east
+  { animal: "pig", count: 4, x: -23, y: 76, z: 70 }, // south-west
+  { animal: "chicken", count: 4, x: -34, y: 69, z: -4 }, // north-west
+] as const;
+
+/**
+ * Commands that place the herds. The chunk is force-loaded for the summon (no player is near yet),
+ * and every animal carries its own tag, so an agent joining a world that already has it (a team
+ * run, or a second run on the main server) adds nothing.
+ */
+export function herdCommands(): string[] {
+  const commands: string[] = [];
+  for (const herd of HERDS) {
+    commands.push(`forceload add ${herd.x} ${herd.z}`);
+    for (let n = 0; n < herd.count; n++) {
+      const tag = `mae_herd_${herd.animal}_${n}`;
+      // Spread over a 3x2 patch, dropped from 2 blocks up so uneven ground can't bury one.
+      const x = herd.x + (n % 3) - 1, z = herd.z + Math.floor(n / 3);
+      commands.push(`execute unless entity @e[tag=${tag}] run summon ${herd.animal} ${x} ${herd.y + 2} ${z} {Tags:["mae_herd","${tag}"]}`);
+    }
+    commands.push(`forceload remove ${herd.x} ${herd.z}`);
+  }
+  return commands;
+}
+
+/**
  * Two scenarios, one switch. They are not difficulty levels — they test
  * different things, and the relaxed one is the harder test: pressure supplies
  * focus, an open-ended goal does not.
@@ -27,6 +61,7 @@ export const SCENARIOS: Record<ScenarioName, Scenario> = {
       "gamerule doDaylightCycle true",
       "gamerule doMobSpawning false",
       "time set day",
+      ...herdCommands(),
     ],
   },
   survival: {
@@ -39,6 +74,7 @@ export const SCENARIOS: Record<ScenarioName, Scenario> = {
       "gamerule doDaylightCycle true",
       "gamerule doMobSpawning true",
       "time set day",
+      ...herdCommands(),
     ],
   },
 };
