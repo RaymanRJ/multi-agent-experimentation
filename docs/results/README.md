@@ -34,10 +34,42 @@ As of thome1:
 
 ## Generated reports
 
-`batches/<name>/` holds what the code wrote at the end of each real batch (from p5 on): the batch
-comparison (`README.md`), success per condition with intervals (`conditions.md`) and every run's
-behaviour report, step by step. They carry no prompts. `scripts/publish-reports.sh <name>` copies
-them out of `runs/`; for a team run each agent's report is `<agent>-<rep>.md`.
+`batches/<name>/` holds the reports built from each real batch's logs: the batch comparison
+(`README.md`, including which skills were used), success per condition with intervals
+(`conditions.md`) and every run's behaviour report, step by step. They carry no prompts.
+`scripts/publish-reports.sh <name>` builds them from `runs/`; for a team run each agent's report is
+`<agent>-<rep>.md`.
+
+Batches before p5 were rebuilt on 20 October from the logs kept on this machine, with that day's
+report code. Each report says which code built it. Where a number differs from its write-up, the
+write-up was made at the time and the report code has been fixed since. Proof runs (`poc`) and dev
+runs that no write-up uses are not published.
+
+| Run | Date | Goal | Who | Met | Written up in |
+|---|---|---|---|---|---|
+| [b1](batches/b1/) | 16 Oct | `tools-guided`, `shelter-guided` | qwen3 4B, scripted | 18 of 24 | [local-model memory](2026-10-local-model-memory.md) |
+| [b4](batches/b4/) | 17 Oct | `tools-guided` | qwen3 4B, scripted | 11 of 12 | [local-model memory](2026-10-local-model-memory.md) |
+| [b5](batches/b5/) | 17 Oct | `tools`, `shelter`, `shelter-guided` | qwen3 4B, scripted | 32 of 36 | [local-model memory](2026-10-local-model-memory.md) |
+| [b6](batches/b6/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 6 of 12 | [local-model memory](2026-10-local-model-memory.md) |
+| [b7](batches/b7/) | 17 Oct | `tools`, `shelter` | qwen3 4B | 9 of 12 | [local-model memory](2026-10-local-model-memory.md) |
+| [b8](batches/b8/) | 17 Oct | `outpost` | qwen3 4B, scripted | 1 of 12 | [outpost](2026-10-outpost.md) |
+| [b9](batches/b9/) | 17 Oct | `outpost` | qwen3 4B, scripted | 3 of 12 | [outpost](2026-10-outpost.md) |
+| [b10](batches/b10/) | 17 Oct | `outpost` | scripted | 3 of 3 | [outpost](2026-10-outpost.md) |
+| [b11](batches/b11/) | 17 Oct | `iron` | qwen3 4B, scripted | 0 of 2 | [iron](2026-10-iron.md) |
+| [b12](batches/b12/) | 17 Oct | `outpost` | qwen3 4B, scripted | 4 of 21 | [outpost](2026-10-outpost.md) |
+| [b13](batches/b13/) | 17 Oct | `iron` | qwen3 4B, scripted | 2 of 9 | [iron](2026-10-iron.md) |
+| [b14](batches/b14/) | 18 Oct | `outpost` | scripted | 3 of 3 | [outpost](2026-10-outpost.md) |
+| [b15](batches/b15/) | 18 Oct | `outpost` | qwen3 4B | 0 of 6 | [outpost](2026-10-outpost.md) |
+| [trio1](batches/trio1/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [trio2](batches/trio2/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | 0 of 1 | [next steps](../next-steps.md) |
+| [trio3](batches/trio3/) | 18 Oct | `team-camp` | Haiku, Sonnet, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [quad1](batches/quad1/) | 18 Oct | `team-camp` | Haiku, Sonnet, Luna, qwen3 4B together | the team, 1 of 1 | [next steps](../next-steps.md) |
+| [b16](batches/b16/) | 19 Oct | `outpost` | qwen3 4B | 0 of 3 | [outpost](2026-10-outpost.md) |
+| [p2](batches/p2/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 3 of 4 | [outpost](2026-10-outpost.md) |
+| [p3](batches/p3/) | 19 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | stopped early | [outpost](2026-10-outpost.md) |
+| [p5](batches/p5/) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](2026-10-outpost.md) |
+| [p6](batches/p6/) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](2026-10-p6.md) |
+| [thome1](batches/thome1/) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](2026-10-team-homestead.md) |
 
 ## Batch names
 

@@ -1,0 +1,115 @@
+# Batch b8
+
+*Built from the run logs on 2026-10-20 by the report code at 90710b0 (`scripts/publish-reports.sh b8`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
+
+12 runs · 2026-10-17 · 1598k / 86.5k tokens in / out · total cost free
+
+## Goal: outpost
+
+> Before nightfall, make a stone pickaxe, a stone axe, a stone sword and a stone shovel, and build a shelter. Then survive the night. The episode ends by itself at sunrise once you have all of that.
+
+scenario **survival** · stance neutral · chat off · memory plan
+
+| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base_outpost_1 | Scripted baseline | not met (time budget) | 86 | 47% | 22 of 44 | 6× `craft` | 4 of 8 | - | - | - | free |
+| qnone_outpost_1 | Qwen3 4B Instruct, local | not met (time budget) | 61 | 51% | 16 of 26 | 4× `craft` | 2 of 2 | 1 of 62 calls | 2 | 121k / 14.6k | free |
+| qplan_outpost_1 | Qwen3 4B Instruct, local | not met (time budget) | 68 | 65% | 3 of 20 | 5× `craft` | 10 of 13 | - | - | 137k / 6.1k | free |
+| qfull_outpost_1 | Qwen3 4B Instruct, local | not met (model ended) | 17 | 65% | 6 of 6 | - | - | - | - | 97.1k / 1.5k | free |
+| base_outpost_2 | Scripted baseline | met, 18:50 | 26 | 73% | 5 of 6 | - | - | - | - | - | free |
+| qnone_outpost_2 | Qwen3 4B Instruct, local | not met (time budget) | 95 | 28% | 28 of 37 | 4× `craft` | 2 of 3 | - | 5 | 186k / 14.8k | free |
+| qplan_outpost_2 | Qwen3 4B Instruct, local | not met (time budget) | 72 | 56% | 8 of 23 | 7× `craft` | 8 of 10 | - | 4 | 145k / 6.5k | free |
+| qfull_outpost_2 | Qwen3 4B Instruct, local | not met (model ended) | 22 | 68% | 6 of 6 | - | - | - | - | 142k / 2.0k | free |
+| base_outpost_3 | Scripted baseline | not met (step limit / stopped) | 58 | 12% | 5 of 25 | 6× `craft` | 5 of 9 | - | - | - | free |
+| qnone_outpost_3 | Qwen3 4B Instruct, local | not met (time budget) | 125 | 15% | 32 of 51 | 4× `craft` | 5 of 8 | - | 9 | 244k / 20.0k | free |
+| qplan_outpost_3 | Qwen3 4B Instruct, local | not met (step limit) | 200 | 6% | 4 of 6 | - | 61 of 61 | - | 1 | 412k / 19.2k | free |
+| qfull_outpost_3 | Qwen3 4B Instruct, local | not met (model ended) | 19 | 63% | 6 of 7 | - | - | - | - | 113k / 1.8k | free |
+
+By model:
+
+| Model and condition | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |
+|---|---|---|---|---|---|---|---|
+| Scripted baseline · memory plan | 3 | 1 of 3 | 6–79% | 18:50 | 58 | - | free |
+| Qwen3 4B Instruct, local · memory none | 3 | 0 of 3 | 0–56% | - | 95 | 184k / 16.5k | free |
+| Qwen3 4B Instruct, local · memory plan | 3 | 0 of 3 | 0–56% | - | 72 | 231k / 10.6k | free |
+| Qwen3 4B Instruct, local · memory full | 3 | 0 of 3 | 0–56% | - | 19 | 117k / 1.8k | free |
+
+## Skills used
+
+Across 12 runs (1 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `gather_wood` | 12 of 12 | 294 | 15% | 1% | 84% | 9% | 100% / 100% |
+| `craft` | 12 of 12 | 281 | 38% | 61% | 1% | 6% | 100% / 100% |
+| `mine_stone` | 12 of 12 | 89 | 58% | 27% | 15% | 28% | 100% / 100% |
+| `build_shelter` | 6 of 12 | 9 | 78% | 22% | 0% | 2% | 100% / 45% |
+| `wait` | 5 of 12 | 59 | 76% | 0% | 24% | 14% | 0% / 45% |
+| `explore` | 5 of 12 | 14 | 64% | 0% | 36% | 2% | 100% / 36% |
+| `mine_ore` | 4 of 12 | 31 | 3% | 61% | 35% | 0% | 100% / 27% |
+| `smelt` | 4 of 12 | 22 | 5% | 95% | 0% | 0% | 100% / 27% |
+| `descend` | 4 of 12 | 19 | 11% | 42% | 47% | 7% | 100% / 27% |
+| `sleep` | 3 of 12 | 5 | 0% | 100% | 0% | 0% | 0% / 27% |
+| `tunnel` | 2 of 12 | 24 | 29% | 21% | 50% | 0% | 0% / 18% |
+| `flee` | 2 of 12 | 2 | 100% | 0% | 0% | 0% | 0% / 18% |
+
+**Never chosen:** `eat`, `climb_out`, `give`, `pick_up`, `go_to`, `store`, `take`, `hunt`, `shear`, `tell_agent`, `ask_agent`.
+
+<details><summary>Times chosen, by model</summary>
+
+| Skill | Scripted baseline | Qwen3 4B Instruct, local |
+|---|---|---|
+| `gather_wood` | 6 | 288 |
+| `craft` | 60 | 221 |
+| `mine_stone` | 7 | 82 |
+| `build_shelter` | 5 | 4 |
+| `wait` | 28 | 31 |
+| `explore` | 2 | 12 |
+| `mine_ore` | 27 | 4 |
+| `smelt` | 1 | 21 |
+| `descend` | 10 | 9 |
+| `sleep` | 0 | 5 |
+| `tunnel` | 24 | 0 |
+| `flee` | 0 | 2 |
+
+</details>
+
+## In a sentence or two each
+
+- **base_outpost_1** (Scripted baseline): Did not meet its goal. Still outstanding at the end: you have no stone_axe; you have no stone_sword; you have no stone_shovel; you have not yet survived a night since building the shelter. 47% of its decisions worked (40 of 86). After a failure it changed course about half the time (22 of 44).
+- **qnone_outpost_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 51% of its decisions worked (31 of 61). After a failure it changed course about half the time (16 of 26).
+- **qplan_outpost_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: no shelter has been built yet; you have not yet survived a night since building the shelter. 65% of its decisions worked (44 of 68). After a failure it mostly repeated itself (3 of 20).
+- **qfull_outpost_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have not yet survived a night since building the shelter. 65% of its decisions worked (11 of 17). After a failure it usually changed course (6 of 6).
+- **base_outpost_2** (Scripted baseline): Met its goal in 26 decisions and 18:50 of game time. 73% of its decisions worked (19 of 26). After a failure it usually changed course (5 of 6).
+- **qnone_outpost_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 28% of its decisions worked (27 of 95). After a failure it usually changed course (28 of 37).
+- **qplan_outpost_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 56% of its decisions worked (40 of 72). After a failure it mostly repeated itself (8 of 23).
+- **qfull_outpost_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have not yet survived a night since building the shelter. 68% of its decisions worked (15 of 22). After a failure it usually changed course (6 of 6).
+- **base_outpost_3** (Scripted baseline): Did not meet its goal. Still outstanding at the end: you have no stone_axe; you have no stone_sword; you have no stone_shovel; you have not yet survived a night since building the shelter. 12% of its decisions worked (7 of 58). After a failure it mostly repeated itself (5 of 25).
+- **qnone_outpost_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 15% of its decisions worked (19 of 125). After a failure it changed course about half the time (32 of 51).
+- **qplan_outpost_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 6% of its decisions worked (12 of 200). After a failure it changed course about half the time (4 of 6).
+- **qfull_outpost_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have not yet survived a night since building the shelter. 63% of its decisions worked (12 of 19). After a failure it usually changed course (6 of 7).
+
+<details><summary>How to read this</summary>
+
+- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.
+- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.
+- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.
+- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/backends/pricing.ts`).
+- Each agent's full report is in this folder, linked below.
+
+Runs:
+
+- [base_outpost_1](base_outpost_1.md)
+- [qnone_outpost_1](qnone_outpost_1.md)
+- [qplan_outpost_1](qplan_outpost_1.md)
+- [qfull_outpost_1](qfull_outpost_1.md)
+- [base_outpost_2](base_outpost_2.md)
+- [qnone_outpost_2](qnone_outpost_2.md)
+- [qplan_outpost_2](qplan_outpost_2.md)
+- [qfull_outpost_2](qfull_outpost_2.md)
+- [base_outpost_3](base_outpost_3.md)
+- [qnone_outpost_3](qnone_outpost_3.md)
+- [qplan_outpost_3](qplan_outpost_3.md)
+- [qfull_outpost_3](qfull_outpost_3.md)
+
+</details>

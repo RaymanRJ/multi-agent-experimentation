@@ -1,0 +1,68 @@
+# Batch b15
+
+*Built from the run logs on 2026-10-20 by the report code at 90710b0 (`scripts/publish-reports.sh b15`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
+
+6 runs · 2026-10-18 to 2026-10-19 · 3192k / 111k tokens in / out · total cost free
+
+## Goal: outpost
+
+> Before nightfall, make a stone pickaxe, a stone axe, a stone sword and a stone shovel, and build a shelter. Then survive the night. The episode ends by itself at sunrise once you have all of that.
+
+scenario **survival** · stance neutral · chat off · memory plan · time budget 22:30 of game time (27,000 ticks) · cost cap $1 per agent
+
+| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| qplan_outpost_1 | Qwen3 4B Instruct, local | not met (step limit) | 200 | 3% | 9 of 172 | 71× `gather_wood` | 54 of 54 | - | 5 | 552k / 19.4k | free |
+| qplanp_outpost_1 | Qwen3 4B Instruct, local | not met (time budget) | 200 | 2% | 6 of 144 | 129× `gather_wood` | 48 of 49 | - | 12 | 562k / 19.7k | free |
+| qplan_outpost_2 | Qwen3 4B Instruct, local | not met (time budget) | 183 | 3% | 2 of 164 | 143× `gather_wood` | 52 of 52 | - | 5 | 511k / 18.3k | free |
+| qplanp_outpost_2 | Qwen3 4B Instruct, local | not met (time budget) | 169 | 4% | 7 of 107 | 92× `mine_stone` | 50 of 50 | - | 1 | 462k / 14.9k | free |
+| qplan_outpost_3 | Qwen3 4B Instruct, local | not met (step limit) | 200 | 8% | 5 of 84 | 61× `gather_wood` | 44 of 45 | - | 2 | 543k / 19.3k | free |
+| qplanp_outpost_3 | Qwen3 4B Instruct, local | not met (step limit) | 200 | 1% | 2 of 107 | 99× `gather_wood` | 42 of 43 | - | 13 | 561k / 19.5k | free |
+
+By model:
+
+| Model and condition | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |
+|---|---|---|---|---|---|---|---|
+| Qwen3 4B Instruct, local · progress off | 3 | 0 of 3 | 0–56% | - | 200 | 535k / 19.0k | free |
+| Qwen3 4B Instruct, local · progress on | 3 | 0 of 3 | 0–56% | - | 200 | 529k / 18.0k | free |
+
+## Skills used
+
+Across 6 runs (0 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `gather_wood` | 6 of 6 | 917 | 1% | 65% | 33% | 23% | - / 100% |
+| `craft` | 6 of 6 | 30 | 27% | 73% | 0% | 1% | - / 100% |
+| `mine_stone` | 4 of 6 | 198 | 7% | 81% | 13% | 9% | - / 67% |
+| `explore` | 2 of 6 | 7 | 57% | 14% | 29% | 2% | - / 33% |
+
+**Never chosen:** `wait`, `eat`, `flee`, `sleep`, `build_shelter`, `mine_ore`, `smelt`, `descend`, `tunnel`, `climb_out`, `give`, `pick_up`, `go_to`, `store`, `take`, `hunt`, `shear`, `tell_agent`, `ask_agent`.
+
+## In a sentence or two each
+
+- **qplan_outpost_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 3% of its decisions worked (6 of 200). After a failure it mostly repeated itself (9 of 172).
+- **qplanp_outpost_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 2% of its decisions worked (4 of 200). After a failure it mostly repeated itself (6 of 144).
+- **qplan_outpost_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 3% of its decisions worked (5 of 183). After a failure it mostly repeated itself (2 of 164).
+- **qplanp_outpost_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 4% of its decisions worked (6 of 169). After a failure it mostly repeated itself (7 of 107).
+- **qplan_outpost_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 8% of its decisions worked (15 of 200). After a failure it mostly repeated itself (5 of 84).
+- **qplanp_outpost_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe; you have no stone_axe; you have no stone_sword; you have no stone_shovel; no shelter has been built yet; you have not yet survived a night since building the shelter. 1% of its decisions worked (2 of 200). After a failure it mostly repeated itself (2 of 107).
+
+<details><summary>How to read this</summary>
+
+- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.
+- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.
+- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.
+- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/backends/pricing.ts`).
+- Each agent's full report is in this folder, linked below.
+
+Runs:
+
+- [qplan_outpost_1](qplan_outpost_1.md)
+- [qplanp_outpost_1](qplanp_outpost_1.md)
+- [qplan_outpost_2](qplan_outpost_2.md)
+- [qplanp_outpost_2](qplanp_outpost_2.md)
+- [qplan_outpost_3](qplan_outpost_3.md)
+- [qplanp_outpost_3](qplanp_outpost_3.md)
+
+</details>

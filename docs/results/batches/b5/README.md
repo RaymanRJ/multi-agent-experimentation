@@ -1,0 +1,209 @@
+# Batch b5
+
+*Built from the run logs on 2026-10-20 by the report code at 90710b0 (`scripts/publish-reports.sh b5`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
+
+36 runs · 2026-10-17 · 525k / 34.3k tokens in / out · total cost free
+
+## Goal: tools
+
+> Craft a stone pickaxe. Once you have it, end the episode.
+
+scenario **sandbox** · chat off · memory plan
+
+| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base_tools_1 | Scripted baseline | met, 3:49 | 4 | 100% | - | - | - | - | - | - | free |
+| qnone_tools_1 | Qwen3 4B Instruct, local | met, 4:00 | 12 | 42% | 4 of 7 | 4× `craft` | 1 of 1 | - | - | 14.7k / 3.4k | free |
+| qplan_tools_1 | Qwen3 4B Instruct, local | met, 7:55 | 26 | 35% | 3 of 17 | 11× `mine_stone` | 5 of 5 | - | - | 34.4k / 2.3k | free |
+| qfull_tools_1 | Qwen3 4B Instruct, local | met, 2:06 | 6 | 67% | 2 of 2 | - | - | - | - | 11.3k / 432 | free |
+| base_tools_2 | Scripted baseline | met, 1:10 | 4 | 100% | - | - | - | - | - | - | free |
+| qnone_tools_2 | Qwen3 4B Instruct, local | met, 2:17 | 12 | 42% | 4 of 7 | 4× `craft` | 1 of 1 | - | - | 14.7k / 1.5k | free |
+| qplan_tools_2 | Qwen3 4B Instruct, local | not met (time budget) | 144 | 97% | 2 of 3 | - | 44 of 46 | - | - | 198k / 12.8k | free |
+| qfull_tools_2 | Qwen3 4B Instruct, local | met, 1:28 | 9 | 56% | 4 of 4 | - | - | - | - | 21.4k / 673 | free |
+| base_tools_3 | Scripted baseline | met, 1:33 | 4 | 100% | - | - | - | - | - | - | free |
+| qnone_tools_3 | Qwen3 4B Instruct, local | met, 2:11 | 13 | 38% | 5 of 8 | 4× `craft` | 1 of 1 | - | - | 15.9k / 1.7k | free |
+| qplan_tools_3 | Qwen3 4B Instruct, local | not met (time budget) | 59 | 39% | 5 of 13 | 7× `mine_stone` | 7 of 8 | - | 1 | 78.0k / 4.8k | free |
+| qfull_tools_3 | Qwen3 4B Instruct, local | met, 4:22 | 9 | 56% | 4 of 4 | - | - | - | - | 21.5k / 659 | free |
+
+By model:
+
+| Model and condition | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |
+|---|---|---|---|---|---|---|---|
+| Scripted baseline · memory plan | 3 | 3 of 3 | 44–100% | 1:33 | 4 | - | free |
+| Qwen3 4B Instruct, local · memory none | 3 | 3 of 3 | 44–100% | 2:17 | 12 | 15.1k / 2.2k | free |
+| Qwen3 4B Instruct, local · memory plan | 3 | 1 of 3 | 6–79% | 7:55 | 59 | 103k / 6.6k | free |
+| Qwen3 4B Instruct, local · memory full | 3 | 3 of 3 | 44–100% | 2:06 | 9 | 18.1k / 588 | free |
+
+## Goal: shelter
+
+> Build a shelter. Once it is built, end the episode.
+
+scenario **sandbox** · chat off · memory plan
+
+| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base_shelter_1 | Scripted baseline | met, 5:30 | 11 | 73% | 2 of 2 | - | - | - | - | - | free |
+| qnone_shelter_1 | Qwen3 4B Instruct, local | met, 1:39 | 3 | 100% | - | - | - | - | - | 3.4k / 345 | free |
+| qplan_shelter_1 | Qwen3 4B Instruct, local | met, 1:50 | 7 | 100% | - | - | 1 of 1 | - | - | 9.0k / 575 | free |
+| qfull_shelter_1 | Qwen3 4B Instruct, local | not met (model ended) | 5 | 40% | 1 of 2 | - | - | - | - | 11.3k / 468 | free |
+| base_shelter_2 | Scripted baseline | met, 2:23 | 6 | 100% | - | - | - | - | - | - | free |
+| qnone_shelter_2 | Qwen3 4B Instruct, local | met, 1:39 | 3 | 100% | - | - | - | - | - | 3.5k / 355 | free |
+| qplan_shelter_2 | Qwen3 4B Instruct, local | met, 1:39 | 5 | 100% | - | - | 0 of 1 | - | - | 6.2k / 337 | free |
+| qfull_shelter_2 | Qwen3 4B Instruct, local | not met (model ended) | 6 | 50% | 2 of 3 | - | - | - | - | 13.8k / 494 | free |
+| base_shelter_3 | Scripted baseline | met, 2:31 | 6 | 100% | - | - | - | - | - | - | free |
+| qnone_shelter_3 | Qwen3 4B Instruct, local | met, 2:05 | 4 | 100% | - | - | - | - | - | 4.7k / 536 | free |
+| qplan_shelter_3 | Qwen3 4B Instruct, local | met, 1:55 | 4 | 75% | 1 of 1 | - | - | - | - | 5.0k / 326 | free |
+| qfull_shelter_3 | Qwen3 4B Instruct, local | met, 9:33 | 10 | 50% | 2 of 4 | - | - | - | - | 26.0k / 608 | free |
+
+By model:
+
+| Model and condition | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |
+|---|---|---|---|---|---|---|---|
+| Scripted baseline · memory plan | 3 | 3 of 3 | 44–100% | 2:31 | 6 | - | free |
+| Qwen3 4B Instruct, local · memory none | 3 | 3 of 3 | 44–100% | 1:39 | 3 | 3.9k / 412 | free |
+| Qwen3 4B Instruct, local · memory plan | 3 | 3 of 3 | 44–100% | 1:50 | 5 | 6.7k / 413 | free |
+| Qwen3 4B Instruct, local · memory full | 3 | 1 of 3 | 6–79% | 9:33 | 6 | 17.0k / 523 | free |
+
+## Goal: shelter-guided
+
+> Build a shelter. It needs 11 logs in your inventory (the shelter turns them into planks itself). If you have fewer than 11 logs, gather wood; once you have 11 or more, build the shelter. Once it is built, end the episode.
+
+scenario **sandbox** · chat off · memory plan
+
+| Agent | Model | Goal | Decisions | Worked | Changed course after failing | Longest loop | Kept on after a repeat note | Unusable answers | Deaths | Tokens in / out | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base_shelterg_1 | Scripted baseline | met, 2:33 | 6 | 100% | - | - | - | - | - | - | free |
+| qnone_shelterg_1 | Qwen3 4B Instruct, local | met, 1:34 | 3 | 100% | - | - | - | - | - | 3.6k / 299 | free |
+| qplan_shelterg_1 | Qwen3 4B Instruct, local | met, 1:39 | 3 | 100% | - | - | - | - | - | 3.8k / 214 | free |
+| qfull_shelterg_1 | Qwen3 4B Instruct, local | met, 1:33 | 2 | 100% | - | - | - | - | - | 2.7k / 139 | free |
+| base_shelterg_2 | Scripted baseline | met, 2:32 | 6 | 100% | - | - | - | - | - | - | free |
+| qnone_shelterg_2 | Qwen3 4B Instruct, local | met, 1:38 | 3 | 100% | - | - | - | - | - | 3.6k / 303 | free |
+| qplan_shelterg_2 | Qwen3 4B Instruct, local | met, 1:28 | 3 | 100% | - | - | - | - | - | 3.8k / 219 | free |
+| qfull_shelterg_2 | Qwen3 4B Instruct, local | met, 1:35 | 2 | 100% | - | - | - | - | - | 2.7k / 126 | free |
+| base_shelterg_3 | Scripted baseline | met, 2:16 | 6 | 100% | - | - | - | - | - | - | free |
+| qnone_shelterg_3 | Qwen3 4B Instruct, local | met, 1:57 | 3 | 100% | - | - | - | - | - | 3.6k / 268 | free |
+| qplan_shelterg_3 | Qwen3 4B Instruct, local | met, 1:41 | 3 | 100% | - | - | - | - | - | 3.8k / 210 | free |
+| qfull_shelterg_3 | Qwen3 4B Instruct, local | met, 1:44 | 3 | 67% | - | - | - | - | - | 4.6k / 207 | free |
+
+By model:
+
+| Model and condition | Runs | Goal met | 95% range | Median time to goal | Median decisions | Tokens in / out per run | Cost per run |
+|---|---|---|---|---|---|---|---|
+| Scripted baseline · memory plan | 3 | 3 of 3 | 44–100% | 2:32 | 6 | - | free |
+| Qwen3 4B Instruct, local · memory none | 3 | 3 of 3 | 44–100% | 1:38 | 3 | 3.6k / 290 | free |
+| Qwen3 4B Instruct, local · memory plan | 3 | 3 of 3 | 44–100% | 1:39 | 3 | 3.8k / 214 | free |
+| Qwen3 4B Instruct, local · memory full | 3 | 3 of 3 | 44–100% | 1:35 | 2 | 3.4k / 157 | free |
+
+## Skills used
+
+Across 36 runs (32 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `gather_wood` | 36 of 36 | 213 | 99% | 0% | 1% | 34% | 100% / 100% |
+| `craft` | 23 of 36 | 85 | 44% | 55% | 1% | 5% | 59% / 100% |
+| `build_shelter` | 22 of 36 | 24 | 92% | 8% | 0% | 13% | 69% / 0% |
+| `mine_stone` | 18 of 36 | 86 | 38% | 34% | 28% | 25% | 53% / 25% |
+| `explore` | 3 of 36 | 7 | 100% | 0% | 0% | 4% | 6% / 25% |
+
+**Never chosen:** `wait`, `eat`, `flee`, `sleep`, `mine_ore`, `smelt`, `descend`, `tunnel`, `climb_out`, `give`, `pick_up`, `go_to`, `store`, `take`, `hunt`, `shear`, `tell_agent`, `ask_agent`.
+
+<details><summary>Times chosen, by model</summary>
+
+| Skill | Scripted baseline | Qwen3 4B Instruct, local |
+|---|---|---|
+| `gather_wood` | 15 | 198 |
+| `craft` | 19 | 66 |
+| `build_shelter` | 8 | 16 |
+| `mine_stone` | 9 | 77 |
+| `explore` | 2 | 5 |
+
+</details>
+
+## In a sentence or two each
+
+- **base_tools_1** (Scripted baseline): Met its goal in 4 decisions and 3:49 of game time. 100% of its decisions worked (4 of 4). Most of its game time went on `mine_stone` (80%).
+- **qnone_tools_1** (Qwen3 4B Instruct, local): Met its goal in 12 decisions and 4:00 of game time. 42% of its decisions worked (5 of 12). After a failure it changed course about half the time (4 of 7).
+- **qplan_tools_1** (Qwen3 4B Instruct, local): Met its goal in 26 decisions and 7:55 of game time. 35% of its decisions worked (9 of 26). After a failure it mostly repeated itself (3 of 17).
+- **qfull_tools_1** (Qwen3 4B Instruct, local): Met its goal in 6 decisions and 2:06 of game time. 67% of its decisions worked (4 of 6). After a failure it usually changed course (2 of 2).
+- **base_shelter_1** (Scripted baseline): Met its goal in 11 decisions and 5:30 of game time. 73% of its decisions worked (8 of 11). After a failure it usually changed course (2 of 2).
+- **qnone_shelter_1** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:39 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (48%).
+- **qplan_shelter_1** (Qwen3 4B Instruct, local): Met its goal in 7 decisions and 1:50 of game time. 100% of its decisions worked (7 of 7). It was told 1 time that its last decisions were all the same, and chose the same again every time.
+- **qfull_shelter_1** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: no shelter has been built yet. 40% of its decisions worked (2 of 5). After a failure it changed course about half the time (1 of 2).
+- **base_shelterg_1** (Scripted baseline): Met its goal in 6 decisions and 2:33 of game time. 100% of its decisions worked (6 of 6). Most of its game time went on `gather_wood` (45%).
+- **qnone_shelterg_1** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:34 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (49%).
+- **qplan_shelterg_1** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:39 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (59%).
+- **qfull_shelterg_1** (Qwen3 4B Instruct, local): Met its goal in 2 decisions and 1:33 of game time. 100% of its decisions worked (2 of 2). Most of its game time went on `gather_wood` (53%).
+- **base_tools_2** (Scripted baseline): Met its goal in 4 decisions and 1:10 of game time. 100% of its decisions worked (4 of 4). Most of its game time went on `craft` (56%).
+- **qnone_tools_2** (Qwen3 4B Instruct, local): Met its goal in 12 decisions and 2:17 of game time. 42% of its decisions worked (5 of 12). After a failure it changed course about half the time (4 of 7).
+- **qplan_tools_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe. 97% of its decisions worked (140 of 144). After a failure it changed course about half the time (2 of 3).
+- **qfull_tools_2** (Qwen3 4B Instruct, local): Met its goal in 9 decisions and 1:28 of game time. 56% of its decisions worked (5 of 9). After a failure it usually changed course (4 of 4).
+- **base_shelter_2** (Scripted baseline): Met its goal in 6 decisions and 2:23 of game time. 100% of its decisions worked (6 of 6). Most of its game time went on `gather_wood` (55%).
+- **qnone_shelter_2** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:39 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (49%).
+- **qplan_shelter_2** (Qwen3 4B Instruct, local): Met its goal in 5 decisions and 1:39 of game time. 100% of its decisions worked (5 of 5). Most of its game time went on `gather_wood` (48%).
+- **qfull_shelter_2** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: no shelter has been built yet. 50% of its decisions worked (3 of 6). After a failure it changed course about half the time (2 of 3).
+- **base_shelterg_2** (Scripted baseline): Met its goal in 6 decisions and 2:32 of game time. 100% of its decisions worked (6 of 6). Most of its game time went on `gather_wood` (58%).
+- **qnone_shelterg_2** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:38 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (48%).
+- **qplan_shelterg_2** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:28 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (50%).
+- **qfull_shelterg_2** (Qwen3 4B Instruct, local): Met its goal in 2 decisions and 1:35 of game time. 100% of its decisions worked (2 of 2). Most of its game time went on `gather_wood` (63%).
+- **base_tools_3** (Scripted baseline): Met its goal in 4 decisions and 1:33 of game time. 100% of its decisions worked (4 of 4). Most of its game time went on `mine_stone` (66%).
+- **qnone_tools_3** (Qwen3 4B Instruct, local): Met its goal in 13 decisions and 2:11 of game time. 38% of its decisions worked (5 of 13). After a failure it changed course about half the time (5 of 8).
+- **qplan_tools_3** (Qwen3 4B Instruct, local): Did not meet its goal. Still outstanding at the end: you have no stone_pickaxe. 39% of its decisions worked (23 of 59). After a failure it mostly repeated itself (5 of 13).
+- **qfull_tools_3** (Qwen3 4B Instruct, local): Met its goal in 9 decisions and 4:22 of game time. 56% of its decisions worked (5 of 9). After a failure it usually changed course (4 of 4).
+- **base_shelter_3** (Scripted baseline): Met its goal in 6 decisions and 2:31 of game time. 100% of its decisions worked (6 of 6). Most of its game time went on `gather_wood` (58%).
+- **qnone_shelter_3** (Qwen3 4B Instruct, local): Met its goal in 4 decisions and 2:05 of game time. 100% of its decisions worked (4 of 4). Most of its game time went on `gather_wood` (48%).
+- **qplan_shelter_3** (Qwen3 4B Instruct, local): Met its goal in 4 decisions and 1:55 of game time. 75% of its decisions worked (3 of 4). After a failure it usually changed course (1 of 1).
+- **qfull_shelter_3** (Qwen3 4B Instruct, local): Met its goal in 10 decisions and 9:33 of game time. 50% of its decisions worked (5 of 10). After a failure it changed course about half the time (2 of 4).
+- **base_shelterg_3** (Scripted baseline): Met its goal in 6 decisions and 2:16 of game time. 100% of its decisions worked (6 of 6). Most of its game time went on `gather_wood` (63%).
+- **qnone_shelterg_3** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:57 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (63%).
+- **qplan_shelterg_3** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:41 of game time. 100% of its decisions worked (3 of 3). Most of its game time went on `gather_wood` (60%).
+- **qfull_shelterg_3** (Qwen3 4B Instruct, local): Met its goal in 3 decisions and 1:44 of game time. 67% of its decisions worked (2 of 3). Most of its game time went on `gather_wood` (51%).
+
+<details><summary>How to read this</summary>
+
+- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.
+- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.
+- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.
+- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/backends/pricing.ts`).
+- Each agent's full report is in this folder, linked below.
+
+Runs:
+
+- [base_tools_1](base_tools_1.md)
+- [qnone_tools_1](qnone_tools_1.md)
+- [qplan_tools_1](qplan_tools_1.md)
+- [qfull_tools_1](qfull_tools_1.md)
+- [base_shelter_1](base_shelter_1.md)
+- [qnone_shelter_1](qnone_shelter_1.md)
+- [qplan_shelter_1](qplan_shelter_1.md)
+- [qfull_shelter_1](qfull_shelter_1.md)
+- [base_shelterg_1](base_shelterg_1.md)
+- [qnone_shelterg_1](qnone_shelterg_1.md)
+- [qplan_shelterg_1](qplan_shelterg_1.md)
+- [qfull_shelterg_1](qfull_shelterg_1.md)
+- [base_tools_2](base_tools_2.md)
+- [qnone_tools_2](qnone_tools_2.md)
+- [qplan_tools_2](qplan_tools_2.md)
+- [qfull_tools_2](qfull_tools_2.md)
+- [base_shelter_2](base_shelter_2.md)
+- [qnone_shelter_2](qnone_shelter_2.md)
+- [qplan_shelter_2](qplan_shelter_2.md)
+- [qfull_shelter_2](qfull_shelter_2.md)
+- [base_shelterg_2](base_shelterg_2.md)
+- [qnone_shelterg_2](qnone_shelterg_2.md)
+- [qplan_shelterg_2](qplan_shelterg_2.md)
+- [qfull_shelterg_2](qfull_shelterg_2.md)
+- [base_tools_3](base_tools_3.md)
+- [qnone_tools_3](qnone_tools_3.md)
+- [qplan_tools_3](qplan_tools_3.md)
+- [qfull_tools_3](qfull_tools_3.md)
+- [base_shelter_3](base_shelter_3.md)
+- [qnone_shelter_3](qnone_shelter_3.md)
+- [qplan_shelter_3](qplan_shelter_3.md)
+- [qfull_shelter_3](qfull_shelter_3.md)
+- [base_shelterg_3](base_shelterg_3.md)
+- [qnone_shelterg_3](qnone_shelterg_3.md)
+- [qplan_shelterg_3](qplan_shelterg_3.md)
+- [qfull_shelterg_3](qfull_shelterg_3.md)
+
+</details>
