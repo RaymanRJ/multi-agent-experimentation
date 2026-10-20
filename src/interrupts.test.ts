@@ -136,3 +136,11 @@ test("running low on air interrupts before drowning starts, even a skill that ig
   assert.match(watch.check({ ...start, oxygen: LOW_AIR })!, /running out of air/);
   assert.equal(createWatch({ ...start, oxygen: 4 }).check({ ...start, oxygen: 3 }), null, "already low at the start: the model chose this knowing");
 });
+
+test("a hostile outside a closed shelter does not interrupt; damage still does", () => {
+  const w = createWatch({ ...calm, enclosed: true });
+  assert.equal(w.check({ ...calm, enclosed: true, hostiles: [zombie(2)] }), null);
+  assert.match(w.check({ ...calm, enclosed: true, hostiles: [zombie(2)], health: 17 })!, /took damage/);
+  const open = createWatch(calm);
+  assert.match(open.check({ ...calm, hostiles: [zombie(2)] })!, /zombie came within/);
+});

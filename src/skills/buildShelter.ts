@@ -1,4 +1,5 @@
 import { Vec3 } from "vec3";
+import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, liquidBeside, opensOnClick, threatened, withTimeout } from "./util.js";
@@ -60,6 +61,17 @@ const FACES: Vec3[] = [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0)
  * the inside into two rooms. The floor is listed last: placed earlier, it would sit between
  * the builder and the roof it still has to place.
  */
+/**
+ * The floor under the interior and the doorway. Natural ground usually provides it, but not always:
+ * Luna's shelter in poc6 stood over a 2-deep hole under two of its floor cells. Filled before the
+ * walls, so nothing can come up from below and the builder can't fall through.
+ */
+export function floorCells(): Vec3[] {
+  const floor: Vec3[] = [new Vec3(0, -1, 2)];
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) floor.push(new Vec3(dx, -1, dz));
+  return floor;
+}
+
 export function layout(storeys = 1): { walls: Vec3[]; roof: Vec3[]; door: Vec3[] } {
   const ring: Array<[number, number]> = [];
   for (let dx = -2; dx <= 2; dx++) {
@@ -86,6 +98,24 @@ export function layout(storeys = 1): { walls: Vec3[]; roof: Vec3[]; door: Vec3[]
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (!(dx === -1 && dz === -1)) roof.push(new Vec3(dx, 2, dz));
   }
   return { walls, roof, door };
+}
+
+/** Where a shelter was built: the centre of its floor (the builder's feet) and how many storeys. */
+export interface ShelterSpot { x: number; y: number; z: number; storeys: number }
+
+/**
+ * True when the bot is inside the shelter and every floor, wall, roof and doorway block is in place, so no
+ * mob can reach it. A hostile outside is then no reason to stop or to leave (Luna, poc6, left a
+ * closed shelter at night because a zombie came within 6 blocks of it).
+ */
+export function insideClosedShelter(bot: Bot, shelter: ShelterSpot): boolean {
+  const feet = bot.entity.position.floored();
+  const dx = feet.x - shelter.x, dy = feet.y - shelter.y, dz = feet.z - shelter.z;
+  const top = shelter.storeys === 2 ? 4 : 1;
+  if (Math.abs(dx) > 1 || Math.abs(dz) > 1 || dy < 0 || dy > top) return false;
+  const { walls, roof, door } = layout(shelter.storeys);
+  const centre = new Vec3(shelter.x, shelter.y, shelter.z);
+  return [...floorCells(), ...walls, ...roof, ...door].every((offset) => bot.blockAt(centre.plus(offset))?.boundingBox === "block");
 }
 
 /** Fills the doorway's cells from inside, bottom first. True once both are solid. */
@@ -171,7 +201,7 @@ export const buildShelter: Skill = {
     }
 
     const needsBlock = (offset: Vec3) => bot.blockAt(cellAt(offset))?.boundingBox !== "block";
-    const required = [...walls, ...roof].filter(needsBlock).length;
+    const required = [...floorCells(), ...walls, ...roof].filter(needsBlock).length;
     const blocksHeld = () => Object.values(materials(ctx)).reduce((a, b) => a + b, 0);
     // Two more than the walls and roof need, to close the doorway with; without them it stays open.
     if (blocksHeld() < required + door.length) await planksFromLogs(ctx, required + door.length - blocksHeld());
@@ -185,7 +215,7 @@ export const buildShelter: Skill = {
       };
     }
 
-    let remaining = [...walls, ...roof].filter(needsBlock);
+    let remaining = [...floorCells(), ...walls, ...roof].filter(needsBlock);
     let placed = 0;
     const failed = new Set<string>();
     const key = (v: Vec3) => `${v.x},${v.y},${v.z}`;

@@ -170,9 +170,13 @@ building on it.
   logs up to p5; never reproduced in about 30 crafts on a test server, so the cause is unknown.
   Since 20 October it costs one failed craft of about 8 seconds (the bot steps up and tries once
   more) rather than a run of 15-second timeouts.
-- **A shelter is closed once built (since 20 October).** Its doorway is filled in behind the
-  builder, and the pathfinder digs back out through any wall when the agent leaves. Before that the
-  doorway stayed open, and in p5 mobs walked in on agents waiting inside.
+- **A shelter is closed once built (since 20 October).** Its floor is filled where the ground has
+  holes, and its doorway is filled in behind the builder; the pathfinder digs back out through any
+  wall when the agent leaves. Before that the doorway stayed open (in p5 mobs walked in on agents
+  waiting inside) and the floor was taken as found (poc6's shelter stood over a 2-deep hole). While
+  the agent is inside with every block in place, its observation says `inShelter` and a hostile
+  nearby no longer interrupts it; damage still does. In poc6, before this, Luna left a closed
+  shelter at night because a zombie came within 6 blocks.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
   behaviour is checked by hand with `scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to

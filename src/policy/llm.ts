@@ -240,6 +240,7 @@ export function buildSystemPrompt(
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
     '"animals" lists animals near you, nearest first.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
+    '"inShelter" appears only when you are inside a shelter with its floor, walls, roof and doorway all closed: mobs cannot reach you there.',
     '"underground" appears only when you are under the ground: how many blocks of solid ground lie between your head and the open sky.',
     '"recentEvents" lists what happened lately, newest last: how your last decisions went, interruptions, and a note when you have made the same decision several times in a row.',
     '"timeOfDay" runs from 0 to 24000 ticks each day (20 ticks = 1 second); night, when hostile mobs come out, is 13000 to 23000, ' +

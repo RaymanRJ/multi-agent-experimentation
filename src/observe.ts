@@ -45,6 +45,8 @@ export function observe(
     stillNeeded?: string[];
     /** Present only when memory is plan or full. */
     plan?: string;
+    /** Inside a closed shelter (the agent knows where it built them). */
+    inShelter?: boolean;
     /** What other agents last announced doing (see trackActivity); shown only within sight. */
     activities?: Map<string, string>;
   },
@@ -114,6 +116,7 @@ export function observe(
     ...(bot.oxygenLevel !== undefined && bot.oxygenLevel < 20 ? { air: Math.round(bot.oxygenLevel) } : {}),
     // A player in a cave sees the rock overhead; the bot only has its height, which says nothing on its own.
     ...(overhead >= UNDERGROUND_MIN ? { underground: overhead } : {}),
+    ...(opts.inShelter ? { inShelter: true } : {}),
     timeOfDay,
     isDay: !isNight(timeOfDay),
     ...(isNight(timeOfDay) ? {} : { ticksUntilNight: ticksUntilNight(timeOfDay) }),

@@ -8,6 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { insideClosedShelter, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -116,7 +117,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
 }
 
 /** The slice of world state the interrupt triggers compare, taken straight from the bot. */
-function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null): WorldSnapshot {
+function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null, enclosed: boolean): WorldSnapshot {
   const hostiles: WorldSnapshot["hostiles"] = [];
   for (const entity of Object.values(bot.entities)) {
     if (!entity || entity.type !== "hostile") continue;
@@ -127,6 +128,7 @@ function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null): WorldSnaps
     oxygen: bot.oxygenLevel,
     hostiles,
     timeOfDay: bot.time.timeOfDay,
+    ...(enclosed ? { enclosed } : {}),
     ...(buffer ? { directed: buffer.directed, lastDirected: buffer.lastDirected } : {}),
   };
 }
@@ -200,7 +202,7 @@ async function main(): Promise<void> {
 
   const checkInterrupts = () => {
     if (!watch || interruptReason) return;
-    const reason = watch.check(snapshot(bot, buffer));
+    const reason = watch.check(snapshot(bot, buffer, inShelter()));
     if (!reason) return;
     interruptReason = reason;
     console.log(`[${agentName}]   ${reason}`);
@@ -226,6 +228,9 @@ async function main(): Promise<void> {
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
+  // Every shelter this agent built, to tell when it is inside one that is still closed.
+  const shelters: ShelterSpot[] = [];
+  const inShelter = () => shelters.some((spot) => insideClosedShelter(bot, spot));
   const night = new NightWatch();
   bot.on("death", () => {
     recentEvents.push("you died and respawned");
@@ -350,6 +355,7 @@ async function main(): Promise<void> {
       goal,
       recentEvents,
       activities,
+      inShelter: inShelter(),
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
@@ -472,7 +478,7 @@ async function main(): Promise<void> {
     const wet = await escapeWater();
     if (wet) stepEvents.push(wet);
     interruptReason = null;
-    watch = createWatch(snapshot(bot, buffer), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
+    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
     const skillStartAge = bot.time.age;
     let result = await runSkill(skill, ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
@@ -517,6 +523,8 @@ async function main(): Promise<void> {
     if (decision.skill === "build_shelter" && result.status === "success") {
       shelterBuilt = true;
       shelterStoreys = Math.max(shelterStoreys, Number(result.detail?.["storeys"] ?? 1));
+      const at = result.detail?.["position"] as { x: number; y: number; z: number } | undefined;
+      if (at) shelters.push({ ...at, storeys: Number(result.detail?.["storeys"] ?? 1) });
     }
     if (goalCheck?.(goalState(decision.skill, result.status))) ownGoalMet = true;
     publish();

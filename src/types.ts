@@ -72,6 +72,8 @@ export interface Observation {
   food: number;
   /** Air left, 0-20, when under water and losing it; at 0 the agent loses 2 health a second. Omitted otherwise. */
   air?: number;
+  /** True when inside a shelter whose walls, roof and doorway are all closed. Omitted otherwise. */
+  inShelter?: boolean;
   /** Blocks of solid ground between the agent's head and the open sky, when it is under the ground. Omitted otherwise. */
   underground?: number;
   timeOfDay: number;

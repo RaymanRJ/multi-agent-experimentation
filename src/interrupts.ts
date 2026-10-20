@@ -22,6 +22,8 @@ export interface WorldSnapshot {
   oxygen?: number;
   hostiles: Hostile[];
   timeOfDay: number;
+  /** Inside a shelter with every wall, roof and doorway block in place: no mob can reach the agent. */
+  enclosed?: boolean;
   /** Messages ever addressed to this agent by name (absent with comms off). */
   directed?: number;
   lastDirected?: { from: string; text: string } | null;
@@ -110,7 +112,8 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
       return ["damage", `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
     }
 
-    if (!off.has("hostile")) {
+    // A mob outside closed walls can't reach the agent; damage still interrupts if one somehow does.
+    if (!off.has("hostile") && !now.enclosed) {
       for (const h of [...now.hostiles].sort((a, b) => a.distance - b.distance)) {
         if (h.distance > HOSTILE_RADIUS) continue;
         const before = startDistance.get(h.id);
