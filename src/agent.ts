@@ -227,7 +227,6 @@ async function main(): Promise<void> {
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
   const night = new NightWatch();
-  watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
   bot.on("death", () => {
     recentEvents.push("you died and respawned");
     night.died(); // dying forfeits the night it happens in
@@ -261,6 +260,8 @@ async function main(): Promise<void> {
   const finished = () => ownGoalMet && (teamGoal || !collaborative || stillWorking(board!.read()).length === 0);
 
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
+  // bot.inventory exists only once the bot has spawned.
+  watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
   bot.pathfinder.setMovements(movementsFor(bot));
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
   // immediately reports an empty world.
