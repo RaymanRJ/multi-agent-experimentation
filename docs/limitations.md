@@ -64,11 +64,13 @@ building on it.
   sword, an axe or bare hands; there are no bows, shields or armour use. In p5 models chose it 7
   times: a zombie, a cow and a skeleton killed, a pig and a salmon got away. One fight is
   unexplained: a zombie inside Sonnet's shelter took it from 20 to 5 health with no kill, where the
-  same fight on a test server took five hits and no damage. An agent that is attacked is told only
-  that it took damage, not who hit it, so a fight between agents is visible in the attacker's log but
-  not to the victim. The run report doesn't count attacks on agents yet.
-- **No farming or chest storage.** Food comes from what an agent starts with or `hunt`s; everything
-  is kept in its inventory, or handed to another agent (`give`).
+  same fight on a test server took five hits and no damage. Since 20 October every hit is reported
+  as a player would see it: the agent hit is told by whom, the attacker when it hits another agent,
+  and agents within sight see "qa hit qb" (repeated hits fold into one line). The run report doesn't
+  count attacks between agents yet. Hunting another agent is weak: in a live test, knockback pushed
+  the target out of reach between hits, and it "got away" after 5 hits.
+- **No farming.** Food comes from what an agent `hunt`s and cooks. Chests (`store`, `take`, since 20
+  October) let agents leave things for each other; a team goal doesn't yet count what is in them.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
   sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,

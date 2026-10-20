@@ -15,6 +15,7 @@ import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type 
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
+import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -267,6 +268,13 @@ async function main(): Promise<void> {
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
   // bot.inventory exists only once the bot has spawned.
   watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
+  let lastAttackLine = "";
+  watchAttacks(bot, (line, replaceLast) => {
+    // Fold a repeat into the line it repeats, only if nothing else has been said since.
+    if (replaceLast && recentEvents.at(-1) === lastAttackLine) recentEvents[recentEvents.length - 1] = line;
+    else recentEvents.push(line);
+    lastAttackLine = line;
+  });
   bot.pathfinder.setMovements(movementsFor(bot));
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
   // immediately reports an empty world.
