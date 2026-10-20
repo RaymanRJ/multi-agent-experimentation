@@ -26,6 +26,8 @@ gpt-6-luna (gpt) · goal **outpost** · survival · memory plan · progress list
 | False "done" claims | 0 |
 | Unusable answers (re-asked, or no such skill) | 0 re-asked, 0 no such skill |
 | Deaths | 0 |
+| Lowest food (of 20) | 20 |
+| Hits on / from other agents | - |
 | Game time used | 18:23 of a 20:00 day, in 17 min of real time |
 | Thinking time per decision | 3.5 s median, 5.0 s slowest tenth |
 | Tokens | 71,547 in (3,252 a decision), 3,919 out, 86% of input from cache |

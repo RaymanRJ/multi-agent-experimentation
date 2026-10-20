@@ -149,6 +149,13 @@ Read this at the start of a session; update it when something finishes or a new 
    $1.66.** No craft timeouts, every shelter closed, no one left at night. `outpost` no longer
    separates the models; it measures cost (Luna ~1 cent a run, the Claude models 13–22) and
    decisions (20–33). Written up in `docs/results/2026-10-p6.md`. Next: the team goal `team-homestead`.
+   **Team run thome1 (20 October; Opus, Sonnet, Luna, collaborative, three reps of three days): 0 of
+   3, $9.67.** Every team built the shelter; two of three stored 10 cooked meat; two of three got
+   two of three members into a bed; none ended with iron pickaxes for everyone (iron came on day 3
+   and was lost in deaths). 48 deaths, mostly at night outside a shelter. Proof run hpoc (three Luna)
+   first, $0.29. Seven fixes from their logs (flee's false "cornered", death counts, the death
+   place, sleep and craft messages, the report crash, rep labels). Written up in
+   `docs/results/2026-10-team-homestead.md`. Next, if wanted: the same team with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

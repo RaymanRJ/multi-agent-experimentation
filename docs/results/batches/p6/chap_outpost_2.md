@@ -28,6 +28,8 @@ claude-haiku-4-5 (claude) · goal **outpost** · survival · memory plan · prog
 | False "done" claims | 1 |
 | Unusable answers (re-asked, or no such skill) | 0 re-asked, 0 no such skill |
 | Deaths | 0 |
+| Lowest food (of 20) | 20 |
+| Hits on / from other agents | - |
 | Game time used | 19:12 of a 20:00 day, in 18 min of real time |
 | Thinking time per decision | 4.0 s median, 5.5 s slowest tenth |
 | Tokens | 137,155 in (4,424 a decision), 11,056 out |

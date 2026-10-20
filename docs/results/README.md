@@ -6,6 +6,7 @@ What the batches measured, written up so they can be read without the logs.
 |---|---|
 | [2026-10-outpost.md](2026-10-outpost.md) | Can an agent make four stone tools and a shelter before dark, and survive the night? The local model, the scripted baseline, then the paid models. |
 | [2026-10-p6.md](2026-10-p6.md) | The paid models on the outpost goal again, after the p5 fixes: 12 of 12 met. |
+| [2026-10-team-homestead.md](2026-10-team-homestead.md) | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
 | [2026-10-iron.md](2026-10-iron.md) | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [2026-10-local-model-memory.md](2026-10-local-model-memory.md) | What does memory (none, plan, full) do for a small local model? |
 
@@ -14,7 +15,7 @@ What the batches measured, written up so they can be read without the logs.
 `batches/<name>/` holds what the code wrote at the end of each real batch (from p5 on): the batch
 comparison (`README.md`), success per condition with intervals (`conditions.md`) and every run's
 behaviour report, step by step. They carry no prompts. `scripts/publish-reports.sh <name>` copies
-them out of `runs/`.
+them out of `runs/`; for a team run each agent's report is `<agent>-<rep>.md`.
 
 ## Batch names
 

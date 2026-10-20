@@ -26,6 +26,8 @@ claude-sonnet-5-5 (claude) · goal **outpost** · survival · memory plan · pro
 | False "done" claims | 0 |
 | Unusable answers (re-asked, or no such skill) | 0 re-asked, 0 no such skill |
 | Deaths | 0 |
+| Lowest food (of 20) | 20 |
+| Hits on / from other agents | - |
 | Game time used | 18:35 of a 20:00 day, in 17 min of real time |
 | Thinking time per decision | 2.2 s median, 3.8 s slowest tenth |
 | Tokens | 175,801 in (5,327 a decision), 7,151 out, 87% of input from cache |

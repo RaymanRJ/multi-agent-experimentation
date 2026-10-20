@@ -26,8 +26,8 @@ building on it.
   Opus 5.5 and GPT-6 Luna ran `outpost` in batches p2 (once each), p3 (stopped early), p5 (three
   each: Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0) and p6 (the same after the p5 fixes: 12 of 12). On
   this goal they now differ only in cost and decisions; the models are not yet ranked on anything
-  harder. No paid model has run `iron` or `diamond`; Haiku and Sonnet have
-  played team runs.
+  harder. No paid model has run `iron` or `diamond`. Opus, Sonnet and Luna have played
+  `team-homestead` together (thome1, 0 of 3; `docs/results/2026-10-team-homestead.md`).
   - Prompt caching works on Sonnet, Opus and Luna (about 83–88% of input cached in p5 and p6). Haiku 4.5
     never caches: our prompt is below its minimum.
   - Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its model's
@@ -51,8 +51,9 @@ building on it.
     names `gather_wood`. The model retried the craft 4–16 times per run before mining stone.
     Since fixed, but not yet confirmed in a full run: the message now names `mine_stone`.
   - **`descend` to y=16 takes 3,000–6,000 ticks** and usually wears out a stone pickaxe.
-  - **Deaths are logged without a cause in the run log,** which says only "you died and respawned".
-    The server log saved beside each batch run (`<log>.server.log`) has the cause.
+  - **Deaths are logged without a cause in the run log.** Since 20 October the agent is told where it
+    died and that its items vanish 5 minutes later; in thome1 it went back 3 times in 48 deaths. The
+    server log saved beside each batch and team run (`<log>.server.log`) has the cause.
 - **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
   as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
@@ -87,7 +88,9 @@ building on it.
   receiver is then told by name that they are on the ground, so it can `pick_up` them.
 - **`flee` walls the agent in when it can't run away,** for example in a pit or a cave. In b12 it
   walled one agent in, and once, underground, failed with two gaps left that it could not fill
-  (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run.
+  (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run. Until 20 October
+  it also reported being cornered after it had run 20–67 blocks and lost every hostile, whenever
+  two legs of the run failed (211 times in the logs); now it reports the run.
 - **How the outpost goal treats deaths (the owner's decision, 19 October).** A death doesn't end a
   run: the agent respawns with nothing and carries on, as a player would. Only a death at night
   counts against the goal, by losing that night; a death by day costs time and everything carried,

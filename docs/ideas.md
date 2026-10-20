@@ -28,7 +28,7 @@ and for one agent, and has steps that depend on each other, so that splitting th
 Stated as outcomes, like every preset goal; what the game requires reaches the model through skill
 descriptions and failure messages, not the goal text.
 
-### `team-homestead` (built 20 October; `--goal team-homestead`)
+### `team-homestead` (built and first run 20 October, thome1: 0 of 3; see `docs/results/2026-10-team-homestead.md`)
 
 > Over three days, keep everyone fed, build a two-storey shelter with a bed for each of you, make an
 > iron pickaxe for each of you, and leave 10 cooked meat in a chest at the shelter.

@@ -26,6 +26,8 @@ claude-opus-5-5 (claude) · goal **outpost** · survival · memory plan · progr
 | False "done" claims | 0 |
 | Unusable answers (re-asked, or no such skill) | 0 re-asked, 0 no such skill |
 | Deaths | 0 |
+| Lowest food (of 20) | 20 |
+| Hits on / from other agents | - |
 | Game time used | 18:23 of a 20:00 day, in 17 min of real time |
 | Thinking time per decision | 3.2 s median, 3.9 s slowest tenth |
 | Tokens | 122,863 in (5,342 a decision), 5,133 out, 86% of input from cache |
