@@ -130,7 +130,7 @@ export function markEpisodes(summaries: RunSummary[]): void {
  * Returns: array of arrays, one per step, containing the new events for that step.
  */
 /** The agent's own death, as it records it; not another agent saying "I respawned" in chat. */
-export const isDeath = (event: string) => event === "you died and respawned";
+export const isDeath = (event: string) => /^you died (at -?\d+,-?\d+,-?\d+ )?and respawned/.test(event);
 
 export function newEventsPerStep(steps: LoggedStep[]): string[][] {
   const result: string[][] = [];
@@ -598,7 +598,7 @@ export function nightSurvived(steps: LoggedStep[], newEvents: string[][], goalMe
     const obs = steps[i]?.observation;
     if (!obs) continue;
     const dark = !obs.isDay;
-    const died = (newEvents[i] ?? []).some((e) => e.includes("died") || e.includes("respawned"));
+    const died = (newEvents[i] ?? []).some(isDeath);
     // The death happened between the last observation and this one: at night if either was dark.
     if (died && (dark || prevDark)) {
       forfeited = true;

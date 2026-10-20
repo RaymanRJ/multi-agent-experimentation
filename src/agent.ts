@@ -234,7 +234,9 @@ async function main(): Promise<void> {
   const inShelter = () => shelters.some((spot) => insideClosedShelter(bot, spot));
   const night = new NightWatch();
   bot.on("death", () => {
-    recentEvents.push("you died and respawned");
+    // Where, so it can go back: a player sees where they fell. Dropped items vanish after 5 minutes.
+    const { x, y, z } = bot.entity.position.floored();
+    recentEvents.push(`you died at ${x},${y},${z} and respawned; what you carried was dropped there and disappears 5 minutes after you died`);
     night.died(); // dying forfeits the night it happens in
   });
   bot.on("time", () => night.tick(shelterBuilt, bot.time.timeOfDay, bot.isSleeping));

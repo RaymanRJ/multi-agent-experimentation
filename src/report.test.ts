@@ -113,6 +113,11 @@ test("deaths: another agent saying it respawned is not a death", () => {
   assert.equal(summarizeRun(steps, "test-run.jsonl").deaths, 0);
 });
 
+test("deaths: the event with where the agent died counts too", () => {
+  const steps = [makeStep({ step: 1, observation: makeObservation({ recentEvents: ["you died at -3,64,12 and respawned; what you carried was dropped there and disappears 5 minutes after you died"] }) })];
+  assert.equal(summarizeRun(steps, "test-run.jsonl").deaths, 1);
+});
+
 test("goalMet: shelter met when build_shelter succeeds", () => {
   const steps: LoggedStep[] = [
     makeStep({
