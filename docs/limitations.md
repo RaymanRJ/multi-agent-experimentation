@@ -73,7 +73,7 @@ building on it.
   stone and a wooden sword each killed another bot, in about 20 seconds.
 - **No farming.** Food comes from what an agent `hunt`s and cooks. Chests (`store`, `take`, since 20
   October) let agents leave things for each other. Goal checks see each chest as the agent (or for a
-  team goal, the member) that last opened it saw it; no goal uses that yet. A chest emptied or broken
+  team goal, the member) that last opened it saw it; `team-homestead` counts cooked meat that way. A chest emptied or broken
   some other way still counts until someone opens it again.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3

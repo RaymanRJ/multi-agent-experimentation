@@ -28,7 +28,7 @@ and for one agent, and has steps that depend on each other, so that splitting th
 Stated as outcomes, like every preset goal; what the game requires reaches the model through skill
 descriptions and failure messages, not the goal text.
 
-### `team-homestead` (proposed)
+### `team-homestead` (built 20 October; `--goal team-homestead`)
 
 > Over three days, keep everyone fed, build a two-storey shelter with a bed for each of you, make an
 > iron pickaxe for each of you, and leave 10 cooked meat in a chest at the shelter.
@@ -45,13 +45,14 @@ What each part tests:
    needs both in one place.
 5. **Specialisation pressure.** Sized so one agent can't do it alone in the time.
 
-Needed first:
+Needed first (all done 20 October except the columns marked *not yet*):
 
 - **Animals near spawn** (see below). p5 found no sheep at all; without them beds are impossible,
   and the run measures the world, not the models.
 - **`store` / `take` skills** for a chest (Skills, item 2), checked live.
-- **Report columns:** each member's lowest food, food handed between members, who cooked, who mined
-  and smelted, nights slept versus waited out, deaths by day and by night.
+- **Report columns:** each member's lowest food and hits between agents are in. *Not yet:* food handed
+  between members, who cooked, who mined and smelted, nights slept versus waited out, deaths by day
+  and by night; the behaviour report's step list shows these for now.
 - **Cost check before running:** 72,000 ticks is about an hour of real time a run; roughly $2–3 a
   team of three paid models, $7–9 for three runs. To be confirmed on a first run.
 
