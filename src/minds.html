@@ -390,7 +390,8 @@ function renderDetail() {
   const scroll = document.querySelector("main").scrollTop;
   // What it is doing now: decided, but not logged until the skill ends (see liveFileFor in minds.ts).
   const live = r.status === "running" ? detail.live : null;
-  box.replaceChildren(
+  // replaceChildren would show a null (the Deaths card, for an agent that never died) as the text "null".
+  box.replaceChildren(...[
     h("div", { class: "head" },
       h("div", {},
         h("h2", {}, "Agent: " + r.agent),
@@ -427,7 +428,7 @@ function renderDetail() {
         cur.canCraft.filter((k) => !cur.inventory[k]).length ? h("div", {}, h("div", { class: "sublabel" }, "Could craft right now"), h("div", { class: "chips" }, cur.canCraft.filter((k) => !cur.inventory[k]).map((k) => h("span", { class: "chip craft" }, words(k))))) : null)),
     h("div", { class: "card" },
       h("div", { class: "tl-head" }, h("h3", {}, "Timeline"), h("span", { class: "hint" }, "newest first · repeated identical decisions are folded together")),
-      groupTimeline(items).reverse().map(itemView)));
+      groupTimeline(items).reverse().map(itemView))].filter((kid) => kid != null));
   document.querySelector("main").scrollTop = scroll;
 }
 
