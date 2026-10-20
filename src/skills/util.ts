@@ -270,3 +270,40 @@ export async function runSkill(skill: Skill, ctx: SkillContext, args: Record<str
     return { status: "failed", reason: `${skill.name} hit an unexpected error: ${(error as Error).message}` };
   }
 }
+
+/**
+ * pathfinder.goto, watched: the pathfinder can stand still against a one-block step and keep "walking"
+ * until the timeout (bpoc: 75 s on open grass beside a large shelter). When the bot has not moved for
+ * STUCK_MS it jumps forward and the goal is set again, up to MAX_NUDGES times, then it gives up saying
+ * where it is.
+ */
+const STUCK_MS = 4000;
+const MAX_NUDGES = 3;
+export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["goto"]>[0], timeoutMs: number, label: string): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (let nudge = 0; ; nudge++) {
+    let last = bot.entity.position.clone(), lastMoved = Date.now(), stuck = false;
+    const watch = setInterval(() => {
+      if (bot.entity.position.distanceTo(last) > 0.3) { last = bot.entity.position.clone(); lastMoved = Date.now(); }
+      else if (Date.now() - lastMoved > STUCK_MS) { stuck = true; bot.pathfinder.setGoal(null); }
+    }, 500);
+    try {
+      await withTimeout(bot.pathfinder.goto(goal), Math.max(1000, deadline - Date.now()), label);
+      return;
+    } catch (error) {
+      if (!stuck || nudge >= MAX_NUDGES || Date.now() >= deadline) {
+        const at = bot.entity.position.floored();
+        throw stuck ? new Error(`${label}: stuck at ${at.x},${at.y},${at.z}`) : error;
+      }
+    } finally {
+      clearInterval(watch);
+    }
+    // Hop forward, then try again from wherever that lands.
+    bot.setControlState("jump", true);
+    bot.setControlState("forward", true);
+    await bot.waitForTicks(8);
+    bot.setControlState("jump", false);
+    bot.setControlState("forward", false);
+  }
+}
+

@@ -51,9 +51,8 @@ building on it.
     names `gather_wood`. The model retried the craft 4–16 times per run before mining stone.
     Since fixed, but not yet confirmed in a full run: the message now names `mine_stone`.
   - **`descend` to y=16 takes 3,000–6,000 ticks** and usually wears out a stone pickaxe.
-  - **Deaths are logged without a cause in the run log.** Since 20 October the agent is told where it
-    died and that its items vanish 5 minutes later; in thome1 it went back 3 times in 48 deaths. The
-    server log saved beside each batch and team run (`<log>.server.log`) has the cause.
+  - **Deaths:** since 20 October the agent is told where it died, what killed it, and that its items
+    vanish 5 minutes later; in thome1 it went back 3 times in 48 deaths.
 - **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
   as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
@@ -186,6 +185,18 @@ building on it.
   teammate's shelter from the team's shared state, but only within 32 blocks and only while its walls
   still stand in the world, as a player would see a hut. Its own large shelter the agent remembers up to
   128 blocks away (a player remembers where their base is). Not yet tried in a full team run.
+  Going into one is by its doorway: walk to it, dig its two blocks, wait to pick them up, step in,
+  close it. In bpoc the pathfinder found its own way in instead, timed out 10 times and left 4-7
+  gaps in the walls when it got in; live, after the change, 2 of 3 approaches went in by the doorway
+  and closed it (10 s and 29 s).
+- **The pathfinder can freeze mid-jump at an ordinary one-block step.** Seen at 2,74,34 on this
+  seed: the bot hangs at y=74.42 with forward and jump held, a path is found, and nothing above or
+  around it is in the way. Cause unknown. Getting into a shelter now notices after 4 s, hops and
+  tries again, and after three tries fails saying where it is stuck (37 s, not 80). Other skills'
+  walking (go_to, flee) do not have that watch yet.
+- **Deaths are recorded with their cause (since 20 October),** as the game words it ("was slain by
+  Zombie"), with the place, the in-game day and time, and are listed in the minds panel. The agent's
+  death event says it too. Older logs show the deaths without a cause.
 - **A shelter is closed once built (since 20 October).** Its floor is filled where the ground has
   holes, and its doorway is filled in behind the builder; the pathfinder digs back out through any
   wall when the agent leaves. Before that the doorway stayed open (in p5 mobs walked in on agents

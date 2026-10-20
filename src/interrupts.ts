@@ -68,14 +68,16 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *    hostile interrupts would abort it exactly when it matters. Night is also moot.
  *  - eat: a couple of seconds long; the model replans right after anyway.
  *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
- *  - build_shelter: getting under cover is the answer to dusk and nightfall, not something they should cut short.
+ *  - build_shelter: getting under cover is the answer to dusk, nightfall and a mob close by, not something they should cut short.
  *  - ask_agent: it is waiting for an answer addressed to it, which must not cut the wait short.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
   flee: ["damage", "hostile", "dusk", "night", "message"],
   eat: ["damage", "hostile", "dusk", "night", "message"],
   sleep: ["damage", "hostile", "dusk", "night", "message"],
-  build_shelter: ["dusk", "night"],
+  // Hostile too: going into a shelter is the answer to a zombie close by (in bpoc it was interrupted 13
+  // times on the way in). Building in the open still stops for one by itself (threatened), and damage interrupts.
+  build_shelter: ["dusk", "night", "hostile"],
   // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
   hunt: ["damage", "hostile"],
   ask_agent: ["message"],

@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, liquidBeside, opensOnClick, threatened, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, liquidBeside, opensOnClick, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
 const { goals } = pathfinderPkg;
@@ -184,7 +184,9 @@ async function closeDoorway(ctx: SkillContext, cells: Vec3[]): Promise<boolean> 
       for (const direction of FACES) {
         const reference = bot.blockAt(cell.plus(direction));
         if (!reference || reference.boundingBox !== "block" || opensOnClick(reference.name)) continue;
-        const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+        // Planks or dirt first: dug by hand they drop, so whoever opens the doorway can close it again.
+        const blocks = bot.inventory.items().filter((item) => isBuildingBlock(item.name));
+        const stack = blocks.find((item) => item.name.endsWith("_planks") || item.name === "dirt") ?? blocks[0];
         if (!stack) return false;
         try {
           await bot.equip(stack, "hand");
@@ -300,7 +302,9 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
     const placedBefore = placed;
     for (const offset of remaining) {
       if (ctx.shouldStop()) return { done: false, result: { status: "aborted", reason: "the run is ending", detail: { position, placed } } };
-      const danger = threatened(ctx);
+      // Building in the open stops for a mob close by; filling the gaps of a shelter the agent is inside does not:
+      // that is how it gets safe from the mob.
+      const danger = b.repair ? null : threatened(ctx);
       if (danger) return { done: false, result: { status: "aborted", reason: `stopped building because ${danger}`, detail: { position, placed } } };
 
       if (!needsBlock(offset)) continue;
@@ -389,17 +393,51 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
  * Walks into a known shelter (digging in if it is closed), fills any gaps and closes the doorway
  * behind the agent. For skills that need the agent inside one: build_shelter, sleep with a bed in it.
  */
+/**
+ * In through the doorway: walk to the cell outside it, dig its two blocks (picking them up on the way
+ * in, to close it with), and step to the centre. Letting the pathfinder find its own way in timed out
+ * 10 times in bpoc on a closed large shelter, and when it did get in it had dug through the walls,
+ * leaving 4-7 gaps an agent with no blocks could not fill.
+ */
+async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: number): Promise<void> {
+  const bot = ctx.bot;
+  const r = half(spot.size ?? 3) + 1;
+  const centre = new Vec3(spot.x, spot.y, spot.z);
+  const outside = centre.offset(0, 0, r + 1);
+  await gotoWatched(bot, new goals.GoalBlock(outside.x, outside.y, outside.z), timeoutMs, "walking to the shelter's doorway");
+  for (const dy of [1, 0]) {
+    const block = bot.blockAt(centre.offset(0, dy, r));
+    if (block && block.boundingBox === "block") {
+      const tool = bot.pathfinder.bestHarvestTool(block);
+      if (tool) await bot.equip(tool, "hand");
+      await withTimeout(bot.dig(block), Math.max(10_000, bot.digTime(block) + 2000), "opening the doorway");
+    }
+  }
+  // A dropped block can't be picked up for its first 10 ticks: wait beside it, or walk past and leave it.
+  await bot.waitForTicks(16);
+  await gotoWatched(bot, new goals.GoalBlock(centre.x, centre.y, centre.z), 15_000, "stepping inside");
+}
+
 export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
   const bot = ctx.bot;
   if (!insideSpot(bot, spot)) {
     const far = bot.entity.position.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5)) > REUSE_RANGE;
+    const timeout = far ? HOME_TIMEOUT_MS : ENTER_TIMEOUT_MS;
     try {
-      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), far ? HOME_TIMEOUT_MS : ENTER_TIMEOUT_MS, "walking into the shelter");
-    } catch (error) {
+      await inThroughDoor(ctx, spot, timeout);
+    } catch (doorError) {
       bot.pathfinder.setGoal(null);
       if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
-      return { ok: false, result: { status: "failed", reason: `could not get into ${describeShelter(spot)} at ${spotKey(spot)}: ${(error as Error).message}` } };
+      ctx.log(`could not go in by the doorway (${(doorError as Error).message}); going in another way`);
+      try {
+        await gotoWatched(bot, new goals.GoalBlock(spot.x, spot.y, spot.z), timeout, "walking into the shelter");
+      } catch (error) {
+        bot.pathfinder.setGoal(null);
+        if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
+        return { ok: false, result: { status: "failed", reason: `could not get into ${describeShelter(spot)} at ${spotKey(spot)}: ${(error as Error).message}` } };
+      }
     }
+    await bot.waitForTicks(10); // the doorway's blocks, dropped as it was dug, are picked up on the way in
   }
   const size = spot.size ?? 3;
   const finished = spot.complete !== false;
