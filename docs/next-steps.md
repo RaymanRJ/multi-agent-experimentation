@@ -171,8 +171,18 @@ Read this at the start of a session; update it when something finishes or a new 
    again each time it had explored more than 32 blocks away. Fixed (not yet checked live): asking for a
    large shelter takes the agent back to its own large one up to 128 blocks off, and its observation
    lists it at any distance up to 128; a teammate's still counts only within sight.
-   **Next, after noon on the owner's word:** a live check of that (two bots, one base 80 blocks off), the
-   bpoc proof run again (about $0.30), then Opus, Sonnet and Luna on `team-base` (about $10).
+   Checked live (base 80 blocks off). bpoc's logs also showed entries timing out (10 of them), the
+   pathfinder digging through walls on the way in, and mobs stopping the way in (13 times): fixed by going
+   in through the doorway, a stuck-pathfinder check, and a mob close by not stopping `build_shelter`.
+   **Proof run bpoc2 (three Luna, 20 October, $0.29), not met:** one large two-storey base, all three
+   slept in it, 2 of 3 iron pickaxes, 7 of 10 cooked meat. Inside a closed shelter at 39% of night-time
+   decisions (bpoc 9%); no entry failed to get in, a third left the doorway open for want of a block.
+   18 deaths, 6 of them water or drowned. After it: deaths are told to teammates; messages addressed to
+   an agent keep their own queue; `build_shelter` goes on into a shelter while hit until health is 6 or
+   less, and isn't stopped by messages (7 entries stopped by a hit in bpoc2, 3 by messages); `go_to`
+   and `flee` have the stuck check, which no longer takes digging for being stuck. Checked live, except the message rule (unit-tested only).
+   Batch reports are one page each now (the per-run pages stay in `runs/`).
+   **Next, on the owner's word:** Opus, Sonnet and Luna on `team-base`, three reps (about $10).
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times
