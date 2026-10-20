@@ -98,6 +98,8 @@ export interface RunStart {
   stance: string | null;
   episode: string;
   startedAt: string;
+  /** Its viewer's port, when it has one. */
+  view?: number;
 }
 
 export const startFileFor = (log: string) => log.replace(/\.jsonl$/, ".start.json");
@@ -156,6 +158,7 @@ export function startingRow(file: string, start: RunStart, mtimeMs: number, now:
     medianMs: 0,
     startedAt: start.startedAt,
     lastAt: mtimeMs,
+    view: status === "starting" ? (start.view ?? null) : null,
   };
 }
 
@@ -191,6 +194,8 @@ export interface RunRow {
   medianMs: number;
   startedAt: string;
   lastAt: number;
+  /** The port its viewer is on, while it runs with one; null otherwise (the viewer stops with the agent). */
+  view: number | null;
 }
 
 export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: number, live: LiveStep | null = null): RunRow | null {
@@ -229,6 +234,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     medianMs: summary.decisionMsMedian,
     startedAt: first.at,
     lastAt: Number.isNaN(lastAt) ? mtimeMs : Math.max(lastAt, mtimeMs),
+    view: status === "running" ? (last.config?.view ?? null) : null,
   };
 }
 

@@ -94,6 +94,8 @@ const config: RunConfig = {
 const skills = comms ? SKILLS : SKILLS.filter((skill) => !COMMS_SKILLS.has(skill.name));
 const team = String(argv["team"] ?? "").split(",").map((name) => name.trim()).filter(Boolean);
 if (team.length > 0) config.team = team;
+const viewPort = argv["view"] === undefined || argv["view"] === false ? null : argv["view"] === true ? 3007 : Number(argv["view"]);
+if (viewPort !== null) config.view = viewPort;
 
 const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
 
@@ -168,6 +170,7 @@ async function main(): Promise<void> {
   const start: RunStart = {
     agent: agentName, brain: brain.label, brainDetail: brain.detail, goal, scenario: scenario.name,
     memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(),
+    ...(viewPort !== null ? { view: viewPort } : {}),
   };
   writeFileSync(startFileFor(runLog.file), JSON.stringify(start));
 
@@ -390,10 +393,9 @@ async function main(): Promise<void> {
   // `--view` serves this bot's view of the world in a browser. Pass a port
   // (`--view 3008`) to watch several agents at once. It observes only — no
   // extra player joins the world.
-  if (argv["view"] !== undefined && argv["view"] !== false) {
-    const port = argv["view"] === true ? 3007 : Number(argv["view"]);
-    startViewer(bot, { port, firstPerson: false, viewDistance: 6 });
-    console.log(`[${agentName}] viewer at http://localhost:${port}`);
+  if (viewPort !== null) {
+    startViewer(bot, { port: viewPort, firstPerson: false, viewDistance: 6 });
+    console.log(`[${agentName}] viewer at http://localhost:${viewPort}`);
   }
 
   const ctx: SkillContext = {
