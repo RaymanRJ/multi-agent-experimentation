@@ -876,14 +876,6 @@ function printColumns<T>(items: T[], columns: Array<[string, (item: T) => string
   );
 }
 
-// Only as a command: the minds panel imports summarizeRun.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    console.error("Fatal error:", err);
-    process.exit(1);
-  });
-}
-
 const total = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
 
 /** Hits between this agent and other agents, "given/taken"; "-" when there were none. */
@@ -895,4 +887,12 @@ export function hitPair(s: Pick<RunSummary, "hitsGiven" | "hitsTaken">): string 
 /** "5 on qb, 2 on qc" — who an agent hit, or was hit by, most first. */
 export function hitList(counts: Record<string, number>, word: "on" | "from"): string {
   return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, n]) => `${n} ${word} ${name}`).join(", ");
+}
+
+// Only as a command: the minds panel imports summarizeRun.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
 }
