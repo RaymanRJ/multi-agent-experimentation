@@ -254,6 +254,8 @@ export interface LoggedStep {
   config?: RunConfig;
   /** World age in ticks since the run's first observation. Sleeping does not skip it. */
   ticks?: number;
+  /** Hits between this agent and other agents during the step, either way, by username. */
+  hits?: Array<{ by: string; on: string }>;
   /** Inventory once the step's skill finished — observations are taken before, so the last result is otherwise lost. */
   inventoryAfter?: Record<string, number>;
   /** The requests shown in this step's observation, and what this decision did about each. */

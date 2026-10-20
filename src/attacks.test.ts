@@ -15,17 +15,23 @@ function setup() {
   const bot = Object.assign(new EventEmitter(), { entity: self }) as unknown as Bot & EventEmitter;
   const lines: string[] = [];
   let clock = 0;
-  watchAttacks(bot, (line, replaceLast) => (replaceLast ? (lines[lines.length - 1] = line) : lines.push(line)), () => clock);
-  return { bot, lines, tick: (ms: number) => (clock += ms) };
+  const hits: Array<{ by: string; on: string }> = [];
+  watchAttacks(bot, {
+    report: (line, replaceLast) => (replaceLast ? (lines[lines.length - 1] = line) : lines.push(line)),
+    onHit: (hit) => hits.push(hit),
+    now: () => clock,
+  });
+  return { bot, lines, hits, tick: (ms: number) => (clock += ms) };
 }
 
 test("watchAttacks - the victim learns who hit it, the attacker who it hit, and an onlooker sees it", () => {
-  const { bot, lines } = setup();
+  const { bot, lines, hits } = setup();
   bot.emit("entityHurt", self, other("qb"));
   bot.emit("entityHurt", self, zombie);
   bot.emit("entityHurt", other("qb"), self);
   bot.emit("entityHurt", other("qb"), other("qc"));
   assert.deepEqual(lines, ["you were hit by qb (another agent)", "you were hit by a zombie", "you hit qb", "qc hit qb"]);
+  assert.deepEqual(hits, [{ by: "qb", on: "qa" }, { by: "qa", on: "qb" }], "the log gets only hits this agent took part in, and only between agents");
 });
 
 test("watchAttacks - repeats fold into one line; hunting an animal, harm with no source and fights out of sight say nothing", () => {

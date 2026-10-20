@@ -190,6 +190,9 @@ function teamSection(runs: Run[]): string[] {
     if (low) parts.push(`built ${low === 1 ? "a one-storey shelter" : `${low} one-storey shelters`}`);
     if (d.gave.length) parts.push(`gave ${gaveList(d.gave)}`);
     if (d.failedGives) parts.push(`${plural(d.failedGives, "give")} failed`);
+    const times = (counts: Record<string, number>) => Object.entries(counts).map(([name, n]) => `${name} ${plural(n, "time")}`).join(", ");
+    if (Object.keys(run.s.hitsGiven).length) parts.push(`hit ${times(run.s.hitsGiven)}`);
+    if (Object.keys(run.s.hitsTaken).length) parts.push(`was hit by ${times(run.s.hitsTaken)}`);
     const got = received.get(run.s.agentName.toLowerCase());
     if (got && Object.keys(got).length) parts.push(`received ${list(got)}`);
     parts.push(`said ${plural(d.said.all + d.said.directed, "thing")} (${d.said.directed} to someone by name)`);

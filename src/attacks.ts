@@ -21,8 +21,15 @@ function who(entity: Entity): string {
   return entity.type === "player" ? (entity.username ?? "a player") : `a ${entity.name ?? "creature"}`;
 }
 
-/** Calls `report` with a new line, or with `replaceLast` true when the line repeats the previous one. */
-export function watchAttacks(bot: Bot, report: (line: string, replaceLast: boolean) => void, now = () => Date.now()): void {
+export interface AttackWatch {
+  /** A new line, or with `replaceLast` true the same line again, counted. */
+  report: (line: string, replaceLast: boolean) => void;
+  /** Every hit between this agent and another agent, either way, by username: for the run log. */
+  onHit?: (hit: { by: string; on: string }) => void;
+  now?: () => number;
+}
+
+export function watchAttacks(bot: Bot, { report, onHit, now = () => Date.now() }: AttackWatch): void {
   let last = { text: "", count: 0, at: 0 };
   const say = (text: string) => {
     const t = now();
@@ -37,6 +44,9 @@ export function watchAttacks(bot: Bot, report: (line: string, replaceLast: boole
 
   bot.on("entityHurt", (victim: Entity, source?: Entity) => {
     if (!source || source === victim) return; // a fall, drowning, fire: no one did it
+    if (onHit && source.type === "player" && victim.type === "player" && (victim === bot.entity || source === bot.entity)) {
+      onHit({ by: source.username ?? "?", on: victim.username ?? "?" });
+    }
     if (victim === bot.entity) {
       say(`you were hit by ${who(source)}${source.type === "player" ? " (another agent)" : ""}`);
     } else if (source === bot.entity) {

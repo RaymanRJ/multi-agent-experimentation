@@ -107,11 +107,13 @@ export const hunt: Skill = {
           const reason = killed ? `killed ${killed}; no more ${target} within ${CREATURE_RANGE} blocks` : `no ${target} within ${CREATURE_RANGE} blocks — explore to find one`;
           return { status: killed ? "success" : "failed", reason, detail: report() };
         }
-        const chaseEnds = Date.now() + CHASE_MS;
+        // The chase gives up after CHASE_MS out of reach, counted from the last hit: each hit knocks the
+        // target back, so a fixed limit from the start let a player "get away" mid-fight (5 hits, live).
+        let chaseEnds = Date.now() + CHASE_MS;
         let lastHit = 0;
         while (!dead.has(prey.id)) {
           if (ctx.shouldStop() || bot.health <= RETREAT_HEALTH) break;
-          if (!bot.entities[prey.id] || Date.now() > chaseEnds) break;
+          if (!bot.entities[prey.id] || Date.now() > chaseEnds || Date.now() - startedAt > MAX_SKILL_MS) break;
           if (!(await closeIn(bot, prey, REACH, Math.max(0, chaseEnds - Date.now())))) break;
           const wait = lastHit + cooldownMs(weapon) - Date.now();
           if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
@@ -119,10 +121,11 @@ export const hunt: Skill = {
           await bot.lookAt(prey.position.offset(0, prey.height * 0.8, 0), true);
           bot.attack(prey);
           lastHit = Date.now();
+          chaseEnds = lastHit + CHASE_MS;
         }
         bot.pathfinder.setGoal(null);
         if (!dead.has(prey.id)) {
-          if (ctx.shouldStop() || bot.health <= RETREAT_HEALTH) continue; // the checks at the top say why
+          if (ctx.shouldStop() || bot.health <= RETREAT_HEALTH || Date.now() - startedAt > MAX_SKILL_MS) continue; // the checks at the top say why
           return {
             status: killed ? "success" : "failed",
             reason: `the ${target} got away (out of reach for ${CHASE_MS / 1000} seconds, or out of sight)${killed ? ` after ${killed} killed` : ""}`,

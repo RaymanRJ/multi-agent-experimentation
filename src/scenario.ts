@@ -1,5 +1,6 @@
 import { Rcon } from "rcon-client";
 import type { ScenarioName } from "./types.js";
+import type { ChestViews } from "./team.js";
 
 export interface Scenario {
   name: ScenarioName;
@@ -141,6 +142,8 @@ export interface GoalState {
   nightSurvivedSinceShelter: boolean;
   /** Storeys of the tallest shelter built so far (0 for none). Absent where no goal needs it. */
   shelterStoreys?: number;
+  /** Chests opened by the agent (or, for a team goal, any member), as last seen; see `inChests` in team.ts. */
+  chests?: ChestViews;
   /** Each team member's own inventory, by name, for team goals that ask something of every member. */
   members?: Record<string, Record<string, number>>;
 }

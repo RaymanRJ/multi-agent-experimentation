@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
-import { newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
+import { hitList, hitPair, newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
 import { brainLabel, MILESTONES, parseSteps } from "./minds.js";
 import { GOAL_GAPS, TEAM_GOALS, goalTask } from "./scenario.js";
 
@@ -302,6 +302,10 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   if (thinking > 0 && total > 0) lines.push(`The world ran on for ${pct(thinking, total)} of the run while it was thinking.`);
   if (s.doneRefused > 0) lines.push(`It claimed to be done ${s.doneRefused} time${s.doneRefused > 1 ? "s" : ""} before the goal was met.`);
   if (s.deaths > 0) lines.push(`It died ${s.deaths} time${s.deaths > 1 ? "s" : ""}, losing what it carried each time.`);
+  if (hitPair(s) !== "-") {
+    const parts = [hitList(s.hitsGiven, "on"), hitList(s.hitsTaken, "from")].filter(Boolean);
+    lines.push(`It fought other agents: hits ${parts.join("; ")}.`);
+  }
   if (b.invalid > 0) lines.push(`${b.invalid} decision${b.invalid > 1 ? "s" : ""} named a skill that does not exist.`);
   const r = requests(steps);
   const tells = r.received.filter((x) => x.kind === "tell");
@@ -352,6 +356,7 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     add(`| Unusable answers (re-asked, or no such skill) | ${s.retries} re-asked, ${b.invalid} no such skill |`);
   }
   add(`| Deaths | ${s.deaths} |`);
+  add(`| Hits on / from other agents | ${hitPair(s) === "-" ? "-" : `${hitList(s.hitsGiven, "on") || "none"} / ${hitList(s.hitsTaken, "from") || "none"}`} |`);
   add(`| Game time used | ${gameTime(ticks)} of a 20:00 day${first && last ? `, in ${wallTime(new Date(last.at).getTime() - new Date(first.at).getTime())} of real time` : ""} |`);
   if (!scripted) {
     add(`| Thinking time per decision | ${(s.decisionMsMedian / 1000).toFixed(1)} s median, ${(s.decisionMsP90 / 1000).toFixed(1)} s slowest tenth |`);

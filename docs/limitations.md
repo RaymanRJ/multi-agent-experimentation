@@ -66,11 +66,15 @@ building on it.
   unexplained: a zombie inside Sonnet's shelter took it from 20 to 5 health with no kill, where the
   same fight on a test server took five hits and no damage. Since 20 October every hit is reported
   as a player would see it: the agent hit is told by whom, the attacker when it hits another agent,
-  and agents within sight see "qa hit qb" (repeated hits fold into one line). The run report doesn't
-  count attacks between agents yet. Hunting another agent is weak: in a live test, knockback pushed
-  the target out of reach between hits, and it "got away" after 5 hits.
+  and agents within sight see "qa hit qb" (repeated hits fold into one line). Each run log records the hits
+  between agents, and the run report and batch comparison count them (given and taken, by whom).
+  `hunt` gives up on a target only after 30 seconds out of reach since its last hit; it used to be 30
+  seconds for the whole chase, so a target knocked back down a slope "got away" mid-fight. Live, a
+  stone and a wooden sword each killed another bot, in about 20 seconds.
 - **No farming.** Food comes from what an agent `hunt`s and cooks. Chests (`store`, `take`, since 20
-  October) let agents leave things for each other; a team goal doesn't yet count what is in them.
+  October) let agents leave things for each other. Goal checks see each chest as the agent (or for a
+  team goal, the member) that last opened it saw it; no goal uses that yet. A chest emptied or broken
+  some other way still counts until someone opens it again.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
   sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,

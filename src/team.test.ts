@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TeamBoard, combine, stillWorking } from "./team.js";
+import { TeamBoard, combine, inChests, stillWorking, type ChestViews } from "./team.js";
 
-const member = (inventory: Record<string, number>, more: Partial<{ shelterBuilt: boolean; shelterStoreys: number; goalMet: boolean }> = {}) =>
+const member = (inventory: Record<string, number>, more: Partial<{ shelterBuilt: boolean; shelterStoreys: number; goalMet: boolean; chests: ChestViews }> = {}) =>
   ({ inventory, shelterBuilt: false, nightSurvivedSinceShelter: false, shelterStoreys: 0, goalMet: false, ...more });
 
 test("combine - adds up what the team holds, and counts a shelter built by anyone", () => {
@@ -42,4 +42,13 @@ test("TeamBoard - an episode name can't point outside the board", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("chests - the team sees each chest as whoever opened it last, and can add them up", () => {
+  const a = member({}, { chests: { "1,64,1": { holds: { cooked_beef: 12 }, seenAt: 100 } } });
+  const b = member({}, { chests: { "1,64,1": { holds: { cooked_beef: 5 }, seenAt: 200 }, "9,64,9": { holds: { cobblestone: 40, cooked_beef: 3 }, seenAt: 150 } } });
+  const team = combine([a, b]);
+  assert.deepEqual(team.chests?.["1,64,1"]?.holds, { cooked_beef: 5 }, "b took 7 after a stored 12");
+  assert.deepEqual(inChests(team.chests), { cooked_beef: 8, cobblestone: 40 });
+  assert.deepEqual(inChests(undefined), {});
 });

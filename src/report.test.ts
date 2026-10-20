@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { byCondition, scoreStances, summarizeRun, wilson, type RunSummary } from "./report.js";
+import { byCondition, hitList, hitPair, scoreStances, summarizeRun, wilson, type RunSummary } from "./report.js";
 import { GOALS } from "./scenario.js";
 import type { LoggedStep } from "./types.js";
 
@@ -905,4 +905,18 @@ test("lostConnection - a recorded disconnect, or an older log whose last step sh
   assert.equal(lostConnection(last("wait hit an unexpected error: Timeout waiting for 4 ticks after 5200ms"), "step limit / stopped"), true);
   assert.equal(lostConnection(last("need 3 more cobblestone"), "step limit / stopped"), false);
   assert.equal(lostConnection(last("Timeout waiting for 4 ticks"), "time budget"), false, "a run that ended properly is judged by how it ended");
+});
+
+test("summarizeRun - counts hits between agents, given and taken, by who", () => {
+  const steps = [
+    makeStep({ step: 1, hits: [{ by: "qa", on: "qb" }, { by: "qa", on: "qb" }, { by: "qc", on: "qa" }] }),
+    makeStep({ step: 2, hits: [{ by: "qa", on: "qc" }] }),
+    makeStep({ step: 3 }),
+  ];
+  const s = summarizeRun(steps, "runs/2026-10-20T00-00-00-000Z-qa.jsonl");
+  assert.deepEqual(s.hitsGiven, { qb: 2, qc: 1 });
+  assert.deepEqual(s.hitsTaken, { qc: 1 });
+  assert.equal(hitPair(s), "3/1");
+  assert.equal(hitList(s.hitsGiven, "on"), "2 on qb, 1 on qc");
+  assert.equal(hitPair(summarizeRun([makeStep()], "runs/x-qa.jsonl")), "-");
 });

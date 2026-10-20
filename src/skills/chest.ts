@@ -134,12 +134,12 @@ export const store: Skill = {
     const stored = difference(countInventory(bot), before, -1);
     const summary = `the chest at ${where(chest)} now holds ${describe(holds)}`;
     if (Object.keys(stored).length === 0) {
-      return { status: "failed", reason: full ? `the chest at ${where(chest)} is full (${describe(holds)})` : `nothing was stored; ${summary}`, detail: { chest: chest.position, holds } };
+      return { status: "failed", reason: full ? `the chest at ${where(chest)} is full (${describe(holds)})` : `nothing was stored; ${summary}`, detail: { chests: [{ at: where(chest), holds }] } };
     }
     return {
       status: "success",
       reason: `stored ${describe(stored)}${full ? " (the chest is now full)" : ""}; ${summary}`,
-      detail: { chest: chest.position, stored, holds },
+      detail: { chests: [{ at: where(chest), holds }], stored },
     };
   },
 };
@@ -162,6 +162,7 @@ export const take: Skill = {
 
     const start = countInventory(bot);
     const seen: string[] = [];
+    const views: Array<{ at: string; holds: Counts }> = [];
     let full = false;
     for (const chest of chests) {
       if (ctx.shouldStop() || full) break;
@@ -188,7 +189,9 @@ export const take: Skill = {
           moved += stack.count;
         }
         await bot.waitForTicks(2);
-        seen.push(`the chest at ${where(chest)} holds ${describe(chestContents(window))}`);
+        const holds = chestContents(window);
+        views.push({ at: where(chest), holds });
+        seen.push(`the chest at ${where(chest)} holds ${describe(holds)}`);
       } finally {
         bot.closeWindow(window);
       }
@@ -197,12 +200,12 @@ export const take: Skill = {
     const gained = difference(countInventory(bot), start, 1);
     const looked = seen.join("; ");
     if (!gained[item]) {
-      return { status: "failed", reason: `no ${item} in the ${chests.length === 1 ? "chest" : "chests"} nearby: ${looked}`, detail: { seen } };
+      return { status: "failed", reason: `no ${item} in the ${chests.length === 1 ? "chest" : "chests"} nearby: ${looked}`, detail: { chests: views } };
     }
     return {
       status: "success",
       reason: `took ${describe(gained)}${full ? " (your inventory is full)" : ""}; ${looked}`,
-      detail: { taken: gained, seen },
+      detail: { chests: views, taken: gained },
     };
   },
 };

@@ -17,7 +17,7 @@ import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
-import { TeamBoard, combine, stillWorking } from "./team.js";
+import { TeamBoard, combine, stillWorking, type ChestViews } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
@@ -245,7 +245,9 @@ async function main(): Promise<void> {
   let ownGoalMet = false;
   let toldTeamWaiting = false;
   let shelterStoreys = 0;
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys });
+  // Chests this agent has opened, as it last saw each: for goals (and team goals) that count what is in them.
+  const chestViews: ChestViews = {};
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -269,11 +271,15 @@ async function main(): Promise<void> {
   // bot.inventory exists only once the bot has spawned.
   watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
   let lastAttackLine = "";
-  watchAttacks(bot, (line, replaceLast) => {
-    // Fold a repeat into the line it repeats, only if nothing else has been said since.
-    if (replaceLast && recentEvents.at(-1) === lastAttackLine) recentEvents[recentEvents.length - 1] = line;
-    else recentEvents.push(line);
-    lastAttackLine = line;
+  let stepHits: NonNullable<LoggedStep["hits"]> = [];
+  watchAttacks(bot, {
+    report: (line, replaceLast) => {
+      // Fold a repeat into the line it repeats, only if nothing else has been said since.
+      if (replaceLast && recentEvents.at(-1) === lastAttackLine) recentEvents[recentEvents.length - 1] = line;
+      else recentEvents.push(line);
+      lastAttackLine = line;
+    },
+    onHit: (hit) => stepHits.push(hit),
   });
   bot.pathfinder.setMovements(movementsFor(bot));
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
@@ -384,7 +390,8 @@ async function main(): Promise<void> {
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
-      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), ...(stepHits.length ? { hits: stepHits } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      stepHits = [];
     };
 
     const startedAt = Date.now();
@@ -532,6 +539,9 @@ async function main(): Promise<void> {
       const note = `your last ${idleWaits} decisions were all wait, in daylight with no hostile mobs in sight`;
       recentEvents.push(note);
       stepEvents.push(note);
+    }
+    for (const view of (result.detail?.["chests"] as Array<{ at: string; holds: Record<string, number> }> | undefined) ?? []) {
+      chestViews[view.at] = { holds: view.holds, seenAt: Date.now() };
     }
     if (decision.skill === "build_shelter" && result.status === "success") {
       shelterBuilt = true;

@@ -8,8 +8,13 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+/** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch). */
+export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number }>;
+
 export interface MemberState {
   inventory: Record<string, number>;
+  /** Chests this member has opened (store, take), as it last saw them. */
+  chests?: ChestViews;
   shelterBuilt: boolean;
   nightSurvivedSinceShelter: boolean;
   /** Storeys of the tallest shelter this member has built; 0 for none. */
@@ -69,7 +74,28 @@ export function combine(states: Array<Omit<MemberState, "at" | "goalMet">>): Omi
     shelterBuilt: states.some((s) => s.shelterBuilt),
     nightSurvivedSinceShelter: states.some((s) => s.nightSurvivedSinceShelter),
     shelterStoreys: Math.max(0, ...states.map((s) => s.shelterStoreys ?? 0)),
+    chests: latestChests(states.map((s) => s.chests ?? {})),
   };
+}
+
+/**
+ * Each chest as whoever opened it last saw it. Only agents move items in and out (store, take), and
+ * each reports the whole chest afterwards, so the latest view is the chest's contents; a chest
+ * broken by a creeper would still count until someone opens it again.
+ */
+export function latestChests(views: ChestViews[]): ChestViews {
+  const out: ChestViews = {};
+  for (const view of views) {
+    for (const [at, seen] of Object.entries(view)) if (!out[at] || out[at]!.seenAt < seen.seenAt) out[at] = seen;
+  }
+  return out;
+}
+
+/** Everything in all the chests, added up. */
+export function inChests(chests: ChestViews | undefined): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const { holds } of Object.values(chests ?? {})) for (const [name, n] of Object.entries(holds)) total[name] = (total[name] ?? 0) + n;
+  return total;
 }
 
 /** Teammates whose own goal is not met yet, by name, for "the team is not done" messages. */

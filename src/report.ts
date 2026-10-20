@@ -28,6 +28,9 @@ export interface RunSummary {
   howEnded: EndReason | "policy ended" | "step limit / stopped";
   skillCounts: Record<string, { success: number; failed: number; aborted: number }>;
   deaths: number;
+  /** Hits on other agents and from them, by the other agent's name (from each step's `hits`). */
+  hitsGiven: Record<string, number>;
+  hitsTaken: Record<string, number>;
   goalMet: boolean | "n/a";
   /** When and after how many game ticks the goal was met; null if it wasn't. */
   goalMetAt: string | null;
@@ -249,6 +252,16 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
+  const hitsGiven: Record<string, number> = {};
+  const hitsTaken: Record<string, number> = {};
+  const self = agentNamePart.toLowerCase();
+  for (const step of steps) {
+    for (const hit of step.hits ?? []) {
+      if (hit.by.toLowerCase() === self) hitsGiven[hit.on] = (hitsGiven[hit.on] ?? 0) + 1;
+      else if (hit.on.toLowerCase() === self) hitsTaken[hit.by] = (hitsTaken[hit.by] ?? 0) + 1;
+    }
+  }
+
   // Deaths: count from new events per step (deduplicated by window alignment)
   let deaths = 0;
   const newEvents = newEventsPerStep(steps);
@@ -416,6 +429,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     howEnded,
     skillCounts,
     deaths,
+    hitsGiven,
+    hitsTaken,
     goalMet,
     goalMetAt: goalStep?.at ?? null,
     ticksToGoal: goalStep?.ticks ?? null,
@@ -825,6 +840,7 @@ function printTable(summaries: RunSummary[]) {
     ["Ended", (s) => s.howEnded || "", false],
     ["Valid", (s) => (s.validity === "valid" ? "yes" : `no: ${s.validity}`), false],
     ["Deaths", (s) => String(s.deaths), true],
+    ["Hits given/taken", (s) => hitPair(s), true],
     ["Goal", (s) => formatGoalMet(s.goalMet), false],
     ["Outcome", (s) => formatGoalMet(s.outcome), false],
     ["Night", (s) => (s.nightReached ? "yes" : "no"), false],
@@ -861,4 +877,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.error("Fatal error:", err);
     process.exit(1);
   });
+}
+
+const total = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
+
+/** Hits between this agent and other agents, "given/taken"; "-" when there were none. */
+export function hitPair(s: Pick<RunSummary, "hitsGiven" | "hitsTaken">): string {
+  const given = total(s.hitsGiven), taken = total(s.hitsTaken);
+  return given || taken ? `${given}/${taken}` : "-";
+}
+
+/** "5 on qb, 2 on qc" — who an agent hit, or was hit by, most first. */
+export function hitList(counts: Record<string, number>, word: "on" | "from"): string {
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, n]) => `${n} ${word} ${name}`).join(", ");
 }
