@@ -899,6 +899,8 @@ test("survivedNight: a 'goal met' outpost log whose last night had a death in it
   const s = summarizeRun([outpost(1, true), outpost(2, false), outpost(3, false, {}, ["you died and respawned"]), outpost(4, true, { ended: "goal met" }, ["you died and respawned"])], "x-a.jsonl");
   assert.equal(s.goalMet, true, "the log says so");
   assert.equal(s.survivedNight, false);
+  assert.equal(s.outcome, false, "but it is not counted as met");
+  assert.equal(s.nightForfeit, true);
   assert.equal(s.milestones["survived_night"], null);
 });
 

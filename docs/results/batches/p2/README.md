@@ -1,6 +1,6 @@
 # Batch p2
 
-*Built from the run logs on 2026-10-20 by the report code at 90710b0 (`scripts/publish-reports.sh p2`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
+*Built from the run logs on 2026-10-20 by the report code at 441cbad (`scripts/publish-reports.sh p2`). Where this differs from the write-up in `docs/results/`, the write-up was made at the time, and the report code has been fixed since.*
 
 4 runs · 2026-10-19 · 677k / 53.5k tokens in / out · total cost $0.88
 

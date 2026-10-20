@@ -50,6 +50,11 @@ export interface RunSummary {
    * Set by scoreStances(); equals goalMet until then.
    */
   outcome: boolean | "n/a";
+  /**
+   * The log says "goal met" on `outpost`, but the agent died in the night it was credited for: logs from
+   * before 19 October, when the agent's own check let that through (p2's Haiku). Not counted as met.
+   */
+  nightForfeit: boolean;
   nightReached: boolean;
   survivedNight: boolean | "unknown";
   decisions: number;
@@ -92,16 +97,17 @@ export function scoreStances(summaries: RunSummary[]): void {
     if (!s.episode) continue;
     byEpisode.set(s.episode, [...(byEpisode.get(s.episode) ?? []), s]);
   }
+  const met = (p: RunSummary) => p.goalMet === true && !p.nightForfeit;
   for (const s of summaries) {
     if (s.goalMet === "n/a") continue;
     const peers = (s.episode ? byEpisode.get(s.episode) : undefined)?.filter((p) => p.stance === s.stance) ?? [s];
     if (s.stance === "collaborative") {
-      s.outcome = peers.every((p) => p.goalMet === true);
+      s.outcome = peers.every(met);
     } else if (s.stance === "competitive") {
-      const times = peers.map((p) => p.goalMetAt).filter((at): at is string => at !== null).sort();
-      s.outcome = s.goalMetAt !== null && s.goalMetAt === times[0];
+      const times = peers.filter(met).map((p) => p.goalMetAt).filter((at): at is string => at !== null).sort();
+      s.outcome = met(s) && s.goalMetAt === times[0];
     } else {
-      s.outcome = s.goalMet;
+      s.outcome = met(s);
     }
   }
 }
@@ -443,7 +449,8 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     comms: brain === "scripted" ? null : (config?.comms ?? null),
     progress: brain === "scripted" ? null : (config ? (config.progress ?? false) : null),
     stance: brain === "scripted" ? null : (config ? (config.stance ?? "legacy") : null),
-    outcome: goalMet,
+    outcome: task === "outpost" && goalMet === true && survivedNight === false ? false : goalMet,
+    nightForfeit: task === "outpost" && goalMet === true && survivedNight === false,
     nightReached,
     survivedNight,
     decisions,
