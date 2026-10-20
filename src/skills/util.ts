@@ -1,4 +1,5 @@
 import type { Bot } from "mineflayer";
+import type { Block } from "prismarine-block";
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 
@@ -187,6 +188,47 @@ const CLICKABLE_SUFFIXES = ["_bed", "_door", "_trapdoor", "_fence_gate", "_butto
 
 export function opensOnClick(name: string): boolean {
   return CLICKABLE.has(name) || CLICKABLE_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
+type Window = NonNullable<Bot["currentWindow"]>;
+
+/**
+ * Opens a block's window (a crafting table, a chest), or returns null if the server never opens it.
+ * bot.openBlock waits for the window with no limit, and a timeout around it left that wait running:
+ * when a later craft opened the table, the stale one woke too and closed the window under it, so one
+ * lost click became a run of "timed out" crafts (Haiku in p5: stone_pickaxe 8 times at one table).
+ */
+async function openBounded(bot: Bot, block: Block, ms: number): Promise<Window | null> {
+  let onOpen: ((window: Window) => void) | undefined;
+  const opened = new Promise<Window>((resolve) => {
+    onOpen = resolve;
+    bot.once("windowOpen", onOpen as never);
+  });
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), ms); });
+  try {
+    await bot.activateBlock(block);
+    return await Promise.race([opened, timedOut]);
+  } finally {
+    clearTimeout(timer);
+    bot.removeListener("windowOpen", onOpen as never);
+  }
+}
+
+const OPEN_TIMEOUT_MS = 4000;
+const OPEN_WALK_TIMEOUT_MS = 30_000;
+
+/** The block's window: opened where the bot stands, or after stepping right up to it. `what` names it in errors. */
+export async function openOrWalk(bot: Bot, block: Block, what: string): Promise<Window> {
+  const first = await openBounded(bot, block, OPEN_TIMEOUT_MS);
+  if (first) return first;
+  const { x, y, z } = block.position;
+  await withTimeout(bot.pathfinder.goto(new pathfinderPkg.goals.GoalNear(x, y, z, 1)), OPEN_WALK_TIMEOUT_MS, `walking to the ${what}`).catch(() => undefined);
+  await closeStrayWindow(bot);
+  const second = await openBounded(bot, block, OPEN_TIMEOUT_MS);
+  if (second) return second;
+  const away = bot.entity.position.offset(0, bot.entity.height, 0).distanceTo(block.position.offset(0.5, 0.5, 0.5));
+  throw new Error(`the ${what} at ${x},${y},${z} did not open (twice; it is ${away.toFixed(1)} blocks from your eyes)`);
 }
 
 /** Closes a window the bot has open, such as a table opened by a stray click, so the server's view matches. */

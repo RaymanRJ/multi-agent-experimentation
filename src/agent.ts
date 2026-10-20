@@ -15,7 +15,7 @@ import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type 
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, stillWorking } from "./team.js";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
@@ -271,6 +271,11 @@ async function main(): Promise<void> {
   // Chunks stream in after spawn; findBlock only sees loaded ones, so observing
   // immediately reports an empty world.
   await bot.waitForChunksToLoad();
+  await unlockRecipes(agentName, {
+    host: env("MC_HOST", "localhost"),
+    port: Number(env("RCON_PORT", "25575")),
+    password: env("RCON_PASSWORD", "devpassword"),
+  });
   console.log(`[${agentName}] spawned at ${bot.entity.position.floored()}`);
 
   // The budget is world age, not time of day: sleeping skips the clock, not the age.

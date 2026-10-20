@@ -11,7 +11,7 @@ const NEARBY_RADIUS = 24;
 /** How far away you can tell what another agent is doing. */
 export const SIGHT_RADIUS = 32;
 const INTERESTING = [
-  "_log", "_planks", "stone", "water", "crafting_table", "furnace",
+  "_log", "_planks", "stone", "water", "crafting_table", "furnace", "chest",
 ];
 
 function isInteresting(name: string): boolean {

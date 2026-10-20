@@ -259,3 +259,18 @@ export async function applyScenario(
     await rcon.end();
   }
 }
+
+/**
+ * Gives a player who has just joined every recipe. Crafting asks the server to fill the grid from the
+ * recipe book, and the server does that only for recipes the player has unlocked; a chest unlocks only
+ * once 10 or more stacks are held, so a chest craft failed with planks to spare. Agents already learn
+ * what they can make from `canCraft` and failure messages, the way a player who knows the game would.
+ */
+export async function unlockRecipes(player: string, opts: { host: string; port: number; password: string }): Promise<void> {
+  const rcon = await Rcon.connect({ host: opts.host, port: opts.port, password: opts.password });
+  try {
+    await rcon.send(`recipe give ${player} *`);
+  } finally {
+    await rcon.end();
+  }
+}
