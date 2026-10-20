@@ -88,15 +88,39 @@ export function layout(storeys = 1): { walls: Vec3[]; roof: Vec3[]; door: Vec3[]
   return { walls, roof, door };
 }
 
+/** Fills the doorway's cells from inside, bottom first. True once both are solid. */
+async function closeDoorway(ctx: SkillContext, cells: Vec3[]): Promise<boolean> {
+  const bot = ctx.bot;
+  const open = (cell: Vec3) => bot.blockAt(cell)?.boundingBox !== "block";
+  for (const cell of cells) {
+    for (let attempt = 0; attempt < PLACE_ATTEMPTS && open(cell); attempt++) {
+      for (const direction of FACES) {
+        const reference = bot.blockAt(cell.plus(direction));
+        if (!reference || reference.boundingBox !== "block" || opensOnClick(reference.name)) continue;
+        const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+        if (!stack) return false;
+        try {
+          await bot.equip(stack, "hand");
+          await withTimeout(bot.placeBlock(reference, direction.scaled(-1)), PLACE_TIMEOUT_MS, "closing the doorway");
+        } catch {
+          await bot.waitForTicks(4); // the block update can arrive after mineflayer gave up waiting
+        }
+        if (!open(cell)) break;
+      }
+    }
+  }
+  return cells.every((cell) => !open(cell));
+}
+
 export const buildShelter: Skill = {
   name: "build_shelter",
   description:
     "Build a small enclosed hut around where you are standing: a 3x3 interior, 2 blocks high, with a roof " +
-    "and a 2-high doorway on the south side, using planks, cobblestone, stone, dirt or similar blocks from " +
-    "inventory. Needs about 43 building blocks (any mix; fewer if natural walls already exist). Logs in your " +
-    "inventory are turned into planks automatically (1 log = 4 planks, so 11 logs is enough on its own). " +
+    "and a 2-high doorway on the south side that is closed behind you once you are inside (walking out digs through it), using planks, cobblestone, stone, dirt or similar blocks from " +
+    "inventory. Needs about 45 building blocks (any mix; fewer if natural walls already exist). Logs in your " +
+    "inventory are turned into planks automatically (1 log = 4 planks, so 12 logs is enough on its own). " +
     "Optional `storeys`: 1 (default) or 2. Two storeys add a second room on top, with a hatch in the floor " +
-    "between them, and need about 87 blocks (22 logs). " +
+    "between them, and need about 89 blocks (23 logs). " +
     "Tells you the exact shortfall if you have too few. Stand on reasonably flat open ground first. " +
     "You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
   args: { storeys: "number?" },
@@ -146,7 +170,8 @@ export const buildShelter: Skill = {
     const needsBlock = (offset: Vec3) => bot.blockAt(cellAt(offset))?.boundingBox !== "block";
     const required = [...walls, ...roof].filter(needsBlock).length;
     const blocksHeld = () => Object.values(materials(ctx)).reduce((a, b) => a + b, 0);
-    if (blocksHeld() < required) await planksFromLogs(ctx, required - blocksHeld());
+    // Two more than the walls and roof need, to close the doorway with; without them it stays open.
+    if (blocksHeld() < required + door.length) await planksFromLogs(ctx, required + door.length - blocksHeld());
     const held = materials(ctx);
     const available = blocksHeld();
     if (available < required) {
@@ -237,18 +262,20 @@ export const buildShelter: Skill = {
       };
     }
 
-    // The door gap must stay open.
-    const doorBlocked = door.some((offset) => !needsBlock(offset));
+    // Close the doorway behind the builder. Left open, it let a zombie walk in on Sonnet in p5 while
+    // it waited inside all night. The pathfinder digs back out through it (or any wall) when it leaves.
+    const closed = await closeDoorway(ctx, door.map(cellAt));
+    const doorway = closed ? "closed behind you (walking out digs through it)" : "open: no building block left to close it, so mobs can walk in";
     return {
       status: "success",
-      reason: `the ${storeys === 2 ? "two-storey " : ""}shelter is finished and you are standing inside it — there is no need to build it again`,
+      reason: `the ${storeys === 2 ? "two-storey " : ""}shelter is finished and you are standing inside it, with the doorway ${doorway} — there is no need to build it again`,
       detail: {
         position: { x: center.x, y: center.y, z: center.z },
         interior: "3x3",
         storeys,
         doorway: `south side at x=${center.x}, z=${center.z + 2}`,
         blocksPlaced: placed,
-        doorwayBlocked: doorBlocked,
+        doorwayClosed: closed,
       },
     };
   },
