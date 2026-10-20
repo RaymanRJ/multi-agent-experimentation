@@ -293,6 +293,8 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
 
   let remaining = cells.filter(needsBlock);
   let placed = 0;
+  // Damage interrupts this skill only at low health (DAMAGE_FLOOR), which suits the way in, not building in the open.
+  let peakHealth = bot.health;
   const failed = new Set<string>();
   const key = (v: Vec3) => `${v.x},${v.y},${v.z}`;
   const hasBlocks = () => bot.inventory.items().some((item) => isBuildingBlock(item.name));
@@ -302,9 +304,11 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
     const placedBefore = placed;
     for (const offset of remaining) {
       if (ctx.shouldStop()) return { done: false, result: { status: "aborted", reason: "the run is ending", detail: { position, placed } } };
-      // Building in the open stops for a mob close by; filling the gaps of a shelter the agent is inside does not:
-      // that is how it gets safe from the mob.
-      const danger = b.repair ? null : threatened(ctx);
+      // Building in the open stops for a mob close by or a hit; filling the gaps of a shelter the agent is inside
+      // does not: that is how it gets safe from the mob.
+      peakHealth = Math.max(peakHealth, bot.health);
+      const hit = bot.health < peakHealth ? `you took damage (health ${Math.round(bot.health)})` : null;
+      const danger = b.repair ? null : hit ?? threatened(ctx);
       if (danger) return { done: false, result: { status: "aborted", reason: `stopped building because ${danger}`, detail: { position, placed } } };
 
       if (!needsBlock(offset)) continue;

@@ -3,7 +3,7 @@ import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, opensOnClick, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, opensOnClick, withTimeout } from "./util.js";
 import { isBuildingBlock } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
@@ -135,7 +135,7 @@ export const flee: Skill = {
       const before = ctx.bot.entity.position.clone();
       let stuck = false;
       try {
-        await withTimeout(ctx.bot.pathfinder.goto(new goals.GoalXZ(tx, tz)), LEG_TIMEOUT_MS, "fleeing");
+        await gotoWatched(ctx.bot, new goals.GoalXZ(tx, tz), LEG_TIMEOUT_MS, "fleeing");
       } catch (error) {
         ctx.bot.pathfinder.setGoal(null);
         ctx.log(`flee leg toward ${tx},${tz} failed: ${(error as Error).message}`);
