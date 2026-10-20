@@ -15,7 +15,8 @@ type Missing = Map<string, number>;
 const REACH = 4;
 const TABLE_SEARCH_RADIUS = 32;
 const TRAVEL_TIMEOUT_MS = 30_000;
-const CRAFT_TIMEOUT_MS = 15_000;
+/** A backstop only: opening the table (twice, with a walk between) and the craft are each bounded. */
+const CRAFT_TIMEOUT_MS = 60_000;
 /** Logs -> planks -> sticks -> tool is two levels of intermediates. */
 const MAX_DEPTH = 2;
 
@@ -232,13 +233,51 @@ async function craftInWindow(bot: Bot, recipe: Recipe, window: Window): Promise<
   await bot.clickWindow(0, 0, 1);
 }
 
+/**
+ * Opens the table, or returns null if the server never opens it. bot.openBlock waits for the
+ * window with no limit, and a timeout around it left that wait running: when a later craft
+ * opened the table, the stale one woke too and closed the window under it, so one lost click
+ * became a run of "timed out" crafts (Haiku in p5: stone_pickaxe 8 times at one table).
+ */
+async function openTable(bot: Bot, table: Block, ms: number): Promise<Window | null> {
+  let onOpen: ((window: Window) => void) | undefined;
+  const opened = new Promise<Window>((resolve) => {
+    onOpen = resolve;
+    bot.once("windowOpen", onOpen as never);
+  });
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), ms); });
+  try {
+    await bot.activateBlock(table);
+    return await Promise.race([opened, timedOut]);
+  } finally {
+    clearTimeout(timer);
+    bot.removeListener("windowOpen", onOpen as never);
+  }
+}
+
+const OPEN_TIMEOUT_MS = 4000;
+
+/** The table's window: opened where the bot stands, or after stepping right up to it. */
+async function openTableOrWalk(bot: Bot, table: Block): Promise<Window> {
+  const first = await openTable(bot, table, OPEN_TIMEOUT_MS);
+  if (first) return first;
+  const { x, y, z } = table.position;
+  await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 1)), TRAVEL_TIMEOUT_MS, "walking to crafting table").catch(() => undefined);
+  await closeStrayWindow(bot);
+  const second = await openTable(bot, table, OPEN_TIMEOUT_MS);
+  if (second) return second;
+  const away = bot.entity.position.offset(0, bot.entity.height, 0).distanceTo(table.position.offset(0.5, 0.5, 0.5));
+  throw new Error(`the crafting table at ${x},${y},${z} did not open (twice; it is ${away.toFixed(1)} blocks from your eyes)`);
+}
+
 /** One craft at a time (bot.craft with n > 1 loses items on this server), verified in the inventory. */
 async function craftOnce(bot: Bot, recipe: Recipe, table: Block | null): Promise<void> {
   const id = recipe.result.id;
   const before = have(bot, id);
   const expected = before + recipe.result.count;
   await closeStrayWindow(bot);
-  const window = table ? await bot.openBlock(table) : bot.inventory;
+  const window = table ? await openTableOrWalk(bot, table) : bot.inventory;
   try {
     await bot.waitForTicks(2);
     await craftInWindow(bot, recipe, window);
