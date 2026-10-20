@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOALS, GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, herdCommands, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOALS, GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, TEAM_GOALS, herdCommands, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
 
 test("resolveGoal - no goal uses the scenario's own", () => {
   assert.equal(resolveGoal(SCENARIOS.survival, undefined), SCENARIOS.survival.goal);
@@ -164,4 +164,24 @@ test("herds - both scenarios place the same animals, each with its own tag, in f
   const tags = summons.map((c) => c.match(/tag=(\S+)\]/)![1]);
   assert.equal(new Set(tags).size, tags.length, "a tag per animal, so placing twice adds nothing");
   assert.equal(herd.filter((c) => c.startsWith("forceload add")).length, herd.filter((c) => c.startsWith("forceload remove")).length);
+});
+
+test("team-homestead - every member sleeps and carries an iron pickaxe, a two-storey shelter, 10 cooked meat in chests", () => {
+  const gaps = GOAL_GAPS["team-homestead"]!, check = GOAL_CHECKS["team-homestead"]!;
+  const chests = { "1,64,1": { holds: { cooked_beef: 6, cooked_porkchop: 4 }, seenAt: 1 } };
+  const done = {
+    skill: "store", status: "success", inventory: {}, shelterBuilt: true, nightSurvivedSinceShelter: false, shelterStoreys: 2, chests,
+    members: { qa: { iron_pickaxe: 1 }, qb: { iron_pickaxe: 1, cobblestone: 3 } },
+    membersSlept: { qa: true, qb: true },
+  };
+  assert.equal(check(done), true);
+  assert.deepEqual(gaps({ ...done, shelterStoreys: 1, members: { qa: { iron_pickaxe: 1 }, qb: {} }, membersSlept: { qa: true, qb: false }, chests: {} }), [
+    "nobody on the team has built a two-storey shelter yet",
+    "qb has not slept in a bed yet",
+    "qb carries no iron_pickaxe",
+    "the chests the team has opened hold 0 cooked meat, not 10",
+  ]);
+  assert.ok(TEAM_GOALS.has("team-homestead"));
+  // Alone, an agent is a team of one.
+  assert.deepEqual(gaps({ skill: "", status: "", inventory: { iron_pickaxe: 1 }, shelterBuilt: true, nightSurvivedSinceShelter: false, shelterStoreys: 2, sleptInBed: true, chests }), []);
 });

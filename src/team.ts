@@ -19,6 +19,8 @@ export interface MemberState {
   nightSurvivedSinceShelter: boolean;
   /** Storeys of the tallest shelter this member has built; 0 for none. */
   shelterStoreys: number;
+  /** This member has slept in a bed at least once. Absent in boards written before it existed. */
+  sleptInBed?: boolean;
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;
@@ -75,6 +77,7 @@ export function combine(states: Array<Omit<MemberState, "at" | "goalMet">>): Omi
     nightSurvivedSinceShelter: states.some((s) => s.nightSurvivedSinceShelter),
     shelterStoreys: Math.max(0, ...states.map((s) => s.shelterStoreys ?? 0)),
     chests: latestChests(states.map((s) => s.chests ?? {})),
+    sleptInBed: states.some((s) => s.sleptInBed),
   };
 }
 

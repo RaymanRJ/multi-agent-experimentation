@@ -1,6 +1,6 @@
 import { Rcon } from "rcon-client";
 import type { ScenarioName } from "./types.js";
-import type { ChestViews } from "./team.js";
+import { inChests, type ChestViews } from "./team.js";
 
 export interface Scenario {
   name: ScenarioName;
@@ -108,6 +108,12 @@ export const GOALS: Record<string, string> = {
     "Between you, your team must end up holding a stone pickaxe, a stone axe, a stone sword and a stone shovel, " +
     "with every member carrying at least one of them, and one of you must build a two-storey shelter. " +
     "It does not matter who builds. The episode ends by itself once the team has all of that.",
+  // The hard team goal (docs/ideas.md): three days, with steps that depend on each other (iron for shears
+  // for wool for beds), food to find and cook, and a chest to share through.
+  "team-homestead":
+    "Over the next three days, your team must build a two-storey shelter, every one of you must sleep in a bed, " +
+    "every one of you must end up carrying an iron pickaxe, and you must leave at least 10 cooked meat in a chest. " +
+    "It does not matter who does what. The episode ends by itself once the team has all of that.",
   iron: "Craft an iron pickaxe. Once you have it, end the episode.",
   diamond: "Make a piece of diamond armor. Once you have it, end the episode.",
   gather: "Gather as much wood and stone as you can.",
@@ -126,7 +132,7 @@ export const DIAMOND_ARMOR = ["diamond_helmet", "diamond_chestplate", "diamond_l
  * Goals judged on the whole team: the check sees every member's inventory added together, each
  * member's own inventory, and a shelter built by any of them. Alone, an agent is a team of one.
  */
-export const TEAM_GOALS = new Set(["team-camp"]);
+export const TEAM_GOALS = new Set(["team-camp", "team-homestead"]);
 
 /** The stone tools the outpost goal asks for. */
 export const OUTPOST_TOOLS = ["stone_pickaxe", "stone_axe", "stone_sword", "stone_shovel"];
@@ -144,6 +150,10 @@ export interface GoalState {
   shelterStoreys?: number;
   /** Chests opened by the agent (or, for a team goal, any member), as last seen; see `inChests` in team.ts. */
   chests?: ChestViews;
+  /** This agent has slept in a bed (for a team goal: any member has). */
+  sleptInBed?: boolean;
+  /** Whether each team member has slept in a bed, by name, for goals that ask it of every member. */
+  membersSlept?: Record<string, boolean>;
   /** Each team member's own inventory, by name, for team goals that ask something of every member. */
   members?: Record<string, Record<string, number>>;
 }
@@ -156,6 +166,7 @@ export const GOAL_CHECKS: Record<string, (state: GoalState) => boolean> = {
   outpost: ({ inventory, shelterBuilt, nightSurvivedSinceShelter }) =>
     shelterBuilt && nightSurvivedSinceShelter && OUTPOST_TOOLS.every((tool) => (inventory[tool] ?? 0) > 0),
   "team-camp": (state) => GOAL_GAPS["team-camp"]!(state).length === 0,
+  "team-homestead": (state) => GOAL_GAPS["team-homestead"]!(state).length === 0,
 };
 
 /**
@@ -179,7 +190,23 @@ export const GOAL_GAPS: Record<string, (state: GoalState) => string[]> = {
       .map(([name]) => `${name} carries no stone tool`),
     ...((shelterStoreys ?? 0) >= 2 ? [] : ["nobody on the team has built a two-storey shelter yet"]),
   ],
+  "team-homestead": ({ shelterStoreys, members, membersSlept, chests, sleptInBed, inventory }) => {
+    // Alone, an agent is a team of one.
+    const held = members ?? { you: inventory };
+    const slept = membersSlept ?? { you: !!sleptInBed };
+    const meat = COOKED_MEAT.reduce((n, item) => n + (inChests(chests)[item] ?? 0), 0);
+    return [
+      ...((shelterStoreys ?? 0) >= 2 ? [] : ["nobody on the team has built a two-storey shelter yet"]),
+      ...Object.entries(slept).filter(([, did]) => !did).map(([name]) => `${name} has not slept in a bed yet`),
+      ...Object.entries(held).filter(([, items]) => (items["iron_pickaxe"] ?? 0) === 0).map(([name]) => `${name} carries no iron_pickaxe`),
+      ...(meat >= HOMESTEAD_MEAT ? [] : [`the chests the team has opened hold ${meat} cooked meat, not ${HOMESTEAD_MEAT}`]),
+    ];
+  },
 };
+
+/** Cooked meat for `team-homestead`: any kind counts. */
+export const COOKED_MEAT = ["cooked_beef", "cooked_porkchop", "cooked_chicken", "cooked_mutton", "cooked_rabbit", "cooked_cod", "cooked_salmon"];
+export const HOMESTEAD_MEAT = 10;
 
 function missing(inventory: Record<string, number>, items: string[]): string[] {
   return items.filter((item) => (inventory[item] ?? 0) === 0).map((item) => `you have no ${item}`);

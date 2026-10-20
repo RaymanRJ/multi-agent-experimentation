@@ -247,7 +247,9 @@ async function main(): Promise<void> {
   let shelterStoreys = 0;
   // Chests this agent has opened, as it last saw each: for goals (and team goals) that count what is in them.
   const chestViews: ChestViews = {};
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews });
+  let sleptInBed = false;
+  bot.on("sleep", () => { sleptInBed = true; });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -255,9 +257,13 @@ async function main(): Promise<void> {
     const others = board ? board.read() : {};
     // A teammate that hasn't reported yet still counts, as a member holding nothing.
     const members: Record<string, Record<string, number>> = { [agentName]: own.inventory };
-    for (const name of board?.teammates ?? []) members[name] = others[name]?.inventory ?? {};
+    const membersSlept: Record<string, boolean> = { [agentName]: own.sleptInBed };
+    for (const name of board?.teammates ?? []) {
+      members[name] = others[name]?.inventory ?? {};
+      membersSlept[name] = !!others[name]?.sleptInBed;
+    }
     const states = [own, ...Object.values(others).filter((m) => m !== undefined)];
-    return { skill, status, ...combine(states), members };
+    return { skill, status, ...combine(states), members, membersSlept };
   };
   const publish = () => board?.publish({ ...ownState(), goalMet: ownGoalMet });
   /** A team goal can be met by a teammate's step, while this agent is busy or thinking. */
