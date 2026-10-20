@@ -69,7 +69,11 @@ for rep in $(seq 1 "$reps"); do
         --scenario "$scenario" --ticks "$ticks" --name "$agent" --episode "$episode" --team "${members%,}" ${viewargs[@]+"${viewargs[@]}"} > "$out" 2>&1 || true
     ) &
     pids+=($!)
-    sleep 5   # join one at a time: the server refuses a second login from one address within 4s
+    # Join one at a time: the server refuses a second login from one address within 4s of the last, and a
+    # slow login once let the next agent in too soon (bpoc: kicked, "Connection throttled"). Wait for this
+    # one to be in the world (or to have failed), then a little more.
+    for _ in $(seq 1 60); do grep -qE 'spawned at|lost the connection|kicked' "$out" 2>/dev/null && break; sleep 1; done
+    sleep 5
   done
   for pid in "${pids[@]}"; do wait "$pid" || true; done
   # The server is regenerated for the next rep, so keep its log.
