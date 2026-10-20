@@ -17,6 +17,7 @@ import type { LoggedStep } from "./types.js";
 import { isDeath, newEventsPerStep, summarizeRun, wilson, type RunSummary } from "./report.js";
 import { parseSteps } from "./minds.js";
 import { behaviour, gameTime, requests, verdictLines, type Behaviour, type Requests } from "./summary.js";
+import { renderSkillUsage, skillUsage } from "./skillUsage.js";
 
 export interface Run {
   file: string;
@@ -294,6 +295,8 @@ export function renderComparison(runs: Run[], title: string): string {
     const solo = group.filter((run) => !teams.some(([, members]) => members.includes(run)));
     if (solo.length) add(...(teams.length ? ["### Agents alone", ""] : []), ...glance(solo), ...byModel(solo), "");
   }
+
+  add(...renderSkillUsage(skillUsage(runs.map((run) => ({ steps: run.steps, goalMet: run.s.goalMet, model: run.model })))), "");
 
   add("## In a sentence or two each", "");
   // Reps reuse agent names, so say which rep each line is from.

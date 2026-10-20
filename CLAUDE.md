@@ -118,6 +118,7 @@ npm run report                                        # per-run outcomes, milest
 npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI
 npm run summary -- --batch b5                         # rebuild each run's behaviour report (written at run end)
 npm run compare -- --team trio3                       # one readable report across runs: by goal, model, and who did what (written at run end)
+npm run skills -- --batch p6 --team thome1             # which skills runs chose, how often they worked (docs/results/skills.md)
 
 scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env; VIEW=on to watch at :3007)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world

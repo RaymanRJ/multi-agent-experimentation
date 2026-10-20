@@ -12,6 +12,7 @@
     "report": "tsx src/report.ts",
     "summary": "tsx src/summary.ts",
     "compare": "tsx src/compare.ts",
+    "skills": "tsx src/skillsReport.ts",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
