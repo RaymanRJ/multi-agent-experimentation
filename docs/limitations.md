@@ -22,15 +22,15 @@ building on it.
     it already allows thinking (the API refuses a forced tool together with thinking).
   - Logs already keep any thinking a provider returns (`thinking` on each call), so nothing else
     needs to change to read it.
-- **Paid models have only been tried, not compared.**
-  - Claude Haiku 4.5, Sonnet 5.5 and Opus 5.5 each met the `tools` goal once (batch poc1, 18 October:
-    4–5 decisions, $0.01–$0.04 a run), and Haiku and Sonnet have played team runs. No batch with
-    repeats has run on a paid model, and no long goal (`outpost`) has.
-  - Prompt caching works on Sonnet and Opus (about 70% of input cached). Haiku 4.5 never caches: our
-    prompt (about 2,150 tokens) is below its minimum.
-  - GPT-6 Luna (the default `gpt` model since 18 October) has made one live decision: valid, in one
-    call, $0.0005. Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs
-    its model's price in `src/backends/pricing.ts`, or a paid run refuses to start.
+- **Paid models have been compared on one goal only, three runs each.** Haiku 4.5, Sonnet 5.5,
+  Opus 5.5 and GPT-6 Luna ran `outpost` in batches p2 (once each), p3 (stopped early) and p5 (three
+  each: Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0). With three runs the intervals all overlap, so the
+  models are not yet ranked. No paid model has run `iron` or `diamond`; Haiku and Sonnet have
+  played team runs.
+  - Prompt caching works on Sonnet, Opus and Luna (about 86–88% of input cached in p5). Haiku 4.5
+    never caches: our prompt is below its minimum.
+  - Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its model's
+    price in `src/backends/pricing.ts`, or a paid run refuses to start.
   - **Claude decides through a tool; GPT and the local model write JSON text.** Claude is offered a
     `decide` tool (not forced), because Sonnet 5.5 otherwise wrote its decision as tool-call syntax
     in text on about half its calls, each one re-asked. With the tool it sometimes calls a skill's
@@ -50,8 +50,8 @@ building on it.
     names `gather_wood`. The model retried the craft 4–16 times per run before mining stone.
     Since fixed, but not yet confirmed in a full run: the message now names `mine_stone`.
   - **`descend` to y=16 takes 3,000–6,000 ticks** and usually wears out a stone pickaxe.
-  - **Deaths are logged without a cause.** The run log says "you died and respawned"; the
-    server log that has the cause is replaced with the next batch's server.
+  - **Deaths are logged without a cause in the run log,** which says only "you died and respawned".
+    The server log saved beside each batch run (`<log>.server.log`) has the cause.
 - **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
   as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
@@ -59,16 +59,20 @@ building on it.
 
 ## What agents can't do
 
-- **Fighting is melee only, and new (19 October).** `hunt` kills animals, mobs or other agents with a
-  sword, an axe or bare hands; there are no bows, shields or armour use. Checked live once each
-  (sheep, cow, zombie, another bot), never yet in a model's run. An agent that is attacked is told only
+- **Fighting is melee only (since 19 October).** `hunt` kills animals, mobs or other agents with a
+  sword, an axe or bare hands; there are no bows, shields or armour use. In p5 models chose it 7
+  times: a zombie, a cow and a skeleton killed, a pig and a salmon got away. One fight is
+  unexplained: a zombie inside Sonnet's shelter took it from 20 to 5 health with no kill, where the
+  same fight on a test server took five hits and no damage. An agent that is attacked is told only
   that it took damage, not who hit it, so a fight between agents is visible in the attacker's log but
   not to the victim. The run report doesn't count attacks on agents yet.
 - **No farming or chest storage.** Food comes from what an agent starts with or `hunt`s; everything
   is kept in its inventory, or handed to another agent (`give`).
-- **Animals are scarce near spawn.** The start area is dark oak forest. On a fresh copy of the world
-  the loaded area held 1 cow, 6 pigs, 1 chicken and no sheep; `sandbox` also turns off mob spawning,
-  so what the world was generated with is all there is.
+- **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
+  too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
+  sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,
+  4 pigs, 4 chickens; `HERDS` in `src/scenario.ts`). Runs before then had almost no animals in reach,
+  so food and wool results from them are not comparable with later ones.
 - **`give` needs the receiver within reach of the giver.** The giver walks up beside them and drops
   the items at its feet; 8 of 8 live hand-overs worked that way. Tossing from two blocks or more
   overshot (1 of 5), and from one block the giver swept its own toss back up. A wall between them,
@@ -82,7 +86,7 @@ building on it.
   counts against the goal, by losing that night; a death by day costs time and everything carried,
   and the report counts it. The check also doesn't enforce "before nightfall" from the goal text: it
   looks at what the agent holds at the end, not when the tools were made.
-- **The model rarely completes the outpost goal** (3 of 18 runs in b12; see
+- **The local model rarely completes the outpost goal** (3 of 18 runs in b12; see
   `docs/results/2026-10-outpost.md`). `--progress on` got it to try the shelter more often
   (6 of 9 runs against 3 of 9), but the sample is small. Open problems found in b12, none fixed:
   - **The baseline's outpost goes on to dig for iron** after its shelter, and the flooded-cave
@@ -100,11 +104,13 @@ building on it.
     was repeating itself, and kept on"), but nothing stops the loop for it.
   - **Full memory fills the local model's 8,192-token window** (~7,200 tokens per call), and
     five of six runs gave up early.
-  - **`build_shelter` sometimes can't clear dirt or grass from its own floor,** and `smelt`
-    once failed three times with "destination full". Neither was investigated.
+  - **`smelt` once failed three times with "destination full".** Not investigated. (The other
+    rough edge noted here, `build_shelter` failing to clear dirt, was an interrupt reported as a
+    blocked floor, and stone dug bare-handed; both fixed after p5.)
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
-  - A flooded cave lies under the spawn area. The skills now stop before digging into water, but agents near it still mine slowly.
+  - A flooded cave lies under the spawn area. The skills now stop before digging into water, and
+    `climb_out` gets an agent back to the surface, but agents near it still mine slowly.
 - **Ore must be visible to be mined.** By design there is no x-ray. Finding iron and diamonds
   means digging staircases and tunnels, which wears out pickaxes and takes many minutes.
 
@@ -113,8 +119,9 @@ building on it.
 - **Small samples.** Most conditions have 3 runs, so a 3/3 is consistent with a true success
   rate as low as 44%. Pooled batches are firmer, but only batches run on the same code are
   comparable.
-- **One model.** All findings so far are about one 4B local model (Qwen3 4B Instruct). Bigger
-  models may behave differently, especially with plan memory.
+- **Few models, and one local one.** The local-model findings are about one 4B model (Qwen3 4B
+  Instruct); bigger local models may behave differently, especially with plan memory. The paid
+  models have three runs each on one goal.
 - **The code changed between batches.** Each batch was run on one version of the code, but fixes
   went in between batches. Compare batches only where the write-ups say they are comparable.
 - **Start points vary within a 20-block area,** which puts some agents beside oak and others beside
@@ -159,7 +166,15 @@ building on it.
   - With full memory on a paid model, the history is now cut to half its budget when it fills,
     rather than one exchange at a time. That keeps the cache hitting, but it also means the model
     sees between 10,000 and 20,000 tokens of history rather than always about 20,000.
+- **A crafting table sometimes ignores the bot's click** and never opens. Seen in about a dozen
+  logs up to p5; never reproduced in about 30 crafts on a test server, so the cause is unknown.
+  Since 20 October it costs one failed craft of about 8 seconds (the bot steps up and tries once
+  more) rather than a run of 15-second timeouts.
+- **A shelter is closed once built (since 20 October).** Its doorway is filled in behind the
+  builder, and the pathfinder digs back out through any wall when the agent leaves. Before that the
+  doorway stayed open, and in p5 mobs walked in on agents waiting inside.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
   behaviour is checked by hand with `scripts/skill-smoke.sh`, and by the batches.
-- **Run logs are not backed up.** `runs/` is gitignored because logs contain full prompts. Copy
-  it somewhere if the results matter.
+- **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to
+  about 130 MB so far. The write-ups in `docs/results/` are the record (see its README for why, and
+  what batch names like b12 or p5 mean). Copy `runs/` somewhere if the raw logs matter.
