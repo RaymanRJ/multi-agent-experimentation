@@ -124,7 +124,13 @@ interface Stored {
  * to repeat them, and its plan already carries what it meant to do.
  */
 export class MessageBuffer {
+  /**
+   * Kept apart, each to its own limit: messages to this agent by name, and everything else. In
+   * thome1 one agent heard up to 114 messages to "all" in a game, which pushed messages addressed to
+   * it out of a shared window of 8 before it decided again.
+   */
   private readonly items: Stored[] = [];
+  private readonly toSelf: Stored[] = [];
   private readonly requests: Array<Omit<Request, "ageSeconds"> & { at: number; text: string; seq: number }> = [];
   private seq = 0;
   /** Messages addressed to this agent by name, ever — the interrupt watches this grow. */
@@ -150,7 +156,7 @@ export class MessageBuffer {
         while (this.requests.length > MAX_REQUESTS) this.requests.shift();
       }
     } else {
-      this.push({ from, to, text, at: now });
+      this.push(toMe ? this.toSelf : this.items, { from, to, text, at: now });
     }
     if (toMe) {
       // The same words from the same sender again tell nothing new: heard, but no second interrupt.
@@ -162,7 +168,8 @@ export class MessageBuffer {
   }
 
   snapshot(now = Date.now()): Message[] {
-    return this.items.map((m) => ({
+    // One list, oldest first, as before; only what is kept differs.
+    return [...this.items, ...this.toSelf].sort((a, b) => a.at - b.at).map((m) => ({
       from: m.from,
       to: m.to,
       text: m.text,
@@ -181,9 +188,9 @@ export class MessageBuffer {
     for (let i = this.requests.length - 1; i >= 0; i--) if (this.requests[i]!.seq < mark) this.requests.splice(i, 1);
   }
 
-  private push(m: Stored): void {
-    this.items.push(m);
-    while (this.items.length > this.limit) this.items.shift();
+  private push(list: Stored[], m: Stored): void {
+    list.push(m);
+    while (list.length > this.limit) list.shift();
   }
 }
 

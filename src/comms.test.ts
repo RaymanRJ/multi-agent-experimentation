@@ -118,3 +118,13 @@ test("responseTo judges compliance from the decision alone", async () => {
   assert.equal(responseTo(ask, { skill: "wait", args: {}, say: { to: "sonnet", text: "hi" } }), "unanswered");
   assert.equal(responseTo(ask, { skill: "wait", args: {} }), "unanswered");
 });
+
+test("MessageBuffer - messages to this agent by name are not pushed out by chatter to everyone", () => {
+  const buf = new MessageBuffer("qa", 3);
+  buf.hear("qb", "@qa the shelter is at 4,70,-12", 1000);
+  for (let i = 0; i < 10; i++) buf.hear("qc", `gathering logs ${i}`, 2000 + i);
+  const texts = buf.snapshot(5000).map((m) => m.text);
+  assert.ok(texts.includes("the shelter is at 4,70,-12"), "kept");
+  assert.deepEqual(texts.filter((t) => t.startsWith("gathering")), ["gathering logs 7", "gathering logs 8", "gathering logs 9"], "chatter keeps its own last 3");
+  assert.equal(texts[0], "the shelter is at 4,70,-12", "oldest first, as before");
+});
