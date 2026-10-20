@@ -8,7 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
-import { describeShelter, insideClosedShelter, insideSpot, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, HOME_RANGE, insideClosedShelter, insideSpot, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -240,7 +240,8 @@ async function main(): Promise<void> {
     const here = bot.entity.position;
     return knownShelters()
       .map((spot) => ({ spot, d: Math.round(here.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5))) }))
-      .filter(({ spot, d }) => d <= REUSE_RANGE && standing(bot, spot))
+      // In sight; and the agent's own large shelters further off, which it remembers (bpoc: Luna built three).
+      .filter(({ spot, d }) => (d <= REUSE_RANGE && standing(bot, spot)) || (d <= HOME_RANGE && spot.by === agentName && (spot.size ?? 3) === 5))
       .sort((a, b) => a.d - b.d)
       .slice(0, 3)
       .map(({ spot, d }) => {

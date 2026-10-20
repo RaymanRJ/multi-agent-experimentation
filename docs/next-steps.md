@@ -162,8 +162,17 @@ Read this at the start of a session; update it when something finishes or a new 
    "large"` (5×5, room for four beds) can be built in parts by several agents. `sleep` puts beds inside
    the shelter, and says who was awake when the night did not pass. Teammates' shelters within sight are
    in the observation (`shelters`). Checked live with two bots: a large two-storey built in two parts,
-   left and gone back into, and both beds put down inside, so the night passed. Next: a Luna proof
-   run, then the Opus, Sonnet and Luna team on `team-base`.
+   left and gone back into, and both beds put down inside, so the night passed.
+   **Proof run bpoc (three Luna, 20 October), stopped after 14 minutes** (the machine was needed; its
+   logs are in `runs/.killed/`, and the first attempt lost an agent to the server's login throttle:
+   `team.sh` now waits for each agent to be in the world). What it showed of the new code: lc, near
+   lb's large shelter, went into it with a plain `build_shelter`; lb went back into its own and said it
+   had no block left to close the doorway. But lb built three large two-storey shelters, starting
+   again each time it had explored more than 32 blocks away. Fixed (not yet checked live): asking for a
+   large shelter takes the agent back to its own large one up to 128 blocks off, and its observation
+   lists it at any distance up to 128; a teammate's still counts only within sight.
+   **Next, after noon on the owner's word:** a live check of that (two bots, one base 80 blocks off), the
+   bpoc proof run again (about $0.30), then Opus, Sonnet and Luna on `team-base` (about $10).
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

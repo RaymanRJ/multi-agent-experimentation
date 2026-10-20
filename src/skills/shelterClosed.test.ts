@@ -73,3 +73,20 @@ test("build_shelter - with a shelter in reach it goes there instead of building;
   const built = await buildShelter.run({ ...context(far), shelters: () => [spot] }, {});
   assert.match(built.reason ?? "", /need \d+ more building blocks/, "too far: it tries to build here, and has no blocks");
 });
+
+test("build_shelter - a large one goes back to the agent's own large shelter far off, but not to a teammate's", async () => {
+  const { buildShelter } = await import("./buildShelter.js");
+  const base = { x: 0, y: 64, z: 0, storeys: 2, size: 5 as const, complete: true };
+  const blocks: Record<string, string> = {};
+  const { walls, roof, door } = layout(2, 5);
+  for (const cell of [...floorCells(5), ...walls, ...roof, ...door]) blocks[`${cell.x},${64 + cell.y},${cell.z}`] = "oak_planks";
+  const far = () => fakeBot({ blocks, position: { x: 80.5, y: 64, z: 0.5 }, inventory: {} }).bot;
+  const mine = far();
+  mine.username = "qa";
+  const own = await buildShelter.run({ ...context(mine), shelters: () => [{ ...base, by: "qa" }] }, { size: "large", storeys: 2 });
+  assert.match(own.reason ?? "", /could not get into a large two-storey shelter at 0,64,0/, "set off home, 80 blocks");
+  const other = far();
+  other.username = "qa";
+  const theirs = await buildShelter.run({ ...context(other), shelters: () => [{ ...base, by: "qb" }] }, { size: "large", storeys: 2 });
+  assert.match(theirs.reason ?? "", /large shelter at 80,64,0/, "a teammate's out of sight is not known: it starts its own here");
+});

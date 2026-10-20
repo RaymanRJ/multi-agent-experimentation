@@ -11,7 +11,15 @@ const { goals } = pathfinderPkg;
 const PLACE_TIMEOUT_MS = 8_000;
 /** A shelter this close is gone into, not built again (36 huts in thome1, often one per stop). */
 export const REUSE_RANGE = 32;
+/**
+ * How far an agent goes back to a large shelter it built itself, which it remembers as a player
+ * remembers their base. In bpoc, Luna explored 45 blocks away and built a second, then a third.
+ * Teammates' shelters count only within sight (REUSE_RANGE).
+ */
+export const HOME_RANGE = 128;
 const ENTER_TIMEOUT_MS = 40_000;
+/** Walking back from up to HOME_RANGE away takes longer than stepping into one in sight. */
+const HOME_TIMEOUT_MS = 120_000;
 /** Left inside by agents, and never dug when clearing: beds, chests, a furnace, a table. */
 const FURNISHING = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$|torch$/;
 const MAX_FAILED_CELLS = 4;
@@ -384,8 +392,9 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
 export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
   const bot = ctx.bot;
   if (!insideSpot(bot, spot)) {
+    const far = bot.entity.position.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5)) > REUSE_RANGE;
     try {
-      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), ENTER_TIMEOUT_MS, "walking into the shelter");
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), far ? HOME_TIMEOUT_MS : ENTER_TIMEOUT_MS, "walking into the shelter");
     } catch (error) {
       bot.pathfinder.setGoal(null);
       if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
@@ -402,7 +411,8 @@ export const buildShelter: Skill = {
   name: "build_shelter",
   description:
     "Get into a shelter, building one if there is none near. If a shelter (yours or another agent's) stands within " +
-    `${REUSE_RANGE} blocks, you walk into it, any gaps in it are filled and its doorway is closed behind you; otherwise a new one ` +
+    `${REUSE_RANGE} blocks, you walk into it, any gaps in it are filled and its doorway is closed behind you (asking for a large one also ` +
+    `takes you back to a large one you built, up to ${HOME_RANGE} blocks away); otherwise a new one ` +
     "is built around where you are standing, with a roof and a 2-high doorway on the south side that is closed behind you " +
     "once you are inside (walking out digs through it). Uses planks, cobblestone, stone, dirt or similar blocks from " +
     "inventory; logs in your inventory are turned into planks automatically (1 log = 4 planks). " +
@@ -423,10 +433,11 @@ export const buildShelter: Skill = {
 
     // Already inside one, or one close by: go in and close it up, rather than build another.
     const here = bot.entity.position;
-    const spot = known.find((s) => insideSpot(bot, s)) ?? known
-      .map((s) => ({ s, d: here.distanceTo(new Vec3(s.x + 0.5, s.y, s.z + 0.5)) }))
-      .filter(({ d }) => d <= REUSE_RANGE)
-      .sort((a, b) => a.d - b.d)[0]?.s;
+    const byDistance = known.map((s) => ({ s, d: here.distanceTo(new Vec3(s.x + 0.5, s.y, s.z + 0.5)) })).sort((a, b) => a.d - b.d);
+    // In sight, anyone's; for a large one, also the agent's own base further off, which it remembers.
+    const spot = known.find((s) => insideSpot(bot, s))
+      ?? byDistance.find(({ d }) => d <= REUSE_RANGE)?.s
+      ?? (size === 5 ? byDistance.find(({ s, d }) => d <= HOME_RANGE && (s.size ?? 3) === 5 && s.by === bot.username)?.s : undefined);
 
     const centre = spot ? new Vec3(spot.x, spot.y, spot.z) : bot.entity.position.floored();
     const use = spot ? { size: spot.size ?? 3, storeys: spot.storeys } : { size, storeys };

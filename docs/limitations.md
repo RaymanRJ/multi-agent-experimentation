@@ -184,7 +184,8 @@ building on it.
   agent or a teammate built within 32 blocks instead of building another (thome1's three agents built 36
   huts), and a large one (5×5 inside) can be built in parts by several agents. Agents learn of a
   teammate's shelter from the team's shared state, but only within 32 blocks and only while its walls
-  still stand in the world, as a player would see a hut. Not yet tried in a team run.
+  still stand in the world, as a player would see a hut. Its own large shelter the agent remembers up to
+  128 blocks away (a player remembers where their base is). Not yet tried in a full team run.
 - **A shelter is closed once built (since 20 October).** Its floor is filled where the ground has
   holes, and its doorway is filled in behind the builder; the pathfinder digs back out through any
   wall when the agent leaves. Before that the doorway stayed open (in p5 mobs walked in on agents
