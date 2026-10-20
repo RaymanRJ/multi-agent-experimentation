@@ -135,7 +135,13 @@ Read this at the start of a session; update it when something finishes or a new 
    anything time-related. p4 was stopped after one run to fix this; Haiku runs come first.
    **Agents can now hunt and shear** (19 October, the owner's call: `hunt` may target anything,
    other agents included). Observations list `animals`; beds are reachable through wool. Checked
-   live on a test server; no model has used them yet.
+   live on a test server.
+   **Batch p5 (three runs each, 19–20 October): Opus 2 of 3, Sonnet 1, Luna 1, Haiku 0; $2.75.**
+   Three runs lost a night inside a finished shelter through its open doorway, and five hit a
+   craft timeout at a table. Fixed after p5, each checked live: the shelter closes its doorway
+   behind the builder, table crafts no longer hang, the shelter digs with the best tool and says
+   when it was interrupted. The other failures were agents leaving the shelter at night. Written up
+   in `docs/results/2026-10-outpost.md`. Next: run p6 on the fixed code to measure the change.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

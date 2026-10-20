@@ -204,6 +204,65 @@ run. Total cost $0.88.*
 - **Cost:** Luna did it for 2 cents; the three Claude models for 24–33 cents each. Haiku's prompt
   is below its minimum for caching, so it paid full price for every token.
 
+## Paid models, three runs each, on the new skills (p5)
+
+*Batch p5, 19–20 October, on main at e929bed: Claude Haiku 4.5, Sonnet 5.5 and Opus 5.5 and GPT-6
+Luna, plan memory, progress list off, survival, 27,000 ticks, three runs each, capped at $1.50 a run.
+Total cost $2.75. The first batch with `climb_out`, `hunt`, `shear`, the `underground` and `animals`
+observations and one definition of night (13000–23000), so it is a new baseline: not comparable
+with p2 or p3 on anything time-related.*
+
+| Model | Met | 95% CI | Deaths per run | Cost (3 runs) |
+|---|---|---|---|---|
+| Opus 5.5 | 2 of 3 | 21%–94% | 0, 1, 0 | $1.00 |
+| Sonnet 5.5 | 1 of 3 | 6%–79% | 0, 7, 1 | $0.72 |
+| GPT-6 Luna | 1 of 3 | 6%–79% | 8, 0, 6 | $0.07 |
+| Haiku 4.5 | 0 of 3 (two gave up) | 0%–56% | 4, 6, 5 | $0.96 |
+
+Every run is valid (no lost connections). Three runs is still a hint: the intervals overlap.
+
+**Why the eight failures failed.** Read from the logs, run by run:
+
+- **Hurt inside a finished shelter, through its open doorway (3 runs; our code, fixed after p5).**
+  Sonnet's runs 2 and 3 and Opus's run 2 had all four tools and a shelter by about 4,000 ticks and
+  did what the goal asks: waited inside. Each was hurt 1–1.4 blocks from the shelter's centre in the
+  night (Opus 20 → 3, Sonnet 20 → 1; in Sonnet's run 2 a zombie walked in, "now 1" block away), then
+  fled or died and could not rebuild in the dark. `build_shelter` left its 2-high doorway open, as it
+  had since it was written. It now closes the doorway behind the builder (two more blocks; walking
+  out digs through). Live, on hard difficulty: four zombies 3 blocks away for 30 seconds, health
+  stayed 20; walking out afterwards worked.
+- **Left a working shelter at night (4 runs; the model's choice).** Luna run 1 gathered wood at
+  nightfall, then `hunt`ed a zombie out of the door; Haiku run 2 explored for sheep at night after
+  `sleep` said beds need wool, and was hit 16 blocks out; Luna run 3 went for wood and explored 67
+  blocks away; Haiku run 1 explored at dusk and then waited in the doorway. Sonnet and Opus never
+  left in their successful runs.
+- **Never built a shelter (Haiku run 3).** `mine_stone` spent the first 5,000 ticks underground for no
+  cobblestone, three stone-tool crafts timed out, and twice `build_shelter` was told its space was
+  "blocked by dirt that I cannot clear": an interrupt had stopped the dig and the skill blamed the
+  block (fixed: it now reports the interruption). It gave up at 21,714.
+
+**Craft timeouts at a table (our code, fixed after p5).** "crafting stone_pickaxe timed out after
+15000ms" appeared in 5 of 12 runs (Haiku runs 1 and 3, Opus run 3, Luna runs 2 and 3), 8–10 times in
+a row in three of them, and in about a dozen earlier logs. mineflayer's `openBlock` waits for the
+table's window with no limit; our timeout around it left that wait running, and when a later craft
+opened the table the stale one woke too and closed the window under it, so one ignored click became
+a run of failures. Opening now has its own 4-second limit and leaves nothing behind, and the bot
+steps up to the table and tries once more. Why the server ignores the first click is not known: it
+did not happen in about 30 crafts on a test server, by the scripted agent or by hand. Luna met the
+goal in run 2 despite 10 of these.
+
+**Smaller findings:**
+
+- **The new skills:** `climb_out` was chosen 4 times (all Haiku): out twice, stopped once ("every way up is unsafe"), and once it was already under open sky. `hunt` 7 times: a
+  zombie, a cow and a skeleton killed; a pig and a salmon got away. In Sonnet's run 2 a zombie fight
+  inside the shelter went from 20 to 5 health with no kill; the same fight on the test server took
+  five hits and no damage, so that one is not explained. No one used `shear`; no one found a sheep.
+- **`build_shelter` dug bare-handed:** a cobblestone block in its space took the full 10-second dig
+  limit (Haiku run 1, with a stone pickaxe in hand). Fixed: it uses the best tool held.
+- **Repetition:** Luna was told 4 of 4 and 2 of 6 times that it was repeating itself and kept on;
+  the others were rarely told.
+- **Cost:** Luna 1–3 cents a run; Claude 15–48 cents. Haiku still never caches.
+
 ## What this suggests (not acted on)
 
 - The model knows how to make tools but not when to stop and build. A goal this long may need a
