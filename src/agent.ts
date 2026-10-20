@@ -271,7 +271,13 @@ async function main(): Promise<void> {
   let pendingCause: { cause: string; at: number } | null = null;
   bot.on("message", (message: { translate?: string; toString(): string }) => {
     const text = message.toString();
-    if (!message.translate?.startsWith("death.") || !text.startsWith(`${agentName} `)) return;
+    if (!message.translate?.startsWith("death.")) return;
+    if (!text.startsWith(`${agentName} `)) {
+      // Another player's death: every player sees it in chat, so teammates hear of it as a player would.
+      const who = text.split(" ")[0]!;
+      if (who in bot.players) recentEvents.push(`${who} (another agent) ${text.slice(who.length + 1)}`);
+      return;
+    }
     const cause = text.slice(agentName.length + 1);
     const open = [...stepDeaths].reverse().find((d) => d.cause === null);
     if (!open) { pendingCause = { cause, at: Date.now() }; return; }
