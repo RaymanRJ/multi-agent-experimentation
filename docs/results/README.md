@@ -4,9 +4,24 @@ What the batches measured. Two kinds of file, both in the order things happened:
 
 - **[`write-ups/`](write-ups/)**: what a set of batches found, read from their logs and written by hand,
   numbered in the order they were started. A write-up can cover several batches over several days.
-- **[`batch-reports/`](batch-reports/)**: what the code reported for each batch or team run, one folder
-  per run, named by when its first run started, in UTC (`2026-10-17-2006-b13` ran before `2026-10-17-2302-b12`).
+- **[`batch-reports/`](batch-reports/)**: what the code reported for each batch, one folder per batch,
+  named by when its first run started, in UTC (`2026-10-17-2006-b13` ran before `2026-10-17-2302-b12`).
   The table under [Batch reports](#batch-reports) lists them in that order, with the write-up for each.
+
+## Terms
+
+From smallest to largest:
+
+| Term | What it is | Example |
+|---|---|---|
+| **Run** | One agent playing one game from start to end: a model, a goal and a time limit, in a freshly made world. It ends when the goal is met, the time runs out or the model stops. One run is one log file in `runs/`, and one row in a report. | Opus playing `outpost` for 27,000 ticks (about 22 minutes) |
+| **Condition** | The settings a run is played under: the model (or the scripted baseline), memory, the progress list, the stance. Runs are compared condition against condition. | Opus with plan memory and the progress list off |
+| **Rep** | One repeat of the same thing. A model can do well or badly by chance, so each condition is run several times, usually three. | Opus's 3 runs of `outpost` in p6 |
+| **Batch** | A set of runs started with one command, on one version of the code: every condition, each repeated. Runs go one after another, each agent alone in its own world. A batch has a short name. | p6: 4 models × 3 reps = 12 runs, about 4 hours |
+| **Team run** | Like a batch, but several agents play together in one world, started together. One rep is one game with the whole team, so a team run of 3 agents and 3 reps is 9 runs. Here "batch" covers team runs too. | thome1: Opus, Sonnet and Luna together, 3 reps = 9 runs |
+| **Proof run** (`poc`) | A small batch, usually one cheap run, to check a code change works before spending on a real batch. Not published. | poc7: one Luna run |
+| **Batch report** | What the code writes at the end of a batch, from the logs alone: success per condition, every run's scorecard and step list, which skills were used. No judgement. | [`batch-reports/2026-10-20-0428-p6/`](batch-reports/2026-10-20-0428-p6/) |
+| **Write-up** | What a person concluded from one or more batches, after reading the logs: why runs failed (our code, the game or the model), what was fixed, and whether batches compare. | [`04-p6-outpost-after-fixes.md`](write-ups/04-p6-outpost-after-fixes.md) |
 
 | Write-up | Dates | Batches | Question |
 |---|---|---|---|
@@ -81,8 +96,8 @@ runs that no write-up uses are not published.
 
 ## Batch names
 
-A batch is a set of runs started together, on one version of the code, with one command
-(`scripts/batch.sh <name> …` or `scripts/team.sh <name> …`). Its name is only a label, so that a
+A batch (see [Terms](#terms)) is started with one command, `scripts/batch.sh <name> …` or
+`scripts/team.sh <name> …`. Its name is only a label, so that a
 write-up, the logs and `npm run report -- --batch <name>` can refer to the same runs. The letter
 says roughly what was being run:
 
