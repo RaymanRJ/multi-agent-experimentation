@@ -32,6 +32,38 @@ By model:
 | Claude Opus 5.5 | 3 | 3 of 3 | 44–100% | 18:26 | 23 | 126k / 5.3k | $0.23 |
 | GPT-6 Luna | 3 | 3 of 3 | 44–100% | 18:23 | 22 | 69.4k / 3.7k | $0.0088 |
 
+## Skills used
+
+Across 12 runs (12 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `wait` | 12 of 12 | 206 | 89% | 0% | 11% | 72% | 100% / - |
+| `craft` | 12 of 12 | 62 | 100% | 0% | 0% | 3% | 100% / - |
+| `mine_stone` | 12 of 12 | 13 | 92% | 0% | 8% | 8% | 100% / - |
+| `gather_wood` | 12 of 12 | 12 | 100% | 0% | 0% | 7% | 100% / - |
+| `build_shelter` | 12 of 12 | 12 | 100% | 0% | 0% | 2% | 100% / - |
+| `sleep` | 3 of 12 | 9 | 0% | 100% | 0% | 0% | 25% / - |
+| `pick_up` | 1 of 12 | 1 | 100% | 0% | 0% | 0% | 8% / - |
+| `climb_out` | 1 of 12 | 1 | 100% | 0% | 0% | 0% | 8% / - |
+
+**Never chosen:** `explore`, `eat`, `flee`, `mine_ore`, `smelt`, `descend`, `tunnel`, `give`, `go_to`, `store`, `take`, `hunt`, `shear`, `tell_agent`, `ask_agent`.
+
+<details><summary>Times chosen, by model</summary>
+
+| Skill | Claude Haiku 4.5 | Claude Sonnet 5.5 | Claude Opus 5.5 | GPT-6 Luna |
+|---|---|---|---|---|
+| `wait` | 50 | 72 | 46 | 38 |
+| `craft` | 16 | 15 | 15 | 16 |
+| `mine_stone` | 3 | 3 | 3 | 4 |
+| `gather_wood` | 3 | 3 | 3 | 3 |
+| `build_shelter` | 3 | 3 | 3 | 3 |
+| `sleep` | 9 | 0 | 0 | 0 |
+| `pick_up` | 0 | 0 | 1 | 0 |
+| `climb_out` | 1 | 0 | 0 | 0 |
+
+</details>
+
 ## In a sentence or two each
 
 - **chap_outpost_1** (Claude Haiku 4.5): Met its goal in 26 decisions and 19:01 of game time. 81% of its decisions worked (21 of 26). After a failure it usually changed course (3 of 3).

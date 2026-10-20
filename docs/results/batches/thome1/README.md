@@ -218,6 +218,64 @@ Times are real minutes from the first agent's first decision.
 
 </details>
 
+## Skills used
+
+Across 9 runs (0 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `flee` | 9 of 9 | 184 | 94% | 5% | 1% | 4% | - / 100% |
+| `craft` | 9 of 9 | 109 | 80% | 9% | 11% | 3% | - / 100% |
+| `gather_wood` | 9 of 9 | 87 | 53% | 2% | 45% | 11% | - / 100% |
+| `mine_stone` | 9 of 9 | 51 | 47% | 8% | 45% | 12% | - / 100% |
+| `go_to` | 8 of 9 | 125 | 70% | 2% | 29% | 5% | - / 89% |
+| `wait` | 8 of 9 | 59 | 83% | 0% | 17% | 4% | - / 89% |
+| `smelt` | 8 of 9 | 50 | 28% | 66% | 6% | 3% | - / 89% |
+| `explore` | 8 of 9 | 46 | 76% | 0% | 24% | 3% | - / 89% |
+| `pick_up` | 8 of 9 | 40 | 70% | 28% | 3% | 1% | - / 89% |
+| `climb_out` | 8 of 9 | 22 | 45% | 5% | 50% | 6% | - / 89% |
+| `mine_ore` | 7 of 9 | 105 | 9% | 72% | 19% | 8% | - / 78% |
+| `hunt` | 7 of 9 | 58 | 60% | 16% | 24% | 2% | - / 78% |
+| `build_shelter` | 7 of 9 | 53 | 68% | 11% | 21% | 6% | - / 78% |
+| `tunnel` | 7 of 9 | 41 | 66% | 29% | 5% | 1% | - / 78% |
+| `descend` | 7 of 9 | 40 | 25% | 45% | 30% | 7% | - / 78% |
+| `eat` | 7 of 9 | 31 | 94% | 6% | 0% | 0% | - / 78% |
+| `sleep` | 7 of 9 | 27 | 0% | 100% | 0% | 5% | - / 78% |
+| `give` | 7 of 9 | 19 | 74% | 21% | 5% | 1% | - / 78% |
+| `ask_agent` | 3 of 9 | 13 | 62% | 23% | 15% | 1% | - / 33% |
+| `store` | 3 of 9 | 3 | 100% | 0% | 0% | 0% | - / 33% |
+| `tell_agent` | 1 of 9 | 1 | 100% | 0% | 0% | 0% | - / 11% |
+
+**Never chosen:** `take`, `shear`.
+
+<details><summary>Times chosen, by model</summary>
+
+| Skill | Claude Opus 5.5 | Claude Sonnet 5.5 | GPT-6 Luna |
+|---|---|---|---|
+| `flee` | 58 | 47 | 79 |
+| `craft` | 38 | 50 | 21 |
+| `gather_wood` | 22 | 24 | 41 |
+| `mine_stone` | 19 | 26 | 6 |
+| `go_to` | 22 | 53 | 50 |
+| `wait` | 10 | 30 | 19 |
+| `smelt` | 14 | 32 | 4 |
+| `explore` | 8 | 18 | 20 |
+| `pick_up` | 19 | 12 | 9 |
+| `climb_out` | 6 | 9 | 7 |
+| `mine_ore` | 52 | 46 | 7 |
+| `hunt` | 15 | 31 | 12 |
+| `build_shelter` | 11 | 8 | 34 |
+| `tunnel` | 35 | 5 | 1 |
+| `descend` | 23 | 15 | 2 |
+| `eat` | 7 | 7 | 17 |
+| `sleep` | 8 | 10 | 9 |
+| `give` | 7 | 7 | 5 |
+| `ask_agent` | 0 | 0 | 13 |
+| `store` | 1 | 1 | 1 |
+| `tell_agent` | 0 | 0 | 1 |
+
+</details>
+
 ## In a sentence or two each
 
 - **opus** (Claude Opus 5.5, rep 1): Did not meet its goal; it got as far as: survived a night. 54% of its decisions worked (65 of 120). After a failure it usually changed course (18 of 18).

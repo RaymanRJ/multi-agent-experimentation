@@ -10,6 +10,28 @@ What the batches measured, written up so they can be read without the logs.
 | [2026-10-iron.md](2026-10-iron.md) | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [2026-10-local-model-memory.md](2026-10-local-model-memory.md) | What does memory (none, plan, full) do for a small local model? |
 
+## Skill usage
+
+[skills.md](skills.md) counts, for every real batch and team run since p5, how many runs chose
+each skill, how often it worked, its share of game time, and how common it was in goal-met runs
+against the rest; then the same per goal. Each batch's comparison (`batches/<name>/README.md`) has
+the table for its own runs. Rebuild it with the command at its top after a new batch.
+
+Read it with the skills' own rules in mind:
+- **`sleep` counts as failed** whenever the night did not pass, though the agent did sleep. The
+  goal check counts the sleep.
+- **`mine_ore` counts as failed** when it got fewer ore than asked.
+- **`wait` is most of `outpost`'s game time:** sitting in the shelter is the goal there.
+
+As of thome1:
+- **Every run needs `craft`, `gather_wood` and `mine_stone`.**
+- **`build_shelter` and `wait` carried `outpost`.** Every goal-met run used both.
+- **The team goal leans on more of the library:** `flee`, `go_to`, `smelt`, `pick_up`, `hunt`,
+  `give`, `eat` and `sleep` appear in 7–9 of 9 team runs.
+- **`take` and `shear` have never been chosen.** No one took from a chest, and wool came from
+  `hunt`ing sheep.
+- **`tell_agent` was used once**, against 13 `ask_agent` questions.
+
 ## Generated reports
 
 `batches/<name>/` holds what the code wrote at the end of each real batch (from p5 on): the batch
