@@ -95,6 +95,10 @@ export const sleep: Skill = {
           ? (bedRefusal(bot.time.timeOfDay) ?? "the game says it is not yet time to sleep")
           : /occupied/i.test(message)
             ? "someone else got into the bed first — try sleep again for another bed"
+          : /half bed/i.test(message)
+            ? `the bed at ${x},${y},${z} is broken: only one half of it is there`
+          : /not sleeping/i.test(message)
+            ? `you lay down in the bed at ${x},${y},${z} but the game did not let you sleep, and did not say why`
           : `could not sleep: ${message}`;
       return { status: "failed", reason };
     }
