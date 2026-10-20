@@ -8,7 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
-import { insideClosedShelter, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, insideClosedShelter, insideSpot, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -17,7 +17,8 @@ import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
-import { TeamBoard, combine, stillWorking, type ChestViews } from "./team.js";
+import { TeamBoard, combine, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
 import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
@@ -229,9 +230,28 @@ async function main(): Promise<void> {
   bot.on("error", (error) => console.error(`[${agentName}] error: ${error.message}`));
   // What the run has achieved, for goals that span more than one skill (outpost).
   let shelterBuilt = false;
-  // Every shelter this agent built, to tell when it is inside one that is still closed.
+  // Every shelter this agent built or worked on; with its teammates' (knownShelters), to tell when it
+  // is inside one that is still closed, and for build_shelter to go into one rather than build another.
   const shelters: ShelterSpot[] = [];
-  const inShelter = () => shelters.some((spot) => insideClosedShelter(bot, spot));
+  const knownShelters = (): ShelterSpot[] => mergeShelters([shelters, ...Object.values(board?.read() ?? {}).map((m) => m?.shelters ?? [])]);
+  const inShelter = () => knownShelters().some((spot) => insideClosedShelter(bot, spot));
+  /** The shelters in sight, nearest first, as the agent would describe them. */
+  const sheltersInSight = (): string[] => {
+    const here = bot.entity.position;
+    return knownShelters()
+      .map((spot) => ({ spot, d: Math.round(here.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5))) }))
+      .filter(({ spot, d }) => d <= REUSE_RANGE && standing(bot, spot))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3)
+      .map(({ spot, d }) => {
+        const owner = spot.by && spot.by !== agentName ? ` (${spot.by}'s)` : spot.by === agentName ? " (yours)" : "";
+        const where = insideSpot(bot, spot) ? "you are inside it" : `${d} blocks away`;
+        const state = spot.complete === false ? "" : insideClosedShelter(bot, spot) ? ", closed" : insideSpot(bot, spot) ? ", not closed" : "";
+        return `${describeShelter(spot)}${owner} at ${spotKey(spot)}, ${where}${state}`;
+      });
+  };
+  // The shelters this agent has slept in a bed inside, for goals that ask for one shared shelter.
+  const sleptIn = new Set<string>();
   const night = new NightWatch();
   bot.on("death", () => {
     // Where, so it can go back: a player sees where they fell. Dropped items vanish after 5 minutes.
@@ -250,8 +270,11 @@ async function main(): Promise<void> {
   // Chests this agent has opened, as it last saw each: for goals (and team goals) that count what is in them.
   const chestViews: ChestViews = {};
   let sleptInBed = false;
-  bot.on("sleep", () => { sleptInBed = true; });
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed });
+  bot.on("sleep", () => {
+    sleptInBed = true;
+    for (const spot of knownShelters()) if (insideSpot(bot, spot)) sleptIn.add(spotKey(spot));
+  });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn] });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -260,12 +283,14 @@ async function main(): Promise<void> {
     // A teammate that hasn't reported yet still counts, as a member holding nothing.
     const members: Record<string, Record<string, number>> = { [agentName]: own.inventory };
     const membersSlept: Record<string, boolean> = { [agentName]: own.sleptInBed };
+    const membersSleptIn: Record<string, string[]> = { [agentName]: own.sleptIn };
     for (const name of board?.teammates ?? []) {
       members[name] = others[name]?.inventory ?? {};
       membersSlept[name] = !!others[name]?.sleptInBed;
+      membersSleptIn[name] = others[name]?.sleptIn ?? [];
     }
     const states = [own, ...Object.values(others).filter((m) => m !== undefined)];
-    return { skill, status, ...combine(states), members, membersSlept };
+    return { skill, status, ...combine(states), members, membersSlept, membersSleptIn };
   };
   const publish = () => board?.publish({ ...ownState(), goalMet: ownGoalMet });
   /** A team goal can be met by a teammate's step, while this agent is busy or thinking. */
@@ -341,6 +366,7 @@ async function main(): Promise<void> {
       console.log(`[${agentName}]   ${message}`);
     },
     shouldStop: () => stopping || interruptReason !== null,
+    shelters: knownShelters,
   };
 
   let policyFailures = 0;
@@ -383,6 +409,7 @@ async function main(): Promise<void> {
       recentEvents,
       activities,
       inShelter: inShelter(),
+      shelters: sheltersInSight(),
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
@@ -551,11 +578,18 @@ async function main(): Promise<void> {
     for (const view of (result.detail?.["chests"] as Array<{ at: string; holds: Record<string, number> }> | undefined) ?? []) {
       chestViews[view.at] = { holds: view.holds, seenAt: Date.now() };
     }
+    // Any shelter built, finished, gone into or started (a large one, part-built) is one the team knows of.
+    const at = decision.skill === "build_shelter" ? (result.detail?.["position"] as { x: number; y: number; z: number } | undefined) : undefined;
+    if (at) {
+      const complete = result.status === "success";
+      const spot: ShelterSpot = { ...at, storeys: Number(result.detail?.["storeys"] ?? 1), size: Number(result.detail?.["size"] ?? 3) === 5 ? 5 : 3, by: String(result.detail?.["by"] ?? agentName), complete };
+      const i = shelters.findIndex((s) => spotKey(s) === spotKey(spot));
+      if (i >= 0) shelters[i] = mergeShelters([[shelters[i]!], [spot]])[0]!;
+      else shelters.push(spot);
+    }
     if (decision.skill === "build_shelter" && result.status === "success") {
       shelterBuilt = true;
       shelterStoreys = Math.max(shelterStoreys, Number(result.detail?.["storeys"] ?? 1));
-      const at = result.detail?.["position"] as { x: number; y: number; z: number } | undefined;
-      if (at) shelters.push({ ...at, storeys: Number(result.detail?.["storeys"] ?? 1) });
     }
     if (goalCheck?.(goalState(decision.skill, result.status))) ownGoalMet = true;
     publish();

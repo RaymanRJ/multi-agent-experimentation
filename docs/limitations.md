@@ -180,6 +180,11 @@ building on it.
   logs up to p5, in none of p6's 12 runs; never reproduced in about 30 crafts on a test server, so the cause is unknown.
   Since 20 October it costs one failed craft of about 8 seconds (the bot steps up and tries once
   more) rather than a run of 15-second timeouts.
+- **Shelters are shared and gone back into (since 20 October).** `build_shelter` goes into any shelter the
+  agent or a teammate built within 32 blocks instead of building another (thome1's three agents built 36
+  huts), and a large one (5×5 inside) can be built in parts by several agents. Agents learn of a
+  teammate's shelter from the team's shared state, but only within 32 blocks and only while its walls
+  still stand in the world, as a player would see a hut. Not yet tried in a team run.
 - **A shelter is closed once built (since 20 October).** Its floor is filled where the ground has
   holes, and its doorway is filled in behind the builder; the pathfinder digs back out through any
   wall when the agent leaves. Before that the doorway stayed open (in p5 mobs walked in on agents

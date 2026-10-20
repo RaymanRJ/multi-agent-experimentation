@@ -74,6 +74,8 @@ export interface Observation {
   air?: number;
   /** True when inside a shelter whose walls, roof and doorway are all closed. Omitted otherwise. */
   inShelter?: boolean;
+  /** Shelters within sight: "a large two-storey shelter (luna's) at 4,70,-12, 9 blocks away". Omitted when there are none. */
+  shelters?: string[];
   /** Blocks of solid ground between the agent's head and the open sky, when it is under the ground. Omitted otherwise. */
   underground?: number;
   timeOfDay: number;
@@ -128,6 +130,11 @@ export interface SkillContext {
   log: (message: string) => void;
   /** Flips when the run is winding down; long skills should check it and bail. */
   shouldStop: () => boolean;
+  /**
+   * Shelters this agent knows of: its own, and its teammates' (as they would be seen, by looking).
+   * Skills check each one against the world before using it. Absent in tests and tools.
+   */
+  shelters?: () => import("./skills/buildShelter.js").ShelterSpot[];
 }
 
 /** An arg's type; a trailing "?" marks it optional (the skill has a default, or takes one arg or another). */

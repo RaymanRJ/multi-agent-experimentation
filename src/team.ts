@@ -7,6 +7,7 @@
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { spotKey, type ShelterSpot } from "./skills/buildShelter.js";
 
 /** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch). */
 export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number }>;
@@ -21,6 +22,10 @@ export interface MemberState {
   shelterStoreys: number;
   /** This member has slept in a bed at least once. Absent in boards written before it existed. */
   sleptInBed?: boolean;
+  /** Shelters this member built or worked on. */
+  shelters?: ShelterSpot[];
+  /** The shelters (by "x,y,z" of their centre) this member has slept in a bed inside. */
+  sleptIn?: string[];
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;
@@ -78,7 +83,20 @@ export function combine(states: Array<Omit<MemberState, "at" | "goalMet">>): Omi
     shelterStoreys: Math.max(0, ...states.map((s) => s.shelterStoreys ?? 0)),
     chests: latestChests(states.map((s) => s.chests ?? {})),
     sleptInBed: states.some((s) => s.sleptInBed),
+    shelters: mergeShelters(states.map((s) => s.shelters ?? [])),
   };
+}
+
+/** One entry per shelter, whoever reported it; finished if anyone saw it finished, tallest and widest as last built. */
+export function mergeShelters(lists: ShelterSpot[][]): ShelterSpot[] {
+  const out = new Map<string, ShelterSpot>();
+  for (const spot of lists.flat()) {
+    const seen = out.get(spotKey(spot));
+    out.set(spotKey(spot), seen
+      ? { ...seen, storeys: Math.max(seen.storeys, spot.storeys), size: Math.max(seen.size ?? 3, spot.size ?? 3) as 3 | 5, complete: seen.complete !== false || spot.complete !== false ? true : false }
+      : spot);
+  }
+  return [...out.values()];
 }
 
 /**
