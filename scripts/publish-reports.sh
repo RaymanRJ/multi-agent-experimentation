@@ -35,10 +35,13 @@ while read -r log; do
   links+=(-e "s#\`$log\`#[$p]($p.md)#g")
 done < "$list"
 
+# Say what made it: the reports are rebuilt from the logs, so an old batch's numbers come from today's
+# report code, and can differ from its write-up where that code has been fixed since.
+stamp="*Built from the run logs on $(date -u +%Y-%m-%d) by the report code at $(git rev-parse --short HEAD) (\`scripts/publish-reports.sh $name\`). Where this differs from the write-up in \`docs/results/\`, the write-up was made at the time, and the report code has been fixed since.*"
 sed -E "${links[@]}" \
   -e 's/^Logs:$/Runs:/' \
   -e 's#Each agent.s full report is beside its log: `<log>\.summary\.md`\.#Each agent'"'"'s full report is in this folder, linked below.#' \
-  "$compare" > "$dest/README.md"
+  "$compare" | awk -v stamp="$stamp" 'NR == 1 { print; print ""; print stamp; next } { print }' > "$dest/README.md"
 
 while read -r log; do
   summary="${log%.jsonl}.summary.md"
