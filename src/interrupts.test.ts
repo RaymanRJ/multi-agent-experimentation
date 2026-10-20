@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWatch, MESSAGE_COOLDOWN_MS, SUPPRESSED, suppressedFor, type WorldSnapshot } from "./interrupts.js";
+import { createWatch, DAMAGE_FLOOR, MESSAGE_COOLDOWN_MS, SUPPRESSED, suppressedFor, type WorldSnapshot } from "./interrupts.js";
 
 const calm: WorldSnapshot = { health: 20, hostiles: [], timeOfDay: 1000 };
 const zombie = (distance: number, id = 1) => ({ id, name: "zombie", distance });
@@ -63,11 +63,20 @@ test("dusk interrupts a skill started in daylight, with the time left; not one s
   assert.equal(createWatch({ ...calm, timeOfDay: 11900 }).check({ ...calm, timeOfDay: 12500 }), null);
 });
 
-test("build_shelter is not cut short by dusk or nightfall", () => {
-  const w = createWatch(calm, suppressedFor("build_shelter", null, 0));
+test("build_shelter is not cut short by dusk, nightfall or a message", () => {
+  const w = createWatch({ ...calm, directed: 0 }, suppressedFor("build_shelter", null, 0));
   assert.equal(w.check({ ...calm, timeOfDay: 11000 }), null);
   assert.equal(w.check({ ...calm, timeOfDay: 12500 }), null);
+  assert.equal(w.check({ ...calm, directed: 1, lastDirected: { from: "lb", text: "come here" } }), null);
   assert.match(w.check({ ...calm, health: 5 })!, /took damage/);
+});
+
+test("a hit on the way into a shelter interrupts only once health is low", () => {
+  const w = createWatch(calm, suppressedFor("build_shelter", null, 0), DAMAGE_FLOOR["build_shelter"]);
+  assert.equal(w.check({ ...calm, health: 13 }), null);
+  assert.equal(w.check({ ...calm, health: 7 }), null);
+  assert.match(w.check({ ...calm, health: 6 })!, /took damage \(health 6\)/);
+  assert.match(createWatch(calm).check({ ...calm, health: 13 })!, /took damage/, "other skills still stop at the first hit");
 });
 
 test("only one interrupt per run", () => {

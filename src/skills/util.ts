@@ -284,7 +284,9 @@ export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["
   for (let nudge = 0; ; nudge++) {
     let last = bot.entity.position.clone(), lastMoved = Date.now(), stuck = false;
     const watch = setInterval(() => {
-      if (bot.entity.position.distanceTo(last) > 0.3) { last = bot.entity.position.clone(); lastMoved = Date.now(); }
+      // Digging or pillaring through the way is progress, though the bot stands still for it.
+      const working = bot.pathfinder.isMining() || bot.pathfinder.isBuilding();
+      if (working || bot.entity.position.distanceTo(last) > 0.3) { last = bot.entity.position.clone(); lastMoved = Date.now(); }
       else if (Date.now() - lastMoved > STUCK_MS) { stuck = true; bot.pathfinder.setGoal(null); }
     }, 500);
     try {

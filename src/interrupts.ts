@@ -68,7 +68,8 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *    hostile interrupts would abort it exactly when it matters. Night is also moot.
  *  - eat: a couple of seconds long; the model replans right after anyway.
  *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
- *  - build_shelter: getting under cover is the answer to dusk, nightfall and a mob close by, not something they should cut short.
+ *  - build_shelter: getting under cover is the answer to dusk, nightfall and a mob close by, not something they should cut short,
+ *    and a message can wait the minute it takes.
  *  - ask_agent: it is waiting for an answer addressed to it, which must not cut the wait short.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
@@ -76,11 +77,22 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   eat: ["damage", "hostile", "dusk", "night", "message"],
   sleep: ["damage", "hostile", "dusk", "night", "message"],
   // Hostile too: going into a shelter is the answer to a zombie close by (in bpoc it was interrupted 13
-  // times on the way in). Building in the open still stops for one by itself (threatened), and damage interrupts.
-  build_shelter: ["dusk", "night", "hostile"],
+  // times on the way in). Building in the open still stops for a mob or a hit by itself (construct), and
+  // damage interrupts the way in only when health is low (DAMAGE_FLOOR). Message too: a teammate's message
+  // stopped 3 entries in bpoc2; it waits for the next decision, made once inside.
+  build_shelter: ["dusk", "night", "hostile", "message"],
   // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
   hunt: ["damage", "hostile"],
   ask_agent: ["message"],
+};
+
+/**
+ * Skills that a hit stops only once health is at or below this. Getting inside is the escape from a mob
+ * hitting the agent on the way in: in bpoc2, 7 entries were stopped by a hit and 4 of those agents fled
+ * instead and never went back in. Low enough health is still the model's to decide on.
+ */
+export const DAMAGE_FLOOR: Record<string, number> = {
+  build_shelter: 6,
 };
 
 export interface Watch {
@@ -90,7 +102,7 @@ export interface Watch {
   firedBy(): Trigger | null;
 }
 
-export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): Watch {
+export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], damageFloor?: number): Watch {
   const off = new Set(suppressed);
   const startDistance = new Map(start.hostiles.map((h) => [h.id, h.distance]));
   // Night falls during the skill: not night when it started, night now. (At dawn the time is past
@@ -109,7 +121,7 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = []): W
       return ["air", "interrupted: you are under water and running out of air"];
     }
 
-    if (!off.has("damage") && now.health < peakHealth) {
+    if (!off.has("damage") && now.health < peakHealth && (damageFloor === undefined || now.health <= damageFloor)) {
       const drowning = now.oxygen !== undefined && now.oxygen <= 0;
       return ["damage", `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
     }

@@ -7,7 +7,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
-import { createWatch, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { createWatch, DAMAGE_FLOOR, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { describeShelter, HOME_RANGE, insideClosedShelter, insideSpot, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
@@ -572,7 +572,7 @@ async function main(): Promise<void> {
     const wet = await escapeWater();
     if (wet) stepEvents.push(wet);
     interruptReason = null;
-    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()));
+    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name]);
     const skillStartAge = bot.time.age;
     let result = await runSkill(skill, ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
