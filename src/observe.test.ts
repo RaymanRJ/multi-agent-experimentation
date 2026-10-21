@@ -98,3 +98,20 @@ test("shownHealth - whole points, but an agent alive below half a point is never
   assert.equal(shownHealth(0.04), 0.1, "rounded to a tenth, but still not 0");
   assert.equal(shownHealth(0), 0);
 });
+
+test("observe - furniture is never crowded out by stone, and beds count once each, with how many are in use", () => {
+  const blocks: Record<string, string> = {};
+  // 300 stone nearer than the chest: the shared search stops at 256.
+  for (let i = 0; i < 300; i++) blocks[`${(i % 20) - 10},${60 + Math.floor(i / 20) % 4},${Math.floor(i / 80) - 2}`] = "stone";
+  blocks["0,64,12"] = "chest";
+  // Two beds: one with someone in it (head occupied), one free; each is a head and a foot.
+  blocks["3,64,0"] = "white_bed@1688";
+  blocks["3,64,1"] = "white_bed@1689";
+  blocks["5,64,0"] = "white_bed@1690";
+  blocks["5,64,1"] = "white_bed@1691";
+  const o = observe(fakeBot({ blocks }).bot, base);
+  assert.equal(o.nearbyBlocks["chest"], 1);
+  assert.equal("white_bed" in o.nearbyBlocks, false);
+  assert.deepEqual(o.beds, { total: 2, inUse: 1 });
+  assert.equal("beds" in observe(fakeBot().bot, base), false);
+});

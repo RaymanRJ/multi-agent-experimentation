@@ -88,6 +88,8 @@ export interface Observation {
   /** Useful items (tools, furnace) not yet held that craft could make from the inventory now. Omitted when none. */
   canCraft?: string[];
   nearbyBlocks: Record<string, number>;
+  /** Beds put down nearby, and how many have someone in them. Omitted when none. */
+  beds?: { total: number; inUse: number };
   hostiles: Array<{ name: string; distance: number }>;
   /** Animals nearby (cows, sheep, fish…), nearest first, at most five. Omitted when none. */
   animals?: Array<{ name: string; distance: number }>;

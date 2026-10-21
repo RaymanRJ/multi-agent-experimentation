@@ -67,10 +67,11 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
   setInventory(setup.inventory ?? {});
 
   const blockAt = (point: { x: number; y: number; z: number }) => {
-    const name = world.get(key(point)) ?? "air";
+    // "white_bed@1688": a block in a given state (its properties: a bed's head, occupied).
+    const [name, state] = (world.get(key(point)) ?? "air").split("@") as [string, string | undefined];
     const def = registry.blocksByName[name];
     if (!def) throw new Error(`fakeBot: unknown block ${name}`);
-    const block = Block.fromStateId(def.defaultState ?? def.minStateId, 0);
+    const block = Block.fromStateId(state ? Number(state) : (def.defaultState ?? def.minStateId), 0);
     block.position = new Vec3(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
     return block;
   };
