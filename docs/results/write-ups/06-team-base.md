@@ -350,6 +350,54 @@ Threats rarely knocked an agent off the goal for long: after one, every agent wa
     closed home. The cause is not in the logs, and it needs the home in place to reproduce.
   - There was no way to look inside a chest without moving something; `look_in_chest` now does it.
 
+## How this testbed gets better: from where the agents get stuck
+
+The structure around the agents improves by one loop, run after every batch:
+1. **Run** the agents on a goal, with nothing in their prompt about how to reach it.
+2. **Read the logs where they got stuck,** putting three things side by side: what the agent was
+   told, what it reasoned (its own words), and what really happened in the world.
+3. **Sort each stuck point.** Our tool failed or misled it; it lacked information a person in its
+   place would have; or it was its own judgement.
+4. **Change only the first two:** fix the tool, or give the missing information, and check the fix
+   in the game. Its judgement is left alone and reported, because that is what is being measured.
+5. **Run again,** and see whether the agents get further.
+
+Each change in this write-up came from that loop. Each is the kind of thing that also trips AI agents
+working on real systems, such as support desks, IT operations and business tools:
+
+| Where an agent got stuck | What was wrong | What changed | The same thing in a real system |
+|---|---|---|---|
+| Gave up on iron beside it as "out of reach" (44 times) | A tool refused a possible action, with a reason that sounded final | It digs to the ore | A tool that returns "not permitted" or "not found" when the action was possible; the agent plans around a problem that isn't there |
+| Asked for 1 cooked meat, got all 10, emptied the team's store | A tool did more than it was asked | It takes exactly the count | A bulk side effect: asked to update one record, the call updates all of them |
+| Waited beside a zombie because its home was "closed" | A computed status contradicted the evidence, and the agent believed the status | The status checks for a mob inside, and says so | A dashboard showing green while the raw signals say otherwise; agents, like people, trust the summary |
+| Reasoned for 26 decisions from "health 0" | A number rounded away the one fact that mattered | Under half a point shows as 0.4 | Rounding or formatting that hides an edge case: a balance of 0.4 shown as 0 |
+| Took meat out of the store just to see what was in it | No way to look without changing anything | `look_in_chest`, which moves nothing | No read-only view, so an agent learns the state of something by changing it |
+| Planned to "place beds" for the team; one bed sat unused in its pack | The plan needed an action no tool offered, and nothing said so | `place_bed` | A tool-coverage gap: the agent's plan includes a step it has no way to do, and it fails silently |
+| Didn't see the team's chest while standing beside it; no one saw how many beds were down | A cap on what the observation listed dropped the important items; beds weren't listed at all | Furniture gets its own count; beds are shown, with how many are in use | Context truncated by a fixed limit, so the record that mattered is the one cut off |
+| Smelting failed 42 times with "destination full" | A low-level error the agent couldn't act on | Fuel goes in one kind at a time | An error message from deep in a library, passed up unexplained |
+| Stuck on the treetops on the way home, six times | A situation the movement code had no way out of | Climb down through the leaves if health allows; say why if not | An automation with no recovery path for an unusual state |
+| Sleepers kept missing each other by seconds | A timeout made the coordination window too short | Stay in bed until the night passes or a teammate speaks | Timeouts that make a handshake between agents (or services) all but impossible |
+
+**What we left alone, and why:**
+- **The agents' own behaviour:**
+  - they answer requests, not needs;
+  - one agent carried every pickaxe;
+  - status chatter drowned out requests.
+- **Why:** a prompt could coach these away, but then the result would show the coaching, not
+  the agents.
+- **The real-world parallel:** this is team process. In organisations it is handled by how work is
+  routed: explicit requests and tickets, and a shared view of what's still open. Those are things we
+  can test here as separate conditions (`--progress on`, quieter messages), not as defaults.
+
+**The lesson for real deployments:** when an AI agent fails, look first at what it was told and what
+its tools did, then at its judgement. In these runs most of the early failures were ours:
+- tools that misled it;
+- information it couldn't see;
+- actions it had no tool for.
+
+Fixing those moved the agents further than any change to the prompt would have, and left their own
+behaviour visible to study.
+
 ## What this suggests (not acted on)
 
 - **Run it again on the fixed code.** Done once each in tbase2 and tbase3 (above): iron and food
