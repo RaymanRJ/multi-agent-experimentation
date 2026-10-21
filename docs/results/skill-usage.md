@@ -1,62 +1,64 @@
 # Skill usage since p5
 
-*Built from the run logs by `npm run skills -- --batch p5 --batch p6 --team thome1 --title "Skill usage since p5" --out docs/results/skill-usage.md`. Logs stay in `runs/` (not committed).*
+*Built from the run logs by `npm run skills -- --batch p5 --batch p6 --team thome1 --team tbase1 --title "Skill usage since p5" --out docs/results/skill-usage.md`. Logs stay in `runs/` (not committed).*
 
 ## Skills used
 
-Across 33 runs (16 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+Across 42 runs (16 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
 
 | Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
 |---|---|---|---|---|---|---|---|
-| `craft` | 33 of 33 | 286 | 79% | 16% | 5% | 4% | 100% / 100% |
-| `gather_wood` | 33 of 33 | 147 | 52% | 1% | 46% | 11% | 100% / 100% |
-| `mine_stone` | 33 of 33 | 91 | 56% | 8% | 36% | 12% | 100% / 100% |
-| `wait` | 31 of 33 | 402 | 84% | 0% | 16% | 27% | 100% / 88% |
-| `build_shelter` | 31 of 33 | 105 | 61% | 22% | 17% | 5% | 100% / 88% |
-| `flee` | 17 of 33 | 302 | 91% | 9% | 0% | 4% | 0% / 100% |
-| `explore` | 14 of 33 | 63 | 70% | 0% | 30% | 2% | 6% / 76% |
-| `pick_up` | 14 of 33 | 48 | 73% | 25% | 2% | 1% | 13% / 71% |
-| `sleep` | 12 of 33 | 39 | 0% | 100% | 0% | 3% | 19% / 53% |
-| `hunt` | 11 of 33 | 64 | 59% | 14% | 27% | 1% | 0% / 65% |
-| `climb_out` | 11 of 33 | 27 | 52% | 7% | 41% | 3% | 6% / 59% |
-| `go_to` | 10 of 33 | 127 | 69% | 2% | 29% | 2% | 0% / 59% |
-| `eat` | 9 of 33 | 39 | 79% | 21% | 0% | 0% | 0% / 53% |
-| `smelt` | 8 of 33 | 50 | 28% | 66% | 6% | 1% | 0% / 47% |
-| `tunnel` | 8 of 33 | 43 | 65% | 28% | 7% | 1% | 0% / 47% |
-| `mine_ore` | 7 of 33 | 105 | 9% | 72% | 19% | 4% | 0% / 41% |
-| `descend` | 7 of 33 | 40 | 25% | 45% | 30% | 4% | 0% / 41% |
-| `give` | 7 of 33 | 19 | 74% | 21% | 5% | 0% | 0% / 41% |
-| `ask_agent` | 3 of 33 | 13 | 62% | 23% | 15% | 0% | 0% / 18% |
-| `store` | 3 of 33 | 3 | 100% | 0% | 0% | 0% | 0% / 18% |
-| `tell_agent` | 1 of 33 | 1 | 100% | 0% | 0% | 0% | 0% / 6% |
+| `craft` | 42 of 42 | 365 | 78% | 16% | 6% | 3% | 100% / 100% |
+| `gather_wood` | 42 of 42 | 182 | 53% | 2% | 45% | 8% | 100% / 100% |
+| `mine_stone` | 42 of 42 | 116 | 58% | 6% | 36% | 10% | 100% / 100% |
+| `wait` | 40 of 42 | 603 | 80% | 0% | 20% | 24% | 100% / 92% |
+| `build_shelter` | 40 of 42 | 259 | 71% | 12% | 17% | 6% | 100% / 92% |
+| `flee` | 26 of 42 | 357 | 91% | 9% | 1% | 3% | 0% / 100% |
+| `explore` | 23 of 42 | 122 | 74% | 2% | 25% | 3% | 6% / 85% |
+| `pick_up` | 22 of 42 | 104 | 59% | 35% | 7% | 1% | 13% / 77% |
+| `hunt` | 19 of 42 | 128 | 57% | 18% | 25% | 1% | 0% / 73% |
+| `sleep` | 19 of 42 | 91 | 1% | 99% | 0% | 5% | 19% / 62% |
+| `climb_out` | 19 of 42 | 58 | 41% | 16% | 43% | 5% | 6% / 69% |
+| `go_to` | 18 of 42 | 181 | 62% | 7% | 31% | 3% | 0% / 69% |
+| `eat` | 17 of 42 | 76 | 87% | 13% | 0% | 0% | 0% / 65% |
+| `smelt` | 16 of 42 | 109 | 18% | 77% | 5% | 2% | 0% / 62% |
+| `mine_ore` | 15 of 42 | 173 | 8% | 69% | 23% | 4% | 0% / 58% |
+| `tunnel` | 14 of 42 | 87 | 69% | 25% | 6% | 1% | 0% / 54% |
+| `descend` | 13 of 42 | 84 | 19% | 50% | 31% | 5% | 0% / 50% |
+| `give` | 13 of 42 | 38 | 76% | 13% | 11% | 0% | 0% / 50% |
+| `store` | 10 of 42 | 17 | 76% | 24% | 0% | 0% | 0% / 38% |
+| `ask_agent` | 9 of 42 | 32 | 59% | 31% | 9% | 1% | 0% / 35% |
+| `tell_agent` | 5 of 42 | 30 | 97% | 3% | 0% | 0% | 0% / 19% |
+| `take` | 5 of 42 | 7 | 57% | 43% | 0% | 0% | 0% / 19% |
 
-**Never chosen:** `take`, `shear`.
+**Never chosen:** `shear`.
 
 <details><summary>Times chosen, by model</summary>
 
 | Skill | Claude Haiku 4.5 | Claude Sonnet 5.5 | Claude Opus 5.5 | GPT-6 Luna |
 |---|---|---|---|---|
-| `craft` | 49 | 86 | 74 | 77 |
-| `gather_wood` | 17 | 40 | 29 | 61 |
-| `mine_stone` | 8 | 37 | 27 | 19 |
-| `wait` | 53 | 168 | 106 | 75 |
-| `build_shelter` | 18 | 20 | 22 | 45 |
-| `flee` | 45 | 59 | 63 | 135 |
-| `explore` | 13 | 18 | 9 | 23 |
-| `pick_up` | 0 | 14 | 22 | 12 |
-| `sleep` | 12 | 10 | 8 | 9 |
-| `hunt` | 2 | 33 | 15 | 14 |
-| `climb_out` | 5 | 9 | 6 | 7 |
-| `go_to` | 2 | 53 | 22 | 50 |
-| `eat` | 7 | 8 | 7 | 17 |
-| `smelt` | 0 | 32 | 14 | 4 |
-| `tunnel` | 2 | 5 | 35 | 1 |
-| `mine_ore` | 0 | 46 | 52 | 7 |
-| `descend` | 0 | 15 | 23 | 2 |
-| `give` | 0 | 7 | 7 | 5 |
-| `ask_agent` | 0 | 0 | 0 | 13 |
-| `store` | 0 | 1 | 1 | 1 |
-| `tell_agent` | 0 | 0 | 0 | 1 |
+| `craft` | 49 | 122 | 103 | 91 |
+| `gather_wood` | 17 | 52 | 43 | 70 |
+| `mine_stone` | 8 | 47 | 36 | 25 |
+| `wait` | 53 | 228 | 180 | 142 |
+| `build_shelter` | 18 | 71 | 45 | 125 |
+| `flee` | 45 | 72 | 84 | 156 |
+| `explore` | 13 | 44 | 30 | 35 |
+| `pick_up` | 0 | 34 | 32 | 38 |
+| `hunt` | 2 | 68 | 34 | 24 |
+| `sleep` | 12 | 22 | 16 | 41 |
+| `climb_out` | 5 | 22 | 17 | 14 |
+| `go_to` | 2 | 90 | 32 | 57 |
+| `eat` | 7 | 19 | 16 | 34 |
+| `smelt` | 0 | 74 | 23 | 12 |
+| `mine_ore` | 0 | 83 | 80 | 10 |
+| `tunnel` | 2 | 15 | 60 | 10 |
+| `descend` | 0 | 37 | 44 | 3 |
+| `give` | 0 | 19 | 13 | 6 |
+| `store` | 0 | 4 | 7 | 6 |
+| `ask_agent` | 0 | 1 | 3 | 28 |
+| `tell_agent` | 0 | 0 | 2 | 28 |
+| `take` | 0 | 3 | 0 | 4 |
 
 </details>
 
@@ -161,5 +163,65 @@ Across 9 runs (0 met the goal). **Runs** is how many chose the skill at least on
 | `ask_agent` | 0 | 0 | 13 |
 | `store` | 1 | 1 | 1 |
 | `tell_agent` | 0 | 0 | 1 |
+
+</details>
+
+### Goal: team-base
+
+Across 9 runs (0 met the goal). **Runs** is how many chose the skill at least once; **worked**, **failed** and **interrupted** are of the times it was chosen; **game time** is its share of all game time, thinking included in the total. **Met / other** is the share of goal-met runs that chose it, then of the rest: a skill far more common in met runs is one the successes leaned on. Usage alone is not value.
+
+| Skill | Runs | Chosen | Worked | Failed | Interrupted | Game time | Met / other |
+|---|---|---|---|---|---|---|---|
+| `wait` | 9 of 9 | 201 | 73% | 0% | 27% | 18% | - / 100% |
+| `build_shelter` | 9 of 9 | 154 | 78% | 5% | 17% | 6% | - / 100% |
+| `craft` | 9 of 9 | 79 | 76% | 14% | 10% | 1% | - / 100% |
+| `explore` | 9 of 9 | 59 | 78% | 3% | 19% | 4% | - / 100% |
+| `flee` | 9 of 9 | 55 | 89% | 9% | 2% | 1% | - / 100% |
+| `gather_wood` | 9 of 9 | 35 | 57% | 3% | 40% | 5% | - / 100% |
+| `mine_stone` | 9 of 9 | 25 | 64% | 0% | 36% | 6% | - / 100% |
+| `mine_ore` | 8 of 9 | 68 | 7% | 63% | 29% | 3% | - / 89% |
+| `hunt` | 8 of 9 | 64 | 55% | 22% | 23% | 2% | - / 89% |
+| `smelt` | 8 of 9 | 59 | 10% | 86% | 3% | 2% | - / 89% |
+| `pick_up` | 8 of 9 | 56 | 46% | 43% | 11% | 1% | - / 89% |
+| `go_to` | 8 of 9 | 54 | 46% | 19% | 35% | 5% | - / 89% |
+| `eat` | 8 of 9 | 37 | 95% | 5% | 0% | 0% | - / 89% |
+| `climb_out` | 8 of 9 | 31 | 32% | 23% | 45% | 7% | - / 89% |
+| `sleep` | 7 of 9 | 52 | 2% | 98% | 0% | 8% | - / 78% |
+| `store` | 7 of 9 | 14 | 71% | 29% | 0% | 0% | - / 78% |
+| `descend` | 6 of 9 | 44 | 14% | 55% | 32% | 6% | - / 67% |
+| `tunnel` | 6 of 9 | 44 | 73% | 23% | 5% | 2% | - / 67% |
+| `give` | 6 of 9 | 19 | 79% | 5% | 16% | 1% | - / 67% |
+| `ask_agent` | 6 of 9 | 19 | 58% | 37% | 5% | 1% | - / 67% |
+| `take` | 5 of 9 | 7 | 57% | 43% | 0% | 0% | - / 56% |
+| `tell_agent` | 4 of 9 | 29 | 97% | 3% | 0% | 0% | - / 44% |
+
+**Never chosen:** `shear`.
+
+<details><summary>Times chosen, by model</summary>
+
+| Skill | Claude Opus 5.5 | Claude Sonnet 5.5 | GPT-6 Luna |
+|---|---|---|---|
+| `wait` | 74 | 60 | 67 |
+| `build_shelter` | 23 | 51 | 80 |
+| `craft` | 29 | 36 | 14 |
+| `explore` | 21 | 26 | 12 |
+| `flee` | 21 | 13 | 21 |
+| `gather_wood` | 14 | 12 | 9 |
+| `mine_stone` | 9 | 10 | 6 |
+| `mine_ore` | 28 | 37 | 3 |
+| `hunt` | 19 | 35 | 10 |
+| `smelt` | 9 | 42 | 8 |
+| `pick_up` | 10 | 20 | 26 |
+| `go_to` | 10 | 37 | 7 |
+| `eat` | 9 | 11 | 17 |
+| `climb_out` | 11 | 13 | 7 |
+| `sleep` | 8 | 12 | 32 |
+| `store` | 6 | 3 | 5 |
+| `descend` | 21 | 22 | 1 |
+| `tunnel` | 25 | 10 | 9 |
+| `give` | 6 | 12 | 1 |
+| `ask_agent` | 3 | 1 | 15 |
+| `take` | 0 | 3 | 4 |
+| `tell_agent` | 2 | 0 | 27 |
 
 </details>
