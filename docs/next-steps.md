@@ -204,8 +204,20 @@ Read this at the start of a session; update it when something finishes or a new 
    report and write-up 06 are redone that way. Rewriting it found one more bug of ours: health under
    half a point read as 0 (Sonnet, rep 3, 26 decisions; fixed, checked live). 06 was then rewritten
    again with the game only as examples; the owner called it "the vibe we want moving forwards", not
-   perfect. The triage skill and CLAUDE.md now say so. Still to do: the generated report's wording
-   still leans on skill names and game terms ("`build_shelter` 33", "replaced 6 missing blocks").
+   perfect. The triage skill and CLAUDE.md now say so; the generated report's goal sections are in
+   plain words too.
+   **On the fixed code: tbase2 and tbase3 (21 October, one rep each, $3.50 and $3.46): 0 of 2.** The
+   owner's rule for improving agents: tools and true environmental information only. Before them,
+   an audit of what our code tells the agents fixed smelting with mixed fuel (42 failures in tbase1),
+   a just-killed animal still listed, and "no ore in reach" beside ore in sight across water. Iron
+   and food now moved: Opus made three iron pickaxes by early day 2 both times, and tbase3 met the
+   food part. What stopped the teams was their own behaviour and the three-day limit: Opus carried
+   all three pickaxes and died with them each time; Sonnet kept a spare bed while Luna was told
+   every bed was taken; messages remained mostly status updates. Fixed after: agents stuck on the
+   treetops (six times in tbase2), and `look_in_chest`, since an agent took meat out of the store to
+   see what was in it. Not fixed: in tbase3 a `give` walk to a teammate inside the closed home timed
+   out from 22 blocks (cause unknown). Written up in 06. **Next, on the owner's word:** another rep
+   on today's code, or `--progress on`; about $3.50 a rep.
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
    four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
