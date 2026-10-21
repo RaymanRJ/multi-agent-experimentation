@@ -21,10 +21,18 @@ const FUELS: Array<{ test: (name: string) => boolean; smelts: number }> = [
 ];
 
 /**
- * Fuel to cover `items`: the best kind first, topped up with the next. Pure, for testing.
- * Returns [item name, count] pairs, or null if everything held is not enough.
+ * Fuel to cover `items`: one kind if any kind held covers it alone, the best such first; otherwise
+ * the best kind topped up with the next. Pure, for testing. Returns [item name, count] pairs, or
+ * null if everything held is not enough. A furnace's fuel slot holds one kind at a time, so a mix is
+ * loaded one kind after another as the slot empties (tbase1: loading two kinds at once failed 42
+ * times as "destination full").
  */
 export function chooseFuel(inventory: Record<string, number>, items: number): Array<[string, number]> | null {
+  for (const fuel of FUELS) {
+    for (const [name, held] of Object.entries(inventory)) {
+      if (fuel.test(name) && held * fuel.smelts >= items) return [[name, Math.ceil(items / fuel.smelts)]];
+    }
+  }
   const chosen: Array<[string, number]> = [];
   let left = items;
   for (const fuel of FUELS) {
@@ -105,12 +113,20 @@ export const smelt: Skill = {
       // Clear whatever an earlier smelt left behind.
       if (furnace.outputItem()) await furnace.takeOutput();
       if (furnace.inputItem() && furnace.inputItem().type !== sourceId) await furnace.takeInput();
-      for (const [name, use] of fuel) await furnace.putFuel(bot.registry.itemsByName[name]!.id, null, use);
+      // The fuel slot holds one kind: leftover fuel of another kind comes out, and a mix goes in a kind at a time.
+      const queue = fuel.map(([name, use]) => ({ id: bot.registry.itemsByName[name]!.id, use }));
+      if (furnace.fuelItem() && furnace.fuelItem().type !== queue[0]!.id) await furnace.takeFuel();
+      const loadFuel = async () => {
+        const next = queue.shift();
+        if (next) await furnace.putFuel(next.id, null, next.use);
+      };
+      await loadFuel();
       await furnace.putInput(sourceId, null, count);
 
       const made = () => (countInventory(bot)[product] ?? 0) - startedWith + (furnace.outputItem()?.count ?? 0);
       for (let tick = 0; tick < count * TICKS_PER_ITEM && made() < count; tick += 20) {
         if (ctx.shouldStop()) break;
+        if (!furnace.fuelItem() && queue.length) await loadFuel();
         await bot.waitForTicks(20);
       }
       if (furnace.outputItem()) await furnace.takeOutput();
