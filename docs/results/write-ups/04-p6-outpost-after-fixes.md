@@ -7,7 +7,7 @@ $1.66. The same goal, models, settings and run order as p5, so the two are compa
 is the code (below) and the herds of animals now placed near spawn.*
 Generated report: [batch-reports/2026-10-20-0428-p6.md](../batch-reports/2026-10-20-0428-p6.md).
 
-**Each run is one agent alone.** `scripts/batch.sh` runs the 12 runs one after another, not
+**Each run is one agent alone.** `src/agents/scripts/batch.sh` runs the 12 runs one after another, not
 side by side. Before each one it regenerates the world from the same seed, then starts a single
 agent in it. The models never shared a world or met each other. Each faced the same terrain from
 the same starting point, so differences between runs come from the model and the game's
@@ -91,7 +91,7 @@ Everything that went into the code between the two batches, for the record:
 - **The shelter:** closed doorway, filled floor, best tool for clearing, an honest message when a dig
   is interrupted, `inShelter` in the observation, no hostile interrupts inside a closed shelter.
 - **Crafting:** a bounded table open with one walk-up retry; no stale waits closing later windows.
-- **Tool wear:** `wearingOut` and a break event (`src/toolWear.ts`). The first version crashed every
+- **Tool wear:** `wearingOut` and a break event (`src/agents/src/toolWear.ts`). The first version crashed every
   agent at start (a listener added before the bot spawned). A smoke test with the scripted brain
   is now a step in starting any batch.
 - **Herds:** 6 sheep, 4 cows, 4 pigs and 4 chickens are placed 45–60 blocks from spawn at the start of

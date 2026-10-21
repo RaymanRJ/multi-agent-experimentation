@@ -133,7 +133,7 @@ The plan was made once and never revisited when it stopped working.
 ## 2. Keeping the goal in view
 
 **Where the effort went.** Each decision was sorted by what it achieved (judged by code from the
-logs; `src/goalWork.ts`):
+logs; `src/agents/src/goalWork.ts`):
 
 | Share of the team's time | Rep 1 | Rep 2 | Rep 3 |
 |---|---|---|---|

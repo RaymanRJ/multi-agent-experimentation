@@ -1,3 +1,6 @@
+# Pinned, so the containers, network and volumes keep their names now that this file lives in src/agents/.
+name: multi-agent-experimentation
+
 services:
   mc:
     image: itzg/minecraft-server

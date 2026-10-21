@@ -10,6 +10,8 @@
 # reps reuse agent names). For real runs only, not proof or dev runs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The experiment lives in src/agents/; the published pages go in the repository's docs/.
+pages="../../docs/results/batch-reports"
 
 name="${1:?usage: publish-reports.sh BATCH}"
 if [ -s "runs/team-$name.txt" ]; then kind=team; else kind=batch; fi
@@ -17,10 +19,10 @@ list="runs/$kind-$name.txt"
 compare="runs/compare-$kind-$name.md"
 # Pages are named by when the first run started, so they sort in the order the runs happened
 # (batch names don't: b13 ran before b12). A batch published before keeps its name.
-dest="$(ls docs/results/batch-reports/*-"$name".md 2>/dev/null | head -1 || true)"
+dest="$(ls "$pages"/*-"$name".md 2>/dev/null | head -1 || true)"
 if [ -z "$dest" ]; then
   started="$(head -1 "$list" | grep -oE '20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}' | head -1 | sed -E 's/T([0-9]{2})-([0-9]{2})/-\1\2/')"
-  dest="docs/results/batch-reports/${started:-undated}-$name.md"
+  dest="$pages/${started:-undated}-$name.md"
 fi
 [ -s "$list" ] || { echo "ERROR: no run list at $list" >&2; exit 1; }
 [ -s "$compare" ] || { echo "ERROR: no comparison at $compare (npm run compare -- --$kind $name)" >&2; exit 1; }
@@ -41,7 +43,7 @@ done < "$list"
 
 # Say what made it: the reports are rebuilt from the logs, so an old batch's numbers come from today's
 # report code, and can differ from its write-up where that code has been fixed since.
-stamp="*Built from the run logs on $(date -u +%Y-%m-%d) by the report code at $(git rev-parse --short HEAD) (\`scripts/publish-reports.sh $name\`). Where this differs from the write-up in \`docs/results/\`, the write-up was made at the time, and the report code has been fixed since.*"
+stamp="*Built from the run logs on $(date -u +%Y-%m-%d) by the report code at $(git rev-parse --short HEAD) (\`src/agents/scripts/publish-reports.sh $name\`). Where this differs from the write-up in \`docs/results/\`, the write-up was made at the time, and the report code has been fixed since.*"
 {
   sed -E "${names[@]}" \
     -e 's/^Logs:$/Runs:/' \

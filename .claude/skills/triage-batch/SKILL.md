@@ -4,6 +4,7 @@ description: Read a finished batch's logs, find why each run failed, sort each c
 ---
 
 # Triage a batch
+**Run everything from `src/agents/`**, where the experiment lives; `docs/` is two levels up (`../../docs/`).
 
 The owner's rule: **read the logs before believing a result**, and say what was measured, not what
 was hoped. A failure is one of three things, and each is handled differently:
@@ -20,14 +21,14 @@ was hoped. A failure is one of three things, and each is handled differently:
    ```bash
    npm run report -- --by condition --batch <name>     # success per model, 95% Wilson interval, cost
    npm run report -- --batch <name>                    # one row per run: ended, valid, deaths, night
-   node .claude/skills/triage-batch/runs.mjs table <name>    # craft timeouts, shelter, first damage after it, leaving at night
-   node .claude/skills/triage-batch/runs.mjs skills <name>   # which skills each run chose
+   node ../../.claude/skills/triage-batch/runs.mjs table <name>    # craft timeouts, shelter, first damage after it, leaving at night
+   node ../../.claude/skills/triage-batch/runs.mjs skills <name>   # which skills each run chose
    ```
    Runs marked not valid (lost connection) are left out of the comparison; say how many.
 2. **Each failed run, one by one.** Read its `runs/<log>.summary.md` (verdict, obstacles, step list),
    then the steps around what went wrong:
    ```bash
-   node .claude/skills/triage-batch/runs.mjs steps runs/<log>.jsonl 20 30
+   node ../../.claude/skills/triage-batch/runs.mjs steps runs/<log>.jsonl 20 30
    ```
    Questions that found real bugs before: was it hurt *inside* its shelter (distance from shelter
    under 2)? Did the same failure repeat with an unchanged inventory (a stale or hung skill)? Does
@@ -37,7 +38,7 @@ was hoped. A failure is one of three things, and each is handled differently:
    it in older logs too, which tells how long it has been there.
 4. **Reproduce before fixing** our-code failures, on a throwaway server (`live-check` skill). If it
    won't reproduce, guard against it and say the cause is unknown; don't claim one.
-5. **Don't change `src/` under a running batch.** Worktree, then fast-forward `main` after.
+5. **Don't change `src/agents/src/` under a running batch.** Worktree, then fast-forward `main` after.
 
 ## Writing up
 
@@ -56,7 +57,7 @@ better than before": keep improving it):
   (`decision.rationale` in the logs).
 - **Use the generated report's goal sections** for the numbers: the goal at the end, share of time
   by kind of work, what broke work off and how soon the agent was back at it, and help and hindrance
-  (`src/goalWork.ts`).
+  (`src/agents/src/goalWork.ts`).
 - **Our code's bugs get a short plain list near the end** ("where our code, not the agents, decided
   the outcome"), one line each. The per-model table comes last.
 - **The development loop gets its own section** (the owner's ask, 21 October), as in 06's "How this
@@ -75,7 +76,7 @@ better than before": keep improving it):
 - **Every claim is checked against the logs before committing.** Numbers come from the reports and
   logs, never from memory; re-read each sentence against them, as counts and causes drift in
   rewriting.
-- `scripts/publish-reports.sh <name>` for real batches and team runs (not `poc` or dev runs), and
+- `src/agents/scripts/publish-reports.sh <name>` for real batches and team runs (not `poc` or dev runs), and
   commit the page it writes, `docs/results/batch-reports/<date>-<time>-<name>.md`; add the run's row to
   the table in `docs/results/README.md`, in start order.
 - `docs/next-steps.md`: one paragraph under the open item, with the result and what is next.

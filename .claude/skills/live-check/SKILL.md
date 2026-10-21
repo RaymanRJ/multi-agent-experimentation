@@ -4,6 +4,7 @@ description: Check a skill, observation or scenario change in the real game on a
 ---
 
 # Check it in the real game
+**Run everything from `src/agents/`**, where the experiment lives; `docs/` is two levels up (`../../docs/`).
 
 The fake bot in the unit tests has no physics, no server and no timing. A `give` that passed every
 test overshot in four of five live tries; a craft fix only showed its worth against a real
@@ -54,8 +55,8 @@ bot.once("spawn", async () => {
 - **Make it fail on purpose too**: drop a click, take the blocks away, put a mob in the doorway.
   The failure path is usually where the bug is.
 - Print what the server did (packets, block names, entity counts), not just the skill's result.
-- `src/try.ts` runs one skill with no setup: `MC_PORT=25620 npm run try -- --skill <name> --args '{}'`.
-- **Changes to `src/agent.ts`, observations or scenario setup also need the real agent**, which a
+- `src/agents/src/try.ts` runs one skill with no setup: `MC_PORT=25620 npm run try -- --skill <name> --args '{}'`.
+- **Changes to `src/agents/src/agent.ts`, observations or scenario setup also need the real agent**, which a
   scratch script does not load: `MC_PORT=25620 RCON_PORT=25630 npm run agent -- --brain scripted …`.
 
 ## 3. Clean up, every time

@@ -3,8 +3,8 @@
 Agents talk through **ordinary Minecraft chat**, the same chat a human player uses. There is no
 hidden channel between them. If you join the server, you see every message and can take part.
 
-The code is in `src/comms.ts` (chat), `src/interrupts.ts` (being called by name) and
-`src/policy/llm.ts` (what the model is told).
+The code is in `src/agents/src/comms.ts` (chat), `src/agents/src/interrupts.ts` (being called by name) and
+`src/agents/src/policy/llm.ts` (what the model is told).
 
 ## Two kinds of chat line
 
@@ -116,7 +116,7 @@ the agent reached the goal itself.
 - Runs from before stances existed show as `legacy`. Their prompt leaned collaborative ("use
   it to avoid duplicating their work", "coordinate who does what"), so they're not neutral.
 
-Run several agents in one world with `scripts/team.sh`:
+Run several agents in one world with `src/agents/scripts/team.sh`:
 
 ```bash
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"            # two Qwen agents race
@@ -136,5 +136,5 @@ measure whether talking helps.
 - No memory of conversations beyond the last 8 lines, except what full memory mode keeps.
 - The batches so far (b1–b5) run **one agent per world**, so they have had nobody to talk to.
   Communication only comes into play when several agents share a world, for example
-  `scripts/team.sh`, `./start.sh` with more than one brain, or several `npm run agent`
+  `src/agents/scripts/team.sh`, `./start.sh` with more than one brain, or several `npm run agent`
   processes started with the same `--episode`.

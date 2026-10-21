@@ -1,7 +1,7 @@
 # Skills
 
 A **skill** is one thing an agent can decide to do, like "gather 10 logs" or "build a shelter".
-The model picks a skill and its arguments. Our code (in `src/skills/`) carries it out: it finds
+The model picks a skill and its arguments. Our code (in `src/agents/src/skills/`) carries it out: it finds
 things, walks there, retries, gives up, and reports what happened in plain words. The model never
 steers the character directly, so it never chooses a direction or presses a button.
 
@@ -89,5 +89,5 @@ See [communication.md](communication.md).
 
 - There's no fighting, farming or chest storage yet.
 
-To add a skill, write it in `src/skills/` and add it to the list in `src/skills/index.ts`. Its
+To add a skill, write it in `src/agents/src/skills/` and add it to the list in `src/agents/src/skills/index.ts`. Its
 `description` text is exactly what the model reads, so write it for the model.

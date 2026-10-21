@@ -56,7 +56,7 @@ piece built against it simultaneously. This has already bitten this project's pl
 - **Log every decision.** Persist each `(observation → goal)` pair. This gives episode replay
   without re-burning API calls, and it is the source of the cost numbers.
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
-  Reset the world (`scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
+  Reset the world (`src/agents/scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
   not `LEVEL_SEED` — the world was unseeded until that was fixed.
 - **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
   says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
@@ -79,8 +79,8 @@ piece built against it simultaneously. This has already bitten this project's pl
   are scored by the rule that paragraph states. How to see and talk to agents is identical in all three.
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
-- **Teams share a tally, never shown to the model.** Agents launched together (`scripts/team.sh`,
-  `--team a,b`) each write what they hold to `runs/.teams/<episode>/` (`src/team.ts`). A team goal
+- **Teams share a tally, never shown to the model.** Agents launched together (`src/agents/scripts/team.sh`,
+  `--team a,b`) each write what they hold to `runs/.teams/<episode>/` (`src/agents/src/team.ts`). A team goal
   (`team-camp`) is checked against all of it, and a collaborative agent's run ends only when the whole
   team is done. Teammates learn about each other only by looking (`otherAgents`) and by chat; agents
   act on each other through `give`, `pick_up` and `go_to`. They can ask things of each other with
@@ -91,7 +91,12 @@ piece built against it simultaneously. This has already bitten this project's pl
 
 ## Commands
 
+The experiment lives in `src/agents/` (moved there on 21 October; the repository root holds the
+docs, README and repo plumbing). Every command below runs from `src/agents/`, and paths in the
+rest of this file are relative to it unless they start `src/agents/` or `docs/`.
+
 ```bash
+cd src/agents
 ./start.sh [--scenario survival --ticks 12000]  # everything: mc + minds :3010 + agents (ollama stays on host)
 ./stop.sh [--all]               # stop agents + minds; --all also stops mc
 
@@ -131,13 +136,13 @@ MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
 
 ## Tests
 
-- `npm test` runs the unit tests (`src/**/*.test.ts`); `.github/workflows/ci.yml` runs them, the
+- `npm test` runs the unit tests (`src/agents/src/**/*.test.ts`); `.github/workflows/ci.yml` runs them, the
   typecheck and a parse of the shell scripts on every pull request. None of it needs Docker, a
   server, a model or a key.
-- Skills are tested against `src/testing/fakeBot.ts`: a fake bot with the real 1.21.1 game data
+- Skills are tested against `src/agents/src/testing/fakeBot.ts`: a fake bot with the real 1.21.1 game data
   (registry, recipes, foods), an inventory and a world of placed blocks. It covers a skill's checks
   and messages before it acts; movement, digging and the craft protocol are checked live by
-  `scripts/skill-smoke.sh`.
+  `src/agents/scripts/skill-smoke.sh`.
 - Known bugs are kept as `todo` tests: they run and report, but don't fail the build.
 
 ## Working agreements
@@ -158,14 +163,14 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   branch and a pull request unless told otherwise. Pushing a branch still needs asking. Pull requests from outside
   contributors run CI only after the owner approves them, and workflows may use only GitHub's own
   actions.
-- **Never change `src/` under a running batch or team run.** Work in a worktree under
-  `.claude/worktrees/` (symlink `node_modules` and `runs` into it, never commit them) and
-  fast-forward `main` after the run ends.
+- **Never change `src/agents/src/` under a running batch or team run.** Work in a worktree under
+  `.claude/worktrees/` (symlink `src/agents/node_modules` and `src/agents/runs` into the worktree's
+  `src/agents/`, never commit them) and fast-forward `main` after the run ends.
 - **Stay inside this folder.**
 - **Ask before paid runs.** Say what they will cost first and cap them with `BUDGET_USD`.
 - **Check skill changes in the real game, not only in tests.** The fake bot can't model physics: a
   `give` that passed every test overshot its receiver in four of five live tries. Use a throwaway
-  server (`scripts/test-server.sh`) with `src/try.ts`, or a two-bot script for skills between agents.
+  server (`src/agents/scripts/test-server.sh`) with `src/agents/src/try.ts`, or a two-bot script for skills between agents.
 - **Read the logs before believing a result**, and say what was measured, not what was hoped.
 - **Results are about how the agents behaved, not the models or the game.** Write-ups and reports
   tell what agents did toward the goal and away from it, how they handled the unexpected while
@@ -178,7 +183,7 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
 ## Hard constraints
 
 - **Never commit secrets.** This repository is intended to be public. `.env` is ignored;
-  `.env.example` carries empty placeholders. API keys come from the environment only — never from
+  `src/agents/.env.example` carries empty placeholders. API keys come from the environment only — never from
   a config file, never from a default argument.
 - **The slide deck is not in this repo.** Business material lives one level up in
   `ai-experiments/`, deliberately outside version control. Do not move it in, and do not
@@ -199,7 +204,7 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   via jenv; leave it alone.
 - Only **Minecraft Java Edition** can connect. The Microsoft Store / Xbox build is Bedrock and
   will not work without a bridge.
-- Client and server versions must match the pinned `VERSION` in `compose.yaml`.
+- Client and server versions must match the pinned `VERSION` in `src/agents/compose.yaml`.
 
 ## When in doubt
 

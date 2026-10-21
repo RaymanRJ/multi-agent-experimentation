@@ -74,7 +74,7 @@ As of tbase1:
 
 `batch-reports/<date>-<time>-<name>.md` is the report built from each real batch's logs, one page: the
 batch comparison (each run's scorecard, who did what, which skills were used), then success per condition
-with intervals. It carries no prompts. `scripts/publish-reports.sh <name>` builds it from `runs/`; runs
+with intervals. It carries no prompts. `src/agents/scripts/publish-reports.sh <name>` builds it from `runs/`; runs
 are named by agent, `<agent>-<rep>` in a team run. Each run's step-by-step behaviour report stays in
 `runs/` beside its log (`npm run summary`), unpublished like the logs: until 20 October they were
 published too, 245 pages that repeated the comparisons and that almost no one would open.
@@ -117,8 +117,8 @@ runs that no write-up uses are not published.
 
 ## Batch names
 
-A batch (see [Terms](#terms)) is started with one command, `scripts/batch.sh <name> …` or
-`scripts/team.sh <name> …`. Its name is only a label, so that a
+A batch (see [Terms](#terms)) is started with one command, `src/agents/scripts/batch.sh <name> …` or
+`src/agents/scripts/team.sh <name> …`. Its name is only a label, so that a
 write-up, the logs and `npm run report -- --batch <name>` can refer to the same runs. The letter
 says roughly what was being run:
 
