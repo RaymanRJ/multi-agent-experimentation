@@ -61,6 +61,25 @@ async function moveStack(bot: Bot, window: Window, slot: number): Promise<void> 
   await bot.waitForTicks(4);
 }
 
+/**
+ * Part of a stack, one paced click at a time: pick the stack up, put one down per right-click in an empty
+ * slot of the inventory, and put the rest back. A whole stack for "take 1" emptied the team's food chest
+ * in tbase1 (10 cooked mutton for the goal, taken to eat one).
+ */
+async function moveSome(bot: Bot, window: Window, slot: number, count: number): Promise<boolean> {
+  const empty = window.slots.findIndex((item, i) => i >= window.inventoryStart && i < window.inventoryEnd && !item);
+  if (empty < 0) return false;
+  await bot.clickWindow(slot, 0, 0);
+  await bot.waitForTicks(2);
+  for (let i = 0; i < count; i++) {
+    await bot.clickWindow(empty, 1, 0);
+    await bot.waitForTicks(2);
+  }
+  await bot.clickWindow(slot, 0, 0);
+  await bot.waitForTicks(4);
+  return true;
+}
+
 async function walkTo(bot: Bot, chest: Block): Promise<void> {
   const { x, y, z } = chest.position;
   await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), WALK_TIMEOUT_MS, "walking to the chest").catch(() => undefined);
@@ -147,8 +166,8 @@ export const store: Skill = {
 export const take: Skill = {
   name: "take",
   description:
-    `Take items out of a chest within ${CHEST_RANGE} blocks. \`item\` is what to take; \`count\` is how many at least ` +
-    "(whole stacks are moved, so it may be a few more); without it, all the chest has. Looks in the nearest chests " +
+    `Take items out of a chest within ${CHEST_RANGE} blocks. \`item\` is what to take; \`count\` is how many; ` +
+    "without it, all the chest has. Looks in the nearest chests " +
     "first. Returns what was taken and what each chest it opened holds.",
   args: { item: "string", count: "number?" },
 
@@ -185,8 +204,14 @@ export const take: Skill = {
             full = true;
             break;
           }
-          await moveStack(bot, window, stack.slot);
-          moved += stack.count;
+          const left = wanted - moved;
+          if (stack.count > left) {
+            if (!(await moveSome(bot, window, stack.slot, left))) { full = true; break; }
+            moved += left;
+          } else {
+            await moveStack(bot, window, stack.slot);
+            moved += stack.count;
+          }
         }
         await bot.waitForTicks(2);
         const holds = chestContents(window);
