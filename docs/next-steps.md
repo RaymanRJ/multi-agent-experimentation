@@ -202,8 +202,10 @@ Read this at the start of a session; update it when something finishes or a new 
    by kind of work, what broke work off and how soon the agent was back at it, and help and
    hindrance between teammates; each agent's numbers fold underneath (`src/goalWork.ts`). tbase1's
    report and write-up 06 are redone that way. Rewriting it found one more bug of ours: health under
-   half a point read as 0 (Sonnet, rep 3, 26 decisions; fixed, checked live). Still to do: change the
-   triage skill's write-up template to match, once the owner has looked at 06.
+   half a point read as 0 (Sonnet, rep 3, 26 decisions; fixed, checked live). 06 was then rewritten
+   again with the game only as examples; the owner called it "the vibe we want moving forwards", not
+   perfect. The triage skill and CLAUDE.md now say so. Still to do: the generated report's wording
+   still leans on skill names and game terms ("`build_shelter` 33", "replaced 6 missing blocks").
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
    four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
