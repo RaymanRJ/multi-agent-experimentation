@@ -40,8 +40,8 @@ from this folder.
 
 2. **Configure.** Copy `backend.hcl.example` to `backend.hcl` and `site.auto.tfvars.example` to
    `site.auto.tfvars`, and fill both in. Both copies are gitignored; only the examples are public.
-   - `domain_name`: the site's address, e.g. `multi-agent-experiment.rrjamal.ca`.
-   - `hosted_zone_name`: the zone it belongs to, e.g. `rrjamal.ca`.
+   - `domain_name`: the site's address, e.g. `multi-agent-experiment.example.com`.
+   - `hosted_zone_name`: the zone it belongs to, e.g. `example.com`.
    - `create_github_oidc_provider`: leave `false` if music-viz already made GitHub's OIDC provider in
      this AWS account (an account has only one).
 
