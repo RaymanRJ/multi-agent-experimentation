@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, insideClosedShelter, layout } from "./buildShelter.js";
+import { floorCells, hostilesInside, insideClosedShelter, layout, mobsInsideNote } from "./buildShelter.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
 
@@ -89,4 +89,13 @@ test("build_shelter - a large one goes back to the agent's own large shelter far
   other.username = "qa";
   const theirs = await buildShelter.run({ ...context(other), shelters: () => [{ ...base, by: "qb" }] }, { size: "large", storeys: 2 });
   assert.match(theirs.reason ?? "", /large shelter at 80,64,0/, "a teammate's out of sight is not known: it starts its own here");
+});
+
+test("hostilesInside - a mob within the walls is named; one outside them is not", () => {
+  const inside = { x: 0.5, y: 64, z: 0.5 };
+  const zombie = (x: number) => ({ name: "zombie_villager", type: "hostile", position: { x, y: 64, z: 0.5 } });
+  const { bot } = fakeBot({ blocks: hut(), position: inside, entities: [zombie(1.5), zombie(4.5)] });
+  assert.deepEqual(hostilesInside(bot, spot), ["zombie villager"]);
+  assert.equal(mobsInsideNote(bot, spot), ", but a zombie villager is inside with you");
+  assert.equal(mobsInsideNote(fakeBot({ blocks: hut(), position: inside, entities: [zombie(4.5)] }).bot, spot), "");
 });

@@ -134,7 +134,11 @@ export const spotKey = (spot: { x: number; y: number; z: number }) => `${spot.x}
 
 /** The bot's feet are in the shelter's interior, on either storey. */
 export function insideSpot(bot: Bot, shelter: ShelterSpot): boolean {
-  const feet = bot.entity.position.floored();
+  return pointInside(bot.entity.position, shelter);
+}
+
+function pointInside(point: Vec3, shelter: ShelterSpot): boolean {
+  const feet = point.floored();
   const h = half(shelter.size ?? 3);
   const dx = feet.x - shelter.x, dy = feet.y - shelter.y, dz = feet.z - shelter.z;
   return Math.abs(dx) <= h && Math.abs(dz) <= h && dy >= 0 && dy <= (shelter.storeys === 2 ? 4 : 1);
@@ -160,6 +164,24 @@ export function standing(bot: Bot, shelter: ShelterSpot): boolean {
 export function describeShelter(shelter: ShelterSpot): string {
   const kind = `${(shelter.size ?? 3) === 5 ? "large " : ""}${shelter.storeys === 2 ? "two-storey " : ""}shelter`;
   return shelter.complete === false ? `an unfinished ${kind}` : /^[aeiou]/.test(kind) ? `an ${kind}` : `a ${kind}`;
+}
+
+/**
+ * Hostile mobs inside the shelter's walls, by name. In tbase1 a zombie villager got into the shared base
+ * through a creeper's hole; the agents were told it was "closed" and 11 of them died to it, respawning at
+ * the base's bed.
+ */
+export function hostilesInside(bot: Bot, shelter: ShelterSpot): string[] {
+  return Object.values(bot.entities)
+    .filter((e) => e?.type === "hostile" && pointInside(e.position, shelter))
+    .map((e) => (e.name ?? "hostile mob").replace(/_/g, " "));
+}
+
+/** ", but a zombie is inside with you" when one is; "" otherwise. */
+export function mobsInsideNote(bot: Bot, shelter: ShelterSpot): string {
+  const mobs = hostilesInside(bot, shelter);
+  if (mobs.length === 0) return "";
+  return `, but ${mobs.length === 1 ? `a ${mobs[0]} is` : `${mobs.length} hostile mobs (${[...new Set(mobs)].join(", ")}) are`} inside with you`;
 }
 
 /**
@@ -503,9 +525,10 @@ export const buildShelter: Skill = {
         ? `${built.gaps} gaps in its walls open: you have no building blocks to fill them, so mobs can get in`
         : "open: no building block left to close it, so mobs can walk in";
     const owner = spot?.by ? ` (${spot.by}'s)` : "";
+    const company = mobsInsideNote(bot, { ...position, ...use });
     const reason = spot && spot.complete !== false
-      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway} — there is no need to build another`
-      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway} — there is no need to build it again`;
+      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another`
+      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again`;
     return {
       status: "success",
       reason,
