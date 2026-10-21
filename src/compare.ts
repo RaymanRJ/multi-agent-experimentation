@@ -375,7 +375,8 @@ function goalWorkSection(w: GoalWork, end: PartAtEnd[] | null, runs: Run[]): str
 /** Asked for, or only needed: whether handovers follow requests or needs. */
 function needsLines(n: Needs): string[] {
   const lines = ["**Asked for, or only needed**", ""];
-  lines.push(`- Handovers that came right after the receiver asked for that item: ${n.gives ? `${n.askedGives} of ${n.gives}` : "none"}.`);
+  // A mention is a rough stand-in for a request: "I still need an iron pick" counts, and so does a status update naming the item.
+  lines.push(`- Handovers that came right after the receiver mentioned that item (a rough stand-in for asking; read the reasons): ${n.gives ? `${n.askedGives} of ${n.gives}` : "none"}.`);
   if (n.spareBeds.length) {
     const asked = n.spareBeds.filter((p) => p.asked);
     lines.push(

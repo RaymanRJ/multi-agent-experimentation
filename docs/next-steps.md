@@ -223,8 +223,18 @@ Read this at the start of a session; update it when something finishes or a new 
    Fixed since tbase3, each checked live: beds shown in the observation, with how many are in use, and
    furniture counted apart so stone can't crowd a chest out; `place_bed`; and sleepers stay in bed
    until the night passes or a teammate speaks to them, not 90 seconds (they had missed each other by
-   seconds). **Next, on the owner's word:** another rep on today's code, or `--progress on`; about
-   $3.50 a rep, with about $4.70 of Anthropic credit left (cap at $2 per agent to stay under it).
+   seconds). **tbase4 (21 October, one rep, $3.56, cap $2 per agent): 3 of 4 parts,
+   the most complete team yet.** Every agent held an iron pickaxe at the end for the first time
+   (Sonnet handed each over as it was made, each after requests), 24 cooked meat were stored, and
+   `place_bed` let Sonnet put a bed down that Luna slept in. Beds stopped it: one made all rep, after
+   a spawn trap at the home's door (it stands on the world spawn point) cost 11 deaths in three
+   minutes and eight lots of wool. Hand-reading every handover in six reps: 31 of 35 followed a
+   request or a plain "I still need X". The report's own count of this only matches item names in
+   messages, and is now labelled a rough guide. After it: "no agent called X in this world" for one
+   that had left now says it isn't in the world right now. About $1.20 of Anthropic credit is left,
+   so no paid runs until the owner tops up. **Next, on the owner's word:** `--progress on`, or the
+   spawn trap: where a world's spawn point is, and whether to build there, is the game's, but
+   the team chose it.
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
    four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,

@@ -26,7 +26,8 @@ how they met the unexpected, and how they helped or hindered each other.
 ## In short
 
 - **They answer requests, not needs** (the clearest finding; next section). An agent handed
-  something over when a teammate asked for it, and almost never otherwise. A teammate's need was
+  something over when a teammate asked for it, and almost never otherwise: in 31 of 35 handovers
+  across six reps. A teammate's need was
   stated outright by the game, or obvious from the goal, and still didn't move it.
 - **They organised themselves at once.** In every rep the team divided the goal over chat within
   its first two or three decisions. One agent (Luna) stepped forward to coordinate, and the roles
@@ -52,22 +53,23 @@ this run shows how these agents behave more than how often they can succeed.
 
 ## The clearest finding: they answer requests, not needs
 
-Across all five reps (tbase1, tbase2, tbase3), **an agent handed something over when a teammate
-asked for it, and never because it saw the need, even a need the game had told it about.**
+Across all six reps (tbase1–4), **an agent handed something over when a teammate asked for it,
+and almost never because it saw the need, even a need the game had told it about.**
 
-| | Times | Handed over |
+Every handover, read by hand with the giver's reasoning and the receiver's last words:
+
+| | tbase1–3 | tbase4 |
 |---|---|---|
-| Handovers that came right after the receiver asked for that item | 25 of 29 | – |
-| Handovers nobody asked for | 4 of 29 | all food, passed to the team's cook |
-| An agent was told it had no bed while a teammate carried a spare (pairs of agents) | 5 | 3 |
-| …the agent without a bed asked the holder for beds | 4 | 3 |
-| …it never asked the holder | 1 | 0 |
-| One agent held two or more iron pickaxes while a teammate held none (spells) | 7 | 2, both after a request |
+| Handovers | 29 | 6 |
+| …after a request, or a plain "I still need an iron pick" said to the holder | 26 | 5 |
+| …the giver's own idea | 3: coal for the cook, logs for the builder, an iron ingot for the iron-maker | 1: Luna gave Sonnet a pickaxe, "Sonnet may have lost their iron pick" |
+| Times an agent was told it had no bed while a teammate carried a spare | 5 pairs; 3 handed over, every one after asking | none (one bed made all rep) |
+| Times one agent held two or more iron pickaxes while a teammate held none | 7; 2 handed over, both after a request | 4; 4 handed over, each after repeated requests |
 
-(A handover counts as asked for when the receiver's message naming that item reached the giver
-in its last few decisions; read from the logs by matching item names in messages. A bed is a spare
-when the holder carried two, or had already slept; in two more cases, both in tbase2, the holder's
-only bed was its own.)
+A bed is a spare when the holder carried two, or had already slept. In two more cases, both in
+tbase2, the holder's only bed was its own. The team reports' own count of this ("Asked for, or only
+needed") matches item names in messages, so it also counts status updates. It is a rough guide; the
+numbers above come from reading the reasons.
 
 What makes this stand out:
 - **The need was stated to the holder by the game.** Every time an agent slept, it was told the
@@ -350,6 +352,53 @@ Threats rarely knocked an agent off the goal for long: after one, every agent wa
     closed home. The cause is not in the logs, and it needs the home in place to reproduce.
   - There was no way to look inside a chest without moving something; `look_in_chest` now does it.
 
+## A fourth rep, with what the earlier reps taught (tbase4)
+
+*One rep, 21 October, on cb27f91, same models and
+settings, capped at $2 per agent to fit the credit left; $3.56. New since tbase3: beds shown in the
+observation with how many are in use, furniture counted apart, `place_bed`, `look_in_chest`, and
+sleepers staying in bed until the night passes or a teammate speaks to them.*
+Report: [tbase4](../batch-reports/2026-10-21-1638-tbase4.md).
+
+| Part | tbase4 |
+|---|---|
+| Shared home built | **yes** (Luna, first five minutes) |
+| Everyone slept there | 1 of 3 |
+| Everyone holds an iron pickaxe | **yes, 3 of 3**: the first time in any rep |
+| Food left in store | **yes** (24) |
+
+**The most complete team so far, and how it got there.**
+- **Iron:** Sonnet took it this time, and handed each pickaxe over as it was made, not all three
+  at the end. Each went to a teammate who had asked for one again and again.
+  - Four times one agent held a spare while another had none, and all four were handed over.
+  - In tbase2 and tbase3 Opus had carried all three and died with them.
+- **Food:** reached 24, more than twice the goal. Agents looked in the chest 11 times
+  (`look_in_chest`), and none took food out to find out what was in it.
+- **The tools added after tbase3 did their job, once:** Sonnet made a bed on day 3, put it down in
+  the shared home with `place_bed` and gave its spare wool to Opus, "crafting beds". Luna, who had
+  none, then slept in it for 283 seconds, longer than the old 90-second limit allowed.
+
+**What still stopped them: one bed all rep, and why.**
+- **A spawn trap at the door.** Opus and Sonnet had no beds, so each time they died they came back
+  at the world's spawn point, four blocks from the home's doorway.
+  - On the first night zombies gathered there. The agents respawned beside them, tried to get in or
+    run, and died again: 11 deaths in about three minutes of game time.
+  - At dawn the zombies stayed, shaded by the dark oak canopy, and killed Luna four times.
+  - When one finally got inside, Luna was told "but a zombie is inside with you", as it now should
+    be.
+- **What it cost:** the deaths cost the team eight lots of wool, and wool was the only way to beds.
+- **Whose it was:** the game's, and where the team chose to build: the home went up on the spawn
+  point, which is where an agent without a bed comes back. Nothing in our code decided it, and
+  nothing tells a player where the world's spawn point is either.
+
+**Smaller things.**
+- **The cap:** Opus reached its $2 cap about a minute of game time before the end; its pickaxe
+  still counted.
+- **A misleading message:** Luna then asked after Opus and was told "there is no other agent called
+  "opus" in this world". It now says the agent isn't in the world right now (unit-tested only).
+- **Interruptions:** messages cut into teammates' work 17 times, the fewest of any rep (22–34
+  before).
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -377,8 +426,9 @@ working on real systems, such as support desks, IT operations and business tools
 | Smelting failed 42 times with "destination full" | A low-level error the agent couldn't act on | Fuel goes in one kind at a time | An error message from deep in a library, passed up unexplained |
 | Stuck on the treetops on the way home, six times | A situation the movement code had no way out of | Climb down through the leaves if health allows; say why if not | An automation with no recovery path for an unusual state |
 | Sleepers kept missing each other by seconds | A timeout made the coordination window too short | Stay in bed until the night passes or a teammate speaks | Timeouts that make a handshake between agents (or services) all but impossible |
+| Told a teammate "doesn't exist" after it had left | A message stated a permanent fact from a passing state | "isn't in the world right now (it may have left)" | An error saying a user or service doesn't exist when it is only offline, so the agent gives up on it for good |
 
-**What we left alone, and why:**
+**What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**
   - they answer requests, not needs;
   - one agent carried every pickaxe;
