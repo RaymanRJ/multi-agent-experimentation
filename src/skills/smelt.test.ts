@@ -4,9 +4,11 @@ import { chooseFuel } from "./smelt.js";
 import { smeltProduct } from "./util.js";
 import { oreKind } from "./mineOre.js";
 
-test("chooseFuel - coal first, topped up with wood; null when short", () => {
+test("chooseFuel - one kind when one covers it, the best first; a mix only when none does; null when short", () => {
   assert.deepEqual(chooseFuel({ coal: 1, oak_planks: 4 }, 3), [["coal", 1]]);
   assert.deepEqual(chooseFuel({ oak_planks: 4 }, 3), [["oak_planks", 2]]);
+  // tbase1: 2 planks topped up with logs went into one fuel slot and failed "destination full".
+  assert.deepEqual(chooseFuel({ dark_oak_planks: 2, dark_oak_log: 8, stick: 4 }, 10), [["dark_oak_log", 7]]);
   assert.deepEqual(chooseFuel({ coal: 1, oak_log: 2 }, 10), [["coal", 1], ["oak_log", 2]]);
   assert.equal(chooseFuel({ stick: 1 }, 3), null);
 });
