@@ -105,10 +105,12 @@ test("a message addressed to the agent interrupts once; one already waiting at t
   assert.equal(watch.check({ ...base, directed: 3, lastDirected: { from: "agent_b", text: "again" } }), null);
 });
 
-test("flee, eat and sleep are not interrupted by messages", () => {
+test("flee and eat are not interrupted by messages; a sleeper is, so it can still answer a teammate", () => {
   const base = { health: 20, hostiles: [], timeOfDay: 1000 };
   const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED["flee"]);
   assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "hi" } }), null);
+  const asleep = createWatch({ ...base, directed: 0 }, SUPPRESSED["sleep"]);
+  assert.match(asleep.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "can I have your spare bed?" } }) ?? "", /agent_b said to you/);
 });
 
 test("damage while out of air says the agent is drowning", () => {

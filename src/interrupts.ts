@@ -68,7 +68,8 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *  - flee: its whole purpose is to run from hostiles that are hitting it, so damage and
  *    hostile interrupts would abort it exactly when it matters. Night is also moot.
  *  - eat: a couple of seconds long; the model replans right after anyway.
- *  - sleep: only starts at night (no night edge) and bails by itself on monsters.
+ *  - sleep: only starts at night (no night edge) and bails by itself on monsters; a teammate's message
+ *    still wakes it.
  *  - build_shelter: getting under cover is the answer to dusk, nightfall and a mob close by, not something they should cut short,
  *    and a message can wait the minute it takes.
  *  - ask_agent: it is waiting for an answer addressed to it, which must not cut the wait short.
@@ -76,7 +77,9 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
 export const SUPPRESSED: Record<string, Trigger[]> = {
   flee: ["damage", "hostile", "dusk", "night", "message"],
   eat: ["damage", "hostile", "dusk", "night", "message"],
-  sleep: ["damage", "hostile", "dusk", "night", "message"],
+  // Not message: asleep until the night passes, an agent must still hear a teammate who asks it for
+  // something (in tbase3 one held a spare bed while another, beside it, had none).
+  sleep: ["damage", "hostile", "dusk", "night"],
   // Hostile too: going into a shelter is the answer to a zombie close by (in bpoc it was interrupted 13
   // times on the way in). Building in the open still stops for a mob or a hit by itself (construct), and
   // damage interrupts the way in only when health is low (DAMAGE_FLOOR). Message too: a teammate's message

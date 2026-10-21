@@ -10,7 +10,12 @@ const { goals } = pathfinderPkg;
 
 const BED_RANGE = 32;
 const TRAVEL_TIMEOUT_MS = 30_000;
-const SLEEP_TIMEOUT_MS = 90_000;
+/**
+ * A safety cap, longer than any night (beds work for about 10,900 ticks, 9 minutes). An agent used to
+ * get up after 90 s: three had to lie down within the same 90 s for the night to pass, and in the team
+ * runs sleepers missed each other by as little as a second (tbase1, thome1).
+ */
+const MAX_IN_BED_MS = 10 * 60_000;
 const MONSTER_RANGE = 10;
 
 /** Tries to put a bed from inventory on flat ground next to the bot. */
@@ -109,7 +114,7 @@ export const sleep: Skill = {
   name: "sleep",
   description:
     "Sleep through the night in a bed: finds a bed within 32 blocks (or places one from your inventory), walks to it and sleeps " +
-    `until morning or until woken. Takes no arguments. Beds can only be used from about ${BEDS_FROM} until ${BEDS_UNTIL} ` +
+    `until morning or until woken: by a hit, or by a teammate speaking to you by name. Takes no arguments. Beds can only be used from about ${BEDS_FROM} until ${BEDS_UNTIL} ` +
     "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
     "The night is only skipped when every player is asleep; otherwise this fails and says who was not in bed. " +
     "Inside a shelter, a bed you carry is put down inside it; a bed in a shelter you are not in is reached by going into that shelter and closing it behind you.",
@@ -210,34 +215,46 @@ export const sleep: Skill = {
       if (found) count = `${found[1]} of ${found[2]}`;
     };
     bot.on("actionBar", onActionBar);
-    const woke = new Promise<void>((resolve) => bot.once("wake", () => resolve()));
-    try {
-      await withTimeout(woke, SLEEP_TIMEOUT_MS, "sleeping");
-    } catch {
-      // Other players may not be asleep, so the night never skips; get up rather than hang.
+    // In bed until the night passes, the game wakes the agent (a hit, the morning), or it is stopped: a
+    // teammate speaking to it by name, or the run ending. The model chose to sleep; staying asleep is the skill's.
+    let woke = false;
+    const onWake = () => { woke = true; };
+    bot.once("wake", onWake);
+    const startAge = Number(bot.time.age), startTime = bot.time.timeOfDay, lay = Date.now();
+    while (!woke && !ctx.shouldStop() && Date.now() - lay < MAX_IN_BED_MS) await bot.waitForTicks(10);
+    bot.removeListener("wake", onWake);
+    bot.removeListener("actionBar", onActionBar);
+    const seconds = Math.round((Date.now() - lay) / 1000);
+    if (!woke) {
       try {
         await bot.wake();
       } catch {
         // already awake
       }
-      bot.removeListener("actionBar", onActionBar);
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { slept: true, health: bot.health } };
       return {
         status: "failed",
-        reason: `you slept, then got up after 90s because it is still night — the night only passes when every player in the world is asleep${whoIsAwake(bot, count)}`,
+        reason: `you slept for ${seconds}s and got up while it was still night — the night only passes when every player in the world is asleep${whoIsAwake(bot, count)}`,
         detail: { slept: true, health: bot.health },
       };
     }
-    bot.removeListener("actionBar", onActionBar);
     // The morning's time update can land a moment after the wake.
     for (let i = 0; i < 40 && !bot.time.isDay; i++) await bot.waitForTicks(1);
     if (!bot.time.isDay) {
       return {
         status: "failed",
-        reason: `woke before morning — the night only passes when every player in the world is asleep, or something woke you`,
+        reason: `woke before morning after ${seconds}s — the night only passes when every player in the world is asleep, or something woke you`,
         detail: { slept: true, health: bot.health },
       };
     }
-    return { status: "success", detail: { slept: true, health: bot.health } };
+    // Skipped (everyone asleep) or slept until it ended: the time of day leapt ahead of the world's age, or kept pace.
+    const passed = (bot.time.timeOfDay - startTime + 24000) % 24000;
+    const skipped = passed > Number(bot.time.age) - startAge + 200;
+    return {
+      status: "success",
+      ...(skipped ? {} : { reason: `you slept until morning, but the night was not skipped — it only passes when every player in the world is asleep${whoIsAwake(bot, count)}` }),
+      detail: { slept: true, skipped, health: bot.health },
+    };
   },
 };
 
