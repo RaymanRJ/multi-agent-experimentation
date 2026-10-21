@@ -1,11 +1,16 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 20 October 2026.*
+*Last updated 21 October 2026.*
+
+**21 October: the experiment moved to `src/agents/`.** Everything that runs (code, scripts, Docker,
+`package.json`) is there, and every command runs from there; the root keeps the docs, README,
+CLAUDE.md and repo plumbing, with room for `src/site/` (the GitHub Pages site) and `src/terraform/`
+(its DNS) beside it. Agentic work is paused while the site is built.
 
 ## Setting up a new machine
 
-1. Docker, [Ollama](https://ollama.com/) and Node 25+, then `npm install`.
+1. Docker, [Ollama](https://ollama.com/) and Node 25+, then `cd src/agents && npm install`.
 2. `cp .env.example .env` and add `ANTHROPIC_API_KEY` (and any other keys). Never commit it.
 3. `./start.sh --check` says what's missing. It pulls the local model (`qwen3:4b-instruct`); the
    agent makes its 8k-context variant itself on first use.
