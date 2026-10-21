@@ -165,6 +165,7 @@ layout:
 |---|---|
 | `src/agents/` | The experiment: the agents and skill library (`src/`), the run scripts (`scripts/`), the game server's Docker setup, and, kept out of git, the run logs (`runs/`) and the world (`world/`) |
 | `docs/` | How it works, and the results: write-ups and batch reports |
+| `src/terraform/` | AWS hosting for the project site (S3, CloudFront, a certificate, DNS), deployed by `.github/workflows/site.yaml`; see its README |
 
 ### 3. Check your setup
 

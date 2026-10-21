@@ -7,6 +7,14 @@ Read this at the start of a session; update it when something finishes or a new 
 `package.json`) is there, and every command runs from there; the root keeps the docs, README,
 CLAUDE.md and repo plumbing, with room for `src/site/` (the GitHub Pages site) and `src/terraform/`
 (its DNS) beside it. Agentic work is paused while the site is built.
+**The site's hosting is copied from music-viz (the owner's choice over GitHub Pages):**
+`src/terraform/` makes a private S3 bucket behind CloudFront, an ACM certificate, Route 53 records for
+the domain (planned: `multi-agent-experiment.rrjamal.ca`) and a deploy role for GitHub's OIDC;
+`.github/workflows/site.yaml` builds `src/site/` and deploys it. The deploy signs in to AWS by hand
+(OIDC token traded with the AWS CLI), since this repo's workflows use only GitHub's own actions.
+Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. Not yet: `src/site/`
+itself; the owner applies the Terraform and sets the four repository secrets
+(`src/terraform/README.md`).
 
 ## Setting up a new machine
 

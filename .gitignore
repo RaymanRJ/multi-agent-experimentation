@@ -36,3 +36,11 @@ test-worlds/
 .claude/*
 # Claude Code skills for working in this repo are shared; worktrees and local settings are not.
 !.claude/skills/
+
+# Terraform (src/terraform): local state, provider cache and personal config; only the .example files are public
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+backend.hcl
