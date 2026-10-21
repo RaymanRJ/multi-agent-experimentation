@@ -4,7 +4,7 @@ import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
 import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
 import { isNight, ticksUntilNight } from "./daytime.js";
-import { ANIMAL_TYPES } from "./skills/creatures.js";
+import { ANIMAL_TYPES, isDying } from "./skills/creatures.js";
 import { droppedNearby } from "./skills/pickUp.js";
 
 const NEARBY_RADIUS = 24;
@@ -83,7 +83,7 @@ export function observe(
   const animals: Array<{ name: string; distance: number }> = [];
   const otherAgents: Observation["otherAgents"] = [];
   for (const entity of Object.values(bot.entities)) {
-    if (!entity || entity === bot.entity) continue;
+    if (!entity || entity === bot.entity || isDying(bot, entity)) continue;
     const distance = entity.position.distanceTo(position);
     if (entity.type === "hostile" && distance <= NEARBY_RADIUS) {
       hostiles.push({ name: entity.name ?? "unknown", distance: Math.round(distance) });
