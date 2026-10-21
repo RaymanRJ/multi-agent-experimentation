@@ -182,7 +182,20 @@ Read this at the start of a session; update it when something finishes or a new 
    less, and isn't stopped by messages (7 entries stopped by a hit in bpoc2, 3 by messages); `go_to`
    and `flee` have the stuck check, which no longer takes digging for being stuck. Checked live, except the message rule (unit-tested only).
    Batch reports are one page each now (the per-run pages stay in `runs/`).
-   **Next, on the owner's word:** Opus, Sonnet and Luna on `team-base`, three reps (about $10).
+   **Team run tbase1 (20 October, on 66e0fd3, $11.70): 0 of 3 teams.** Luna built the large base in the
+   first five minutes of every rep. Two of three slept in it each rep, and the chest held 10 cooked
+   meat in reps 1 and 2. One iron pickaxe was held at the end, in nine agent-runs. 54% of night-time
+   decisions were in a closed shelter (thome1 8%), and there were 33 deaths (thome1 48). Our code was
+   behind most of the misses, and is fixed and checked live:
+   - `mine_ore` gave up on ore beside it as "out of reach" (44 iron blocks; 15 raw iron in 53 tries);
+   - `take` moved whole stacks, emptying rep 3's food chest;
+   - a zombie villager inside the "closed" base caused 10 deaths;
+   - the pathfinder could dig through beds;
+   - the report counted entries as builds and two deaths in a step as one.
+   What is the model's: the third bed never made (sheep scarce, not looked for), and iron pickaxes
+   used until they broke. Written up in `docs/results/write-ups/06-team-base.md`.
+   **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
+   four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times

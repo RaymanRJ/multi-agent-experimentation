@@ -30,6 +30,7 @@ From smallest to largest:
 | [03 Iron](write-ups/03-iron.md) | 17 Oct | b11, b13 | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
 | [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
+| [06 Team base](write-ups/06-team-base.md) | 20 Oct | bpoc, bpoc2, tbase1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams; iron failed mostly on a `mine_ore` bug, since fixed. |
 
 [`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
@@ -46,14 +47,17 @@ Read it with the skills' own rules in mind:
 - **`mine_ore` counts as failed** when it got fewer ore than asked.
 - **`wait` is most of `outpost`'s game time:** sitting in the shelter is the goal there.
 
-As of thome1:
+As of tbase1:
 - **Every run needs `craft`, `gather_wood` and `mine_stone`.**
 - **`build_shelter` and `wait` carried `outpost`.** Every goal-met run used both.
 - **The team goal leans on more of the library:** `flee`, `go_to`, `smelt`, `pick_up`, `hunt`,
   `give`, `eat` and `sleep` appear in 7–9 of 9 team runs.
-- **`take` and `shear` have never been chosen.** No one took from a chest, and wool came from
-  `hunt`ing sheep.
-- **`tell_agent` was used once**, against 13 `ask_agent` questions.
+- **`mine_ore` worked 8% of the times it was chosen** (173 times, 15 runs): it gave up on ore
+  beside it as "out of reach". Fixed after tbase1, so later batches should differ.
+- **`shear` has never been chosen;** wool came from `hunt`ing sheep. `take` was first used in
+  tbase1, and its whole-stack bug emptied a food chest (fixed).
+- **`tell_agent` was used once before tbase1, then 29 times in it** (Luna 27), against 19
+  `ask_agent` questions there.
 
 ## Batch reports
 
@@ -94,6 +98,7 @@ runs that no write-up uses are not published.
 | [p5](batch-reports/2026-10-19-2207-p5.md) | 19–20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 4 of 12 | [outpost](write-ups/02-outpost.md) |
 | [p6](batch-reports/2026-10-20-0428-p6.md) | 20 Oct | `outpost` | Haiku, Sonnet, Opus, Luna | 12 of 12 | [p6](write-ups/04-p6-outpost-after-fixes.md) |
 | [thome1](batch-reports/2026-10-20-0930-thome1.md) | 20 Oct | `team-homestead` | Opus, Sonnet, Luna together | 0 of 3 teams | [team homestead](write-ups/05-team-homestead.md) |
+| [tbase1](batch-reports/2026-10-20-2133-tbase1.md) | 20 Oct | `team-base` | Opus, Sonnet, Luna together | 0 of 3 teams | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 

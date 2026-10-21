@@ -42,11 +42,15 @@ building on it.
 - **The `iron` goal has been met only twice** (batch b13, sandbox, one day, three runs per
   condition): both by the model with `--progress on` (2/3). The model without it and the
   baseline went 0/3. Too few runs to credit the progress list. Details in
-  `docs/results/write-ups/03-iron.md`. Open problems found there, none fixed:
+  `docs/results/write-ups/03-iron.md`. Open problems found there:
   - **The baseline waits out the night above y=55 even in the peaceful sandbox,** losing about
     11,000 ticks in two of three runs. The rule is meant for survival.
-  - **`mine_ore` often can't reach iron it can see** ("out of reach", 20-second dig timeouts),
-    then gives up after five blocks. One baseline call ran 5,000 ticks for nothing.
+  - **`mine_ore` often couldn't reach iron it could see** ("out of reach", 20-second dig timeouts),
+    then gave up after five blocks. Found the cause after tbase1 (44 iron ore blocks given up, 15 raw
+    iron in 53 tries): the pathfinder stops within 2 blocks, which can leave rock between the agent
+    and ore whose open face is on the far side. It now digs up to 3 blocks through to the ore, and
+    waits for the drop; live, where Opus failed, 0 of 8 raw iron became 8 of 8. The 20-second dig
+    timeouts are still seen, rarely.
   - **"need 3 more cobblestone" didn't name `mine_stone`,** unlike the planks message, which
     names `gather_wood`. The model retried the craft 4–16 times per run before mining stone.
     Since fixed, but not yet confirmed in a full run: the message now names `mine_stone`.
@@ -74,7 +78,9 @@ building on it.
 - **No farming.** Food comes from what an agent `hunt`s and cooks. Chests (`store`, `take`, since 20
   October) let agents leave things for each other. Goal checks see each chest as the agent (or for a
   team goal, the member) that last opened it saw it; `team-homestead` counts cooked meat that way. A chest emptied or broken
-  some other way still counts until someone opens it again.
+  some other way still counts until someone opens it again. `take` moves exactly the count asked for
+  (since 20 October, after tbase1); before, it moved whole stacks, and taking one cooked mutton
+  emptied rep 3's food chest of its 10.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
   sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,
@@ -184,7 +190,8 @@ building on it.
   huts), and a large one (5×5 inside) can be built in parts by several agents. Agents learn of a
   teammate's shelter from the team's shared state, but only within 32 blocks and only while its walls
   still stand in the world, as a player would see a hut. Its own large shelter the agent remembers up to
-  128 blocks away (a player remembers where their base is). Not yet tried in a full team run.
+  128 blocks away (a player remembers where their base is). In tbase1, Luna built the large base in
+  the first five minutes of every rep, and the others went into it 1–22 times a rep each.
   Going into one is by its doorway: walk to it, dig its two blocks, wait to pick them up, step in,
   close it. In bpoc the pathfinder found its own way in instead, timed out 10 times and left 4-7
   gaps in the walls when it got in; live, after the change, 2 of 3 approaches went in by the doorway
@@ -192,8 +199,12 @@ building on it.
 - **The pathfinder can freeze mid-jump at an ordinary one-block step.** Seen at 2,74,34 on this
   seed: the bot hangs at y=74.42 with forward and jump held, a path is found, and nothing above or
   around it is in the way. Cause unknown. Getting into a shelter now notices after 4 s, hops and
-  tries again, and after three tries fails saying where it is stuck (37 s, not 80). Other skills'
-  walking (go_to, flee) do not have that watch yet.
+  tries again, and after three tries fails saying where it is stuck (37 s, not 80). `go_to` and
+  `flee` have the same watch, and digging through something in the way counts as moving.
+- **The pathfinder digs through what is in its way,** except chests, beds, furnaces and crafting
+  tables (since 20 October, after tbase1). Live, with the library's defaults, it dug through a bed
+  in a corridor too low to walk over it. Half of rep 3's base bed went missing in tbase1, and the
+  logs don't say how.
 - **Deaths are recorded with their cause (since 20 October),** as the game words it ("was slain by
   Zombie"), with the place, the in-game day and time, and are listed in the minds panel. The agent's
   death event says it too. Older logs show the deaths without a cause.
@@ -204,6 +215,14 @@ building on it.
   the agent is inside with every block in place, its observation says `inShelter` and a hostile
   nearby no longer interrupts it; damage still does. In poc6, before this, Luna left a closed
   shelter at night because a zombie came within 6 blocks.
+  A mob already inside is another matter. In tbase1 rep 2 a zombie villager was inside the closed
+  base, probably through a creeper's hole; agents respawning at the base's bed died 10 times to it
+  while told "closed". Since then the agent is told ", but a zombie villager is inside with you",
+  and a shelter with a mob inside is not taken as one no mob can reach.
+- **Getting into a shelter while being hit (since 20 October):** on the way into a shelter that
+  stands, a hit stops `build_shelter` only at health 6 or less, and a teammate's message doesn't
+  stop it at all. In bpoc2, 7 entries were stopped by a hit (4 of those agents fled and never went
+  back in) and 3 by a message.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
   behaviour is checked by hand with `scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to
