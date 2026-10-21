@@ -31,7 +31,7 @@ building on it.
   - Prompt caching works on Sonnet, Opus and Luna (about 83–88% of input cached in p5 and p6). Haiku 4.5
     never caches: our prompt is below its minimum.
   - Grok, Gemini, Groq and OpenRouter are wired up and unit-tested only. Each needs its model's
-    price in `src/backends/pricing.ts`, or a paid run refuses to start.
+    price in `src/agents/src/backends/pricing.ts`, or a paid run refuses to start.
   - **Claude decides through a tool; GPT and the local model write JSON text.** Claude is offered a
     `decide` tool (not forced), because Sonnet 5.5 otherwise wrote its decision as tool-call syntax
     in text on about half its calls, each one re-asked. With the tool it sometimes calls a skill's
@@ -57,7 +57,7 @@ building on it.
   - **`descend` to y=16 takes 3,000–6,000 ticks** and usually wears out a stone pickaxe.
   - **Deaths:** since 20 October the agent is told where it died, what killed it, and that its items
     vanish 5 minutes later; in thome1 it went back 3 times in 48 deaths.
-- **The `diamond` goal has only been checked skill by skill** (`scripts/skill-smoke.sh`), never
+- **The `diamond` goal has only been checked skill by skill** (`src/agents/scripts/skill-smoke.sh`), never
   as a full run.
 - **Other platforms.** Developed on an Apple Silicon Mac. Linux, Windows (WSL2) and Intel Macs
   should work but are untested. So is running Ollama in Docker on an NVIDIA machine.
@@ -84,7 +84,7 @@ building on it.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
   sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,
-  4 pigs, 4 chickens; `HERDS` in `src/scenario.ts`). Runs before then had almost no animals in reach,
+  4 pigs, 4 chickens; `HERDS` in `src/agents/src/scenario.ts`). Runs before then had almost no animals in reach,
   so food and wool results from them are not comparable with later ones.
 - **`give` needs the receiver within reach of the giver.** The giver walks up beside them and drops
   the items at its feet; 8 of 8 live hand-overs worked that way. Tossing from two blocks or more
@@ -146,7 +146,7 @@ building on it.
   different machines are not directly comparable.
 - **No pre-registration.** Hypotheses were not written down before the batches ran.
 - **"Toward the goal" is judged by code, not by intent.** A team report sorts each decision by what
-  it gained (`src/goalWork.ts`): wool, iron or meat is progress toward that part, and wood, stone and
+  it gained (`src/agents/src/goalWork.ts`): wool, iron or meat is progress toward that part, and wood, stone and
   tools are groundwork. A decision that sets up later progress without gaining anything, such as
   walking to a cave to mine iron, counts as moving. Eating counts against the meat part even when the
   agent had to eat. "Back at work" after a disruption is read from the next decision's skill and
@@ -175,8 +175,8 @@ building on it.
 
 - **Our own air reading works around a mineflayer bug (19 October).** mineflayer 4.39 sets
   `bot.oxygenLevel` from any entity's air, so creatures near water made agents "drown" on dry land.
-  `src/breathFix.ts` restores the bot's own value; any new script that creates a bot and reads air
-  must call `fixOwnAir(bot)` (the agent and `src/try.ts` do). Runs before this had false "under
+  `src/agents/src/breathFix.ts` restores the bot's own value; any new script that creates a bot and reads air
+  must call `fixOwnAir(bot)` (the agent and `src/agents/src/try.ts` do). Runs before this had false "under
   water" interrupts and `air` in their observations.
 
 - **Two gaps in the drowning reflex, left on purpose (18 October).** A skill is stopped when air
@@ -249,7 +249,7 @@ building on it.
   stop it at all. In bpoc2, 7 entries were stopped by a hit (4 of those agents fled and never went
   back in) and 3 by a message.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
-  behaviour is checked by hand with `scripts/skill-smoke.sh`, and by the batches.
+  behaviour is checked by hand with `src/agents/scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to
   about 130 MB so far. The write-ups in `docs/results/` are the record (see its README for why, and
   what batch names like b12 or p5 mean). Copy `runs/` somewhere if the raw logs matter.

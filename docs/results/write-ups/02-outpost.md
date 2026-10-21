@@ -196,7 +196,7 @@ run. Total cost $0.88.*
 - **A false drowning alarm, from mineflayer (fixed).** mineflayer sets the bot's air from any
   entity's air update, never checking it is the bot's. Reproduced at Haiku's spot: standing dry in
   the shelter, the bot's "air" fell from 20 to 10 and jumped to 400 (an axolotl has 6,000 ticks of
-  air); in 30 seconds it took 360 updates from other creatures. `src/breathFix.ts` now restores the
+  air); in 30 seconds it took 360 updates from other creatures. `src/agents/src/breathFix.ts` now restores the
   bot's own value after every update; live, it stays at 20 when dry and falls 20 → 7 with the head
   in water. Of 49 "under water" interrupts in the logs so far, 45 were not followed by the
   swim-out reflex (which runs whenever the head really is in water), so most were probably this

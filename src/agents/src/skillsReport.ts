@@ -2,7 +2,7 @@
  * The skill-usage table for any set of runs, written as Markdown (see src/skillUsage.ts).
  *
  *   npm run skills -- --batch p6
- *   npm run skills -- --batch p5 --batch p6 --team thome1 --out docs/results/skill-usage.md
+ *   npm run skills -- --batch p5 --batch p6 --team thome1 --out ../../docs/results/skill-usage.md
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

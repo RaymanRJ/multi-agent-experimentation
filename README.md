@@ -141,7 +141,7 @@ Apple Silicon Mac; other platforms are expected to work but are less tested.
 | | Docker | Ollama (local model) | Notes |
 |---|---|---|---|
 | **Apple Silicon Mac** | Docker Desktop | `brew install ollama && brew services start ollama` | Fast (GPU via Metal) |
-| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
+| **Linux** | Docker Engine | `curl -fsSL https://ollama.com/install.sh \| sh` | Fast with an NVIDIA/AMD GPU, slow on CPU only. **Ollama must listen beyond localhost** so containers can reach it: `src/agents/start.sh` detects this and prints the fix (`OLLAMA_HOST=0.0.0.0`) |
 | **Windows** | Docker Desktop (WSL2 backend) | Windows installer from ollama.com | Run everything from a **WSL2** shell, not PowerShell. Enable WSL mirrored networking so WSL can reach Ollama at `localhost` |
 | **Intel Mac** | Docker Desktop | as Apple Silicon | Slow: no GPU acceleration for the model |
 
@@ -154,9 +154,17 @@ use its GPU.
 
 ```bash
 git clone https://github.com/RaymanRJ/multi-agent-experimentation.git
-cd multi-agent-experimentation
+cd multi-agent-experimentation/src/agents
 npm install
 ```
+
+The experiment lives in `src/agents/`, and every command from here on runs there. The repository's
+layout:
+
+| Folder | What it holds |
+|---|---|
+| `src/agents/` | The experiment: the agents and skill library (`src/`), the run scripts (`scripts/`), the game server's Docker setup, and, kept out of git, the run logs (`runs/`) and the world (`world/`) |
+| `docs/` | How it works, and the results: write-ups and batch reports |
 
 ### 3. Check your setup
 
@@ -175,7 +183,7 @@ it yet.
 ./start.sh                      # a full in-game day, about 20 minutes
 ```
 
-`start.sh` starts the environment (a game server in Docker), the minds panel and one agent per
+`src/agents/start.sh` starts the environment (a game server in Docker), the minds panel and one agent per
 available model, gives each its goal, and steps back. A run ends by itself when the goal is met,
 when the model says it is done or gives up, or when its time runs out. The game server accepts any player name
 without an account check (the bots need that), so keep it on your own machine or network and never
@@ -395,8 +403,8 @@ The two differ only in the environment's settings and the goal text, so runs sta
 
 #### What is held fixed, and what is not
 
-- **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `compose.yaml`), and
-  `scripts/batch.sh` gives every run a freshly regenerated copy, so no run inherits another's
+- **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `src/agents/compose.yaml`), and
+  `src/agents/scripts/batch.sh` gives every run a freshly regenerated copy, so no run inherits another's
   felled trees, holes or inventory.
 - **The start point varies a little.** New players appear at a random spot within
   `spawnRadius` (Minecraft's default, 10) of the world spawn. Across batches b1–b5 (78 runs)

@@ -482,7 +482,7 @@ export function renderComparison(runs: Run[], title: string): string {
   if (anyTeam) add("", "</details>");
   add("", "<details><summary>How to read this</summary>", "");
   if (anyTeam) {
-    add("- **Directly toward a part of the goal**: a decision that gained something on the way to a part (wool, iron, meat) or did the part itself (built the base, repaired it, slept in a bed for the first time, stored cooked meat). **Preparing**: it gained materials or tools every part needs. **Keeping safe**: sheltering, running, eating, waiting, and sleeping after the first time. Shares are of game time, thinking included. Judged by code from inventories and results (`src/goalWork.ts`).");
+    add("- **Directly toward a part of the goal**: a decision that gained something on the way to a part (wool, iron, meat) or did the part itself (built the base, repaired it, slept in a bed for the first time, stored cooked meat). **Preparing**: it gained materials or tools every part needs. **Keeping safe**: sheltering, running, eating, waiting, and sleeping after the first time. Shares are of game time, thinking included. Judged by code from inventories and results (`src/agents/src/goalWork.ts`).");
     add("- **Set back**: goal items lost: dropped at a death (some may be picked up again later), a tool worn out, meat eaten (even when the agent needed to eat), or cooked meat taken out of the chest.");
     add("- **What broke the work off**: an action cut short by a threat, nightfall or a teammate's message, a death, or an action that failed. **Back at work** is the next decision aimed at a part of the goal or at preparing for it, judged from what was chosen, not from how it went. Once the base stands, taking shelter in it is keeping safe, not work. A step with two deaths counts once.");
     add("- **The goal at the end** is read from the logs; the goal check in the run itself decides whether the goal was met.");
@@ -490,7 +490,7 @@ export function renderComparison(runs: Run[], title: string): string {
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
   add("- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.");
   add("- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.");
-  add("- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/backends/pricing.ts`).");
+  add("- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/agents/src/backends/pricing.ts`).");
   add("- Each agent's full report is beside its log: `<log>.summary.md`.", "");
   add("Logs:", "", ...runs.map((run) => `- \`${run.file}\``), "", "</details>");
   return lines.join("\n") + "\n";

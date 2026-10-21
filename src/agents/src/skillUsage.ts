@@ -5,7 +5,7 @@
  * many goal-met runs used each skill against how many of the rest did.
  *
  *   npm run skills -- --batch p6                       # one batch (src/skillsReport.ts)
- *   npm run skills -- --batch p5 --batch p6 --team thome1 --out docs/results/skill-usage.md
+ *   npm run skills -- --batch p5 --batch p6 --team thome1 --out ../../docs/results/skill-usage.md
  *   npm run skills -- runs/a.jsonl runs/b.jsonl
  *
  * The comparison report (`npm run compare`) has the same table for its own runs.

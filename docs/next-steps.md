@@ -113,7 +113,7 @@ Read this at the start of a session; update it when something finishes or a new 
    when it is losing it. Live: out of a 5-deep pool in 1.3 s, out of a flooded room with a ceiling
    in 10.7 s.
 
-1. **A comparison of goals and agents: done 18 October** (`npm run compare`, `src/compare.ts`).
+1. **A comparison of goals and agents: done 18 October** (`npm run compare`, `src/agents/src/compare.ts`).
    Every team run and batch writes `runs/compare-<team|batch>-<name>.md`: by goal, by model and
    condition, and for teams who did what, requests and a timeline. Extend it as questions come up.
 2. **The long paid test: done 19 October (batch p2), 3 of 4 met.** One `outpost` run each in survival:
@@ -121,14 +121,14 @@ Read this at the start of a session; update it when something finishes or a new 
    came from a bug in our night check (fixed: a death at night now forfeits that night, in the
    agent's check and the report). $0.88 in all. Written up in `docs/results/write-ups/02-outpost.md`.
    Haiku's "flooded shelter" was a false drowning alarm: mineflayer reads any nearby creature's
-   air as the bot's (fixed in `src/breathFix.ts`, checked live). 3 runs each (batch p3) started
+   air as the bot's (fixed in `src/agents/src/breathFix.ts`, checked live). 3 runs each (batch p3) started
    19 October. In p3, Sonnet's first run lost two-thirds of its time stuck in the flooded cave under
    spawn: `mine_stone` measured its 6-block drop limit from the bot's feet each time, so it walked
    20 blocks down in one call, and no skill could get back up. Fixed after p3 on branch `climb-out`
    (`mine_stone` measures from where the call started; new `climb_out` skill; observations show
    `underground`), each checked live on a test server.
    Ideas not yet started (hunting, chests, farming, shearing, torches) are in `docs/ideas.md`.
-   **Day and night now have one definition** (`src/daytime.ts`, 19 October): night is 13000-23000,
+   **Day and night now have one definition** (`src/agents/src/daytime.ts`, 19 October): night is 13000-23000,
    when hostiles spawn, for the observation (`isDay`, `ticksUntilNight`), the interrupts, the goal and
    `sleep` (beds from about 12,541, as in the game). Before, the observation called 12000 night and
    `sleep` called it day; Haiku noticed. Runs from here are not comparable with earlier ones on
@@ -143,7 +143,7 @@ Read this at the start of a session; update it when something finishes or a new 
    when it was interrupted. The other failures were agents leaving the shelter at night. Written up
    in `docs/results/write-ups/02-outpost.md`. **Tool wear (20 October):** tools in their last quarter of life
    are listed as `wearingOut` with uses left, and a tool breaking adds "your stone_pickaxe broke" to
-   `recentEvents` (`src/toolWear.ts`; checked live). Before, a pickaxe just vanished: 32 times in the
+   `recentEvents` (`src/agents/src/toolWear.ts`; checked live). Before, a pickaxe just vanished: 32 times in the
    logs, none in p5.
    **Batch p6 (20 October, same setup as p5, on 011c8ef): 12 of 12 met, no deaths, no damage taken,
    $1.66.** No craft timeouts, every shelter closed, no one left at night. `outpost` no longer
@@ -200,7 +200,7 @@ Read this at the start of a session; update it when something finishes or a new 
    together or hinder one another. Per-model numbers are secondary. A team report now opens with
    the goal at the end, each part's story (what moved it, what set it back), the share of game time
    by kind of work, what broke work off and how soon the agent was back at it, and help and
-   hindrance between teammates; each agent's numbers fold underneath (`src/goalWork.ts`). tbase1's
+   hindrance between teammates; each agent's numbers fold underneath (`src/agents/src/goalWork.ts`). tbase1's
    report and write-up 06 are redone that way. Rewriting it found one more bug of ours: health under
    half a point read as 0 (Sonnet, rep 3, 26 decisions; fixed, checked live). 06 was then rewritten
    again with the game only as examples; the owner called it "the vibe we want moving forwards", not

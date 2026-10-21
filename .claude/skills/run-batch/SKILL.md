@@ -4,6 +4,7 @@ description: Start, watch and stop a comparison batch (scripts/batch.sh) or team
 ---
 
 # Running a batch
+**Run everything from `src/agents/`**, where the experiment lives; `docs/` is two levels up (`../../docs/`).
 
 A batch is the expensive, slow part of this project (hours, dollars). Most of what goes wrong is
 in starting and watching it, not in the batch itself.
@@ -14,9 +15,9 @@ in starting and watching it, not in the batch itself.
    first: p5 (Haiku, Sonnet, Opus, Luna, 3 runs each, `outpost`, 27,000 ticks) cost $2.75 in all;
    per run, Luna $0.01–0.03, Sonnet and Opus $0.15–0.48, Haiku $0.27–0.40 (it never caches). Always
    set `BUDGET_USD` (per agent, per run).
-2. **`main` is what runs.** Commit first; never change `src/` while a batch is running (use a
+2. **`main` is what runs.** Commit first; never change `src/agents/src/` while a batch is running (use a
    worktree under `.claude/worktrees/`, see CLAUDE.md). Note the commit hash for the write-up.
-3. **Smoke-test the real agent with the free scripted brain** after any change to `src/agent.ts`,
+3. **Smoke-test the real agent with the free scripted brain** after any change to `src/agents/src/agent.ts`,
    observations or scenario setup. Unit tests and standalone scripts don't load the agent the
    way a batch does (a listener on `bot.inventory` before spawn crashed every p6 run at start):
    ```bash

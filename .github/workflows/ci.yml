@@ -1,6 +1,7 @@
 # Checks every pull request, and main after each merge: types, unit tests, and the shell scripts'
 # syntax. Nothing here needs Docker, a Minecraft server, a model or an API key; the skills' live
-# behaviour is checked by scripts/skill-smoke.sh and the batches.
+# behaviour is checked by src/agents/scripts/skill-smoke.sh and the batches. The experiment lives in
+# src/agents/, so every step runs there.
 name: ci
 
 on:
@@ -19,12 +20,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/agents
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: src/agents/package-lock.json
       # canvas (for prismarine-viewer) builds from source when no prebuilt binary fits.
       - run: sudo apt-get update && sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
       - run: npm ci

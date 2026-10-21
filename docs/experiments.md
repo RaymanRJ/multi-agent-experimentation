@@ -95,7 +95,7 @@ The per-condition table is the one to quote:
 | 95% CI | How sure we can be. With 3 runs, 3/3 is consistent with a true rate as low as 44%. |
 | Ticks*, Decisions* | Median game time and model decisions to reach the goal, over successful runs only. |
 | TokenIn, Median(ms) | Total input tokens, and median time per decision. |
-| Cost(USD) | Total spend at the prices in `src/backends/pricing.ts`. |
+| Cost(USD) | Total spend at the prices in `src/agents/src/backends/pricing.ts`. |
 | Excluded | Runs that don't count, e.g. a paid run that ran out of credits. |
 
 The per-run table adds why each run ended:
@@ -176,7 +176,7 @@ Paid models cost real money, so start small and size the real test from what the
      GOALS="outpost" scripts/batch.sh poc2 1 27000 survival
    ```
    The same works for OpenAI with `gpt:plan@<model>`. A model with no price in
-   `src/backends/pricing.ts` refuses to start, so `--budget-usd` can always stop it.
+   `src/agents/src/backends/pricing.ts` refuses to start, so `--budget-usd` can always stop it.
 3. **Check the proof of concept.** `npm run report -- --batch poc2` and `npm run summary -- --batch poc2`:
    - **Ended** is "goal met" or "time budget", not "brain unavailable" (a key or credit problem)
      or "cost budget" (`BUDGET_USD` too low).
