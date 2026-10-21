@@ -12,9 +12,10 @@ CLAUDE.md and repo plumbing, with room for `src/site/` (the GitHub Pages site) a
 the domain (planned: `multi-agent-experiment.rrjamal.ca`) and a deploy role for GitHub's OIDC;
 `.github/workflows/site.yaml` builds `src/site/` and deploys it. The deploy signs in to AWS by hand
 (OIDC token traded with the AWS CLI), since this repo's workflows use only GitHub's own actions.
-Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. Not yet: `src/site/`
-itself; the owner applies the Terraform and sets the four repository secrets
-(`src/terraform/README.md`).
+Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. `src/site/` is built (Vite + React,
+hash routes, every doc but next-steps rendered from `docs/` at build time; the overview's findings
+are hand-written in `content/findings.ts`). Still to do, by the owner: apply the Terraform and set
+the four repository secrets (`src/terraform/README.md`), then push.
 
 ## Setting up a new machine
 
