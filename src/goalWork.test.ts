@@ -49,10 +49,10 @@ test("classify - setbacks: dying with goal items, a tool worn out, meat taken fr
   assert.deepEqual(took.setbacks.map((s) => [s.how, s.items]), [["took from the chest", { cooked_mutton: 10 }]]);
 });
 
-test("aimsOf - build_shelter aims at the base only until it stands; wood and stone are groundwork", () => {
+test("aimsOf - build_shelter aims at the base only until it stands; wood and stone are preparing", () => {
   const m: Member = { name: "a", offset: 0, steps: [step("build_shelter", { size: "large" }, {}, {}), step("gather_wood", {}, {}, {}), step("build_shelter", { size: "large" }, {}, {})] };
   const doneAt = (m.steps[0]!.ticks ?? 0) + 1;
-  assert.deepEqual(aimsOf(m, parts, doneAt), [["the large two-storey base"], ["groundwork"], []]);
+  assert.deepEqual(aimsOf(m, parts, doneAt), [["the large two-storey base"], ["preparing"], []]);
 });
 
 test("disruptions - what cut the work off, what came next, and when it was back at work", () => {

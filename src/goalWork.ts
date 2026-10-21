@@ -87,18 +87,28 @@ const SAFETY_SKILLS = new Set(["flee", "wait", "eat", "sleep", "build_shelter", 
 const MOVING_SKILLS = new Set(["explore", "go_to", "descend", "tunnel", "climb_out", "follow"]);
 /** Skills that are work on the goal even when they aim at no one part of it. */
 const GROUNDWORK_SKILLS = new Set(["gather_wood", "mine_stone", "mine_ore", "craft", "smelt", "hunt"]);
-export const GROUNDWORK_AIM = "groundwork";
+export const GROUNDWORK_AIM = "preparing";
 const HOSTILE = /zombie|skeleton|creeper|spider|witch|drowned|husk|stray|enderman|slime|phantom|pillager/;
 
 export type Kind = "toward" | "groundwork" | "safety" | "team" | "moving" | "nothing";
 export const KIND_LABELS: Record<Kind, string> = {
-  toward: "Toward a part of the goal",
-  groundwork: "Groundwork (wood, stone, tools)",
-  safety: "Staying alive (shelter, flee, eat, wait)",
-  team: "With teammates (give, ask, tell, chest)",
-  moving: "Moving and looking (explore, descend, go to)",
-  nothing: "Came to nothing (failed or cut short, nothing gained)",
+  toward: "Directly toward a part of the goal",
+  groundwork: "Preparing for it (materials, tools)",
+  safety: "Keeping safe",
+  team: "Dealing with teammates",
+  moving: "Travelling and searching",
+  nothing: "Came to nothing (failed or cut short)",
 };
+
+/** What an agent did, in plain words, for reports read by people who don't know the skill names. */
+export const SKILL_WORDS: Record<string, string> = {
+  build_shelter: "took shelter", flee: "ran", hunt: "fought or hunted", wait: "waited", eat: "ate", sleep: "slept",
+  pick_up: "picked things up", go_to: "went somewhere", explore: "explored", descend: "went down", tunnel: "tunnelled",
+  climb_out: "climbed out", mine_ore: "mined ore", mine_stone: "mined stone", gather_wood: "gathered wood",
+  craft: "crafted", smelt: "smelted", give: "gave something", take: "took from a chest", store: "stored in a chest",
+  tell_agent: "told a teammate what to do", ask_agent: "asked a teammate", shear: "sheared",
+};
+export const doing = (skill: string) => SKILL_WORDS[skill] ?? skill.replace(/_/g, " ");
 
 export interface Setback {
   part: string;
@@ -180,10 +190,10 @@ const span = (steps: LoggedStep[], i: number) => Math.max(0, (steps[i]!.ticks ??
 export type DisruptionKind = "died" | "mob" | "dusk" | "message" | "failed";
 export const DISRUPTION_LABELS: Record<DisruptionKind, string> = {
   died: "Died",
-  mob: "A mob came near or hit it",
+  mob: "A threat came near or struck",
   dusk: "Night was falling",
   message: "A teammate's message cut in",
-  failed: "The skill failed",
+  failed: "What it tried failed",
 };
 
 export interface Disruption {
@@ -384,7 +394,7 @@ function partEvent(step: LoggedStep, part: string, parts: GoalPart[], agent: str
   const p = parts.find((x) => x.name === part)!;
   const d = step.decision!;
   if (d.skill === "build_shelter" && p.aims("build_shelter", {})) {
-    return entered(step) ? `${agent} replaced ${/(\d+) missing blocks? filled/.exec(step.result?.reason ?? "")?.[1]} missing blocks` : `${agent} built it`;
+    return entered(step) ? `${agent} repaired it (${/(\d+) missing blocks? filled/.exec(step.result?.reason ?? "")?.[1]} blocks)` : `${agent} built it`;
   }
   if (slept(step) && p.did === slept) {
     if (firstSleep.has(agent)) return null;

@@ -20,7 +20,7 @@ import { isDeath, newEventsPerStep, summarizeRun, wilson, type RunSummary } from
 import { parseSteps } from "./minds.js";
 import { behaviour, gameTime, requests, verdictLines, type Behaviour, type Requests } from "./summary.js";
 import { renderSkillUsage, skillUsage } from "./skillUsage.js";
-import { DISRUPTION_LABELS, GROUNDWORK_AIM, KIND_LABELS, dayClock, goalAtEnd, goalWork, median, type Disruption, type DisruptionKind, type GoalWork, type Kind, type Member, type PartAtEnd } from "./goalWork.js";
+import { DISRUPTION_LABELS, GROUNDWORK_AIM, KIND_LABELS, dayClock, doing, goalAtEnd, goalWork, median, type Disruption, type DisruptionKind, type GoalWork, type Kind, type Member, type PartAtEnd } from "./goalWork.js";
 
 export interface Run {
   file: string;
@@ -273,7 +273,7 @@ const KINDS = Object.keys(KIND_LABELS) as Kind[];
 function timeTable(columns: Array<{ label: string; time: Record<Kind, number> }>): string[] {
   const total = (t: Record<Kind, number>) => KINDS.reduce((a, k) => a + t[k], 0);
   return [
-    `| Decisions spent on | ${columns.map((c) => c.label).join(" | ")} |`,
+    `| Share of game time | ${columns.map((c) => c.label).join(" | ")} |`,
     `|---|${columns.map(() => "---").join("|")}|`,
     ...KINDS.map((k) => `| ${KIND_LABELS[k]} | ${columns.map((c) => share(c.time[k], total(c.time))).join(" | ")} |`),
   ];
@@ -291,7 +291,7 @@ function disruptionTable(ds: Disruption[]): string[] {
     const group = ds.filter((d) => d.kind === k);
     const next: Record<string, number> = {};
     for (const d of group) if (d.next) next[d.next.skill] = (next[d.next.skill] ?? 0) + 1;
-    const top = Object.entries(next).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([skill, n]) => `\`${skill}\` ${n}`).join(", ");
+    const top = Object.entries(next).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([skill, n]) => `${doing(skill)} ${n}`).join(", ");
     const back = group.filter((d) => d.back);
     const onPart = back.filter((d) => d.aimed.length);
     const same = onPart.filter((d) => d.back!.parts.some((p) => d.aimed.includes(p)));
@@ -309,7 +309,7 @@ function disruptionExamples(ds: Disruption[], n: number): string[] {
   const longest = onGoal.filter((d) => d.back).sort((a, b) => b.back!.ticks - a.back!.ticks).slice(0, n - never.length);
   return [...never, ...longest].sort((a, b) => a.at - b.at).map((d) => {
     const cut = `${d.kind === "died" ? "died" : "cut off"}: "${clip(d.what.replace(/^interrupted: /, ""), 110)}"`;
-    const next = d.next ? ` Next: \`${d.next.skill}\`${d.next.rationale ? ` — "${clip(d.next.rationale, 160)}"` : ""}.` : "";
+    const next = d.next ? ` Next it ${doing(d.next.skill)}${d.next.rationale ? `: "${clip(d.next.rationale, 160)}"` : "."}` : "";
     const back = d.back
       ? ` Back at work (${d.back.parts.join(", ")}) after ${plural(d.back.decisions, "decision")} and ${gameTime(d.back.ticks)} of game time.`
       : " Never went back to work on the goal before the run ended.";
@@ -331,8 +331,8 @@ function partStory(w: GoalWork, part: string, limit = 10): string[] {
   const by = Object.entries(w.toward[part]!).map(([agent, n]) => `${agent} ${n}`).join(", ");
   const setbacks = w.setbacks.filter((s) => s.part === part).length;
   // A shelter's losses are seen only when someone replaces the missing blocks (the logs don't say how they went).
-  const repairs = w.events[part]!.filter((e) => / replaced \d+ missing blocks$/.test(e.text)).length;
-  const back = repairs && !setbacks ? `blocks had gone missing ${plural(repairs, "time")} by the time someone replaced them` : `set back ${plural(setbacks, "time")}`;
+  const repairs = w.events[part]!.filter((e) => / repaired it \(\d+ blocks\)$/.test(e.text)).length;
+  const back = repairs && !setbacks ? `damaged and repaired ${plural(repairs, "time")}` : `set back ${plural(setbacks, "time")}`;
   const lines = [`- **${part[0]!.toUpperCase()}${part.slice(1)}**: moved forward by ${plural(Object.values(w.toward[part]!).reduce((a, n) => a + n, 0), "decision")}${by ? ` (${by})` : ""}; ${back}.`];
   for (const e of events.slice(0, limit)) lines.push(`  - ${dayClock(e.at)}: ${e.setback ? "*set back:* " : ""}${e.text}`);
   if (events.length > limit) lines.push(`  - …and ${events.length - limit} more`);
@@ -465,9 +465,9 @@ export function renderComparison(runs: Run[], title: string): string {
   if (anyTeam) add("", "</details>");
   add("", "<details><summary>How to read this</summary>", "");
   if (anyTeam) {
-    add("- **Toward a part of the goal**: a decision that gained something on the way to a part (wool, iron, meat) or did the part itself (built the base, replaced more than its doorway, slept in a bed for the first time, stored cooked meat). **Groundwork**: it gained wood, stone or tools, the way to every part. **Staying alive**: shelter, flee, eat, wait, and sleeping after the first time. Shares are of game time, thinking included. Judged by code from inventories and results (`src/goalWork.ts`).");
+    add("- **Directly toward a part of the goal**: a decision that gained something on the way to a part (wool, iron, meat) or did the part itself (built the base, repaired it, slept in a bed for the first time, stored cooked meat). **Preparing**: it gained materials or tools every part needs. **Keeping safe**: sheltering, running, eating, waiting, and sleeping after the first time. Shares are of game time, thinking included. Judged by code from inventories and results (`src/goalWork.ts`).");
     add("- **Set back**: goal items lost: dropped at a death (some may be picked up again later), a tool worn out, meat eaten (even when the agent needed to eat), or cooked meat taken out of the chest.");
-    add("- **What broke the work off**: a skill cut short by a mob, nightfall or a teammate's message, a death, or a failed skill. **Back at work** is the next decision aimed at a part of the goal or at groundwork, judged from its skill and arguments, not from how it went. Once the base stands, `build_shelter` is going inside, not work. A step with two deaths counts once.");
+    add("- **What broke the work off**: an action cut short by a threat, nightfall or a teammate's message, a death, or an action that failed. **Back at work** is the next decision aimed at a part of the goal or at preparing for it, judged from what was chosen, not from how it went. Once the base stands, taking shelter in it is keeping safe, not work. A step with two deaths counts once.");
     add("- **The goal at the end** is read from the logs; the goal check in the run itself decides whether the goal was met.");
   }
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
