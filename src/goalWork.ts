@@ -82,7 +82,7 @@ export const GOAL_PARTS: Record<string, GoalPart[]> = {
 const GROUNDWORK = (item: string) =>
   /_log$|_planks$|^stick$|^cobblestone$|^crafting_table$|^chest$|^furnace$|^coal$|^charcoal$|^torch$|^(wooden|stone)_(pickaxe|axe|sword|shovel)$/.test(item);
 const TOOL = /^(wooden|stone|iron|golden|diamond)_(pickaxe|axe|sword|shovel|hoe)$|^shears$/;
-const TEAM_SKILLS = new Set(["give", "tell_agent", "ask_agent", "take", "store"]);
+const TEAM_SKILLS = new Set(["give", "tell_agent", "ask_agent", "take", "store", "look_in_chest"]);
 const SAFETY_SKILLS = new Set(["flee", "wait", "eat", "sleep", "build_shelter", "hunt", "fight"]);
 const MOVING_SKILLS = new Set(["explore", "go_to", "descend", "tunnel", "climb_out", "follow"]);
 /** Skills that are work on the goal even when they aim at no one part of it. */
@@ -105,7 +105,7 @@ export const SKILL_WORDS: Record<string, string> = {
   build_shelter: "took shelter", flee: "ran", hunt: "fought or hunted", wait: "waited", eat: "ate", sleep: "slept",
   pick_up: "picked things up", go_to: "went somewhere", explore: "explored", descend: "went down", tunnel: "tunnelled",
   climb_out: "climbed out", mine_ore: "mined ore", mine_stone: "mined stone", gather_wood: "gathered wood",
-  craft: "crafted", smelt: "smelted", give: "gave something", take: "took from a chest", store: "stored in a chest",
+  craft: "crafted", smelt: "smelted", give: "gave something", take: "took from a chest", store: "stored in a chest", look_in_chest: "looked in a chest",
   tell_agent: "told a teammate what to do", ask_agent: "asked a teammate", shear: "sheared",
 };
 export const doing = (skill: string) => SKILL_WORDS[skill] ?? skill.replace(/_/g, " ");
