@@ -399,6 +399,67 @@ Report: [tbase4](../batch-reports/2026-10-21-1638-tbase4.md).
 - **Interruptions:** messages cut into teammates' work 17 times, the fewest of any rep (22–34
   before).
 
+## Three of one model (tluna1)
+
+*Three GPT-6 Luna agents together, three reps, 21 October, on d307279, same goal and settings;
+$0.91 in all (capped at $0.40 an agent). The only earlier team of three Lunas is the proof run bpoc2:
+one rep on older code. Not comparable with the mixed teams (tbase1–4): which model takes which job
+changes the game.*
+Report: [tluna1](../batch-reports/2026-10-21-1801-tluna1.md).
+
+| Part | bpoc2 (1 rep, older code) | Rep 1 | Rep 2 | Rep 3 |
+|---|---|---|---|---|
+| Shared home built | yes | **yes** | **yes** | **yes** |
+| Everyone slept there | **3 of 3** | 1 of 3 | 0 of 3 | 0 of 3 |
+| Everyone holds an iron pickaxe | 2 of 3 | 0 | 0 | 0 |
+| Food left in store | 7 | 0 | 9 | **10** |
+| Deaths | 18 | 42 | 16 | 9 |
+
+A team of Lunas did worse than the mixed teams, and worse than its one earlier rep. One earlier
+rep can't say the code made them worse: where the home went and where the sheep were moved these
+results more than anything we changed.
+
+**The same organisation.**
+- **Roles:** one Luna (lc) built the home in every rep, as Luna did in the mixed teams.
+- **Iron:** in reps 2 and 3 another (la) took iron, and made three iron pickaxes by the middle of
+  day 2 both times, quicker than the mixed teams did.
+
+**Iron was made, then lost, twice.**
+- **Rep 2: lost to two of our messages and a fall.**
+  - la carried the pickaxes to the home "keeping one for myself" and tossed two to lc. lc had
+    walked off; `give` told everyone they were "on the ground beside" lc.
+  - lc tried to pick them up five times and was told each time there were none within 8 blocks.
+  - The third Luna, lb, had walked over them on its way to the chest. `take` reported "took 2
+    iron_pickaxe… the chest holds 9", so lb thought they came from the chest.
+  - lb fell to its death nine decisions later, with both.
+  - Both messages are fixed (below).
+- **Rep 3: all three in one pack, again.** la died ("suffocated in a wall") on its way to the home
+  with all three: the same thing that happened to Opus in tbase2 and tbase3.
+
+**Beds were hardly tried.** Three beds were made and three sleeps tried in three reps.
+- **Sheep:** "no sheep within 32 blocks" came back 20 times.
+- **Deaths:** wool or beds were lost at deaths 19 times.
+- **In bpoc2,** by contrast, all three Lunas slept in the home.
+
+**Getting back to work after a death was harder for them.**
+- **Back at work:** after a death, a Luna was back at work on the goal 42 times in 66, against
+  27 of 27 in tbase4.
+- **Running:** they ran from 71 of 117 threats, against taking shelter.
+- **Rep 1, the spawn trap again:** the home went up on the world spawn point. 28 of the 42 deaths
+  were beside it, 14 of them in daylight under the dark oak canopy.
+- **Reps 2 and 3:** the homes were built elsewhere, with 16 and 9 deaths, almost none at the home.
+
+**Repeating themselves.**
+- **Looking for a chest that wasn't there:** in rep 3 lc looked in a "shared shelter chest" ten
+  times. Its own observation showed no chest, and each time it was told there was none within 32
+  blocks.
+- **Time to nothing:** in rep 1 a third of the team's time came to nothing.
+
+**Requests and needs.**
+- **Handovers:** 6 in three reps.
+- **Spare pickaxes:** three times one Luna held two or more iron pickaxes while another had none,
+  and none was handed over: la tried in rep 2 (above), and died in rep 3.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -426,6 +487,8 @@ working on real systems, such as support desks, IT operations and business tools
 | Smelting failed 42 times with "destination full" | A low-level error the agent couldn't act on | Fuel goes in one kind at a time | An error message from deep in a library, passed up unexplained |
 | Stuck on the treetops on the way home, six times | A situation the movement code had no way out of | Climb down through the leaves if health allows; say why if not | An automation with no recovery path for an unusual state |
 | Sleepers kept missing each other by seconds | A timeout made the coordination window too short | Stay in bed until the night passes or a teammate speaks | Timeouts that make a handshake between agents (or services) all but impossible |
+| Told the team two pickaxes lay "beside" a teammate who had walked off; lc searched five times | A message assumed where things were instead of checking | It says where the item lies and how far the receiver is from it now | A status that reports the expected state ("delivered to the user") instead of the observed one |
+| Reported two pickaxes picked up off the ground as "taken from the chest" | A result counted everything gained as the action's doing | Only what left the chest is "taken"; the rest is "picked up on the way" | An action's report that claims credit for side effects, so the next decision rests on a false account of where things came from |
 | Told a teammate "doesn't exist" after it had left | A message stated a permanent fact from a passing state | "isn't in the world right now (it may have left)" | An error saying a user or service doesn't exist when it is only offline, so the agent gives up on it for good |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):

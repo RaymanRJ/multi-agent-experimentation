@@ -232,7 +232,14 @@ Read this at the start of a session; update it when something finishes or a new 
    request or a plain "I still need X". The report's own count of this only matches item names in
    messages, and is now labelled a rough guide. After it: "no agent called X in this world" for one
    that had left now says it isn't in the world right now. About $1.20 of Anthropic credit is left,
-   so no paid runs until the owner tops up. **Next, on the owner's word:** `--progress on`, or the
+   so no paid runs until the owner tops up.
+   **tluna1 (21 October, three Lunas, three reps, $0.91): 0 of 3, worse than the mixed teams and
+   than bpoc2's one rep.** One Luna built the home each rep and another made three iron pickaxes in
+   two reps, but both sets were lost: rep 2 to two of our messages (`give` said "beside them" of a
+   receiver that had walked off; `take` called pickaxes picked up off the ground "taken from the
+   chest"), both fixed and checked live, and rep 3 to one agent carrying all three and dying. Beds
+   were hardly tried (three made, three sleeps); the spawn trap returned in rep 1 (28 of 42 deaths
+   by the home). Written up in 06. **Next, on the owner's word:** `--progress on`, or the
    spawn trap: where a world's spawn point is, and whether to build there, is the game's, but
    the team chose it.
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
