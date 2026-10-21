@@ -120,12 +120,18 @@ export const give: Skill = {
       return { status: "failed", reason: `you tossed the ${item} but picked it all back up yourself; try again from a step further away` };
     }
     if (!picked) {
-      // It's on the ground beside them: say so by name, which pauses them so their model sees it.
-      bot.chat(formatSpeech(seen.username ?? to, autoText(`the ${item} is on the ground beside you, use pick_up to take it`)));
+      // Say where it lies and how far that is from them now: a receiver that walked off isn't "beside" it
+      // (tbase-luna1: two iron pickaxes "beside" lc lay 29 blocks from it, and a third agent walked over them).
+      const at = dropped.floored();
+      const where = `${at.x},${at.y},${at.z}`;
+      const now = seen.isValid ? Math.round(seen.position.distanceTo(dropped)) : null;
+      const near = now !== null && now <= 4;
+      bot.chat(formatSpeech(seen.username ?? to, autoText(near ? `the ${item} is on the ground beside you, use pick_up to take it` : `the ${item} is on the ground near ${where}, go there and pick_up to take it`)));
       return {
         status: "failed",
-        reason: `tossed ${gave} ${item} to ${to}, but they had not picked it up after ${PICKUP_WAIT_MS / 1000} s; it is on the ground beside them, and they have been told`,
-        detail: { tossed: gave, item, to },
+        reason: `tossed ${gave} ${item} to ${to}, but they had not picked it up after ${PICKUP_WAIT_MS / 1000} s; it is on the ground near ${where}` +
+          `${near ? ", beside them" : now !== null ? `, ${now} blocks from them now` : ", and they are out of sight"}, and they have been told`,
+        detail: { tossed: gave, item, to, at: where },
       };
     }
     if (gave < count) return { status: "success", reason: `${to} got ${gave} of the ${count} ${item}; the rest came back to you`, detail: { gave, item, to } };

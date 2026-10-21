@@ -182,10 +182,11 @@ export const take: Skill = {
     const start = countInventory(bot);
     const seen: string[] = [];
     const views: Array<{ at: string; holds: Counts }> = [];
+    const movedOut: Counts = {};
     let full = false;
     for (const chest of chests) {
       if (ctx.shouldStop() || full) break;
-      const taken = (countInventory(bot)[item] ?? 0) - (start[item] ?? 0);
+      const taken = movedOut[item] ?? 0;
       if (taken >= wanted) break;
       await walkTo(bot, chest);
       await closeStrayWindow(bot);
@@ -196,6 +197,7 @@ export const take: Skill = {
         seen.push(`the chest at ${where(chest)} did not open`);
         continue;
       }
+      const before = chestContents(window);
       try {
         let moved = taken;
         for (const stack of window.containerItems().filter((stack) => stack.name === item)) {
@@ -215,6 +217,9 @@ export const take: Skill = {
         }
         await bot.waitForTicks(2);
         const holds = chestContents(window);
+        // What left this chest: its count before the clicks, less what it holds now.
+        const out = (before[item] ?? 0) - (holds[item] ?? 0);
+        if (out > 0) movedOut[item] = (movedOut[item] ?? 0) + out;
         views.push({ at: where(chest), holds });
         seen.push(`the chest at ${where(chest)} holds ${describe(holds)}`);
       } finally {
@@ -222,15 +227,24 @@ export const take: Skill = {
       }
       await bot.waitForTicks(4);
     }
+    // Only what came out of a chest is "taken"; walking to one also picks up whatever lies on the way, and
+    // in tbase-luna1 two dropped iron pickaxes reported as taken from the chest led a teammate to think it held them.
     const gained = difference(countInventory(bot), start, 1);
+    const taken: Counts = movedOut[item] ? { [item]: Math.min(movedOut[item]!, gained[item] ?? movedOut[item]!) } : {};
+    const onTheWay: Counts = {};
+    for (const [name, n] of Object.entries(gained)) {
+      const extra = n - (taken[name] ?? 0);
+      if (extra > 0) onTheWay[name] = extra;
+    }
+    const alsoPicked = Object.keys(onTheWay).length ? `; you also picked up ${describe(onTheWay)} from the ground on the way` : "";
     const looked = seen.join("; ");
-    if (!gained[item]) {
-      return { status: "failed", reason: `no ${item} in the ${chests.length === 1 ? "chest" : "chests"} nearby: ${looked}`, detail: { chests: views } };
+    if (!taken[item]) {
+      return { status: "failed", reason: `no ${item} in the ${chests.length === 1 ? "chest" : "chests"} nearby: ${looked}${alsoPicked}`, detail: { chests: views, ...(alsoPicked ? { pickedUp: onTheWay } : {}) } };
     }
     return {
       status: "success",
-      reason: `took ${describe(gained)}${full ? " (your inventory is full)" : ""}; ${looked}`,
-      detail: { chests: views, taken: gained },
+      reason: `took ${describe(taken)}${full ? " (your inventory is full)" : ""}; ${looked}${alsoPicked}`,
+      detail: { chests: views, taken, ...(alsoPicked ? { pickedUp: onTheWay } : {}) },
     };
   },
 };
