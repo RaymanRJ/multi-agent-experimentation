@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { countInventory } from "../observe.js";
+import { countInventory, shownHealth } from "../observe.js";
 import { pickUp } from "./pickUp.js";
 import { asNumber, withTimeout } from "./util.js";
 
@@ -93,14 +93,14 @@ export const hunt: Skill = {
 
     let killed = 0;
     const startedAt = Date.now();
-    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: Math.round(bot.health) });
+    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: shownHealth(bot.health) });
     const dead = new Set<number>();
     const onDead = (entity: Entity) => { dead.add(entity.id); };
     bot.on("entityDead", onDead);
     try {
       while (killed < wanted) {
         if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-        if (bot.health <= RETREAT_HEALTH) return { status: "aborted", reason: `stopped fighting at health ${Math.round(bot.health)}`, detail: report() };
+        if (bot.health <= RETREAT_HEALTH) return { status: "aborted", reason: `stopped fighting at health ${shownHealth(bot.health)}`, detail: report() };
         if (Date.now() - startedAt > MAX_SKILL_MS) return { status: "failed", reason: `ran out of time after killing ${killed} of ${wanted}`, detail: report() };
         const prey = nearest(bot, (entity) => matches(bot, entity, target) && !dead.has(entity.id));
         if (!prey) {

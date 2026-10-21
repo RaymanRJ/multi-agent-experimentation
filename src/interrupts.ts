@@ -48,6 +48,7 @@ export const HOSTILE_RADIUS = 6;
 export const CLOSING_MARGIN = 2;
 export { NIGHT_START, DUSK_START } from "./daytime.js";
 import { DUSK_START, NIGHT_START, isNight } from "./daytime.js";
+import { shownHealth } from "./observe.js";
 /**
  * After a message interrupts a skill, further messages wait this long before they can interrupt
  * again. Without it two agents replying to each other abort each other's every skill.
@@ -123,7 +124,7 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], da
 
     if (!off.has("damage") && now.health < peakHealth && (damageFloor === undefined || now.health <= damageFloor)) {
       const drowning = now.oxygen !== undefined && now.oxygen <= 0;
-      return ["damage", `interrupted: you took damage (health ${Math.round(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
+      return ["damage", `interrupted: you took damage (health ${shownHealth(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
     }
 
     // A mob outside closed walls can't reach the agent; damage still interrupts if one somehow does.

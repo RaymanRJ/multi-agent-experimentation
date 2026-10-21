@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { observe } from "./observe.js";
+import { observe, shownHealth } from "./observe.js";
 import { fakeBot } from "./testing/fakeBot.js";
 
 const base = { step: 3, scenario: "survival" as const, goal: "Craft a stone pickaxe.", recentEvents: [] as string[] };
@@ -85,4 +85,13 @@ test("observe - animals nearest first, and left out when there are none", () => 
     { name: "zombie", type: "hostile", position: { x: 5.5, y: 64, z: 0.5 } },
   ];
   assert.deepEqual(observe(fakeBot({ entities }).bot, base).animals, [{ name: "sheep", distance: 3 }, { name: "cow", distance: 10 }]);
+});
+
+test("shownHealth - whole points, but an agent alive below half a point is never told 0", () => {
+  assert.equal(shownHealth(20), 20);
+  assert.equal(shownHealth(5.6), 6);
+  assert.equal(shownHealth(0.5), 1);
+  assert.equal(shownHealth(0.4), 0.4);
+  assert.equal(shownHealth(0.04), 0.1, "rounded to a tenth, but still not 0");
+  assert.equal(shownHealth(0), 0);
 });

@@ -112,7 +112,7 @@ export function observe(
       y: Math.round(position.y),
       z: Math.round(position.z),
     },
-    health: Math.round(bot.health),
+    health: shownHealth(bot.health),
     food: Math.round(bot.food),
     // What a player sees as the bubble bar: only there while it is going down.
     ...(bot.oxygenLevel !== undefined && bot.oxygenLevel < 20 ? { air: Math.round(bot.oxygenLevel) } : {}),
@@ -140,4 +140,13 @@ export function observe(
   if (opts.stillNeeded?.length) observation.stillNeeded = opts.stillNeeded;
   if (opts.plan) observation.plan = opts.plan;
   return observation;
+}
+
+/**
+ * Health as the agent is told it: whole points, except that an agent alive below 1 is never told 0.
+ * In tbase1 Sonnet spent 26 decisions at 0.4 health reading "health 0", too hungry to heal, and
+ * reasoned from being at 0.
+ */
+export function shownHealth(health: number): number {
+  return health > 0 && health < 0.5 ? Math.max(0.1, Math.round(health * 10) / 10) : Math.round(health);
 }
