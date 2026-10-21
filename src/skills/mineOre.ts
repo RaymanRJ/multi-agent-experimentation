@@ -1,6 +1,7 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Block } from "prismarine-block";
-import type { Vec3 } from "vec3";
+import type { Bot } from "mineflayer";
+import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, nearestUncrowded, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
@@ -15,6 +16,44 @@ const MAX_TOTAL_MS = 4 * 60_000;
 /** Ore further above or below than this is left alone: the pathfinder gives up on long climbs. */
 const MAX_HEIGHT_GAP = 8;
 const REACH = 4.5;
+/** Blocks dug through to ore that is in reach but behind them, before giving up on it. */
+const MAX_DIG_THROUGH = 3;
+/** Never dug through: someone's furniture. */
+const FURNITURE = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$/;
+
+/**
+ * Ore within reach but out of sight: the pathfinder stops within 2 blocks, which can leave rock between the
+ * bot and the ore when the ore's open face is on the far side (a cave behind it). Before this, mine_ore gave up on
+ * it as "out of reach": 74 times in tbase1, and in 34 of 53 earlier runs that mined. Dig what is in the way, as a
+ * player mines through to ore it can see from the cave. Returns true once the ore is in sight and reach.
+ */
+/** The first solid block on the straight line from `from` to `to`, other than the one at `skip`. */
+export function firstSolidBetween(bot: Bot, from: Vec3, to: Vec3, skip: Vec3): Block | null {
+  const length = from.distanceTo(to);
+  for (let t = 0; t < length; t += 0.1) {
+    const cell = from.plus(to.minus(from).scaled(t / length)).floored();
+    if (cell.equals(skip)) return null;
+    const block = bot.blockAt(cell);
+    if (block && block.boundingBox === "block") return block;
+  }
+  return null;
+}
+
+async function digThrough(bot: Bot, ore: Block): Promise<boolean> {
+  const centre = ore.position.offset(0.5, 0.5, 0.5);
+  for (let dug = 0; ; dug++) {
+    const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+    if (eye.distanceTo(centre) > REACH) return false;
+    if (bot.canSeeBlock(ore)) return true;
+    if (dug >= MAX_DIG_THROUGH) return false;
+    const between = firstSolidBetween(bot, eye, centre, ore.position);
+    if (!between) return false;
+    if (FURNITURE.test(between.name) || !bot.canDigBlock(between) || liquidBeside(bot, between.position)) return false;
+    const tool = bot.pathfinder.bestHarvestTool(between);
+    if (tool) await bot.equip(tool, "hand");
+    await withTimeout(bot.dig(between), DIG_TIMEOUT_MS, "digging toward the ore");
+  }
+}
 
 /** Pickaxes, weakest first. */
 const TIERS = ["wooden_pickaxe", "stone_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
@@ -124,8 +163,10 @@ export const mineOre: Skill = {
         const fresh = bot.blockAt(block.position);
         if (!fresh || !oreIds.includes(fresh.type) || !bot.canDigBlock(fresh)) throw new Error("cannot dig it from here");
         // Out of reach or behind a wall, the server ignores the dig and mineflayer waits forever.
-        const eye = bot.entity.position.offset(0, bot.entity.height, 0);
-        if (eye.distanceTo(fresh.position.offset(0.5, 0.5, 0.5)) > REACH || !bot.canSeeBlock(fresh)) throw new Error("out of reach");
+        if (!(await digThrough(bot, fresh))) throw new Error("out of reach");
+        // digThrough may have changed the tool in hand to dig dirt or stone; ore needs the pickaxe.
+        const pick = bot.inventory.items().find((item) => item.name === pickaxe);
+        if (pick) await bot.equip(pick, "hand");
         await withTimeout(bot.dig(fresh), DIG_TIMEOUT_MS, "digging ore");
       } catch (error) {
         ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
@@ -133,12 +174,18 @@ export const mineOre: Skill = {
         skipped.add(key(block.position));
         continue;
       }
-      try {
-        await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 1)), TRAVEL_TIMEOUT_MS, "collecting drops");
-      } catch {
-        // Best-effort; the loop re-checks the real inventory count.
+      // A drop can't be picked up for its first 10 ticks; leaving after exactly 10 left raw iron on the floor.
+      const before = dropsHeld();
+      for (let tries = 0; tries < 3 && dropsHeld() === before; tries++) {
+        const item = Object.values(bot.entities).find((e) => e?.name === "item" && e.position.distanceTo(block!.position.offset(0.5, 0.5, 0.5)) < 4);
+        const at = item ? item.position : block.position;
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalNear(at.x, at.y, at.z, 1)), TRAVEL_TIMEOUT_MS, "collecting drops");
+        } catch {
+          // Best-effort; the loop re-checks the real inventory count.
+        }
+        await bot.waitForTicks(10);
       }
-      await bot.waitForTicks(10);
     }
 
     return { status: "success", detail: { gained: gained(), total: dropsHeld(), pickaxe } };
