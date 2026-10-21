@@ -286,6 +286,47 @@ export async function runSkill(skill: Skill, ctx: SkillContext, args: Record<str
  */
 const STUCK_MS = 4000;
 const MAX_NUDGES = 3;
+/** Standing on leaves with open air somewhere beneath them, before the ground. */
+export function onTreetops(bot: Bot): boolean {
+  const feet = bot.entity.position.floored();
+  if (!bot.blockAt(feet.offset(0, -1, 0))?.name.endsWith("_leaves")) return false;
+  for (let dy = 2; dy <= 12; dy++) {
+    const block = bot.blockAt(feet.offset(0, -dy, 0));
+    if (!block) return false;
+    if (block.boundingBox === "empty") return true;
+    if (!block.name.endsWith("_leaves")) return false;
+  }
+  return false;
+}
+
+/** Fall damage is a point per block past 3; keep this much health after it. */
+const SPARE_HEALTH_AFTER_DROP = 4;
+
+/** Dig the leaves under the bot so it drops to the ground. False if the fall would cost too much health. */
+async function dropThroughLeaves(bot: Bot): Promise<boolean> {
+  const feet = bot.entity.position.floored();
+  let ground = 0;
+  for (let dy = 1; dy <= 24; dy++) {
+    const block = bot.blockAt(feet.offset(0, -dy, 0));
+    if (!block) return false;
+    if (block.boundingBox === "block" && !block.name.endsWith("_leaves")) { ground = dy - 1; break; }
+  }
+  if (ground === 0 || bot.health - Math.max(0, ground - 3) < SPARE_HEALTH_AFTER_DROP) return false;
+  for (let dy = 1; dy <= ground; dy++) {
+    const block = bot.blockAt(feet.offset(0, -dy, 0));
+    if (!block?.name.endsWith("_leaves")) break;
+    try {
+      await withTimeout(bot.dig(block), 5000, "digging through leaves");
+    } catch {
+      return false;
+    }
+  }
+  // Wait for the fall to end.
+  for (let tick = 0; tick < 40 && !bot.entity.onGround; tick += 2) await bot.waitForTicks(2);
+  await bot.waitForTicks(4);
+  return true;
+}
+
 export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["goto"]>[0], timeoutMs: number, label: string): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (let nudge = 0; ; nudge++) {
@@ -302,11 +343,16 @@ export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["
     } catch (error) {
       if (!stuck || nudge >= MAX_NUDGES || Date.now() >= deadline) {
         const at = bot.entity.position.floored();
-        throw stuck ? new Error(`${label}: stuck at ${at.x},${at.y},${at.z}`) : error;
+        const where = onTreetops(bot) ? " on top of tree leaves, too high to drop down safely" : "";
+        throw stuck ? new Error(`${label}: stuck at ${at.x},${at.y},${at.z}${where}`) : error;
       }
     } finally {
       clearInterval(watch);
     }
+    // Up in a tree's canopy the pathfinder finds no way down (it drops at most 4 blocks; in tbase2 three
+    // agents were stuck on dark oak leaves 8 blocks up, one of them killed after). Do what a player does:
+    // dig through the leaves underfoot and drop, if the fall won't take most of the bot's health.
+    if (onTreetops(bot) && (await dropThroughLeaves(bot))) continue;
     // Hop forward, then try again from wherever that lands.
     bot.setControlState("jump", true);
     bot.setControlState("forward", true);
