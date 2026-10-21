@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { countInventory } from "../observe.js";
+import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, gotoWatched, liquidBeside, opensOnClick, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
@@ -329,7 +329,7 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
       // Building in the open stops for a mob close by or a hit; filling the gaps of a shelter the agent is inside
       // does not: that is how it gets safe from the mob.
       peakHealth = Math.max(peakHealth, bot.health);
-      const hit = bot.health < peakHealth ? `you took damage (health ${Math.round(bot.health)})` : null;
+      const hit = bot.health < peakHealth ? `you took damage (health ${shownHealth(bot.health)})` : null;
       const danger = b.repair ? null : hit ?? threatened(ctx);
       if (danger) return { done: false, result: { status: "aborted", reason: `stopped building because ${danger}`, detail: { position, placed } } };
 
