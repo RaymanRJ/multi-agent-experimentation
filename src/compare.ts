@@ -20,7 +20,7 @@ import { isDeath, newEventsPerStep, summarizeRun, wilson, type RunSummary } from
 import { parseSteps } from "./minds.js";
 import { behaviour, gameTime, requests, verdictLines, type Behaviour, type Requests } from "./summary.js";
 import { renderSkillUsage, skillUsage } from "./skillUsage.js";
-import { DISRUPTION_LABELS, GROUNDWORK_AIM, KIND_LABELS, dayClock, doing, goalAtEnd, goalWork, median, type Disruption, type DisruptionKind, type GoalWork, type Kind, type Member, type PartAtEnd } from "./goalWork.js";
+import { DISRUPTION_LABELS, GROUNDWORK_AIM, KIND_LABELS, dayClock, doing, goalAtEnd, goalWork, median, needs, type Needs, type Disruption, type DisruptionKind, type GoalWork, type Kind, type Member, type PartAtEnd } from "./goalWork.js";
 
 export interface Run {
   file: string;
@@ -368,6 +368,22 @@ function goalWorkSection(w: GoalWork, end: PartAtEnd[] | null, runs: Run[]): str
   if (tells.length) help.push(`told to do something: did it at the next decision ${tells.filter((x) => x.response === "complied").length} of ${tells.length}, partly ${tells.filter((x) => x.response === "partly").length}`);
   lines.push(help.length ? `- **Helped:** ${help.join("; ")}.` : "- **Helped:** nothing logged.");
   lines.push(w.hindrance.length ? `- **Got in the way:** ${w.hindrance.join("; ")}.` : "- **Got in the way:** nothing logged.");
+  lines.push("", ...needsLines(needs(membersOf(runs))));
+  return lines;
+}
+
+/** Asked for, or only needed: whether handovers follow requests or needs. */
+function needsLines(n: Needs): string[] {
+  const lines = ["**Asked for, or only needed**", ""];
+  lines.push(`- Handovers that came right after the receiver asked for that item: ${n.gives ? `${n.askedGives} of ${n.gives}` : "none"}.`);
+  if (n.spareBeds.length) {
+    const asked = n.spareBeds.filter((p) => p.asked);
+    lines.push(
+      `- An agent was told it had no bed while a teammate carried a spare: ${plural(n.spareBeds.length, "pair")}; handed over ${n.spareBeds.filter((p) => p.handed).length}` +
+        ` (${asked.filter((p) => p.handed).length} of ${asked.length} where it asked for a bed, ${n.spareBeds.filter((p) => !p.asked && p.handed).length} of ${n.spareBeds.length - asked.length} where it didn't).`,
+    );
+  }
+  if (n.sparePicks.length) lines.push(`- One agent held two or more iron pickaxes while a teammate held none: ${plural(n.sparePicks.length, "time")}; handed one over ${n.sparePicks.filter((p) => p.handed).length}.`);
   return lines;
 }
 

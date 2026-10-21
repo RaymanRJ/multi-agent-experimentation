@@ -452,3 +452,82 @@ export function goalAtEnd(members: Member[], goalName: string): PartAtEnd[] | nu
     { part: "10 cooked meat in a chest", met: meat >= 10, how: `${meat} at the end` },
   ];
 }
+
+/**
+ * Whether teammates hand things over because they are asked, or because they see a need: the
+ * clearest finding of tbase1–3 was that they answer requests, not needs. Counted from the logs:
+ * a handover is asked for when the receiver's message or request naming the item reached the giver
+ * in its last few decisions; a need is a spare goal item one member carries while a teammate lacks it
+ * (told it has no bed while another carries a spare; two or more iron pickaxes while another has none).
+ */
+export interface Needs {
+  gives: number;
+  askedGives: number;
+  /** Pairs (lacking, holder) where a spare bed was carried while the other was told it had none. */
+  spareBeds: Array<{ lacking: string; holder: string; asked: boolean; handed: boolean }>;
+  /** Spells of one member holding 2+ iron pickaxes while a teammate held none. */
+  sparePicks: Array<{ holder: string; handed: boolean }>;
+}
+
+const ASKED_WITHIN = 4;
+const stem = (item: string) => item.replace(/^(white|oak|dark_oak|birch|spruce|cooked|raw)_/, "").replace(/_.*$/, "");
+const when = (step: LoggedStep) => new Date(step.at).getTime();
+
+export function needs(members: Member[]): Needs {
+  const out: Needs = { gives: 0, askedGives: 0, spareBeds: [], sparePicks: [] };
+  const inventoryAt = (m: Member, ms: number) => {
+    let inv: Record<string, number> = {};
+    for (const step of m.steps) {
+      if (when(step) > ms) break;
+      inv = step.inventoryAfter ?? step.observation.inventory;
+    }
+    return inv;
+  };
+  const beds = (inv: Record<string, number>) => Object.entries(inv).filter(([k]) => k.endsWith("_bed")).reduce((n, [, v]) => n + v, 0);
+  const handedTo = (from: Member, to: string, test: (item: string) => boolean) =>
+    from.steps.some((step) => step.decision?.skill === "give" && test(arg(step.decision.args, "item")) && arg(step.decision.args, "to") === to && step.result?.status === "success");
+  // A request for the item, said to the holder (or to everyone, naming the holder) or sent as ask/tell.
+  const askedFor = (m: Member, holder: string, item: RegExp) =>
+    m.steps.some((step) => {
+      const d = step.decision;
+      if (!d) return false;
+      const toHolder = d.say && (d.say.to === holder || (d.say.to === "all" && new RegExp(`\\b${holder}\\b`, "i").test(d.say.text)));
+      if (toHolder && item.test(d.say!.text) && /(bring|give|hand|pass|drop|need|spare)/i.test(d.say!.text)) return true;
+      return ["ask_agent", "tell_agent"].includes(d.skill) && arg(d.args, "to") === holder && item.test(JSON.stringify(d.args));
+    });
+
+  for (const m of members) {
+    m.steps.forEach((step, i) => {
+      const d = step.decision;
+      if (d?.skill === "give" && step.result?.status === "success") {
+        out.gives++;
+        const to = arg(d.args, "to");
+        const word = new RegExp(stem(arg(d.args, "item")), "i");
+        const recent = m.steps.slice(Math.max(0, i - ASKED_WITHIN), i + 1);
+        if (recent.some((x) => (x.observation.messages ?? []).some((msg) => msg.from === to && word.test(msg.text)) || (x.observation.requests ?? []).some((r) => r.from === to && word.test(JSON.stringify(r))))) out.askedGives++;
+      }
+      if (d?.skill === "sleep" && /none to put down|no bed nearby or in inventory/.test(step.result?.reason ?? "")) {
+        for (const h of members) {
+          if (h === m || out.spareBeds.some((p) => p.lacking === m.name && p.holder === h.name)) continue;
+          const held = beds(inventoryAt(h, when(step)));
+          const sleptBefore = h.steps.some((x) => when(x) < when(step) && slept(x));
+          if (held >= 2 || (held >= 1 && sleptBefore)) {
+            out.spareBeds.push({ lacking: m.name, holder: h.name, asked: askedFor(m, h.name, /\bbeds?\b|_bed/i), handed: handedTo(h, m.name, (item) => item.endsWith("_bed")) });
+          }
+        }
+      }
+    });
+    let open: { holder: string; handed: boolean } | null = null;
+    for (const step of m.steps) {
+      const held = (step.inventoryAfter ?? {})["iron_pickaxe"] ?? 0;
+      const someoneLacks = members.some((b) => b !== m && !((inventoryAt(b, when(step))["iron_pickaxe"] ?? 0) > 0));
+      if (held >= 2 && someoneLacks && !open) out.sparePicks.push((open = { holder: m.name, handed: false }));
+      if (open && step.decision?.skill === "give" && arg(step.decision.args, "item") === "iron_pickaxe" && step.result?.status === "success") {
+        open.handed = true;
+        open = null;
+      }
+      if (held < 2) open = null;
+    }
+  }
+  return out;
+}

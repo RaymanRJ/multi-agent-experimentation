@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOAL_PARTS, aimsOf, classify, disruptions, goalAtEnd, goalWork, type Member } from "./goalWork.js";
+import { GOAL_PARTS, aimsOf, classify, disruptions, goalAtEnd, goalWork, needs, type Member } from "./goalWork.js";
 import type { LoggedStep, Observation, SkillResult } from "./types.js";
 
 const parts = GOAL_PARTS["team-base"]!;
@@ -11,7 +11,7 @@ const obs = (inventory: Record<string, number> = {}, position = { x: 0, y: 64, z
 let n = 0;
 const step = (skill: string, args: Record<string, unknown>, before: Record<string, number>, after: Record<string, number>, result: SkillResult = { status: "success" }, extra: Partial<LoggedStep> = {}): LoggedStep => {
   n++;
-  return { step: n, at: `2026-10-20T10:00:${String(n).padStart(2, "0")}.000Z`, observation: obs(before), decision: { skill, args }, result, decisionMs: 0, calls: [], ticks: n * 100, inventoryAfter: after, ...extra };
+  return { step: n, at: new Date(Date.UTC(2026, 9, 20, 10) + n * 1000).toISOString(), observation: obs(before), decision: { skill, args }, result, decisionMs: 0, calls: [], ticks: n * 100, inventoryAfter: after, ...extra };
 };
 const base = (by: string, reason = "the large two-storey shelter is finished") =>
   step("build_shelter", { size: "large", storeys: 2 }, {}, {}, { status: "success", reason, detail: { size: 5, storeys: 2, position: { x: 0, y: 64, z: 0 }, by } });
@@ -102,4 +102,19 @@ test("goalWork - help and hindrance between teammates, and the goal at the end",
   assert.equal(end[1]!.how, "1 of 2 (not b)");
   assert.equal(end[3]!.how, "0 at the end");
   assert.equal(goalWork([a], "explore"), null, "a goal without parts gets no section");
+});
+
+test("needs - handovers asked for or not, and a spare bed kept while a teammate had none", () => {
+  const made = step("craft", { item: "white_bed", count: 2 }, {}, { white_bed: 2 });
+  const ask = { ...step("wait", {}, {}, {}), decision: { skill: "wait", args: {}, say: { to: "b", text: "b, please bring the beds here" } } };
+  const noBed = step("sleep", {}, {}, {}, { status: "failed", reason: "every bed nearby is taken by someone sleeping in it, and you have none to put down" });
+  const a: Member = { name: "a", offset: 0, steps: [ask, noBed] };
+  const asked = { ...step("give", { to: "a", item: "white_bed" }, { white_bed: 2 }, { white_bed: 1 }, { status: "success", detail: { gave: 1 } }) };
+  asked.observation = { ...asked.observation, messages: [{ from: "a", to: "b", text: "please bring the beds here", ageSeconds: 3 }] };
+  const unasked = step("give", { to: "a", item: "cobblestone" }, { cobblestone: 8 }, {}, { status: "success", detail: { gave: 8 } });
+  const b: Member = { name: "b", offset: 0, steps: [made, asked, unasked] };
+  const n = needs([a, b]);
+  assert.equal(n.gives, 2);
+  assert.equal(n.askedGives, 1, "the bed was asked for; the cobblestone wasn't");
+  assert.deepEqual(n.spareBeds, [{ lacking: "a", holder: "b", asked: true, handed: true }]);
 });
