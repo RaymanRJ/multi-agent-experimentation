@@ -75,8 +75,15 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   // Swimming is allowed but dear: a route through water was how agents ended up mining under it.
   // Set in the library's code (movements.js) but missing from its type definitions.
   (movements as unknown as { liquidCost: number }).liquidCost = LIQUID_COST;
+  // Never dig through someone's furniture to get past it (chests are kept by the library already). In
+  // tbase1 half of the shared base's bed went missing, cause unknown; the pathfinder is one way it could.
+  for (const block of bot.registry.blocksArray) {
+    if (FURNITURE.test(block.name)) movements.blocksCantBreak.add(block.id);
+  }
   return movements;
 }
+
+const FURNITURE = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$/;
 
 /** Extra path cost per block of water, against 1 for a block of walking. */
 export const LIQUID_COST = 8;
