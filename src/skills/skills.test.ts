@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 import { SKILLS, findSkill } from "./index.js";
 import { runSkill } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
+import { Vec3 } from "vec3";
+import { firstSolidBetween } from "./mineOre.js";
 
 const run = (name: string, setup: Parameters<typeof fakeBot>[0], args: Record<string, unknown> = {}, stop = false) => {
   const { bot } = fakeBot(setup);
@@ -276,4 +278,12 @@ test("mine_stone - stone touching water is a hazard, stone in the open is not", 
   const { bot } = fakeBot({ blocks: { "0,60,0": "stone", "1,60,0": "water", "5,60,0": "stone", "5,59,0": "stone", "4,60,0": "stone", "6,60,0": "stone", "5,60,1": "stone", "5,60,-1": "stone" } });
   assert.equal(exposure(context(bot), new Vec3(0, 60, 0)), "hazard", "water is an open side to the game, but not one to mine from");
   assert.equal(exposure(context(bot), new Vec3(5, 60, 0)), "open", "air above it");
+});
+
+test("mine_ore finds the rock between the bot and ore it can't see, and nothing when the way is clear", () => {
+  const { bot } = fakeBot({ blocks: { "10,101,11": "stone", "11,101,11": "iron_ore" } });
+  const eye = new Vec3(9.5, 101.5, 11.5), ore = new Vec3(11, 101, 11);
+  assert.equal(firstSolidBetween(bot, eye, ore.offset(0.5, 0.5, 0.5), ore)?.name, "stone");
+  const clear = fakeBot({ blocks: { "11,101,11": "iron_ore" } }).bot;
+  assert.equal(firstSolidBetween(clear, eye, ore.offset(0.5, 0.5, 0.5), ore), null);
 });
