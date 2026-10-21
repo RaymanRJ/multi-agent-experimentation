@@ -1,5 +1,7 @@
 /**
- * One readable Markdown report comparing runs: by goal, by model, and for team runs, who did what.
+ * One readable Markdown report comparing runs: by goal, by model, and for team runs, the team's work
+ * on its goal (src/goalWork.ts) — what moved it forward or set it back, what broke the work off and
+ * how the agents got back to it, and how they helped or got in each other's way — then who did what.
  * Built from the run logs alone. team.sh and batch.sh write one at the end of every run; this
  * command rebuilds it, or makes one for any set of logs.
  *
@@ -18,6 +20,7 @@ import { isDeath, newEventsPerStep, summarizeRun, wilson, type RunSummary } from
 import { parseSteps } from "./minds.js";
 import { behaviour, gameTime, requests, verdictLines, type Behaviour, type Requests } from "./summary.js";
 import { renderSkillUsage, skillUsage } from "./skillUsage.js";
+import { DISRUPTION_LABELS, GROUNDWORK_AIM, KIND_LABELS, dayClock, goalAtEnd, goalWork, median, type Disruption, type DisruptionKind, type GoalWork, type Kind, type Member, type PartAtEnd } from "./goalWork.js";
 
 export interface Run {
   file: string;
@@ -255,6 +258,137 @@ function teamSection(runs: Run[]): string[] {
   return lines;
 }
 
+/** A team's members on one clock: each agent's ticks count from its own first step, seconds apart. */
+export function membersOf(runs: Run[]): Member[] {
+  // A step's time is when its skill ended, and its ticks count from the run's start: subtract to find the start.
+  const began = (run: Run) => new Date(run.steps[0]!.at).getTime() - (run.steps[0]!.ticks ?? 0) * 50;
+  const start = Math.min(...runs.map(began));
+  return runs.map((run) => ({ name: run.s.agentName, steps: run.steps, offset: Math.round((began(run) - start) / 50) }));
+}
+
+const share = (n: number, of: number) => (of === 0 ? "-" : `${Math.round((100 * n) / of)}%`);
+const KINDS = Object.keys(KIND_LABELS) as Kind[];
+
+/** Where game time went, by kind of decision: one column per member, or per rep. */
+function timeTable(columns: Array<{ label: string; time: Record<Kind, number> }>): string[] {
+  const total = (t: Record<Kind, number>) => KINDS.reduce((a, k) => a + t[k], 0);
+  return [
+    `| Decisions spent on | ${columns.map((c) => c.label).join(" | ")} |`,
+    `|---|${columns.map(() => "---").join("|")}|`,
+    ...KINDS.map((k) => `| ${KIND_LABELS[k]} | ${columns.map((c) => share(c.time[k], total(c.time))).join(" | ")} |`),
+  ];
+}
+
+/** Each kind of disruption: how often, what came next, and how soon the agent was back on the goal. */
+function disruptionTable(ds: Disruption[]): string[] {
+  const kinds = (Object.keys(DISRUPTION_LABELS) as DisruptionKind[]).filter((k) => ds.some((d) => d.kind === k));
+  if (!kinds.length) return [];
+  const rows = [
+    "| What broke the work off | Times | What it did next, most often | Back at work on the goal | Decisions to get back (median) | Game time to get back (median) | Back to what it was on |",
+    "|---|---|---|---|---|---|---|",
+  ];
+  for (const k of kinds) {
+    const group = ds.filter((d) => d.kind === k);
+    const next: Record<string, number> = {};
+    for (const d of group) if (d.next) next[d.next.skill] = (next[d.next.skill] ?? 0) + 1;
+    const top = Object.entries(next).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([skill, n]) => `\`${skill}\` ${n}`).join(", ");
+    const back = group.filter((d) => d.back);
+    const onPart = back.filter((d) => d.aimed.length);
+    const same = onPart.filter((d) => d.back!.parts.some((p) => d.aimed.includes(p)));
+    const dec = median(back.map((d) => d.back!.decisions));
+    const ticks = median(back.map((d) => d.back!.ticks));
+    rows.push(`| ${DISRUPTION_LABELS[k]} | ${group.length} | ${top || "-"} | ${back.length} of ${group.length} | ${dec ?? "-"} | ${ticks === null ? "-" : gameTime(ticks)} | ${onPart.length ? `${same.length} of ${onPart.length}` : "-"} |`);
+  }
+  return rows;
+}
+
+/** A few disruptions worth reading in full: never back on the goal, then the longest ways back. */
+function disruptionExamples(ds: Disruption[], n: number): string[] {
+  const onGoal = ds.filter((d) => d.aimed.some((p) => p !== GROUNDWORK_AIM) && d.kind !== "failed");
+  const never = onGoal.filter((d) => !d.back).slice(0, 2);
+  const longest = onGoal.filter((d) => d.back).sort((a, b) => b.back!.ticks - a.back!.ticks).slice(0, n - never.length);
+  return [...never, ...longest].sort((a, b) => a.at - b.at).map((d) => {
+    const cut = `${d.kind === "died" ? "died" : "cut off"}: "${clip(d.what.replace(/^interrupted: /, ""), 110)}"`;
+    const next = d.next ? ` Next: \`${d.next.skill}\`${d.next.rationale ? ` — "${clip(d.next.rationale, 160)}"` : ""}.` : "";
+    const back = d.back
+      ? ` Back at work (${d.back.parts.join(", ")}) after ${plural(d.back.decisions, "decision")} and ${gameTime(d.back.ticks)} of game time.`
+      : " Never went back to work on the goal before the run ended.";
+    return `- **${dayClock(d.at)}, ${d.agent}**, working on ${d.aimed.join(" and ")}, ${cut}.${next}${back}`;
+  });
+}
+
+/** One part's story: what moved it forward and what set it back, in order. Routine gains show once per agent. */
+function partStory(w: GoalWork, part: string, limit = 10): string[] {
+  const seen = new Set<string>();
+  const events = w.events[part]!.filter((e) => {
+    const routine = !e.setback && / got /.test(e.text);
+    if (!routine) return true;
+    const key = e.agent;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const by = Object.entries(w.toward[part]!).map(([agent, n]) => `${agent} ${n}`).join(", ");
+  const setbacks = w.setbacks.filter((s) => s.part === part).length;
+  // A shelter's losses are seen only when someone replaces the missing blocks (the logs don't say how they went).
+  const repairs = w.events[part]!.filter((e) => / replaced \d+ missing blocks$/.test(e.text)).length;
+  const back = repairs && !setbacks ? `blocks had gone missing ${plural(repairs, "time")} by the time someone replaced them` : `set back ${plural(setbacks, "time")}`;
+  const lines = [`- **${part[0]!.toUpperCase()}${part.slice(1)}**: moved forward by ${plural(Object.values(w.toward[part]!).reduce((a, n) => a + n, 0), "decision")}${by ? ` (${by})` : ""}; ${back}.`];
+  for (const e of events.slice(0, limit)) lines.push(`  - ${dayClock(e.at)}: ${e.setback ? "*set back:* " : ""}${e.text}`);
+  if (events.length > limit) lines.push(`  - …and ${events.length - limit} more`);
+  return lines;
+}
+
+function atEndTable(columns: Array<{ label: string; parts: PartAtEnd[] }>): string[] {
+  const parts = columns[0]!.parts.map((p) => p.part);
+  return [
+    `| Part of the goal | ${columns.map((c) => c.label).join(" | ")} |`,
+    `|---|${columns.map(() => "---").join("|")}|`,
+    ...parts.map((part, i) => `| ${part} | ${columns.map((c) => `${c.parts[i]!.met ? "**yes**" : "no"}: ${c.parts[i]!.how}`).join(" | ")} |`),
+  ];
+}
+
+/** A team episode told through its goal: what moved it, what got in the way, and how the agents worked together. */
+function goalWorkSection(w: GoalWork, end: PartAtEnd[] | null, runs: Run[]): string[] {
+  const lines: string[] = [];
+  if (end) lines.push("**The goal at the end**", "", ...atEndTable([{ label: "Where it stood", parts: end }]), "");
+  lines.push("**Toward the goal, and away from it**", "", ...w.parts.flatMap((part) => partStory(w, part)), "");
+  lines.push(...timeTable([{ label: "Team", time: w.time["team"]! }, ...runs.map((run) => ({ label: run.s.agentName, time: w.time[run.s.agentName]! }))]), "");
+  lines.push("**When something got in the way**", "", ...disruptionTable(w.disruptions), "", ...disruptionExamples(w.disruptions, 5), "");
+  lines.push("**Working together, and in each other's way**", "");
+  const names = runs.map((run) => run.s.agentName);
+  lines.push(`| Decisions that moved each part forward | ${names.join(" | ")} |`, `|---|${names.map(() => "---").join("|")}|`);
+  for (const part of w.parts) lines.push(`| ${part} | ${names.map((n) => w.toward[part]![n] ?? 0).join(" | ")} |`);
+  lines.push("");
+  const got = runs.flatMap((run) => run.r.received);
+  const tells = got.filter((x) => x.kind === "tell");
+  const asks = got.filter((x) => x.kind === "ask");
+  const help = [...w.help];
+  if (asks.length) help.push(`questions answered: ${asks.filter((x) => x.response === "answered").length} of ${asks.length}`);
+  if (tells.length) help.push(`told to do something: did it at the next decision ${tells.filter((x) => x.response === "complied").length} of ${tells.length}, partly ${tells.filter((x) => x.response === "partly").length}`);
+  lines.push(help.length ? `- **Helped:** ${help.join("; ")}.` : "- **Helped:** nothing logged.");
+  lines.push(w.hindrance.length ? `- **Got in the way:** ${w.hindrance.join("; ")}.` : "- **Got in the way:** nothing logged.");
+  return lines;
+}
+
+/** The reps of one team goal side by side: where each ended, where time went, what got in the way. */
+function acrossReps(episodes: Array<{ label: string; w: GoalWork; end: PartAtEnd[] | null }>): string[] {
+  const lines = [`### Across the ${episodes.length} reps`, ""];
+  if (episodes.every((e) => e.end)) lines.push(...atEndTable(episodes.map((e) => ({ label: e.label, parts: e.end! }))), "");
+  lines.push(...timeTable(episodes.map((e) => ({ label: e.label, time: e.w.time["team"]! }))), "");
+  const all = episodes.flatMap((e) => e.w.disruptions);
+  lines.push("When something broke an agent's work off, in all reps:", "", ...disruptionTable(all), "");
+  const setbacks = episodes.flatMap((e) => e.w.setbacks);
+  if (setbacks.length) {
+    const hows = [...new Set(setbacks.map((s) => s.how))];
+    const parts = [...new Set(setbacks.map((s) => s.part))];
+    lines.push("Setbacks, in all reps:", "", `| Part | ${hows.join(" | ")} |`, `|---|${hows.map(() => "---").join("|")}|`);
+    for (const part of parts) lines.push(`| ${part} | ${hows.map((how) => setbacks.filter((s) => s.part === part && s.how === how).length).join(" | ")} |`);
+    lines.push("");
+  }
+  return lines;
+}
+
 function settings(runs: Run[]): string {
   const first = runs[0]!.steps[0]!;
   const c = first.config;
@@ -292,14 +426,24 @@ export function renderComparison(runs: Run[], title: string): string {
     }
     const teams = [...episodes.entries()].filter(([, members]) => members.length > 1 || members[0]!.steps[0]!.config?.team?.length);
     if (teams.length) {
-      for (const [episode, members] of teams) {
+      const works = teams.map(([episode, members]) => {
+        const m = membersOf(members);
+        return { label: episode.replace(/^team-/, "").replace(/^.*-(\d+)$/, "Rep $1"), w: goalWork(m, group[0]!.s.goalName), end: goalAtEnd(m, group[0]!.s.goalName) };
+      });
+      const known = works.filter((x): x is { label: string; w: GoalWork; end: PartAtEnd[] | null } => x.w !== null);
+      if (known.length > 1) add(...acrossReps(known));
+      for (const [index, [episode, members]] of teams.entries()) {
         const met = members.every((run) => run.s.goalMet === true);
         const cost = members.reduce((a, run) => a + (run.s.costUSD === "unknown" ? 0 : run.s.costUSD), 0);
         const teamTokens = inOut(members.reduce((a, run) => a + run.s.tokensIn, 0), members.reduce((a, run) => a + run.s.tokensOut, 0));
         const longest = Math.max(...members.map((run) => run.s.ticksToGoal ?? run.steps.at(-1)?.ticks ?? 0));
         const teamLabel = episode.replace(/^team-/, "").replace(/-(\d+)$/, ", rep $1");
         add(`### Team ${teamLabel}: ${met ? `goal met in ${gameTime(longest)} of game time` : "goal not met"} · ${teamTokens} tokens in / out · ${money(cost)}`, "");
-        add(...glance(members), "", ...teamSection(members), "");
+        const w = works[index]!.w;
+        if (w) {
+          add(...goalWorkSection(w, works[index]!.end, members), "");
+          add("<details><summary>Each agent: numbers, who did what, key moments</summary>", "", ...glance(members), "", ...teamSection(members), "", "</details>", "");
+        } else add(...glance(members), "", ...teamSection(members), "");
       }
     }
     const solo = group.filter((run) => !teams.some(([, members]) => members.includes(run)));
@@ -308,7 +452,8 @@ export function renderComparison(runs: Run[], title: string): string {
 
   add(...renderSkillUsage(skillUsage(runs.map((run) => ({ steps: run.steps, goalMet: run.s.goalMet, model: run.model })))), "");
 
-  add("## In a sentence or two each", "");
+  const anyTeam = runs.some((run) => run.steps[0]!.config?.team?.length);
+  add(anyTeam ? "<details><summary>Each agent in a sentence or two</summary>" : "## In a sentence or two each", "");
   // Reps reuse agent names, so say which rep each line is from.
   const repOf = (run: Run) => run.steps[0]!.config?.team?.length ? /-(\d+)$/.exec(run.steps[0]!.config?.episode ?? "")?.[1] : undefined;
   const severalReps = new Set(runs.map(repOf)).size > 1;
@@ -317,7 +462,14 @@ export function renderComparison(runs: Run[], title: string): string {
     const rep = severalReps && repOf(run) ? `, rep ${repOf(run)}` : "";
     add(`- **${run.s.agentName}** (${run.model}${rep}): ${verdict}`);
   }
+  if (anyTeam) add("", "</details>");
   add("", "<details><summary>How to read this</summary>", "");
+  if (anyTeam) {
+    add("- **Toward a part of the goal**: a decision that gained something on the way to a part (wool, iron, meat) or did the part itself (built the base, replaced more than its doorway, slept in a bed for the first time, stored cooked meat). **Groundwork**: it gained wood, stone or tools, the way to every part. **Staying alive**: shelter, flee, eat, wait, and sleeping after the first time. Shares are of game time, thinking included. Judged by code from inventories and results (`src/goalWork.ts`).");
+    add("- **Set back**: goal items lost: dropped at a death (some may be picked up again later), a tool worn out, meat eaten (even when the agent needed to eat), or cooked meat taken out of the chest.");
+    add("- **What broke the work off**: a skill cut short by a mob, nightfall or a teammate's message, a death, or a failed skill. **Back at work** is the next decision aimed at a part of the goal or at groundwork, judged from its skill and arguments, not from how it went. Once the base stands, `build_shelter` is going inside, not work. A step with two deaths counts once.");
+    add("- **The goal at the end** is read from the logs; the goal check in the run itself decides whether the goal was met.");
+  }
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
   add("- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.");
   add("- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.");
