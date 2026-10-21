@@ -11,8 +11,13 @@ const NEARBY_RADIUS = 24;
 /** How far away you can tell what another agent is doing. */
 export const SIGHT_RADIUS = 32;
 const INTERESTING = [
-  "_log", "_planks", "stone", "water", "crafting_table", "furnace", "chest",
+  "_log", "_planks", "stone", "water",
 ];
+/**
+ * Things agents put down to use, counted in a search of their own: in tbase3 the 256 nearest logs,
+ * planks and stone filled the shared search inside the team's base, so its chest went unlisted.
+ */
+const FURNITURE = /^(crafting_table|furnace|chest|trapped_chest)$/;
 
 function isInteresting(name: string): boolean {
   return INTERESTING.some((fragment) => name.includes(fragment));
@@ -68,6 +73,23 @@ export function observe(
   for (const point of found) {
     const block = bot.blockAt(point);
     if (block) nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
+  }
+  const furnitureIds = Object.values(bot.registry.blocksByName)
+    .filter((block) => FURNITURE.test(block.name) || block.name.endsWith("_bed"))
+    .map((block) => block.id);
+  // A bed is two blocks: count its head, and whether someone is in it, as a player sees.
+  const beds = { total: 0, inUse: 0 };
+  for (const point of bot.findBlocks({ matching: furnitureIds, maxDistance: NEARBY_RADIUS, count: 64 })) {
+    const block = bot.blockAt(point);
+    if (!block) continue;
+    if (!block.name.endsWith("_bed")) {
+      nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
+      continue;
+    }
+    const props = block.getProperties() as { part?: string; occupied?: boolean | string };
+    if (props.part !== "head") continue;
+    beds.total++;
+    if (props.occupied === true || props.occupied === "true") beds.inUse++;
   }
   // Ores get their own search: in rock, 256 stone blocks used to fill the count before any ore
   // was reached. Only ore a player could see is counted (see isExposed).
@@ -125,6 +147,7 @@ export function observe(
     ...(isNight(timeOfDay) ? {} : { ticksUntilNight: ticksUntilNight(timeOfDay) }),
     inventory: countInventory(bot),
     nearbyBlocks,
+    ...(beds.total ? { beds } : {}),
     hostiles: hostiles.slice(0, 5),
     ...(animals.length ? { animals: animals.sort((a, b) => a.distance - b.distance).slice(0, 5) } : {}),
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
