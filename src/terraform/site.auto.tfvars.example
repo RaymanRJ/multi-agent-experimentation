@@ -1,0 +1,14 @@
+# Copy to site.auto.tfvars (gitignored) and fill in. Terraform loads *.auto.tfvars automatically.
+project_name      = "multi-agent-experiment"
+domain_name       = "multi-agent-experiment.example.com"
+hosted_zone_name  = "example.com"
+include_www       = false   # a subdomain rarely needs www.<subdomain> too
+aws_region        = "us-east-2"
+github_repository = "your-github-user/multi-agent-experimentation"
+
+# Only if the repository uses GitHub's immutable OIDC subject format (includes IDs). Get it with:
+#   gh api repos/OWNER/NAME/actions/oidc/customization/sub --jq .sub_claim_prefix
+# github_oidc_subject_prefix = "repo:your-github-user@1234567/multi-agent-experimentation@89012345"
+
+# Set true only if this AWS account doesn't have the GitHub Actions OIDC provider yet.
+create_github_oidc_provider = false

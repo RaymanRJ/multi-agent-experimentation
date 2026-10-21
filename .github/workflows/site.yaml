@@ -1,0 +1,122 @@
+name: site
+
+# Builds the site (src/site) on every pull request that touches it; deploys main to S3 + CloudFront.
+# Deploying needs these repository secrets (Terraform outputs, see src/terraform/README.md):
+#   AWS_REGION, AWS_DEPLOY_ROLE_ARN, SITE_BUCKET, CLOUDFRONT_DISTRIBUTION_ID
+# They're secrets rather than variables so GitHub masks them in the (public) logs.
+#
+# This repository's workflows use only GitHub's own actions, so the AWS sign-in is done by hand:
+# GitHub's OIDC token is traded for short-lived credentials with the AWS CLI the runner already has.
+# No AWS keys are stored anywhere.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/site/**"
+      - "docs/**"
+      - ".github/workflows/site.yaml"
+  pull_request:
+    paths:
+      - "src/site/**"
+      - "docs/**"
+      - ".github/workflows/site.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: site-${{ github.ref }}
+  # Superseded PR builds can stop; a deploy always finishes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/site
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/site/package-lock.json
+
+      - run: npm ci
+
+      # Runs tsc first, so this is also the type-check.
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v7
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: site
+          path: src/site/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # Only this job can request a GitHub OIDC token, and only on main (the deploy role checks the branch too).
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      BUCKET: ${{ secrets.SITE_BUCKET }}
+      DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: dist
+
+      # Trade GitHub's OIDC token (audience sts.amazonaws.com) for the deploy role's credentials, for
+      # 15 minutes, and mask every value before it reaches the job's environment.
+      - name: Sign in to AWS
+        env:
+          ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "::add-mask::$token"
+          creds=$(aws sts assume-role-with-web-identity --role-arn "$ROLE_ARN" \
+            --role-session-name "site-$GITHUB_RUN_ID" --web-identity-token "$token" \
+            --duration-seconds 900 --query Credentials --output json)
+          for key in AccessKeyId SecretAccessKey SessionToken; do echo "::add-mask::$(jq -r ".$key" <<<"$creds")"; done
+          {
+            echo "AWS_ACCESS_KEY_ID=$(jq -r .AccessKeyId <<<"$creds")"
+            echo "AWS_SECRET_ACCESS_KEY=$(jq -r .SecretAccessKey <<<"$creds")"
+            echo "AWS_SESSION_TOKEN=$(jq -r .SessionToken <<<"$creds")"
+          } >> "$GITHUB_ENV"
+
+      # Hashed assets never change, so browsers and CloudFront can keep them for a year. Upload them
+      # before index.html so a new page never references a file that isn't there yet.
+      - name: Upload assets
+        run: >
+          aws s3 sync dist/assets "s3://$BUCKET/assets"
+          --cache-control "public, max-age=31536000, immutable"
+
+      # Everything else (index.html, 404.html) is revalidated on every visit, so a deploy shows up immediately.
+      - name: Upload pages
+        run: >
+          aws s3 sync dist "s3://$BUCKET" --delete --exclude "assets/*"
+          --cache-control "no-cache"
+
+      - name: Invalidate CloudFront
+        run: >
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID"
+          --paths "/" "/index.html"
+
+      # Old assets stay until now so pages loaded mid-deploy keep working.
+      - name: Remove old assets
+        run: >
+          aws s3 sync dist/assets "s3://$BUCKET/assets" --delete
+          --cache-control "public, max-age=31536000, immutable"

@@ -1,0 +1,16 @@
+# Terraform for the site's AWS hosting, in Docker so nothing needs installing. From this folder:
+#   docker compose run --rm terraform init -backend-config=backend.hcl
+#   docker compose run --rm terraform plan
+#   docker compose run --rm terraform apply
+# Reads your AWS credentials from ~/.aws (read-only); set AWS_PROFILE to pick a profile.
+name: multi-agent-experimentation-terraform
+
+services:
+  terraform:
+    image: hashicorp/terraform:1.16
+    working_dir: /work
+    volumes:
+      - .:/work
+      - ${HOME}/.aws:/root/.aws:ro
+    environment:
+      - AWS_PROFILE
