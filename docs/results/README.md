@@ -8,6 +8,17 @@ What the batches measured. Two kinds of file, both in the order things happened:
   named by when its first run started, in UTC (`2026-10-17-2006-b13` ran before `2026-10-17-2302-b12`).
   The table under [Batch reports](#batch-reports) lists them in that order, with the write-up for each.
 
+## How the testbed is developed
+
+By reading where the agents get stuck, and changing only their tools and the information they're
+given: never their prompt, and never by deciding for them. Each write-up has a section on what our
+code got wrong and what was fixed after. [06](write-ups/06-team-base.md#how-this-testbed-gets-better-from-where-the-agents-get-stuck)
+sets the loop out in full, with each fix beside the same problem in real systems that use AI agents
+(misleading tool results, statuses that contradict the evidence, no read-only views, missing tools,
+truncated context). Earlier write-ups' "found and fixed" sections are the same loop:
+[02](write-ups/02-outpost.md), [04](write-ups/04-p6-outpost-after-fixes.md),
+[05](write-ups/05-team-homestead.md).
+
 ## Terms
 
 From smallest to largest:

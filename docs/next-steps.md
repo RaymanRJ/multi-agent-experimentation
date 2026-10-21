@@ -216,8 +216,15 @@ Read this at the start of a session; update it when something finishes or a new 
    every bed was taken; messages remained mostly status updates. Fixed after: agents stuck on the
    treetops (six times in tbase2), and `look_in_chest`, since an agent took meat out of the store to
    see what was in it. Not fixed: in tbase3 a `give` walk to a teammate inside the closed home timed
-   out from 22 blocks (cause unknown). Written up in 06. **Next, on the owner's word:** another rep
-   on today's code, or `--progress on`; about $3.50 a rep.
+   out from 22 blocks (cause unknown). Written up in 06, which now leads with the clearest finding
+   (agents answer requests, not needs; measured in every team report as "Asked for, or only needed")
+   and has a section on the development loop itself: where the agents got stuck, what was changed,
+   and the same problem in real AI-agent systems (the owner's ask; the triage skill now requires it).
+   Fixed since tbase3, each checked live: beds shown in the observation, with how many are in use, and
+   furniture counted apart so stone can't crowd a chest out; `place_bed`; and sleepers stay in bed
+   until the night passes or a teammate speaks to them, not 90 seconds (they had missed each other by
+   seconds). **Next, on the owner's word:** another rep on today's code, or `--progress on`; about
+   $3.50 a rep, with about $4.70 of Anthropic credit left (cap at $2 per agent to stay under it).
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
    four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,

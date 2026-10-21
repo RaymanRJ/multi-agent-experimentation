@@ -59,6 +59,14 @@ better than before": keep improving it):
   (`src/goalWork.ts`).
 - **Our code's bugs get a short plain list near the end** ("where our code, not the agents, decided
   the outcome"), one line each. The per-model table comes last.
+- **The development loop gets its own section** (the owner's ask, 21 October), as in 06's "How this
+  testbed gets better":
+  - a table with one row per stuck point: where the agent got stuck, what was wrong (our tool, or
+    information it lacked), what changed, and the same problem in a real system that uses AI agents;
+  - then what was left alone as the agents' own behaviour, and why.
+
+  Keep each real-world parallel to a general pattern (a misleading tool result, a status that
+  contradicts the evidence, no read-only view); don't claim specific incidents.
 - **The frame:**
   - `docs/results/write-ups/`: a new topic gets the next number and a row in
     `docs/results/README.md`; a new batch on an old topic gets a section in that topic's write-up.
