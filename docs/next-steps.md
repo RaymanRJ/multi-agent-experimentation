@@ -194,6 +194,16 @@ Read this at the start of a session; update it when something finishes or a new 
    - the report counted entries as builds and two deaths in a step as one.
    What is the model's: the third bed never made (sheep scarce, not looked for), and iron pickaxes
    used until they broke. Written up in `docs/results/write-ups/06-team-base.md`.
+   **Reports now put the team and the goal first (21 October, the owner's ask).** The point of the
+   experiment is how the agents behave on their own: what they do toward the goal and what moves
+   away from it, how they handle the unexpected while keeping the goal in mind, and how they work
+   together or hinder one another. Per-model numbers are secondary. A team report now opens with
+   the goal at the end, each part's story (what moved it, what set it back), the share of game time
+   by kind of work, what broke work off and how soon the agent was back at it, and help and
+   hindrance between teammates; each agent's numbers fold underneath (`src/goalWork.ts`). tbase1's
+   report and write-up 06 are redone that way. Rewriting it found one more bug of ours: health under
+   half a point read as 0 (Sonnet, rep 3, 26 decisions; fixed, checked live). Still to do: change the
+   triage skill's write-up template to match, once the owner has looked at 06.
    **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
    four parts failed largely on our bugs; then, if wanted, with `--progress on`.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,

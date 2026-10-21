@@ -30,7 +30,7 @@ From smallest to largest:
 | [03 Iron](write-ups/03-iron.md) | 17 Oct | b11, b13 | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
 | [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
-| [06 Team base](write-ups/06-team-base.md) | 20 Oct | bpoc, bpoc2, tbase1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams; iron failed mostly on a `mine_ore` bug, since fixed. |
+| [06 Team base](write-ups/06-team-base.md) | 20 Oct | bpoc, bpoc2, tbase1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed. |
 
 [`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
