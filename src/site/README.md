@@ -17,12 +17,6 @@ npm run preview   # serve dist/ at http://localhost:4174
 ```
 
 The front page's findings and chart are in `content/findings.ts`, hand-written from
-`docs/results/write-ups/06-team-base.md`: update both together. Two ways to host it, from the same build
-(relative asset paths, so it works at a domain's root or under a path):
-
-- **S3 + CloudFront** at its own domain: `src/terraform/`, deployed by `.github/workflows/site.yaml`
-  on every push to `main` that touches this folder or `docs/`.
-- **GitHub Pages** at `https://<owner>.github.io/multi-agent-experimentation/`:
-  `.github/workflows/pages.yaml`. Turn it on under Settings → Pages (source: GitHub Actions), then
-  run the workflow by hand, or set the repository variable `SITE_ON_PAGES` to `true` to deploy on
-  every such push.
+`docs/results/write-ups/06-team-base.md`: update both together. Hosting is in `src/terraform/` (S3 + CloudFront at its own domain), and
+`.github/workflows/site.yaml` builds and deploys on every push to `main` that touches this folder or
+`docs/`. Asset paths are relative, so the same build would also work under a path.

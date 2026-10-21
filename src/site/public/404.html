@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- CloudFront (and GitHub Pages) serve this, with a 404 status, for any missing path. Self-contained: no app bundle. -->
+<!-- CloudFront serves this, with a 404 status, for any missing path. Self-contained: no app bundle. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -51,13 +51,7 @@
     <main>
       <h1>Page not found</h1>
       <p>There's nothing at this address.</p>
-      <a id="home" href="/">Go to the overview</a>
+      <a href="/">Go to the overview</a>
     </main>
-    <script>
-      // Under GitHub Pages the site lives at /<repo>/, not at the domain's root.
-      if (location.hostname.endsWith('.github.io')) {
-        document.getElementById('home').href = '/' + location.pathname.split('/')[1] + '/';
-      }
-    </script>
   </body>
 </html>
