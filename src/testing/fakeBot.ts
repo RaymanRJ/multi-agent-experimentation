@@ -32,7 +32,7 @@ export interface FakeWorld {
   food?: number;
   timeOfDay?: number;
   /** Other entities: hostiles, players. */
-  entities?: Array<{ name: string; type: string; position: { x: number; y: number; z: number }; username?: string }>;
+  entities?: Array<{ name: string; type: string; position: { x: number; y: number; z: number }; username?: string; metadata?: unknown[] }>;
   /** Players in the world but out of sight; those among `entities` with a username are added too. */
   players?: string[];
 }
@@ -96,7 +96,7 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
   const timeOfDay = setup.timeOfDay ?? 1000;
   const entities: Record<number, any> = {};
   (setup.entities ?? []).forEach((e, i) => {
-    entities[i + 1] = { id: i + 1, name: e.name, displayName: e.name, type: e.type, username: e.username, position: new Vec3(e.position.x, e.position.y, e.position.z) };
+    entities[i + 1] = { id: i + 1, name: e.name, displayName: e.name, type: e.type, username: e.username, position: new Vec3(e.position.x, e.position.y, e.position.z), metadata: e.metadata ?? [] };
   });
 
   const players: Record<string, unknown> = {};

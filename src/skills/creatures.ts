@@ -150,6 +150,16 @@ function sheared(bot: Bot, sheep: Entity): boolean {
   return typeof wool === "number" && (wool & 0x10) !== 0;
 }
 
+/**
+ * Killed, and still showing for its second of death animation. In tbase1 an agent that had just
+ * killed a pig was told of a pig 4 blocks away, hunted it, and was told there was none.
+ */
+export function isDying(bot: Bot, entity: Entity): boolean {
+  const index = bot.registry.entitiesByName[entity.name ?? ""]?.metadataKeys?.indexOf("health") ?? -1;
+  const health = index >= 0 ? (entity.metadata as unknown[])[index] : undefined;
+  return typeof health === "number" && health <= 0;
+}
+
 function isBaby(bot: Bot, entity: Entity): boolean {
   const index = bot.registry.entitiesByName[entity.name ?? ""]?.metadataKeys?.indexOf("baby") ?? -1;
   return index >= 0 && (entity.metadata as unknown[])[index] === true;

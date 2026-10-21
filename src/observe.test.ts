@@ -85,6 +85,9 @@ test("observe - animals nearest first, and left out when there are none", () => 
     { name: "zombie", type: "hostile", position: { x: 5.5, y: 64, z: 0.5 } },
   ];
   assert.deepEqual(observe(fakeBot({ entities }).bot, base).animals, [{ name: "sheep", distance: 3 }, { name: "cow", distance: 10 }]);
+  // One just killed shows for a second at health 0: not an animal to hunt, nor a mob to fear.
+  const dying = [...entities, { name: "pig", type: "animal", position: { x: 2.5, y: 64, z: 0.5 }, metadata: [, , , , , , , , , 0] }];
+  assert.deepEqual(observe(fakeBot({ entities: dying }).bot, base).animals?.map((a) => a.name), ["sheep", "cow"]);
 });
 
 test("shownHealth - whole points, but an agent alive below half a point is never told 0", () => {
