@@ -214,7 +214,7 @@ export function disruptionOf(step: LoggedStep): { kind: DisruptionKind; what: st
   const reason = step.result?.reason ?? "";
   if (step.deaths?.length) return { kind: "died", what: step.deaths[0]!.cause ?? "died" };
   if (step.result?.status === "failed") return { kind: "failed", what: reason };
-  if (step.result?.status !== "aborted" || /run is ending/.test(reason)) return null;
+  if (step.result?.status !== "aborted" || /run is ending|time budget ran out/.test(reason)) return null;
   if (/said to you/.test(reason)) return { kind: "message", what: reason };
   if (/sun is setting|night falls|nightfall/.test(reason)) return { kind: "dusk", what: reason };
   return { kind: "mob", what: reason };
