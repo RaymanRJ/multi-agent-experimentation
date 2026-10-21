@@ -105,6 +105,15 @@ test("deaths: count multiple distinct death events", () => {
   assert.equal(summary.deaths, 2);
 });
 
+test("deaths: two in one step both count, from the log's record of each", () => {
+  const death = { x: 1, y: 64, z: 1, cause: "was slain by Zombie", ticks: 100, timeOfDay: 14000 };
+  const steps: LoggedStep[] = [
+    makeStep({ step: 1, observation: makeObservation({ recentEvents: [] }) }),
+    makeStep({ step: 2, observation: makeObservation({ recentEvents: [DIED] }), deaths: [death, { ...death, cause: "drowned" }] }),
+  ];
+  assert.equal(summarizeRun(steps, "test-run.jsonl").deaths, 2);
+});
+
 test("deaths: another agent saying it respawned is not a death", () => {
   const steps: LoggedStep[] = [
     makeStep({ step: 1, observation: makeObservation({ recentEvents: ['lc said to you: "I respawned with no inventory"'] }) }),
