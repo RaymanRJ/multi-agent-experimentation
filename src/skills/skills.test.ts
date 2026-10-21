@@ -240,7 +240,7 @@ test("build_shelter - won't clear a space with lava beside it", async () => {
 
 test("tell_agent - checks the agent, the skill and its args, then sends one request line", async () => {
   const setup = { players: ["qwen"] };
-  assert.match((await run("tell_agent", setup, { to: "bob", skill: "craft", args: "{}" })).reason!, /no other agent called "bob"/);
+  assert.match((await run("tell_agent", setup, { to: "bob", skill: "craft", args: "{}" })).reason!, /no other agent called "bob" is in the world right now/);
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "fly", args: "{}" })).reason!, /no skill called "fly"/);
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "ask_agent", args: "{}" })).reason!, /not to ask_agent/);
   assert.match((await run("tell_agent", setup, { to: "qwen", skill: "craft", args: "not json" })).reason!, /must be an object/);
@@ -268,7 +268,7 @@ test("ask_agent - returns the answer addressed to the asker, not other chatter",
   assert.deepEqual(calls, ["chat @haiku [ask] how many logs?"]);
   assert.deepEqual(result, { status: "success", reason: 'haiku answered: "40 oak logs"', detail: { to: "haiku", question: "how many logs?", reply: "40 oak logs" } });
   assert.equal((await run("ask_agent", { players: ["haiku"] }, { to: "haiku", question: "?" }, true)).status, "aborted");
-  assert.match((await run("ask_agent", {}, { to: "haiku", question: "?" })).reason!, /no other agent called "haiku"/);
+  assert.match((await run("ask_agent", {}, { to: "haiku", question: "?" })).reason!, /no other agent called "haiku" is in the world right now/);
   assert.match((await run("ask_agent", { players: ["haiku"] }, { to: "tester", question: "?" })).reason!, /tester is you/);
 });
 

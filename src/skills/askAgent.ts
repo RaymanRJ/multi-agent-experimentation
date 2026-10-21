@@ -19,7 +19,7 @@ export const askAgent: Skill = {
       return { status: "failed", reason: `${bot.username} is you; ask another agent` };
     }
     const to = agentNamed(bot, String(args["to"] ?? ""));
-    if (!to) return { status: "failed", reason: `there is no other agent called "${String(args["to"] ?? "")}" in this world` };
+    if (!to) return { status: "failed", reason: `no other agent called "${String(args["to"] ?? "")}" is in the world right now (it may have left, or never joined)` };
     const question = String(args["question"] ?? "").trim();
     if (!question) return { status: "failed", reason: "say what to ask: `question` is empty" };
     const line = formatSpeech(to, requestText({ kind: "ask", question }));

@@ -39,7 +39,7 @@ export const tellAgent: Skill = {
       return { status: "failed", reason: `${bot.username} is you; tell another agent` };
     }
     const to = agentNamed(bot, String(args["to"] ?? ""));
-    if (!to) return { status: "failed", reason: `there is no other agent called "${String(args["to"] ?? "")}" in this world` };
+    if (!to) return { status: "failed", reason: `no other agent called "${String(args["to"] ?? "")}" is in the world right now (it may have left, or never joined)` };
     const name = String(args["skill"] ?? "").trim();
     // Imported here, not at the top: the skill list imports this file.
     const { findSkill } = await import("./index.js");
