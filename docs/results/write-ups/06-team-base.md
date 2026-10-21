@@ -298,15 +298,14 @@ Threats rarely knocked an agent off the goal for long: after one, every agent wa
 - **Not fixed, recorded:**
   - In tbase3 Opus's walk to hand Luna a pickaxe timed out from 22 blocks, with Luna inside the
     closed home. The cause is not in the logs, and it needs the home in place to reproduce.
-  - There is no way to look inside a chest without moving something.
+  - There was no way to look inside a chest without moving something; `look_in_chest` now does it.
 
 ## What this suggests (not acted on)
 
 - **Run it again on the fixed code.** Done once each in tbase2 and tbase3 (above): iron and food
   moved, and what stopped the teams became their own behaviour and the three-day limit.
-- **Let them look in a chest.** A player can open a chest and see inside without taking anything;
-  agents can't, and in tbase2 one emptied part of the store to find out what was in it. That is
-  environmental information, so it fits the rules.
+- **Let them look in a chest.** Done after tbase3: `look_in_chest` shows what the chests nearby
+  hold without moving anything, as a player sees by opening one. Checked live.
 - **Then tell them what's left.** `--progress on` lists the goal's open parts in every observation.
   The question it answers is about behaviour: does seeing the gap make a team revisit its plan and
   take over a stalled part, or keep a tool for the end?
