@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { groundAbove, nearestUncrowded, opensOnClick } from "./util.js";
+import { fakeBot } from "../testing/fakeBot.js";
+import { groundAbove, nearestUncrowded, onTreetops, opensOnClick } from "./util.js";
 
 test("opensOnClick - tables, furnaces, beds and doors open; building blocks don't", () => {
   for (const name of ["crafting_table", "furnace", "chest", "red_bed", "oak_door", "spruce_trapdoor", "stone_button"]) {
@@ -35,4 +36,14 @@ test("groundAbove - solid blocks over the head, leaves not counted", async () =>
   assert.equal(groundAbove(fakeBot({ blocks: { "0,66,0": "oak_planks" } }).bot), 1, "a shelter roof");
   const cave = { "0,66,0": "stone", "0,67,0": "stone", "0,68,0": "water", "0,75,0": "dirt", "0,76,0": "grass_block" };
   assert.equal(groundAbove(fakeBot({ blocks: cave }).bot), 4, "water isn't solid");
+});
+
+test("onTreetops - on leaves with a drop beneath, not on leaves over ground nor on grass", () => {
+  const at = { x: 0, y: 81, z: 0 };
+  const canopy = { "0,80,0": "dark_oak_leaves", "0,79,0": "dark_oak_leaves", "0,72,0": "grass_block" };
+  assert.equal(onTreetops(fakeBot({ position: at, blocks: canopy }).bot), true);
+  // Leaves all the way down to the ground: a bush, nothing to fall through.
+  const bush = { "0,80,0": "oak_leaves", "0,79,0": "dirt" };
+  assert.equal(onTreetops(fakeBot({ position: at, blocks: bush }).bot), false);
+  assert.equal(onTreetops(fakeBot({ position: at, blocks: { "0,80,0": "grass_block" } }).bot), false);
 });
