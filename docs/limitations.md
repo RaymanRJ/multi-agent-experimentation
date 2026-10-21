@@ -151,6 +151,22 @@ building on it.
   walking to a cave to mine iron, counts as moving. Eating counts against the meat part even when the
   agent had to eat. "Back at work" after a disruption is read from the next decision's skill and
   arguments, not from how it went.
+- **What our code tells the agents was audited on 20 October** against all 322 logs, looking for a
+  conclusion that the same observation contradicts. Fixed:
+  - `smelt` loaded two kinds of fuel into the one fuel slot ("destination full", 42 times in tbase1);
+  - an animal killed a moment before was still listed (4 agents hunted a corpse);
+  - `mine_ore` said "no ore in reach" while ore in sight sat beside water or lava, which it won't
+    mine (165 times); it now says so.
+
+  Checked and sound:
+  - "not in bed: X" (44 of 45 right, one a timing overlap);
+  - "every way down is unsafe", whose reasons are nearly all real water or drops.
+
+  Left as is:
+  - the observation counts buried stone within 24 blocks while `mine_stone` looks for exposed stone,
+    so "stone: 217" can sit beside "no exposed stone within 64 blocks" (148 times, all in single-agent
+    runs of 16–19 October);
+  - "in sight" for agents means within the server's tracking range, not line of sight.
 - **Health under half a point read as 0 until 20 October.** Observations rounded health, so an agent
   alive at 0.4 was told 0. In tbase1 rep 3 Sonnet reasoned from it for 26 decisions, and four earlier
   single-agent runs show it too, up to 32 decisions. Since then it is shown as 0.4.
