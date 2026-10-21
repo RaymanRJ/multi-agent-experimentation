@@ -151,7 +151,7 @@ building on it.
   walking to a cave to mine iron, counts as moving. Eating counts against the meat part even when the
   agent had to eat. "Back at work" after a disruption is read from the next decision's skill and
   arguments, not from how it went.
-- **Health under half a point read as 0 until 21 October.** Observations rounded health, so an agent
+- **Health under half a point read as 0 until 20 October.** Observations rounded health, so an agent
   alive at 0.4 was told 0. In tbase1 rep 3 Sonnet reasoned from it for 26 decisions, and four earlier
   single-agent runs show it too, up to 32 decisions. Since then it is shown as 0.4.
 

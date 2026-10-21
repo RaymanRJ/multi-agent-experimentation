@@ -194,7 +194,7 @@ Read this at the start of a session; update it when something finishes or a new 
    - the report counted entries as builds and two deaths in a step as one.
    What is the model's: the third bed never made (sheep scarce, not looked for), and iron pickaxes
    used until they broke. Written up in `docs/results/write-ups/06-team-base.md`.
-   **Reports now put the team and the goal first (21 October, the owner's ask).** The point of the
+   **Reports now put the team and the goal first (20 October, the owner's ask).** The point of the
    experiment is how the agents behave on their own: what they do toward the goal and what moves
    away from it, how they handle the unexpected while keeping the goal in mind, and how they work
    together or hinder one another. Per-model numbers are secondary. A team report now opens with
