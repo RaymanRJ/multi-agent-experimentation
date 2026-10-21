@@ -421,8 +421,8 @@ results more than anything we changed.
 
 **The same organisation.**
 - **Roles:** one Luna (lc) built the home in every rep, as Luna did in the mixed teams.
-- **Iron:** in reps 2 and 3 another (la) took iron, and made three iron pickaxes by the middle of
-  day 2 both times, quicker than the mixed teams did.
+- **Iron:** in reps 2 and 3 another (la) took iron, and made three iron pickaxes both times (day 1
+  13:41 and day 2 4:01), as early as any mixed team.
 
 **Iron was made, then lost, twice.**
 - **Rep 2: lost to two of our messages and a fall.**
