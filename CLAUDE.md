@@ -167,6 +167,11 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   `give` that passed every test overshot its receiver in four of five live tries. Use a throwaway
   server (`scripts/test-server.sh`) with `src/try.ts`, or a two-bot script for skills between agents.
 - **Read the logs before believing a result**, and say what was measured, not what was hoped.
+- **Results are about how the agents behaved, not the models or the game.** Write-ups and reports
+  tell what agents did toward the goal and away from it, how they handled the unexpected while
+  keeping the goal in mind, and how they helped or hindered each other. Game mechanics are brief
+  examples; per-model numbers and our-code bugs come last. `docs/results/write-ups/06-team-base.md`
+  is the model (the `triage-batch` skill has the details).
 - **`runs/` is not in git.** Logs from earlier machines are not here; the numbers that matter are in
   `docs/results/`.
 
