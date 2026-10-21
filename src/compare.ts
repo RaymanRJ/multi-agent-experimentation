@@ -65,7 +65,10 @@ const TOOL = /^(wooden|stone|iron|golden|diamond)_(pickaxe|axe|sword|shovel|hoe)
 /** What an agent made, built and handed over, from its own steps. */
 export interface Deeds {
   crafted: Record<string, number>;
-  shelters: number[];
+  /** Shelters it finished building, by kind ("large two-storey"). */
+  shelters: string[];
+  /** Times build_shelter took it into a shelter that already stood, its own or a teammate's. */
+  entered: number;
   gave: Array<{ item: string; count: number; to: string; at: string }>;
   failedGives: number;
   pickedUp: Record<string, number>;
@@ -73,8 +76,11 @@ export interface Deeds {
   toolsAtEnd: string[];
 }
 
+const shelterKind = (detail: Record<string, unknown> | undefined) =>
+  `${Number(detail?.["size"] ?? 3) === 5 ? "large " : ""}${Number(detail?.["storeys"] ?? 1) >= 2 ? "two-storey" : "one-storey"}`;
+
 export function deeds(steps: LoggedStep[]): Deeds {
-  const out: Deeds = { crafted: {}, shelters: [], gave: [], failedGives: 0, pickedUp: {}, said: { all: 0, directed: 0 }, toolsAtEnd: [] };
+  const out: Deeds = { crafted: {}, shelters: [], entered: 0, gave: [], failedGives: 0, pickedUp: {}, said: { all: 0, directed: 0 }, toolsAtEnd: [] };
   for (const step of steps) {
     const d = step.decision;
     if (d?.say) d.say.to === "all" ? out.said.all++ : out.said.directed++;
@@ -86,7 +92,11 @@ export function deeds(steps: LoggedStep[]): Deeds {
       const made = (after[item] ?? 0) - (before[item] ?? 0);
       if (made > 0) out.crafted[item] = (out.crafted[item] ?? 0) + made;
     }
-    if (d.skill === "build_shelter" && step.result.status === "success") out.shelters.push(Number(step.result.detail?.["storeys"] ?? 1));
+    if (d.skill === "build_shelter" && step.result.status === "success") {
+      // Going into one that stood already is a success too, but not a build (tbase1's report said Luna built 37).
+      if (/^you are inside/.test(step.result.reason ?? "")) out.entered++;
+      else out.shelters.push(shelterKind(step.result.detail));
+    }
     if (d.skill === "give") {
       const gave = Number(step.result.detail?.["gave"] ?? 0);
       if (step.result.status === "success" && gave > 0) out.gave.push({ item: String(d.args["item"]), count: gave, to: String(d.args["to"]), at: step.at });
@@ -185,10 +195,10 @@ function teamSection(runs: Run[]): string[] {
     const parts: string[] = [];
     const tools = Object.fromEntries(Object.entries(d.crafted).filter(([item]) => TOOL.test(item)));
     if (Object.keys(tools).length) parts.push(`made ${list(tools)}`);
-    const tall = d.shelters.filter((n) => n >= 2).length;
-    const low = d.shelters.length - tall;
-    if (tall) parts.push(`built ${tall === 1 ? "a two-storey shelter" : `${tall} two-storey shelters`}`);
-    if (low) parts.push(`built ${low === 1 ? "a one-storey shelter" : `${low} one-storey shelters`}`);
+    const kinds: Record<string, number> = {};
+    for (const kind of d.shelters) kinds[kind] = (kinds[kind] ?? 0) + 1;
+    for (const [kind, n] of Object.entries(kinds)) parts.push(`built ${n === 1 ? `a ${kind} shelter` : `${n} ${kind} shelters`}`);
+    if (d.entered) parts.push(`went into a standing shelter ${plural(d.entered, "time")}`);
     if (d.gave.length) parts.push(`gave ${gaveList(d.gave)}`);
     if (d.failedGives) parts.push(`${plural(d.failedGives, "give")} failed`);
     const times = (counts: Record<string, number>) => Object.entries(counts).map(([name, n]) => `${name} ${plural(n, "time")}`).join(", ");
@@ -226,7 +236,7 @@ function teamSection(runs: Run[]): string[] {
       const who = run.s.agentName;
       if (d && step.result?.status === "success") {
         if (d.skill === "craft" && TOOL.test(String(d.args["item"]))) moments.push({ at, text: `${who} made a ${words(String(d.args["item"]))}` });
-        if (d.skill === "build_shelter") moments.push({ at, text: `${who} built a ${Number(step.result.detail?.["storeys"] ?? 1) >= 2 ? "two-storey " : ""}shelter` });
+        if (d.skill === "build_shelter" && !/^you are inside/.test(step.result.reason ?? "")) moments.push({ at, text: `${who} built a ${shelterKind(step.result.detail)} shelter` });
         if (d.skill === "give") moments.push({ at, text: `${who} gave ${words(String(d.args["item"]))} to ${d.args["to"]}` });
       }
       for (const event of fresh[i] ?? []) if (isDeath(event)) moments.push({ at, text: `${who} died` });
