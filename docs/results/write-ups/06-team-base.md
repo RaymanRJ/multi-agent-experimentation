@@ -25,6 +25,9 @@ how they met the unexpected, and how they helped or hindered each other.
 
 ## In short
 
+- **They answer requests, not needs** (the clearest finding; next section). An agent handed
+  something over when a teammate asked for it, and almost never otherwise. A teammate's need was
+  stated outright by the game, or obvious from the goal, and still didn't move it.
 - **They organised themselves at once.** In every rep the team divided the goal over chat within
   its first two or three decisions. One agent (Luna) stepped forward to coordinate, and the roles
   mostly held for three days.
@@ -46,6 +49,44 @@ how they met the unexpected, and how they helped or hindered each other.
 
 No team met the whole goal. Several of the failures were our code's, not the agents' (below), so
 this run shows how these agents behave more than how often they can succeed.
+
+## The clearest finding: they answer requests, not needs
+
+Across all five reps (tbase1, tbase2, tbase3), **an agent handed something over when a teammate
+asked for it, and almost never otherwise, even when it knew the teammate needed it.**
+
+| | Times | Handed over |
+|---|---|---|
+| Handovers that came right after the receiver asked for that item | 25 of 29 | – |
+| Handovers nobody asked for | 4 of 29 | all food, passed to the team's cook |
+| An agent was told it had no bed while a teammate carried a spare (pairs of agents) | 5 | 3 |
+| …of those, the agent without a bed asked for the bed itself, again and again | 3 | 3 |
+| …it never asked the holder, or asked once, early, to everyone | 2 | 0 |
+| One agent held two or more iron pickaxes while a teammate held none (spells) | 7 | 2, both after a request |
+
+(A handover counts as asked for when the receiver's message naming that item reached the giver
+in its last few decisions; read from the logs by matching item names in messages. A bed is a spare
+when the holder carried two, or had already slept; in two more cases, both in tbase2, the holder's
+only bed was its own.)
+
+What makes this stand out:
+- **The need was stated to the holder by the game.** Every time an agent slept, it was told the
+  night would not pass because named teammates weren't in bed.
+  - In tbase3 Sonnet heard this while carrying a spare bed, and kept the bed to the end.
+  - Luna, without a bed, tried four times to sleep and was told each time that every bed was taken
+    and it had none. It assumed "Sonnet is placing beds inside", and didn't ask.
+- **The holders knew the goal.** It says every member must sleep in the home and carry an iron
+  pickaxe.
+  - Opus, carrying all three pickaxes, said again and again "one for each of us".
+  - It moved to hand one over only when told to: in tbase3, after Luna's "give iron_pickaxe".
+- **Plain asks were met at once, even at a cost.** In tbase3 Sonnet, at 4 health with no food,
+  asked Luna for two cooked beef. Luna gave them at its next decision, though it was cooking that
+  meat for the store: "Sonnet is at critical health and requested food".
+
+So cooperation here is reactive. The agents are generous and quick when asked, but don't infer a
+teammate's need from what they see and are told, and the agent with the need seldom says so
+plainly to the one who can meet it. A team goal that depends on handing things over then stalls,
+with the means to finish it already in the team's hands.
 
 ## 1. How they organised
 
