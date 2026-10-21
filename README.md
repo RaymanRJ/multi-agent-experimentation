@@ -2,7 +2,7 @@
 
 What do AI agents do when they are given a goal, a set of tools, and then left alone?
 
-A short overview of the project is on [rrjamal.ca](https://rrjamal.ca/projects/multi-agent-experimentation).
+The findings, write-ups and every report are on the project site, [multi-agent-experiment.rrjamal.ca](https://multi-agent-experiment.rrjamal.ca/).
 
 **Contents**
 
