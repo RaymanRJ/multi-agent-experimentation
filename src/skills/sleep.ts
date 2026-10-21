@@ -240,3 +240,52 @@ export const sleep: Skill = {
     return { status: "success", detail: { slept: true, health: bot.health } };
   },
 };
+
+/**
+ * Putting a bed down without sleeping in it, as a player can. Without this a bed went down only when
+ * its carrier slept: in tbase3 Sonnet planned to "place beds" in the team's shelter, slept, and so put
+ * down one of its two, while Luna, beside it, had none.
+ */
+export const placeBedSkill: Skill = {
+  name: "place_bed",
+  description:
+    "Put a bed you carry down without sleeping in it, for you or anyone to sleep in. Inside a shelter, it goes in the shelter; " +
+    `outside, with a shelter within ${BED_RANGE} blocks, it goes into the largest one near you; otherwise next to you. ` +
+    "Takes no arguments; puts down one bed.",
+  args: {},
+
+  async run(ctx: SkillContext): Promise<SkillResult> {
+    const bot = ctx.bot;
+    if (!bot.inventory.items().some((item) => item.name.endsWith("_bed"))) {
+      return { status: "failed", reason: "you carry no bed — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep" };
+    }
+    const known = (ctx.shelters?.() ?? []).filter((spot) => standing(bot, spot));
+    let inside = known.find((spot) => insideSpot(bot, spot));
+    if (!inside) {
+      const home = known
+        .map((spot) => ({ spot, d: bot.entity.position.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5)) }))
+        .filter(({ d }) => d <= BED_RANGE)
+        .sort((a, b) => (b.spot.size ?? 3) - (a.spot.size ?? 3) || a.d - b.d)[0]?.spot;
+      if (home) {
+        const entered = await enterShelter(ctx, home);
+        if (!entered.ok) return entered.result;
+        inside = home;
+      }
+    }
+    if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
+    const placed = await (inside ? placeBedInside(ctx, inside) : placeBed(ctx)).catch((error: Error) => {
+      ctx.log(`placing bed failed: ${error.message}`);
+      return false;
+    });
+    if (!placed) {
+      return {
+        status: "failed",
+        reason: inside ? `no room left for a bed in the shelter at ${spotKey(inside)}` : "no flat open ground next to you to put a bed on — move somewhere clearer",
+      };
+    }
+    const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
+    const heads = bot.findBlocks({ matching: bedIds, maxDistance: 8, count: 16 }).filter((point) => bot.blockAt(point)?.getProperties()["part"] === "head");
+    const where = inside ? `in the shelter at ${spotKey(inside)}` : "next to you";
+    return { status: "success", reason: `put a bed down ${where}; ${heads.length} ${heads.length === 1 ? "bed is" : "beds are"} down within 8 blocks`, detail: { beds: heads.length } };
+  },
+};

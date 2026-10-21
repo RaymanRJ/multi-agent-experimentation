@@ -299,3 +299,9 @@ test("look_in_chest - says when there is no chest to look in", async () => {
   assert.equal(none.status, "failed");
   assert.match(none.reason!, /^no chest within 32 blocks/);
 });
+
+test("place_bed - needs a bed to put down", async () => {
+  const none = await run("place_bed", {}, {});
+  assert.equal(none.status, "failed");
+  assert.match(none.reason!, /^you carry no bed/);
+});

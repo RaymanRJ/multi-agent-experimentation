@@ -4,7 +4,7 @@ import { wait } from "./wait.js";
 import { explore } from "./explore.js";
 import { eat } from "./eat.js";
 import { flee } from "./flee.js";
-import { sleep } from "./sleep.js";
+import { placeBedSkill, sleep } from "./sleep.js";
 import { craft } from "./craft.js";
 import { mineStone } from "./mineStone.js";
 import { buildShelter } from "./buildShelter.js";
@@ -29,7 +29,7 @@ import { lookInChest, store, take } from "./chest.js";
  */
 export const SKILLS: Skill[] = [
   gatherWood, wait,
-  explore, eat, flee, sleep,
+  explore, eat, flee, sleep, placeBedSkill,
   craft, mineStone, buildShelter,
   mineOre, smelt, descend, tunnel, climbOut,
   give, pickUp, goTo, store, take, lookInChest,
