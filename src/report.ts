@@ -274,12 +274,18 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     }
   }
 
-  // Deaths: count from new events per step (deduplicated by window alignment)
+  // Deaths: from the log's own record of each death where it has one; older logs only have the death
+  // event, counted from new events per step (deduplicated by window alignment). Two deaths in one step
+  // leave one event (tbase1: 2 of 31 deaths were lost that way).
   let deaths = 0;
   const newEvents = newEventsPerStep(steps);
-  for (const eventList of newEvents) {
-    for (const event of eventList) {
-      if (isDeath(event)) deaths++;
+  if (steps.some((step) => step.deaths?.length)) {
+    for (const step of steps) deaths += step.deaths?.length ?? 0;
+  } else {
+    for (const eventList of newEvents) {
+      for (const event of eventList) {
+        if (isDeath(event)) deaths++;
+      }
     }
   }
 
