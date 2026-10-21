@@ -222,10 +222,91 @@ Found by reading the logs, fixed, and each checked in the game unless noted:
 
 All nine runs were valid and ran their full time; no agent reached its cap.
 
+## Again, on the fixed code (tbase2, tbase3)
+
+*Two more reps, one each, 21 October, same models, settings and length as tbase1. tbase2 ran on
+c696675 (after the `mine_ore`, `take`, health, smelting, dying-animal and wet-ore fixes) at $3.50;
+tbase3 on 44d6cf1, which adds the treetop fix, at $3.46. Two reps
+are anecdotes, not rates; they compare with tbase1 as "the same team with fewer of our bugs in
+the way".*
+Reports: [tbase2](../batch-reports/2026-10-21-0441-tbase2.md), [tbase3](../batch-reports/2026-10-21-0552-tbase3.md).
+
+| Part | tbase2 | tbase3 |
+|---|---|---|
+| Shared home built | **yes** (Luna, first five minutes) | **yes** (Luna, first five minutes) |
+| Everyone slept there | 1 of 3 | 1 of 3 |
+| Everyone holds an iron pickaxe | 1 of 3 (Opus holding all 3 made) | 1 of 3 (Opus holding all 3 made) |
+| Food left in store | no: 6, with 9 more in Luna's hands as time ran out | **yes** (11) |
+
+**Our code got out of the way.**
+- **Failures:** 58 and 52 failed decisions, against about 93 a rep in tbase1. Smelting no longer
+  failed at all (42 times in tbase1).
+- **Time:** the share of time that came to nothing was 22% in tbase2, much as in tbase1 (15–20%),
+  and 10% in tbase3, after the treetop fix.
+- **What it unblocked:** the agent on iron (Opus, both times) mined, smelted and made three iron
+  pickaxes by early day 2. In tbase1 only one agent of nine made three.
+
+**The same organisation as before.** Each team split the work in its first few decisions, with the
+same shape:
+- Luna took the home and built it within five minutes.
+- Opus took iron and stayed on it for three days.
+- Sonnet took food and wool.
+
+Threats rarely knocked an agent off the goal for long: after one, every agent was back at work
+(89 of 89 times), usually within two to four decisions.
+
+**What stopped them now was their own behaviour, and time.**
+
+- **All the eggs in one basket.** In both reps Opus made all three pickaxes at once, deep
+  underground, and then died with all three on the way out:
+  - tbase2: less than a minute of game time after crafting them;
+  - tbase3: twenty seconds after.
+
+  Each time it started again from nothing and made three more by the last night. In tbase2 it
+  reasoned, about to bring them up: "It's dawn, so I'm heading up to the surface to bring the iron
+  picks to the large shelter". The run ended mid-climb. In tbase3 it reached the surface and tried
+  to hand one over, but couldn't get to Luna in time (below). Neither time did it hand pickaxes over
+  as each was made, or bring a teammate to the iron.
+- **Holding what a teammate lacked** (tbase3):
+  - Sonnet made two beds on day 3, slept in one and carried the other to the end.
+  - Every time it slept it was told the night wouldn't pass because Luna and Opus weren't in bed.
+  - Luna tried four times to sleep and was told every bed was taken and it had none. It reasoned
+    that "Sonnet is placing beds inside", and never asked.
+  - Neither connected the spare bed with the teammate who needed it.
+- **Talking more than coordinating.**
+  - Opus spoke at 104 of its 122 decisions in tbase2, and 103 of 120 in tbase3, almost all status updates
+    ("I'm on iron… I'll make iron pickaxes for all 3 of us").
+  - Messages cut into teammates' work 34 and 29 times.
+  - Instructions fell from 29 in tbase1 to 3 and 5. Only one was followed at once.
+- **Helping, when asked plainly.**
+  - In tbase3 Sonnet, at 4 health with no food, asked Luna for two cooked beef, and Luna gave them:
+    "Sonnet is at critical health and requested food".
+  - Opus gave its only wool to Sonnet "for the 3rd bed".
+  - Direct requests for a specific thing were met; needs that were only implied (a spare bed, a
+    pickaxe each) were not.
+- **Using a tool to look.** In tbase2 Luna took 3 cooked meat out of the food store, reasoning
+  "Check the nearby chest for cooked meat". The store held 9 of the 10 needed, and Luna was cooking
+  9 more to put in when time ran out. An agent can only see inside a chest by putting something in
+  or taking something out, so it took. That is a gap in what we let them see (below).
+
+**Our code, found in these reps.**
+- **Fixed:**
+  - Agents stood stuck on the treetops of a dark oak forest, 8 blocks up, six times in tbase2. The
+    pathfinder won't drop that far, so it reported "stuck". An agent now digs through the leaves
+    and drops if its health can take the fall, and is told why when it can't. Checked live both
+    ways.
+- **Not fixed, recorded:**
+  - In tbase3 Opus's walk to hand Luna a pickaxe timed out from 22 blocks, with Luna inside the
+    closed home. The cause is not in the logs, and it needs the home in place to reproduce.
+  - There is no way to look inside a chest without moving something.
+
 ## What this suggests (not acted on)
 
-- **Run it again on the fixed code** (about $12). The bugs above decided two of the four parts, so
-  this run says more about how the agents behave than about whether they can succeed.
+- **Run it again on the fixed code.** Done once each in tbase2 and tbase3 (above): iron and food
+  moved, and what stopped the teams became their own behaviour and the three-day limit.
+- **Let them look in a chest.** A player can open a chest and see inside without taking anything;
+  agents can't, and in tbase2 one emptied part of the store to find out what was in it. That is
+  environmental information, so it fits the rules.
 - **Then tell them what's left.** `--progress on` lists the goal's open parts in every observation.
   The question it answers is about behaviour: does seeing the gap make a team revisit its plan and
   take over a stalled part, or keep a tool for the end?
