@@ -130,11 +130,17 @@ export const mineOre: Skill = {
 
       let block: Block | null = null;
       let outOfReach: number | null = null;
+      // Ore the agent can see but this won't dig toward: say so, or "none in reach" contradicts what it sees.
+      const wet = new Set<string>();
       for (const radius of SEARCH_RADII) {
         const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
-          if (!isExposed(bot, point) || liquidBeside(bot, point)) continue;
+          if (!isExposed(bot, point)) continue;
+          if (liquidBeside(bot, point)) {
+            wet.add(key(point));
+            continue;
+          }
           const gap = point.y - Math.floor(bot.entity.position.y);
           if (Math.abs(gap) > MAX_HEIGHT_GAP) {
             outOfReach ??= gap;
@@ -150,10 +156,11 @@ export const mineOre: Skill = {
           outOfReach === null
             ? ""
             : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
+        const wetNote = wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} beside water or lava, which this won't mine` : "";
         const reason =
           gained() > 0
-            ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}`
-            : `no ${kind} ore in reach within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks${far || " — explore, descend or dig a tunnel to uncover some"}`;
+            ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}${wetNote}`
+            : `no ${kind} ore in reach within ${SEARCH_RADII[SEARCH_RADII.length - 1]} blocks${wetNote}${far || " — explore, descend or dig a tunnel to uncover some"}`;
         return { status: "failed", reason, detail: { gained: gained(), total: dropsHeld() } };
       }
 
