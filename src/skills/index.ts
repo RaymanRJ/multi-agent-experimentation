@@ -17,7 +17,7 @@ import { goTo } from "./goTo.js";
 import { tellAgent } from "./tellAgent.js";
 import { askAgent } from "./askAgent.js";
 import { hunt, shear } from "./creatures.js";
-import { store, take } from "./chest.js";
+import { lookInChest, store, take } from "./chest.js";
 
 /**
  * The complete vocabulary of goals an agent may pursue. Nothing an agent does
@@ -32,7 +32,7 @@ export const SKILLS: Skill[] = [
   explore, eat, flee, sleep,
   craft, mineStone, buildShelter,
   mineOre, smelt, descend, tunnel, climbOut,
-  give, pickUp, goTo, store, take,
+  give, pickUp, goTo, store, take, lookInChest,
   hunt, shear,
   tellAgent, askAgent,
 ];

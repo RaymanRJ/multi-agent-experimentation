@@ -234,3 +234,47 @@ export const take: Skill = {
     };
   },
 };
+
+/**
+ * Looking without moving anything, as a player opens a chest to see what's in it. Without this an
+ * agent could only find out by storing or taking: in tbase2 one took 3 cooked meat out of the team's
+ * store "to check" it, one short of the goal's 10.
+ */
+export const lookInChest: Skill = {
+  name: "look_in_chest",
+  description:
+    `Open the chests within ${CHEST_RANGE} blocks, nearest first (up to ${MAX_CHESTS_CHECKED}), and see what each holds. ` +
+    "Moves nothing.",
+  args: {},
+
+  async run(ctx: SkillContext): Promise<SkillResult> {
+    const bot = ctx.bot;
+    const chests = chestsNear(bot).slice(0, MAX_CHESTS_CHECKED);
+    if (chests.length === 0) return { status: "failed", reason: `no chest within ${CHEST_RANGE} blocks` };
+    const seen: string[] = [];
+    const views: Array<{ at: string; holds: Counts }> = [];
+    for (const chest of chests) {
+      if (ctx.shouldStop()) break;
+      await walkTo(bot, chest);
+      await closeStrayWindow(bot);
+      let window: Window;
+      try {
+        window = await openOrWalk(bot, chest, "chest");
+      } catch {
+        seen.push(`the chest at ${where(chest)} did not open`);
+        continue;
+      }
+      try {
+        await bot.waitForTicks(2);
+        const holds = chestContents(window);
+        views.push({ at: where(chest), holds });
+        seen.push(`the chest at ${where(chest)} holds ${describe(holds)}`);
+      } finally {
+        bot.closeWindow(window);
+      }
+      await bot.waitForTicks(4);
+    }
+    if (views.length === 0) return { status: "failed", reason: seen.join("; ") };
+    return { status: "success", reason: seen.join("; "), detail: { chests: views } };
+  },
+};

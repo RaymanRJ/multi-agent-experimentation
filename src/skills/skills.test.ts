@@ -293,3 +293,9 @@ test("mine_ore finds the rock between the bot and ore it can't see, and nothing 
   const clear = fakeBot({ blocks: { "11,101,11": "iron_ore" } }).bot;
   assert.equal(firstSolidBetween(clear, eye, ore.offset(0.5, 0.5, 0.5), ore), null);
 });
+
+test("look_in_chest - says when there is no chest to look in", async () => {
+  const none = await run("look_in_chest", {}, {});
+  assert.equal(none.status, "failed");
+  assert.match(none.reason!, /^no chest within 32 blocks/);
+});
