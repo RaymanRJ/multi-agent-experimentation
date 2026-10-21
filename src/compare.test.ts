@@ -32,10 +32,13 @@ test("deeds - what was made, built, handed over and held at the end", () => {
     step(2, "build_shelter", { storeys: 2 }, {}, {}, { result: { status: "success", detail: { storeys: 2 } } }),
     step(3, "give", { to: "b", item: "stone_axe", count: 1 }, { stone_axe: 1 }, {}, { result: { status: "success", detail: { gave: 1 } }, decision: { skill: "give", args: { to: "b", item: "stone_axe" }, say: { to: "b", text: "here" } } }),
     step(4, "give", { to: "b", item: "stick" }, {}, {}, { result: { status: "failed", reason: "you have no stick to give" } }),
+    step(5, "build_shelter", { size: "large" }, {}, {}, { result: { status: "success", reason: "you are inside a large two-storey shelter (c's) at 1,64,1", detail: { storeys: 2, size: 5, entered: true } } }),
+    step(6, "build_shelter", { size: "large" }, {}, {}, { result: { status: "success", reason: "the large two-storey shelter is finished and you are standing inside it", detail: { storeys: 2, size: 5, entered: true } } }),
   ];
   const d = deeds(steps);
   assert.deepEqual(d.crafted, { stone_axe: 1 });
-  assert.deepEqual(d.shelters, [2]);
+  assert.deepEqual(d.shelters, ["two-storey", "large two-storey"], "finishing a teammate's half-built one is a build");
+  assert.equal(d.entered, 1);
   assert.deepEqual(d.gave.map((g) => [g.item, g.count, g.to]), [["stone_axe", 1, "b"]]);
   assert.equal(d.failedGives, 1);
   assert.deepEqual(d.said, { all: 0, directed: 1 });
