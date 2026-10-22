@@ -16,6 +16,15 @@ npm run build     # type-check, then build to dist/
 npm run preview   # serve dist/ at http://localhost:4174
 ```
 
+The Results page is built from `docs/results/batch-reports/` with no hand-kept list: `lib/batches.ts`
+reads each report written by `src/agents/scripts/publish-reports.sh` (its totals, goals, teams and
+"Success per condition" table), and `vite.config.ts` serves the summaries as `virtual:batches`. A new
+report is on the page at the next build (at once under `npm run dev`), linked to its write-up if the
+write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
+same summary above its full text. If `publish-reports.sh` changes the layout of a report, change
+`lib/batches.ts` with it. How it works draws the README's control-loop diagram (mermaid, loaded only
+on that page) from `README.md` itself, so the two can't drift.
+
 The front page's findings and chart are in `content/findings.ts`, hand-written from
 `docs/results/write-ups/06-team-base.md`: update both together. Hosting is in `src/terraform/` (S3 + CloudFront at its own domain), and
 `.github/workflows/site.yaml` builds and deploys on every push to `main` that touches this folder or

@@ -8,6 +8,7 @@ export type Route =
   | { page: 'home' }
   | { page: 'findings' }
   | { page: 'how' }
+  | { page: 'results' }
   | { page: 'doc'; path: string; anchor: string }
   | { page: 'missing'; hash: string };
 
@@ -15,7 +16,7 @@ export const HASH = {
   home: '#/',
   findings: '#/findings',
   how: '#/how-it-works',
-  results: '#/docs/results/README',
+  results: '#/results',
   doc: (path: string, anchor = '') => `#/docs/${path}${anchor ? `::${anchor}` : ''}`,
 };
 
@@ -25,6 +26,7 @@ export function parse(hash: string): Route {
   if (path === '') return { page: 'home' };
   if (path === 'findings') return { page: 'findings' };
   if (path === 'how-it-works') return { page: 'how' };
+  if (path === 'results') return { page: 'results' };
   if (path.startsWith('docs/')) return { page: 'doc', path: path.slice(5), anchor };
   return { page: 'missing', hash };
 }

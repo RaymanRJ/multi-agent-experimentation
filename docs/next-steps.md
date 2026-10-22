@@ -14,7 +14,10 @@ the domain (planned: `multi-agent-experiment.rrjamal.ca`) and a deploy role for 
 (OIDC token traded with the AWS CLI), since this repo's workflows use only GitHub's own actions.
 Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. `src/site/` is built (Vite + React,
 hash routes, every doc but next-steps rendered from `docs/` at build time; the overview's findings
-are hand-written in `content/findings.ts`). Still to do, by the owner: apply the Terraform and set
+are hand-written in `content/findings.ts`). The Results page and each batch report's summary are
+built from `docs/results/batch-reports/` by code (`src/site/lib/batches.ts`), so publishing a report
+with `src/agents/scripts/publish-reports.sh` puts it on the site at the next deploy; How it works
+shows the README's control-loop diagram, read from the README. Still to do, by the owner: apply the Terraform and set
 the four repository secrets (`src/terraform/README.md`), then push.
 
 ## Setting up a new machine
