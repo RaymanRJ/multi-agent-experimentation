@@ -66,7 +66,7 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 - **A goal, stated as an outcome:** "Make a stone pickaxe, axe, sword and shovel, build a shelter,
   then survive the night." Never the steps. (Step-by-step `-guided` versions exist only to measure
   how much a model needs that help.)
-- **Tools, and only tools.** A fixed list of skills, each with a plain description of what it
+- **Tools, and only tools.** A fixed list of 25 skills, each with a plain description of what it
   does and how it fails. Nothing happens outside that list. See [docs/skills.md](docs/skills.md).
 - **Observations:** a short summary of its situation (what it holds, what is nearby, its health,
   the time, who else is around), not a dump of the environment.
@@ -76,8 +76,8 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 
 What it is *not* given: advice. The harness adds facts, never suggestions: it says when the agent
 has made the same decision several times running, refuses a premature "done" and says what is still
-missing, lets it give up with a reason (and flags that it did) (a false claim of success is itself a result worth counting), and, as its own experimental
-condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: an
+missing (a false claim of success is itself a result worth counting), lets it give up with a reason
+and flags that it did, and, as its own experimental condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: an
 agent under water swims out before it is asked anything.
 
 ## What gets measured
@@ -86,14 +86,15 @@ Every decision is logged with the exact prompt and answer, so any run can be rep
 afterwards without calling a model again. From the logs:
 
 - **Outcome:** goal met or not, and how long it took.
-- **Behaviour:** how many decisions worked, whether the agent changed course after a failure, how
-  long it looped, whether it kept on after being told it was repeating itself, how often it falsely
+- **Behaviour:** how many decisions worked, failed or were interrupted, whether the agent changed
+  course after a failure, how long it looped, whether it kept on after being told it was repeating itself, how often it falsely
   claimed to be done, and whether it gave up, and why.
 - **Teamwork:** who did what, what was handed over, who asked whom for what, and whether they did it.
 - **Cost:** tokens in and out, dollars, and time spent waiting on the model.
 
 Each run writes its own report, and every batch or team run ends with one readable comparison
-across all of its agents (`npm run compare`).
+across all of its agents (`npm run compare`). Reports are built from the logs by code; write-ups are
+read from the logs by hand, and say what was measured, not what was hoped.
 
 ## Why this matters beyond the game
 

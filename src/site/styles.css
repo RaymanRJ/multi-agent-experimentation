@@ -558,6 +558,26 @@ h3 {
   font-size: 14px;
 }
 
+.diagram {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  overflow-x: auto;
+  text-align: center;
+}
+
+.diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-source {
+  font: 13px var(--mono);
+  color: var(--muted);
+}
+
 .prose em {
   color: var(--muted);
 }
