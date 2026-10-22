@@ -9,6 +9,7 @@ The findings, write-ups and every report are on the project site, [multi-agent-e
 - [The control loop](#the-control-loop)
 - [What an agent is given](#what-an-agent-is-given)
 - [What gets measured](#what-gets-measured)
+- [How the testbed gets better](#how-the-testbed-gets-better)
 - [Why this matters beyond the game](#why-this-matters-beyond-the-game)
 - [Getting started](#getting-started): [prerequisites](#1-install-the-prerequisites) · [get the code](#2-get-the-code) · [check your setup](#3-check-your-setup) · [first run](#4-start-your-first-run) · [watch](#5-watch-it-work) · [results](#6-read-the-results) · [paid models](#7-add-paid-models-optional) · [your own experiments](#8-run-your-own-agents-and-experiments) · [stop](#9-stop)
 - [Status](#status)
@@ -86,8 +87,8 @@ Every decision is logged with the exact prompt and answer, so any run can be rep
 afterwards without calling a model again. From the logs:
 
 - **Outcome:** goal met or not, and how long it took.
-- **Behaviour:** how many decisions worked, failed or were interrupted, whether the agent changed
-  course after a failure, how long it looped, whether it kept on after being told it was repeating itself, how often it falsely
+- **Behaviour:** how many decisions worked, failed or were interrupted, what broke its work off and
+  how soon it was back at it, whether the agent changed course after a failure, how long it looped, whether it kept on after being told it was repeating itself, how often it falsely
   claimed to be done, and whether it gave up, and why.
 - **Teamwork:** who did what, what was handed over, who asked whom for what, and whether they did it.
 - **Cost:** tokens in and out, dollars, and time spent waiting on the model.
@@ -95,6 +96,20 @@ afterwards without calling a model again. From the logs:
 Each run writes its own report, and every batch or team run ends with one readable comparison
 across all of its agents (`npm run compare`). Reports are built from the logs by code; write-ups are
 read from the logs by hand, and say what was measured, not what was hoped.
+
+## How the testbed gets better
+
+One loop, run after every batch:
+
+1. **Run:** agents get a goal that states an outcome, never the steps, and are left alone.
+2. **Read** where they got stuck: what each was told, what it reasoned, what happened.
+3. **Sort** each stuck point: our tool failed or misled it; it lacked information a player would
+   have; or it was its own judgement.
+4. **Fix** only the first two, checked in the game. Judgement is reported, never coached.
+5. **Run again,** and see whether they get further.
+
+Every fix so far, beside the same problem in real systems that use AI agents, is in
+[the development loop](docs/results/write-ups/06-team-base.md#how-this-testbed-gets-better-from-where-the-agents-get-stuck).
 
 ## Why this matters beyond the game
 
@@ -268,7 +283,11 @@ to a shared environment, with memory, stance and communication settings, compari
 fresh worlds, reports with confidence intervals, and a panel showing every decision.
 
 The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5, Sonnet 5.5 and Opus
-5.5, and GPT-6 Luna. Only the local model has been through repeated comparison batches so far.
+5.5, and GPT-6 Luna. A scripted agent with fixed rules and no model is the baseline: without it
+there would be no way to tell whether a model adds anything. The local model has been through the
+most comparison batches (b1–b16); the paid models through two (p5, p6: three runs each) and the
+team runs. A three-day team game costs about $3.50 with the Claude models in the team, or about
+$0.30 with three GPT-6 Luna agents.
 
 **What we've found so far** (details in [docs/results/](docs/results/)):
 - **Fixing the tools mattered more than anything about the model.** The biggest improvements came

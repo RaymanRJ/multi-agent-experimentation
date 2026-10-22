@@ -77,8 +77,8 @@ export function HowItWorks() {
 
         <h2>Who plays</h2>
         <p>
-          Claude Opus 5.5, Claude Sonnet 5.5, GPT-6 Luna, and a small model that runs locally for free
-          (Qwen3 4B). A scripted agent with fixed rules and no model is the baseline: without it there would
+          Claude Opus 5.5, Sonnet 5.5 and Haiku 4.5, GPT-6 Luna, and a small model that runs locally for
+          free (Qwen3 4B). A scripted agent with fixed rules and no model is the baseline: without it there would
           be no way to tell whether a model adds anything. A three-day team game costs about $3.50 with the
           Claude models in the team, or about $0.30 with three GPT-6 Luna agents.
         </p>
@@ -93,8 +93,8 @@ export function HowItWorks() {
             <strong>Outcome:</strong> goal met or not, and how long it took.
           </li>
           <li>
-            <strong>Behaviour:</strong> how many decisions worked, failed or were interrupted, whether the
-            agent changed course after a failure, how long it looped, whether it kept on after being told it
+            <strong>Behaviour:</strong> how many decisions worked, failed or were interrupted, what broke its
+            work off and how soon it was back at it, whether the agent changed course after a failure, how long it looped, whether it kept on after being told it
             was repeating itself, how often it falsely claimed to be done, and whether it gave up, and why.
           </li>
           <li>
