@@ -198,7 +198,10 @@ repository secrets are set, so a push to `main` deploys the site. Agentic work r
    18 deaths, 6 of them water or drowned. After it: deaths are told to teammates; messages addressed to
    an agent keep their own queue; `build_shelter` goes on into a shelter while hit until health is 6 or
    less, and isn't stopped by messages (7 entries stopped by a hit in bpoc2, 3 by messages); `go_to`
-   and `flee` have the stuck check, which no longer takes digging for being stuck. Checked live, except the message rule (unit-tested only).
+   and `flee` have the stuck check, which no longer takes digging for being stuck. Checked live; the
+   message rule on 23 October: a second bot sent one message addressed to a scripted agent and 12 to
+   everyone during its `build_shelter`, which none of them interrupted, and its next observation kept
+   the addressed one (the oldest) with the newest 8 of the 12.
    Batch reports are one page each now (the per-run pages stay in `runs/`).
    **Team run tbase1 (20 October, on 66e0fd3, $11.70): 0 of 3 teams.** Luna built the large base in the
    first five minutes of every rep. Two of three slept in it each rep, and the chest held 10 cooked
@@ -270,9 +273,15 @@ repository secrets are set, so a push to `main` deploys the site. Agentic work r
    count how often an agent was told it was repeating itself and kept on. Written up in
    `docs/results/write-ups/02-outpost.md`. Still open from `docs/limitations.md`: waiting out the night
    in the sandbox, and `mine_ore` failing to reach ore it can see.
-4. **`mine_stone` is slow:** the drowning is fixed (0a; trio3 had none), but "digging stone timed
-   out after 20000ms" still appears in trio3 (Haiku and qwen), with walking and exploring timeouts.
-   The under-water digging explained some of it, not all. Not yet investigated.
+4. **`mine_stone` timeouts: found and fixed 23 October, checked live.** mineflayer fixes a dig's time
+   when it starts, from the item in hand and whether the bot is on the ground. The pathfinder equips
+   whatever digs its way fastest (a shovel for dirt), or the dirt it places as a step, and leaves it
+   in hand, so `mine_stone` dug stone with a shovel: 7.5 s a block and no cobblestone, or 37.5 s off
+   the ground, which was the "timed out after 20000ms". Agents carrying a shovel (every team run) were
+   the ones hit. Live, with a stone shovel and pickaxe at the same places: before, 50 of 83 stone digs
+   without the pickaxe, 4 timeouts, one call 0 of 12 in 247 s, 561 s in all; after (the best pickaxe
+   put in hand and the bot landed before every dig), 0 of 40, no timeouts, 5 of 5 met, 114 s.
+   Walking and exploring timeouts are separate and not looked at.
 5. **Panel start line: done 18 October.** An agent writes `<log>.start.json` when it starts, and the
    panel lists it as "Starting" until its first decision is logged.
 6. **Extended thinking for Claude: left off, written up as a limitation** (`docs/limitations.md`,

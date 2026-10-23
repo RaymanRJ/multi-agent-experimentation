@@ -30,6 +30,27 @@ function cobbleHeld(ctx: SkillContext): number {
   return countInventory(ctx.bot)["cobblestone"] ?? 0;
 }
 
+/**
+ * Puts the best pickaxe held in hand and waits to land, before each dig. mineflayer fixes a dig's time
+ * when it starts, from the item in hand and whether the bot is on the ground. The pathfinder equips
+ * whatever digs its way fastest (a shovel for dirt) or the dirt it places as a step, and leaves it in
+ * hand: live, 50 of 83 stone digs were made with a shovel or dirt, 7.5 s each and no cobblestone, and
+ * the 37.5 s ones made off the ground were the "digging stone timed out" failures. Returns the pickaxe
+ * in hand, or null when none is left (it broke).
+ */
+async function readyToDig(ctx: SkillContext): Promise<string | null> {
+  const bot = ctx.bot;
+  const inventory = countInventory(bot);
+  const pickaxe = PICKAXES.find((name) => (inventory[name] ?? 0) > 0);
+  if (!pickaxe) return null;
+  if (bot.heldItem?.name !== pickaxe) {
+    const item = bot.inventory.items().find((candidate) => candidate.name === pickaxe);
+    if (item) await bot.equip(item, "hand");
+  }
+  for (let tick = 0; tick < 20 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+  return pickaxe;
+}
+
 const NEIGHBOURS: Array<[number, number, number]> = [
   [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
 ];
@@ -77,6 +98,7 @@ async function digDown(ctx: SkillContext, wanted: number): Promise<string | null
     if (LIQUIDS.has(below.name)) return `stopped digging down: standing over ${below.name}`;
     if (!bot.canDigBlock(below)) return `cannot dig the ${below.name} below`;
     try {
+      if (!(await readyToDig(ctx))) return "your pickaxe broke";
       await withTimeout(bot.dig(below), DIG_TIMEOUT_MS, "digging down");
     } catch (error) {
       return `digging down failed: ${(error as Error).message}`;
@@ -195,6 +217,9 @@ export const mineStone: Skill = {
         continue;
       }
       try {
+        if (!(await readyToDig(ctx))) {
+          return { status: "failed", reason: `your pickaxe broke after gaining ${gained()} of ${target} cobblestone`, detail: { gained: gained() } };
+        }
         await withTimeout(bot.dig(fresh), DIG_TIMEOUT_MS, "digging stone");
         mined++;
       } catch (error) {

@@ -89,6 +89,26 @@ test("mine_stone - needs a pickaxe first", async () => {
   assert.equal((await run("mine_stone", {}, { count: 3 })).reason, "need a wooden_pickaxe — craft one first");
 });
 
+test("mine_stone - digs with the pickaxe even after something else was put in hand", async () => {
+  // Open stone the walk reaches; after each dig the hand holds the shovel, as the pathfinder leaves
+  // it after digging dirt on the way.
+  const blocks: Record<string, string> = {};
+  for (let y = 50; y < 64; y++) blocks[`0,${y},0`] = "stone";
+  const { bot, setInventory } = fakeBot({ inventory: { stone_shovel: 1, stone_pickaxe: 1 }, blocks });
+  (bot.pathfinder as any).goto = async () => {};
+  const heldAtDig: string[] = [];
+  const dig = bot.dig;
+  (bot as any).dig = async (block: any) => {
+    heldAtDig.push(bot.heldItem?.name ?? "hand");
+    await dig(block);
+    setInventory({ stone_shovel: 1, stone_pickaxe: 1, cobblestone: heldAtDig.length });
+    (bot as any).heldItem = bot.inventory.items().find((item) => item.name === "stone_shovel");
+  };
+  const result = await findSkill("mine_stone")!.run(context(bot), { count: 3 });
+  assert.equal(result.status, "success");
+  assert.deepEqual(heldAtDig, ["stone_pickaxe", "stone_pickaxe", "stone_pickaxe"]);
+});
+
 test("gather_wood - a count it already holds fails, saying count is a total; it stops for a mob or the end", async () => {
   const enough = await run("gather_wood", { inventory: { oak_log: 12 } }, { count: 10 });
   assert.equal(enough.status, "failed");
