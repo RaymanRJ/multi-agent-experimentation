@@ -1,15 +1,16 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 21 October 2026.*
+*Last updated 23 October 2026.*
 
 **21 October: the experiment moved to `src/agents/`.** Everything that runs (code, scripts, Docker,
 `package.json`) is there, and every command runs from there; the root keeps the docs, README,
-CLAUDE.md and repo plumbing, with room for `src/site/` (the GitHub Pages site) and `src/terraform/`
-(its DNS) beside it. Agentic work is paused while the site is built.
-**The site's hosting is copied from music-viz (the owner's choice over GitHub Pages):**
+CLAUDE.md and repo plumbing, with `src/site/` (the project site) and `src/terraform/` (its hosting)
+beside it.
+**The site is live at `multi-agent-experiment.rrjamal.ca` (21 October).** Its hosting is copied from
+music-viz (the owner's choice over GitHub Pages):
 `src/terraform/` makes a private S3 bucket behind CloudFront, an ACM certificate, Route 53 records for
-the domain (planned: `multi-agent-experiment.rrjamal.ca`) and a deploy role for GitHub's OIDC;
+the domain and a deploy role for GitHub's OIDC;
 `.github/workflows/site.yaml` builds `src/site/` and deploys it. The deploy signs in to AWS by hand
 (OIDC token traded with the AWS CLI), since this repo's workflows use only GitHub's own actions.
 Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. `src/site/` is built (Vite + React,
@@ -17,8 +18,8 @@ hash routes, every doc but next-steps rendered from `docs/` at build time; the o
 are hand-written in `content/findings.ts`). The Results page and each batch report's summary are
 built from `docs/results/batch-reports/` by code (`src/site/lib/batches.ts`), so publishing a report
 with `src/agents/scripts/publish-reports.sh` puts it on the site at the next deploy; How it works
-shows the README's control-loop diagram, read from the README. Still to do, by the owner: apply the Terraform and set
-the four repository secrets (`src/terraform/README.md`), then push.
+shows the README's control-loop diagram, read from the README. The Terraform is applied and the
+repository secrets are set, so a push to `main` deploys the site. Agentic work resumed on 23 October.
 
 ## Setting up a new machine
 
