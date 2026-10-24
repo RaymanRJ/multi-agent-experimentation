@@ -98,6 +98,8 @@ const viewPort = argv["view"] === undefined || argv["view"] === false ? null : a
 if (viewPort !== null) config.view = viewPort;
 
 const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
+/** The reason a skill gets when the agent dies during it; recentEvents says where and how. */
+const DIED = "interrupted: you died and respawned";
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
@@ -261,6 +263,7 @@ async function main(): Promise<void> {
   const night = new NightWatch();
   // Deaths in the current step, for the run log and the minds panel.
   let stepDeaths: NonNullable<LoggedStep["deaths"]> = [];
+  let diedInSkill = false;
   const deathEvent = (d: { x: number; y: number; z: number; cause: string | null }) =>
     `you died at ${d.x},${d.y},${d.z} and respawned${d.cause ? `; you ${d.cause.replace(/^was /, "were ")}` : ""}; what you carried was dropped there and disappears 5 minutes after you died`;
   bot.on("death", () => {
@@ -270,6 +273,16 @@ async function main(): Promise<void> {
     stepDeaths.push(death);
     recentEvents.push(deathEvent(death));
     night.died(); // dying forfeits the night it happens in
+    // A skill running at the death would carry on from the respawn point and report on that: in
+    // tlunap1, 39 deaths came in a flee that then said "success" or "no threat". Stop it like an interrupt.
+    if (watch) {
+      diedInSkill = true;
+      if (!interruptReason) {
+        interruptReason = DIED;
+        bot.pathfinder.setGoal(null);
+        bot.stopDigging();
+      }
+    }
   });
   // The game's death message ("la was slain by Zombie"), which the player who died sees too. It can
   // come just before or just after the death itself, so it fills in the latest death still without one.
@@ -576,6 +589,7 @@ async function main(): Promise<void> {
     const wet = await escapeWater();
     if (wet) stepEvents.push(wet);
     interruptReason = null;
+    diedInSkill = false;
     watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name]);
     const skillStartAge = bot.time.age;
     let result = await runSkill(skill, ctx, decision.args);
@@ -584,6 +598,11 @@ async function main(): Promise<void> {
     if (bot.time.age === skillStartAge) await bot.waitForTicks(20);
     if (watch.firedBy() === "message") lastMessageInterruptMs = Date.now();
     watch = null;
+    // Whatever the skill made of it, a death during it ended it, even when a hit at health 0 interrupted first.
+    if (diedInSkill) {
+      interruptReason = DIED;
+      result = { ...result, status: "aborted" };
+    }
     if (interruptReason && !stopping) {
       // Tell the model why, in place of the skill's generic "the run is ending".
       if (result.status === "aborted") result = { ...result, reason: interruptReason };
@@ -625,7 +644,7 @@ async function main(): Promise<void> {
     const at = decision.skill === "build_shelter" ? (result.detail?.["position"] as { x: number; y: number; z: number } | undefined) : undefined;
     if (at) {
       const complete = result.status === "success";
-      const spot: ShelterSpot = { ...at, storeys: Number(result.detail?.["storeys"] ?? 1), size: Number(result.detail?.["size"] ?? 3) === 5 ? 5 : 3, by: String(result.detail?.["by"] ?? agentName), complete };
+      const spot: ShelterSpot = { ...at, storeys: Number(result.detail?.["storeys"] ?? 1), size: Number(result.detail?.["size"] ?? 3) === 5 ? 5 : 3, by: String(result.detail?.["by"] ?? agentName), complete, ...(complete ? { finishedAt: Date.now() } : {}) };
       const i = shelters.findIndex((s) => spotKey(s) === spotKey(spot));
       if (i >= 0) shelters[i] = mergeShelters([[shelters[i]!], [spot]])[0]!;
       else shelters.push(spot);
