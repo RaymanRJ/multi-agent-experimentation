@@ -26,12 +26,6 @@ same summary above its full text. If `publish-reports.sh` changes the layout of 
 `lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.
 
-The Timeline page interleaves those batches with every commit but merges, read with `git log` when
-the site is built (`lib/timeline.ts`, `virtual:timeline` in `vite.config.ts`). A commit is filed as
-agent code, docs or site by the files it touches, and linked to any batch its message names, so a
-fix written "as tlunap1's flee reported…" shows as citing tlunap1. The deploy checks out the whole
-history for it (`fetch-depth: 0`); a build without git shows the batches alone.
-
 The front page's lesson cards and chart are in `content/lessons.ts`, hand-written from
 `docs/lessons.md` and the write-ups it cites: update them together. Each write-up opens with a
 "What this teaches about building agents" section; its first sentence (`lessonOf` in

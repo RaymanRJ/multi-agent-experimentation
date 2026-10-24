@@ -39,9 +39,6 @@ jobs:
         working-directory: src/site
     steps:
       - uses: actions/checkout@v7
-        with:
-          # The whole history: the site's Timeline page is built from git log.
-          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
