@@ -87,14 +87,26 @@ export function combine(states: Array<Omit<MemberState, "at" | "goalMet">>): Omi
   };
 }
 
-/** One entry per shelter, whoever reported it; finished if anyone saw it finished, tallest and widest as last built. */
+/**
+ * One entry per shelter, whoever reported it; finished if anyone saw it finished, tallest and widest as
+ * last built, finished when the first of them saw it so.
+ */
 export function mergeShelters(lists: ShelterSpot[][]): ShelterSpot[] {
   const out = new Map<string, ShelterSpot>();
   for (const spot of lists.flat()) {
     const seen = out.get(spotKey(spot));
-    out.set(spotKey(spot), seen
-      ? { ...seen, storeys: Math.max(seen.storeys, spot.storeys), size: Math.max(seen.size ?? 3, spot.size ?? 3) as 3 | 5, complete: seen.complete !== false || spot.complete !== false ? true : false }
-      : spot);
+    if (!seen) {
+      out.set(spotKey(spot), spot);
+      continue;
+    }
+    const finishedAt = Math.min(seen.finishedAt ?? Infinity, spot.finishedAt ?? Infinity);
+    out.set(spotKey(spot), {
+      ...seen,
+      storeys: Math.max(seen.storeys, spot.storeys),
+      size: Math.max(seen.size ?? 3, spot.size ?? 3) as 3 | 5,
+      complete: seen.complete !== false || spot.complete !== false ? true : false,
+      ...(finishedAt < Infinity ? { finishedAt } : {}),
+    });
   }
   return [...out.values()];
 }

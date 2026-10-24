@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TeamBoard, combine, inChests, stillWorking, type ChestViews } from "./team.js";
+import { TeamBoard, combine, inChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+
+test("mergeShelters - one entry per shelter, finished when the first agent saw it so", () => {
+  const built = { x: 0, y: 64, z: 0, storeys: 2, size: 5 as const, complete: true, by: "qa", finishedAt: 100 };
+  const wentIn = { ...built, by: "qa", finishedAt: 300 };
+  const unfinished = { x: 9, y: 64, z: 0, storeys: 1, complete: false };
+  assert.deepEqual(mergeShelters([[wentIn], [built, unfinished]]), [{ ...wentIn, finishedAt: 100 }, unfinished]);
+});
 
 const member = (inventory: Record<string, number>, more: Partial<{ shelterBuilt: boolean; shelterStoreys: number; goalMet: boolean; chests: ChestViews }> = {}) =>
   ({ inventory, shelterBuilt: false, nightSurvivedSinceShelter: false, shelterStoreys: 0, goalMet: false, ...more });

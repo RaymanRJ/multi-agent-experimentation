@@ -128,7 +128,11 @@ export function layout(storeys = 1, size: ShelterSize = 3): { walls: Vec3[]; roo
  * interior width, who started it, and whether it was ever finished (a large one can be built over
  * several calls, by several agents).
  */
-export interface ShelterSpot { x: number; y: number; z: number; storeys: number; size?: ShelterSize; by?: string; complete?: boolean }
+export interface ShelterSpot {
+  x: number; y: number; z: number; storeys: number; size?: ShelterSize; by?: string; complete?: boolean;
+  /** When an agent first saw it finished (ms since epoch): which base came first, the same for every teammate. */
+  finishedAt?: number;
+}
 
 export const spotKey = (spot: { x: number; y: number; z: number }) => `${spot.x},${spot.y},${spot.z}`;
 

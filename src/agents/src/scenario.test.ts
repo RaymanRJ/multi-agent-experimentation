@@ -203,6 +203,13 @@ test("team-base - one large two-storey shelter that every member slept inside, i
   // Only small huts, or a large one left unfinished.
   assert.deepEqual(gaps({ ...done, shelters: [hut, { ...base, complete: false }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
   assert.deepEqual(gaps({ ...done, shelters: [{ ...base, storeys: 1 }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
+  // Two bases and nobody slept yet: every teammate is told of the first finished, whatever its list's order.
+  const first = { ...base, finishedAt: 100 };
+  const second = { ...base, x: -38, finishedAt: 200 };
+  const nobody = { ...done, membersSleptIn: { qa: [], qb: [] } };
+  for (const shelters of [[first, second], [second, first]]) {
+    assert.deepEqual(gaps({ ...nobody, shelters }).slice(0, 1), ["qa has not slept in a bed inside the large shelter at 0,64,0"]);
+  }
   assert.ok(TEAM_GOALS.has("team-base"));
   assert.match(GOALS["team-base"]!, /one large two-storey shelter/);
 });

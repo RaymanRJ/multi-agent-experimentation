@@ -226,10 +226,13 @@ GOAL_GAPS["team-base"] = ({ shelters, members, membersSleptIn, sleptIn, chests, 
   const held = members ?? { you: inventory };
   const sleptBy = membersSleptIn ?? { you: sleptIn ?? [] };
   const bases = (shelters ?? []).filter(isBase);
-  // The base everyone has slept in, or failing that, the one most of them have.
+  // The base everyone has slept in, or failing that, the one most of them have; then the first finished,
+  // so every teammate is told of the same one. Before, a tie went to each agent's own (tlunap1: in rep 3
+  // lc's list named its own second base for 118 decisions while la's and lb's named the first).
+  const finished = (spot: ShelterSpot) => spot.finishedAt ?? Infinity;
   const best = bases
     .map((spot) => ({ spot, sleepers: Object.values(sleptBy).filter((keys) => keys.includes(spotKey(spot))).length }))
-    .sort((a, b) => b.sleepers - a.sleepers)[0];
+    .sort((a, b) => b.sleepers - a.sleepers || finished(a.spot) - finished(b.spot) || spotKey(a.spot).localeCompare(spotKey(b.spot)))[0];
   const meat = COOKED_MEAT.reduce((n, item) => n + (inChests(chests)[item] ?? 0), 0);
   return [
     ...(best ? [] : ["nobody on the team has finished a large two-storey shelter yet"]),
