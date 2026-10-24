@@ -14,16 +14,22 @@ the domain and a deploy role for GitHub's OIDC;
 `.github/workflows/site.yaml` builds `src/site/` and deploys it. The deploy signs in to AWS by hand
 (OIDC token traded with the AWS CLI), since this repo's workflows use only GitHub's own actions.
 Checked: `terraform fmt` and `validate`, and `actionlint` on both workflows. `src/site/` is built (Vite + React,
-hash routes, every doc but next-steps rendered from `docs/` at build time; the overview's findings
-are hand-written in `content/findings.ts`). The Results page and each batch report's summary are
+hash routes, every doc but next-steps rendered from `docs/` at build time; the overview's lesson cards
+are hand-written in `content/lessons.ts`). The Results page and each batch report's summary are
 built from `docs/results/batch-reports/` by code (`src/site/lib/batches.ts`), so publishing a report
-with `src/agents/scripts/publish-reports.sh` puts it on the site at the next deploy; How it works
+with `src/agents/scripts/publish-reports.sh` puts it on the site at the next deploy; How it's built
 shows the README's control-loop diagram, read from the README. The Terraform is applied and the
 repository secrets are set, so a push to `main` deploys the site. Agentic work resumed on 23 October.
 
 ## Next session (set 23 October)
 
-1. **Reframe the docs and site around building agentic systems, not the game** (the owner's ask:
+1. **Reframe the docs and site around building agentic systems: done 24 October, on branch
+   `worktree-site-reframe`, not pushed.** `docs/lessons.md` holds the lessons by component, each
+   write-up opens with "What this teaches about building agents", and the site is renamed "Building
+   agents": the home page leads with six lesson cards, Lessons is in the nav, Findings is "Case
+   studies", How it works is "How it's built", and Results and each batch report show the covering
+   write-up's lesson. Batch reports themselves are unchanged (they are generated). A new write-up
+   should open with the same section. The original ask, for the record (the owner's words:
    "the goal here is to learn how agentic systems can be built and tooling needed; our reports and
    website all feel too game-focussed still"). Proposed, and the owner said it is good: a new
    `docs/lessons.md` organised by system component — tools (results must be true), observations and

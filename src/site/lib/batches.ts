@@ -164,6 +164,14 @@ export function parseBatch(path: string, markdown: string): Batch {
 export interface WriteUpLink {
   path: string;
   title: string;
+  /** What the write-up teaches about building agents, in a sentence (see lessonOf). */
+  lesson: string;
+}
+
+/** The sentence that opens a write-up's "What this teaches about building agents" section, or "". */
+export function lessonOf(markdown: string): string {
+  const lead = /^## What this teaches about building agents\s*\n+([^\n#-][^\n]*)/m.exec(markdown)?.[1] ?? '';
+  return lead.trim();
 }
 
 /**
@@ -172,17 +180,20 @@ export interface WriteUpLink {
  */
 export function writeUpsByBatch(batches: Batch[], writeUps: Record<string, string>, resultsReadme: string): Record<string, WriteUpLink> {
   const out: Record<string, WriteUpLink> = {};
-  const title = (path: string) => /^#\s+(.+)$/m.exec(writeUps[path] ?? '')?.[1]?.trim() ?? path;
+  const link = (path: string): WriteUpLink => {
+    const text = writeUps[path] ?? '';
+    return { path, title: /^#\s+(.+)$/m.exec(text)?.[1]?.trim() ?? path, lesson: lessonOf(text) };
+  };
   for (const row of resultsReadme.split('\n')) {
     const name = /^\| \[([^\]]+)\]\(batch-reports\//.exec(row)?.[1];
     const target = /\]\((write-ups\/[^)#]+)\.md\)[^|]*\|\s*$/.exec(row)?.[1];
     const path = target && `results/${target}`;
-    if (name && path && path in writeUps) out[name] = { path, title: title(path) };
+    if (name && path && path in writeUps) out[name] = link(path);
   }
   for (const batch of batches) {
     const file = batch.path.replace(/^.*\//, '');
     for (const [path, text] of Object.entries(writeUps)) {
-      if (text.includes(`batch-reports/${file}.md`)) out[batch.name] = { path, title: title(path) };
+      if (text.includes(`batch-reports/${file}.md`)) out[batch.name] = link(path);
     }
   }
   return out;

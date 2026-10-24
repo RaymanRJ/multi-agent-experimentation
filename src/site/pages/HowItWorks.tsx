@@ -17,9 +17,10 @@ export function HowItWorks() {
   return (
     <main className="narrow">
       <header className="page-head">
-        <h1>How it works</h1>
+        <h1>How it’s built</h1>
         <p className="lede">
-          One rule holds it together: <strong>the model decides, the code does.</strong>
+          The testbed is an agent harness: the tools, observations, shared state, control loop and measurement
+          around a model. One rule holds it together: <strong>the model decides, the code does.</strong>
         </p>
       </header>
 
@@ -38,7 +39,8 @@ export function HowItWorks() {
           This is the most important design decision here. Put the model in the control loop and the agent
           is slow, expensive, and overtaken by events before it finishes thinking. Keep it out, and the same
           agent can work through a whole in-game day on a few dozen decisions. When an agent needs a new
-          ability, the answer is a new tool (deterministic code), not more consulting of the model.
+          ability, the answer is a new tool (deterministic code), not more consulting of the model.{' '}
+          <a href={HASH.doc('lessons', 'the-control-loop')}>Lessons on the control loop →</a>
         </p>
 
         <h2>What an agent is given</h2>
@@ -74,6 +76,11 @@ export function HowItWorks() {
           goal still lacks. A few reflexes are code, not the model's choice: an agent under water swims out
           before it is asked anything.
         </p>
+        <p>
+          Lessons on each part: <a href={HASH.doc('lessons', 'tools')}>tools</a>,{' '}
+          <a href={HASH.doc('lessons', 'observations-and-context')}>observations and context</a>,{' '}
+          <a href={HASH.doc('lessons', 'shared-state-between-agents')}>shared state between agents</a>.
+        </p>
 
         <h2>Who plays</h2>
         <p>
@@ -108,7 +115,8 @@ export function HowItWorks() {
         <p>
           Each run writes its own report, and every batch or team run ends with one readable comparison
           across all of its agents. Reports are built from the logs by code; write-ups are read from the
-          logs by hand, and say what was measured, not what was hoped.
+          logs by hand, and say what was measured, not what was hoped.{' '}
+          <a href={HASH.doc('lessons', 'evaluation')}>Lessons on evaluation →</a>
         </p>
       </section>
 
@@ -124,7 +132,8 @@ export function HowItWorks() {
           ))}
         </ol>
         <p className="muted">
-          Every fix so far, beside the same problem in real systems that use AI agents:{' '}
+          <a href={HASH.doc('lessons', 'the-improvement-loop')}>The improvement loop, as a lesson</a>. Every fix so
+          far, beside the same problem in real systems that use AI agents:{' '}
           <a href={HASH.doc('results/write-ups/06-team-base', 'how-this-testbed-gets-better-from-where-the-agents-get-stuck')}>
             the development loop
           </a>

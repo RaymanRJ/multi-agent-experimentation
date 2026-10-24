@@ -14,6 +14,7 @@ export type Route =
 
 export const HASH = {
   home: '#/',
+  lessons: '#/docs/lessons',
   findings: '#/findings',
   how: '#/how-it-works',
   results: '#/results',
