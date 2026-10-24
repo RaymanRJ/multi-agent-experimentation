@@ -17,11 +17,15 @@ npm run build     # type-check, then build to dist/
 npm run preview   # serve dist/ at http://localhost:4174
 ```
 
-The Results page is built from `docs/results/batch-reports/` with no hand-kept list: `lib/batches.ts`
-reads each report written by `src/agents/scripts/publish-reports.sh` (its totals, goals, teams and
-"Success per condition" table), and `vite.config.ts` serves the summaries as `virtual:batches`. A new
-report is on the page at the next build (at once under `npm run dev`), linked to its write-up if the
-write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
+The Results page tells the batches as a story, oldest first, in chapters: each asks one question,
+each run says in a line what it showed and what was changed after it, and each chapter ends with what
+it taught and a link to the lesson. The narrative is hand-written in `content/story.ts` from the
+write-ups; everything else about a run (models, goals, outcome, cost) comes from its report:
+`lib/batches.ts` reads each report written by `src/agents/scripts/publish-reports.sh` (its totals,
+goals, teams and "Success per condition" table), and `vite.config.ts` serves the summaries as
+`virtual:batches`. A new report is on the page at the next build (at once under `npm run dev`), in a
+last chapter, "Not yet written up", until it is added to `content/story.ts` with the write-up; it is
+linked to its write-up if the write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
 same summary above its full text. If `publish-reports.sh` changes the layout of a report, change
 `lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.

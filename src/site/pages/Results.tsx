@@ -1,35 +1,55 @@
-import { useState } from 'react';
 import { batches, writeUpOf } from 'virtual:batches';
+import { chapters, type Chapter, type StoryRun } from '../content/story';
+import type { Batch } from '../lib/batches';
 import { HASH } from '../lib/route';
 import { OutcomeBar, dollars, when } from './BatchParts';
 
-type Kind = 'all' | 'batch' | 'team';
+const byName = new Map(batches.map((b) => [b.name, b]));
+const placed = new Set(chapters.flatMap((c) => c.runs.map((r) => r.name)));
 
-const KINDS: Array<{ id: Kind; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'batch', label: 'One agent per world' },
-  { id: 'team', label: 'Teams' },
-];
+// A published batch no chapter names yet still appears, at the end, oldest first.
+const unplaced = [...batches].filter((b) => !placed.has(b.name)).sort((a, b) => a.started.localeCompare(b.started));
+const story: Chapter[] = unplaced.length
+  ? [
+      ...chapters,
+      {
+        title: 'Not yet written up',
+        question: 'Published since the last write-up. What these runs showed is still being read from their logs.',
+        runs: unplaced.map((b) => ({ name: b.name, showed: '' })),
+        lesson: { text: '', anchor: '' },
+      },
+    ]
+  : chapters;
 
-const newestFirst = [...batches].sort((a, b) => b.started.localeCompare(a.started));
-const goals = [...new Set(newestFirst.flatMap((b) => b.goals))];
 const paid = batches.reduce((n, b) => n + b.cost, 0);
 const runs = batches.reduce((n, b) => n + b.runs, 0);
 const models = new Set(batches.flatMap((b) => b.models).filter((m) => m !== 'Scripted baseline'));
 
-export function Results() {
-  const [kind, setKind] = useState<Kind>('all');
-  const [goal, setGoal] = useState<string | null>(null);
-  const shown = newestFirst.filter((b) => (kind === 'all' || b.kind === kind) && (!goal || b.goals.includes(goal)));
+const shortDay = (started: string) => when(started).replace(/ \d{4},.*$/, '');
 
+/** "16 Oct" or "20–23 Oct", from the chapter's batches. */
+function dates(chapter: Chapter): string {
+  const days = chapter.runs.map((r) => byName.get(r.name)?.started).filter((s): s is string => !!s).sort();
+  if (!days.length) return '';
+  const [first, last] = [shortDay(days[0]!), shortDay(days.at(-1)!)];
+  if (first === last) return first;
+  const [d1, m1] = first.split(' ');
+  const [d2, m2] = last.split(' ');
+  return m1 === m2 ? `${d1}–${d2} ${m2}` : `${first} – ${last}`;
+}
+
+const anchor = (i: number) => `chapter-${i + 1}`;
+const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+export function Results() {
   return (
     <main>
       <header className="page-head">
         <h1>Results</h1>
         <p className="lede">
-          Every batch and team run, as its report was built from the logs by code: no judgement, newest first. A report
-          appears here as soon as it is published. What the runs teach about building agents is in the{' '}
-          <a href={HASH.lessons}>lessons</a> and the <a href={HASH.findings}>case studies</a>.
+          Every test, in the order it ran. Each chapter asks one question. Each run shows something; what we
+          changed because of it leads to the next run. Read down to follow how the agents, and the structure
+          around them, got further.
         </p>
       </header>
 
@@ -40,59 +60,111 @@ export function Results() {
         <div className="stat"><strong>{dollars(paid)}</strong><span>spent on paid models</span></div>
       </div>
 
-      <div className="filters" role="group" aria-label="Filter batches">
-        {KINDS.map((k) => (
-          <button key={k.id} type="button" className="chip" aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>
-            {k.label}
-          </button>
-        ))}
-        <span className="filters-gap" />
-        {goals.map((g) => (
-          <button key={g} type="button" className="chip mono" aria-pressed={goal === g} onClick={() => setGoal(goal === g ? null : g)}>
-            {g}
-          </button>
-        ))}
-      </div>
-
-      <ol className="batches">
-        {shown.map((b) => {
-          const writeUp = writeUpOf[b.name];
-          return (
-            <li key={b.path} className="batch">
-              <div className="batch-head">
-                <a className="batch-name" href={HASH.doc(b.path)}>
-                  {b.name}
-                </a>
-                <span className="batch-kind">{b.kind === 'team' ? 'Team run' : 'Batch'}</span>
-                <span className="batch-when">{when(b.started)}</span>
-              </div>
-              <div className="batch-goals">
-                {b.goals.map((g) => (
-                  <code key={g}>{g}</code>
-                ))}
-              </div>
-              <p className="batch-who">{b.models.join(', ')}{b.kind === 'team' ? ', together' : ''}</p>
-              {writeUp?.lesson && <p className="lesson-line">{writeUp.lesson}</p>}
-              <OutcomeBar batch={b} />
-              <p className="batch-foot">
-                <span>{b.runs} runs</span>
-                <span>{dollars(b.cost)}</span>
-                {b.tokensIn && <span>{b.tokensIn} / {b.tokensOut} tokens in / out</span>}
-                {writeUp && (
-                  <a href={HASH.doc(writeUp.path)}>Written up in: {writeUp.title}</a>
-                )}
-              </p>
+      <nav className="chapter-map" aria-label="Chapters">
+        <ol>
+          {story.map((c, i) => (
+            <li key={c.title}>
+              <button type="button" onClick={() => jump(anchor(i))}>
+                <span className="chapter-n">{i + 1}</span>
+                <span className="chapter-map-text">
+                  <strong>{c.title}</strong>
+                  <span>
+                    {dates(c)} · {c.runs.length} {c.runs.length === 1 ? 'test' : 'tests'}
+                  </span>
+                </span>
+              </button>
             </li>
-          );
-        })}
-      </ol>
-      {shown.length === 0 && <p className="muted">No batch matches both filters.</p>}
+          ))}
+        </ol>
+      </nav>
+
+      {story.map((c, i) => (
+        <ChapterSection key={c.title} chapter={c} index={i} last={i === story.length - 1} />
+      ))}
 
       <p className="muted">
-        What a run, a condition and a batch are, how batches are named, and why the logs aren't published:{' '}
+        What a run, a condition and a batch are, and why the logs aren't published:{' '}
         <a href={HASH.doc('results/README')}>about these results</a>. Which skills the agents chose and how often they
         worked: <a href={HASH.doc('results/skill-usage')}>skill usage</a>.
       </p>
     </main>
+  );
+}
+
+function ChapterSection({ chapter, index, last }: { chapter: Chapter; index: number; last: boolean }) {
+  const writeUp = chapter.runs.map((r) => writeUpOf[r.name]).find(Boolean);
+  return (
+    <section className="chapter" id={anchor(index)}>
+      <header className="chapter-head">
+        <p className="eyebrow">
+          Chapter {index + 1} · {dates(chapter)}
+        </p>
+        <h2>{chapter.title}</h2>
+        <p className="chapter-question">{chapter.question}</p>
+      </header>
+
+      <ol className="story">
+        {chapter.runs.map((run) => {
+          const batch = byName.get(run.name);
+          return batch ? <RunItem key={run.name} run={run} batch={batch} /> : null;
+        })}
+      </ol>
+
+      {(chapter.lesson.text || writeUp) && (
+        <footer className="chapter-end">
+          {chapter.lesson.text && (
+            <p>
+              <strong>What it taught:</strong> {chapter.lesson.text}{' '}
+              <a href={HASH.doc('lessons', chapter.lesson.anchor)}>The lesson →</a>
+            </p>
+          )}
+          {writeUp && (
+            <p className="muted">
+              The full account: <a href={HASH.doc(writeUp.path)}>{writeUp.title}</a>
+            </p>
+          )}
+        </footer>
+      )}
+      {!last && (
+        <button type="button" className="next-chapter" onClick={() => jump(anchor(index + 1))}>
+          Next: chapter {index + 2} ↓
+        </button>
+      )}
+    </section>
+  );
+}
+
+function RunItem({ run, batch }: { run: StoryRun; batch: Batch }) {
+  return (
+    <li className="story-run">
+      <article className="batch">
+        <div className="batch-head">
+          <a className="batch-name" href={HASH.doc(batch.path)}>
+            {batch.name}
+          </a>
+          <span className="batch-kind">{batch.kind === 'team' ? 'Team run' : 'Batch'}</span>
+          <span className="batch-when">{when(batch.started)}</span>
+        </div>
+        <p className="batch-who">
+          {batch.models.join(', ')}
+          {batch.kind === 'team' ? ', together' : ''} on{' '}
+          {batch.goals.map((g, i) => (
+            <span key={g}>
+              {i > 0 && ', '}
+              <code>{g}</code>
+            </span>
+          ))}
+          {' '}· {batch.runs} runs · {dollars(batch.cost)}
+        </p>
+        <OutcomeBar batch={batch} />
+        {run.showed && <p className="story-showed">{run.showed}</p>}
+      </article>
+      {run.then && (
+        <p className="story-then">
+          <span className="story-then-label">Changed next</span>
+          {run.then}
+        </p>
+      )}
+    </li>
   );
 }
