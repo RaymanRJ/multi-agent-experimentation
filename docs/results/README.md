@@ -41,7 +41,7 @@ From smallest to largest:
 | [03 Iron](write-ups/03-iron.md) | 17 Oct | b11, b13 | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
 | [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
-| [06 Team base](write-ups/06-team-base.md) | 20–21 Oct | bpoc, bpoc2, tbase1–4, tluna1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed; on the fixed code (tbase2, tbase3) iron and food moved, and the agents' own habits (one agent carrying every pickaxe, a spare bed kept) and time stopped them. |
+| [06 Team base](write-ups/06-team-base.md) | 20–23 Oct | bpoc, bpoc2, tbase1–4, tluna1, tlunap1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed; on the fixed code (tbase2, tbase3) iron and food moved, and the agents' own habits (one agent carrying every pickaxe, a spare bed kept) and time stopped them. |
 
 [`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
@@ -114,6 +114,7 @@ runs that no write-up uses are not published.
 | [tbase3](batch-reports/2026-10-21-0552-tbase3.md) | 21 Oct | `team-base` | Opus, Sonnet, Luna together | 0 of 1 team | [team base](write-ups/06-team-base.md) |
 | [tbase4](batch-reports/2026-10-21-1638-tbase4.md) | 21 Oct | `team-base` | Opus, Sonnet, Luna together | 0 of 1 team (3 of 4 parts) | [team base](write-ups/06-team-base.md) |
 | [tluna1](batch-reports/2026-10-21-1801-tluna1.md) | 21 Oct | `team-base` | three Lunas together | 0 of 3 teams | [team base](write-ups/06-team-base.md) |
+| [tlunap1](batch-reports/2026-10-23-2139-tlunap1.md) | 23 Oct | `team-base` | three Lunas together, progress list on | 0 of 3 teams (food met in all 3) | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 

@@ -460,6 +460,90 @@ results more than anything we changed.
 - **Spare pickaxes:** three times one Luna held two or more iron pickaxes while another had none,
   and none was handed over: la tried in rep 2 (above), and died in rep 3.
 
+## Three of one model, told what's left (tlunap1)
+
+*Three GPT-6 Luna agents, three reps, 23 October, on 5d8b958, same goal and settings as tluna1 but
+with `--progress on`: every observation lists what the goal still lacks ("lb carries no
+iron_pickaxe", "the chests the team has opened hold 8 cooked meat, not 10"). $0.95 in all (capped
+at $0.40 an agent). Compares with tluna1 on one condition, loosely: since tluna1 the `give`/`take`
+messages from its own logs and `mine_stone`'s tool were fixed, and where the home goes still moves
+the result more than anything else.*
+Report: [tlunap1](../batch-reports/2026-10-23-2139-tlunap1.md).
+
+| Part | tluna1 rep 1 | rep 2 | rep 3 | tlunap1 rep 1 | rep 2 | rep 3 |
+|---|---|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** |
+| Everyone slept there | 1 of 3 | 0 of 3 | 0 of 3 | 1 of 3 | 0 of 3 | 1 of 3 |
+| Everyone holds an iron pickaxe | 0 | 0 | 0 | 0 | 0 | 0 |
+| Food left in store | 0 | 9 | **10** | **10** | **10** | **10** |
+| Deaths | 42 | 16 | 9 | 14 | 61 | 11 |
+| Time that came to nothing | 34% | 19% | 17% | 15% | 21% | 17% |
+
+**A gap they could see, they closed, and kept closed.**
+- **Food:** 10 cooked meat were in store on the first day of every rep, and still there at the end;
+  without the list, one rep in three ended with it.
+- **Kept closed:** in rep 3 la took meat out of the store to eat, and the list showed 8. lb
+  read it and went back to work: "The team chest is short by two cooked meat, and two pigs are
+  nearby", then hunted, cooked and stored exactly two ("adding my 2 cooked porkchops reaches the
+  10-meat requirement"). Nobody had to ask.
+- **Citing it:** about one decision in ten (148 of 1,437) cited what was still needed. Most
+  were in rep 3, where lb and lc quoted it 44 and 42 times.
+
+**A list is only as good as what feeds it, and they trusted it over what they had just done.**
+- **Two homes, two lists:**
+  - Rep 3 had two large bases, lb's first and lc's later. Each agent's list named the base it
+    knew of first, so lc was told for 118 decisions that the home was its own: "The team goal
+    specifically requires everyone to sleep in the large shelter at -38,81,41."
+  - la and lb's lists named the other base. The one bed made in that rep was slept in at lc's,
+    because lc told lb "Live tracker confirms the required shelter is here".
+  - Rep 1 had the same split for lb, from its own second base.
+- **A stale entry:**
+  - In rep 2 la made three iron pickaxes on day 3, gave one to lc, and gave lb one.
+  - Sixteen seconds later its list still said "lb carries no iron_pickaxe", because lb's holdings
+    reached the team only between lb's own steps. la gave lb its last pickaxe: "lb is the only
+    teammate still missing an iron pickaxe".
+  - la then asked lc for its spare, and was told there was none.
+- Both were our code, and are fixed (below). What is the agents': each believed the summary over
+  its own last action, the same as tbase1's agents believing a "closed" home with a monster in it.
+
+**Iron and beds didn't move.**
+- **Iron:**
+  - Rep 2's three pickaxes were all lost in deaths at night: two at the home (one at its doorway,
+    one inside), the rest out working.
+  - In rep 3 la ended the run underground with seven iron ingots and one plank: not enough sticks
+    for even one pickaxe, and no pickaxe left to dig out with. It told everyone so ("I have 7 iron
+    ingots and one plank underground … I'll need 2 more ingots and sticks from the team"), but asked
+    no one. lc ended holding three sticks. Between them they had a pickaxe: a need said aloud went
+    unanswered, as in every team run before.
+  - The list said "carries no iron_pickaxe" for every member the whole time. Seeing the gap was
+    not the problem.
+- **Beds:**
+  - Two beds were made in three reps, as sheep stayed scarce ("no sheep within 32 blocks" 11 times).
+  - Sleeping failed 17 times in 20, mostly for no bed or every bed taken.
+
+**One home became a trap (rep 2).**
+- **The numbers:** 61 deaths, 23 of them within six blocks of the home, 20 at night, 5 inside it.
+- **The loop:**
+  - The home stood about 20 blocks from where agents come back after dying, and by the second
+    night it had holes in its walls.
+  - lb came back, chose to go in (six times that night: "Get inside the nearby large two-storey
+    shelter and out of immediate danger"), met the zombies and spiders at the doorway, was hit
+    down to 5 health, fled, and died.
+  - Reps 1 and 3 had 14 and 11 deaths, almost none at their homes.
+- **Like tluna1's rep 1,** where the home stood on the spawn point: where the home goes decides
+  more than anything the team does after.
+
+**Where our code, not the agents, decided the outcome:**
+- `flee` ran on after the agent died and reported success: 39 of the 86 deaths came during a flee
+  that then said it had worked, and the next decision read "flee success" beside "you died". Fixed: a death ends any skill as "you died"
+  (checked live, in a flee and in gather_wood).
+- The progress list named different homes to different teammates (above). Fixed: every teammate is
+  told of the same base, the one finished first when nobody has slept in one (unit-tested; the
+  team file carries when each was finished, checked live).
+- The list lagged a teammate's holdings by a whole step (above). Fixed: each agent tells the team
+  what it holds every 2 seconds (checked live: 2 s after a give, mid-skill).
+- `smelt` said "the run is ending" when an interrupt stopped its furnace craft mid-run. Not fixed.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -490,6 +574,9 @@ working on real systems, such as support desks, IT operations and business tools
 | Told the team two pickaxes lay "beside" a teammate who had walked off; lc searched five times | A message assumed where things were instead of checking | It says where the item lies and how far the receiver is from it now | A status that reports the expected state ("delivered to the user") instead of the observed one |
 | Reported two pickaxes picked up off the ground as "taken from the chest" | A result counted everything gained as the action's doing | Only what left the chest is "taken"; the rest is "picked up on the way" | An action's report that claims credit for side effects, so the next decision rests on a false account of where things came from |
 | Told a teammate "doesn't exist" after it had left | A message stated a permanent fact from a passing state | "isn't in the world right now (it may have left)" | An error saying a user or service doesn't exist when it is only offline, so the agent gives up on it for good |
+| Read "flee success" beside "you died" (39 deaths) | A long-running action kept going after the thing it acted for was gone, then reported on what it found | A death ends the action, reported as "you died" | A job that loses its session mid-run, carries on against a fresh one, and reports success |
+| Two teammates told to sleep in two different homes | A shared status computed separately per agent, with a tie broken by each one's own view | One rule for everyone: most slept in, then first finished | Each instance of a service computing "the primary" for itself, so they disagree when it matters |
+| Gave a teammate a second, last pickaxe on "lb carries no iron_pickaxe", 16 s after the first | A shared view refreshed only when each member finished its own work | Each agent reports what it holds every 2 seconds | A cache or replica serving stale state right after a write, so the next action is taken twice |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**
@@ -521,8 +608,9 @@ behaviour visible to study.
 - **Let them look in a chest.** Done after tbase3: `look_in_chest` shows what the chests nearby
   hold without moving anything, as a player sees by opening one. Checked live.
 - **Then tell them what's left.** `--progress on` lists the goal's open parts in every observation.
-  The question it answers is about behaviour: does seeing the gap make a team revisit its plan and
-  take over a stalled part, or keep a tool for the end?
+  Done once (tlunap1, above): a team of Lunas closed and kept closed the gap it could act on
+  (food), and trusted the list over its own last action. Iron and beds didn't move. Next: the same
+  on the fixed list, and with the mixed team.
 - **How agents hear each other.** Teammates interrupted each other nearly as often as threats did.
   Whether a message should wait for the agent's next decision is a design choice about
   coordination. It would change what is being compared, so it isn't changed here.

@@ -230,6 +230,11 @@ building on it.
   tables (since 20 October, after tbase1). Live, with the library's defaults, it dug through a bed
   in a corridor too low to walk over it. Half of rep 3's base bed went missing in tbase1, and the
   logs don't say how.
+- **The progress list (`--progress on`) is computed by each agent from the team's shared state.**
+  Since 23 October every teammate's list names the same base (the one most have slept in, then the
+  first finished), and each agent reports what it holds every 2 seconds rather than only between its
+  own steps. Before, in tlunap1, lists named different bases to different teammates and lagged a
+  teammate's holdings by a whole step.
 - **Deaths are recorded with their cause (since 20 October),** as the game words it ("was slain by
   Zombie"), with the place, the in-game day and time, and are listed in the minds panel. The agent's
   death event says it too. Older logs show the deaths without a cause.
@@ -247,7 +252,16 @@ building on it.
 - **Getting into a shelter while being hit (since 20 October):** on the way into a shelter that
   stands, a hit stops `build_shelter` only at health 6 or less, and a teammate's message doesn't
   stop it at all. In bpoc2, 7 entries were stopped by a hit (4 of those agents fled and never went
-  back in) and 3 by a message.
+  back in) and 3 by a message. The floor of 6 can leave too little to get away on: in tlunap1 rep 2
+  a crowd of mobs stood at the doorway of a holed base, and an agent coming back from the dead was
+  hit down to 5 on the way in, fled and died, six times in one night. Where to set the floor, and
+  whether the agent should be told the doorway is crowded, is open.
+- **A death ends the skill it happens in (since 23 October),** reported as "interrupted: you died
+  and respawned". Before, the skill ran on from the respawn point: 39 of tlunap1's 86 deaths came in
+  a `flee` that then reported success. A death while the model is deciding (25 in tlunap1, with a
+  median of about 3 seconds to decide) is still only seen in the next observation's events.
+- **`smelt` can say "the run is ending" when it isn't.** If an interrupt stops the furnace craft
+  inside `smelt`, the craft's generic stop reason comes through (tlunap1 rep 3, in daylight). Not fixed.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
   behaviour is checked by hand with `src/agents/scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to

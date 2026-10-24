@@ -260,11 +260,18 @@ repository secrets are set, so a push to `main` deploys the site. Agentic work r
    receiver that had walked off; `take` called pickaxes picked up off the ground "taken from the
    chest"), both fixed and checked live, and rep 3 to one agent carrying all three and dying. Beds
    were hardly tried (three made, three sleeps); the spawn trap returned in rep 1 (28 of 42 deaths
-   by the home). Written up in 06. **Next, on the owner's word:** `--progress on`, or the
-   spawn trap: where a world's spawn point is, and whether to build there, is the game's, but
+   by the home). Written up in 06. `--progress on` was run next (tlunap1, below). The spawn trap
+   is left alone: where a world's spawn point is, and whether to build there, is the game's, but
    the team chose it.
-   **Next, on the owner's word:** the same run again on the fixed code (about $12), since two of the
-   four parts failed largely on our bugs; then, if wanted, with `--progress on`.
+   **tlunap1 (23 October, three Lunas, three reps, `--progress on`, on 5d8b958, $0.95): 0 of 3.**
+   The food part was met on day 1 of every rep and kept (tluna1: 1 of 3); in rep 3 lb saw the store
+   drop to 8 and topped it up unasked. Iron and beds didn't move. Three faults of ours, fixed and
+   checked live: `flee` ran on after a death and reported success (39 of 86 deaths); each agent's
+   list named its own base when nobody had slept in one; and a teammate's holdings reached the
+   list only between its steps, so la gave away its last iron pickaxe on a list 16 s old. Rep 2's
+   home became a trap (23 of 61 deaths at it). Written up in 06.
+   **Next, on the owner's word:** the mixed team (Opus, Sonnet, Luna) on the fixed code, about $12,
+   once Anthropic credit is topped up (24 October); with `--progress on` as its own condition after.
 3. **The free model on the outpost goal: done 19 October (b15, b16), 0 of 9.** b15 (today's code,
    plan memory, progress off and on) met it 0 of 6; b16 (b12's code, three runs) 0 of 3, so b12's
    2 of 6 didn't repeat. Both versions loop on `gather_wood` for logs already held (up to 153 times
