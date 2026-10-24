@@ -9,6 +9,7 @@ export type Route =
   | { page: 'findings' }
   | { page: 'how' }
   | { page: 'results' }
+  | { page: 'timeline' }
   | { page: 'doc'; path: string; anchor: string }
   | { page: 'missing'; hash: string };
 
@@ -18,6 +19,7 @@ export const HASH = {
   findings: '#/findings',
   how: '#/how-it-works',
   results: '#/results',
+  timeline: '#/timeline',
   doc: (path: string, anchor = '') => `#/docs/${path}${anchor ? `::${anchor}` : ''}`,
 };
 
@@ -28,6 +30,7 @@ export function parse(hash: string): Route {
   if (path === 'findings') return { page: 'findings' };
   if (path === 'how-it-works') return { page: 'how' };
   if (path === 'results') return { page: 'results' };
+  if (path === 'timeline') return { page: 'timeline' };
   if (path.startsWith('docs/')) return { page: 'doc', path: path.slice(5), anchor };
   return { page: 'missing', hash };
 }
