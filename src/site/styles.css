@@ -888,6 +888,60 @@ h3 {
   transform: translate(-50%, -50%);
 }
 
+/* Results overview */
+
+.overview {
+  margin: 0 0 32px;
+}
+
+.overview .small {
+  font-size: 14px;
+}
+
+.overview h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px 32px;
+}
+
+.rates {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.rate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 2px 12px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.rate-name {
+  overflow-wrap: anywhere;
+}
+
+.interval.rate-bar {
+  width: 100%;
+}
+
+.rate-count {
+  grid-column: 2;
+  color: var(--muted);
+}
+
+.rate-count strong {
+  color: var(--text);
+}
+
 /* Footer */
 
 .site-footer {

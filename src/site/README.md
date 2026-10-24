@@ -21,7 +21,9 @@ reads each report written by `src/agents/scripts/publish-reports.sh` (its totals
 "Success per condition" table), and `vite.config.ts` serves the summaries as `virtual:batches`. A new
 report is on the page at the next build (at once under `npm run dev`), linked to its write-up if the
 write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
-same summary above its full text. If `publish-reports.sh` changes the layout of a report, change
+same summary above its full text. The overview at the top of Results (`pages/ResultsOverview.tsx`)
+totals the same summaries: how often runs met their goal, by goal and by model, and how many teams
+met theirs. If `publish-reports.sh` changes the layout of a report, change
 `lib/batches.ts` with it. How it works draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { batches, writeUpOf } from 'virtual:batches';
 import { HASH } from '../lib/route';
 import { OutcomeBar, dollars, when } from './BatchParts';
+import { ResultsOverview } from './ResultsOverview';
 
 type Kind = 'all' | 'batch' | 'team';
 
@@ -13,9 +14,6 @@ const KINDS: Array<{ id: Kind; label: string }> = [
 
 const newestFirst = [...batches].sort((a, b) => b.started.localeCompare(a.started));
 const goals = [...new Set(newestFirst.flatMap((b) => b.goals))];
-const paid = batches.reduce((n, b) => n + b.cost, 0);
-const runs = batches.reduce((n, b) => n + b.runs, 0);
-const models = new Set(batches.flatMap((b) => b.models).filter((m) => m !== 'Scripted baseline'));
 
 export function Results() {
   const [kind, setKind] = useState<Kind>('all');
@@ -32,12 +30,7 @@ export function Results() {
         </p>
       </header>
 
-      <div className="stats">
-        <div className="stat"><strong>{batches.length}</strong><span>batches and team runs</span></div>
-        <div className="stat"><strong>{runs.toLocaleString('en-GB')}</strong><span>runs</span></div>
-        <div className="stat"><strong>{models.size}</strong><span>models, and a scripted baseline</span></div>
-        <div className="stat"><strong>{dollars(paid)}</strong><span>spent on paid models</span></div>
-      </div>
+      <ResultsOverview />
 
       <div className="filters" role="group" aria-label="Filter batches">
         {KINDS.map((k) => (
