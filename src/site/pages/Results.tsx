@@ -28,7 +28,8 @@ export function Results() {
         <h1>Results</h1>
         <p className="lede">
           Every batch and team run, as its report was built from the logs by code: no judgement, newest first. A report
-          appears here as soon as it is published. What the runs mean is in the <a href={HASH.findings}>findings</a>.
+          appears here as soon as it is published. What the runs teach about building agents is in the{' '}
+          <a href={HASH.lessons}>lessons</a> and the <a href={HASH.findings}>case studies</a>.
         </p>
       </header>
 
@@ -71,6 +72,7 @@ export function Results() {
                 ))}
               </div>
               <p className="batch-who">{b.models.join(', ')}{b.kind === 'team' ? ', together' : ''}</p>
+              {writeUp?.lesson && <p className="lesson-line">{writeUp.lesson}</p>}
               <OutcomeBar batch={b} />
               <p className="batch-foot">
                 <span>{b.runs} runs</span>

@@ -1,6 +1,7 @@
 # Project site
 
-The public site for the experiment: a hand-written overview, findings and "how it works", and every
+The public site for the experiment, framed around what it teaches about building agents: a
+hand-written overview, the lessons (`docs/lessons.md`), case studies (the write-ups) and "how it's built", and every
 doc in the repository's `docs/` (write-ups, batch reports, limitations…) rendered when the site is
 built, so a new write-up appears on the next deploy without touching this code. `docs/next-steps.md`
 is left out: it's working notes.
@@ -22,10 +23,13 @@ reads each report written by `src/agents/scripts/publish-reports.sh` (its totals
 report is on the page at the next build (at once under `npm run dev`), linked to its write-up if the
 write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
 same summary above its full text. If `publish-reports.sh` changes the layout of a report, change
-`lib/batches.ts` with it. How it works draws the README's control-loop diagram (mermaid, loaded only
+`lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.
 
-The front page's findings and chart are in `content/findings.ts`, hand-written from
-`docs/results/write-ups/06-team-base.md`: update both together. Hosting is in `src/terraform/` (S3 + CloudFront at its own domain), and
+The front page's lesson cards and chart are in `content/lessons.ts`, hand-written from
+`docs/lessons.md` and the write-ups it cites: update them together. Each write-up opens with a
+"What this teaches about building agents" section; its first sentence (`lessonOf` in
+`lib/batches.ts`) is shown on Case studies, on Results beside every batch the write-up covers, and at
+the top of those batch reports. A new write-up needs that section to show up there. Hosting is in `src/terraform/` (S3 + CloudFront at its own domain), and
 `.github/workflows/site.yaml` builds and deploys on every push to `main` that touches this folder or
 `docs/`. Asset paths are relative, so the same build would also work under a path.

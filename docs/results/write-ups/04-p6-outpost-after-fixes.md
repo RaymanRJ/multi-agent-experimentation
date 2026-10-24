@@ -14,6 +14,15 @@ the same starting point, so differences between runs come from the model and the
 randomness (mob spawns, animal movement), not from another agent. The models played together only
 in the team run ([05-team-homestead.md](05-team-homestead.md)).
 
+## What this teaches about building agents
+
+Fixes to tools and interrupts took four models from 4 of 12 to 12 of 12, and then the test stopped separating them.
+
+- **Fix the harness first:** an open doorway and a crafting wait with no limit were most of the earlier failures ([tools](../../lessons.md#tools)).
+- **Filter interrupts:** once a monster outside a closed shelter stopped interrupting, no agent left at night ([control loop](../../lessons.md#the-control-loop)).
+- **Careful crediting judgement:** that fix removed the trigger, so whether the models' judgement changed can't be told ([evaluation](../../lessons.md#evaluation)).
+- **Raise the bar:** at 12 of 12 a test measures only cost; the next one had to be harder ([evaluation](../../lessons.md#evaluation)).
+
 ## In one paragraph
 
 Every run met the goal: 12 of 12, against 4 of 12 in p5. No agent died, none took any damage at

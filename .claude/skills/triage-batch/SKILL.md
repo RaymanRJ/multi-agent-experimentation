@@ -48,6 +48,13 @@ they handle the unexpected while keeping the goal in mind, and how did they work
 one another? Model with `write-ups/06-team-base.md`, the owner's chosen style ("not perfect, but
 better than before": keep improving it):
 
+- **It opens with what it teaches about building agents** (the owner's ask, 23 October: "the goal
+  here is to learn how agentic systems can be built"). Right after the italic note, a section
+  `## What this teaches about building agents`: one sentence (the site shows it on Case studies,
+  Results and the batch reports, so it must stand alone), then 3–5 bullets in domain-neutral words,
+  each linking to its part of `docs/lessons.md` (tools, observations and context, shared state,
+  control loop, evaluation, improvement loop). A new lesson goes into `docs/lessons.md` too, with
+  one line of evidence.
 - **Headings are behaviours.** For example: how they organised; keeping the goal in view; meeting
   the unexpected; working together, and in each other's way. For a single agent, drop the last.
 - **Findings are stated as behaviours**, such as "roles became silos" or "they trusted what they

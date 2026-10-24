@@ -3,6 +3,15 @@
 *Results from batches b1–b7, October 2026. Model: Qwen3 4B Instruct, running locally (free).
 Every number here comes from logged runs (`npm run report -- --by condition --batch bN`).*
 
+## What this teaches about building agents
+
+Fixing the tools around a model moved results further than anything about the model, and carrying the agent's own plan forward made it worse.
+
+- **Tool code first:** the same model went from 3 of 9 runs to 8 of 9 on fixes to tool code alone ([tools](../../lessons.md#tools)).
+- **Memory can mislead:** a written plan carried between decisions was trusted over what the world reported, and led to loops of 100+ identical decisions ([observations](../../lessons.md#observations-and-context)).
+- **Outcomes, not steps:** spelling the steps out in the goal made no difference; failure messages carried what the task required ([observations](../../lessons.md#observations-and-context)).
+- **Small samples are hints:** 3 of 3 is consistent with a true rate as low as 44% ([evaluation](../../lessons.md#evaluation)).
+
 ## In one paragraph
 
 A small free model can play the basic Minecraft tasks reliably, but only once the code around
