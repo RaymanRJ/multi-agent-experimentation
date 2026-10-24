@@ -21,6 +21,31 @@ with `src/agents/scripts/publish-reports.sh` puts it on the site at the next dep
 shows the README's control-loop diagram, read from the README. The Terraform is applied and the
 repository secrets are set, so a push to `main` deploys the site. Agentic work resumed on 23 October.
 
+## Next session (set 23 October)
+
+1. **Reframe the docs and site around building agentic systems, not the game** (the owner's ask:
+   "the goal here is to learn how agentic systems can be built and tooling needed; our reports and
+   website all feel too game-focussed still"). Proposed, and the owner said it is good: a new
+   `docs/lessons.md` organised by system component — tools (results must be true), observations and
+   context (what is cut off or out of range), shared state between agents (one truth, fresh), the
+   control loop (model out of the fast loop, events, reflexes), evaluation (seeds, budgets, baseline,
+   logged decisions), and the improvement loop — each lesson in domain-neutral words with the game as
+   one-line evidence. The site's home page leads with it and its findings become lessons for
+   builders; write-ups and batch reports become the evidence, each opening with what it teaches about
+   building agents. Open question for the owner: start with `lessons.md` and the home page and leave
+   the write-ups for later?
+2. **The owner's finetuning, then the paid run** (24 October, after an Anthropic top-up): the mixed
+   team (Opus, Sonnet, Luna) on `team-base` on the fixed code, about $12, capped with `BUDGET_USD`,
+   with the minds panel (`npm run minds`, :3010) and `VIEW=on`.
+3. **Doorway deaths, investigated, no change yet (the owner's call).** In tlunap1, 32 shelter entries
+   were stopped by a hit (health 6 or less) and 22 of those agents died within two decisions; of 38
+   entries where the agent was hit, 7 got in. Agents chose to go home with no hostile in view (median
+   0 within 16 blocks): hostiles are listed only within 24 blocks of the agent, and a shelter's line
+   says nothing of mobs at it. So the gap is information, not the damage floor. Options: say in the
+   shelter's line when mobs are at its doorway (information, first choice), or have `build_shelter`
+   stop short of a crowded doorway and say why (tool).
+4. **Not pushed:** `main` holds everything to here; the owner pushes (which also redeploys the site).
+
 ## Setting up a new machine
 
 1. Docker, [Ollama](https://ollama.com/) and Node 25+, then `cd src/agents && npm install`.
