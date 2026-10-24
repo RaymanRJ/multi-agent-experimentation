@@ -394,9 +394,12 @@ async function main(): Promise<void> {
   let spentUSD = 0;
   narrate(bot, `online — brain: ${policy.name}`);
   publish();
-  // Notice a teammate finishing the job in the middle of this agent's own skill, and stop it.
+  // Notice a teammate finishing the job in the middle of this agent's own skill, and stop it. And tell
+  // the team what this agent holds as it changes, not only between steps: in tlunap1 la's list still
+  // said lb had no iron pickaxe 16 s after la gave it one (lb was mid-skill), so la gave it its last.
   const teamTimer = board
     ? setInterval(() => {
+        publish();
         refreshTeamGoal();
         if (!watch || interruptReason || !finished()) return;
         interruptReason = teamGoal ? "the team goal is met" : "every member of the team has met the goal";
