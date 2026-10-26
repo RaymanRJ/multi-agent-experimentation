@@ -1068,6 +1068,108 @@ h3 {
   color: var(--text);
 }
 
+/* Results goals: one card per goal, the same parts in each, so they can be read side by side */
+
+.goals {
+  margin: 0 0 32px;
+}
+
+.goals h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.goals > .muted {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+}
+
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font-size: 14px;
+}
+
+.goal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.goal-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.goal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.goal-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.goal-text {
+  margin: 0;
+  padding: 0 0 0 10px;
+  border-left: 3px solid var(--border);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.goal-outcome p {
+  margin: 0 0 4px;
+}
+
+.goal-models {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-models li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.goal-guided {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.goal-guided h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* Footer */
 
 .site-footer {

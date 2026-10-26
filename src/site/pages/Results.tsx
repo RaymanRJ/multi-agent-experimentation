@@ -3,6 +3,7 @@ import { chapters, type Chapter, type StoryRun } from '../content/story';
 import type { Batch } from '../lib/batches';
 import { HASH } from '../lib/route';
 import { OutcomeBar, dollars, when } from './BatchParts';
+import { ResultsGoals } from './ResultsGoals';
 import { ResultsOverview } from './ResultsOverview';
 
 const byName = new Map(batches.map((b) => [b.name, b]));
@@ -51,6 +52,8 @@ export function Results() {
       </header>
 
       <ResultsOverview />
+
+      <ResultsGoals />
 
       <nav className="chapter-map" aria-label="Chapters">
         <ol>
