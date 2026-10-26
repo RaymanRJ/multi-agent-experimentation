@@ -93,6 +93,12 @@ done
 
 scripts/test-server.sh down "team-$name" >/dev/null
 echo
+# With no logs (every agent failed to start: bpoc3's first try, an expired key), the report would
+# fall back to the last 1000 runs and print an earlier run's rows under this name.
+if [ ! -s "$list" ]; then
+  echo "No run logs were written, so there is nothing to report."
+  exit 1
+fi
 npm run --silent report -- --last 1000 $(cat "$list")
 # The readable comparison: by goal and model, and for teams who did what (src/compare.ts).
 echo
