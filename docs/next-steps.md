@@ -57,9 +57,18 @@ Done on 26 October, on local `main`, not pushed:
   blocks off, and turned away from a lake. Not yet in a run. Also: an end-of-run report with no logs
   no longer prints an earlier run's rows.
 
+- **Proof run bpoc4 on the reflexes** (same settings, on 6527403, $0.37): more of the goal moved
+  (2 of 3 slept in the home; the store reached 12 cooked meat, then was eaten down to 8; 15% of game
+  time toward the goal, bpoc3 7%), but deaths rose to 24, 12 of them to skeletons. The step-back ran
+  39 times and `flee` ran into a shelter 11 times; 9 deaths still came while deciding, 5 of them with
+  the monster 5–19 blocks off, out of reach. After it: the step cap scales with the time budget
+  (600 for three days), since 200 ended lc's run early. Written up in 06.
+
 Next, in order:
-1. **Another three-Luna proof run on the reflexes** (about $0.35), before the paid run: the reflexes
-   haven't been in a team run. Then the key check for the Claude models (about a cent).
+1. **Ranged attack, the owner's call:** the reflexes answer melee, not arrows. Options: have `flee`
+   prefer a shelter whenever one is in reach (not only on the far side), or end a flee out of a
+   skeleton's line of sight; or leave it, as one rep may just have been a bad night. Then the key
+   check for the Claude models (about a cent).
 2. **The owner's finetuning, then the paid run:** the mixed team (Opus, Sonnet, Luna) on `team-base`,
    about $12, capped with `BUDGET_USD`, with the minds panel (`npm run minds`, :3010) and `VIEW=on`;
    `--progress on` as its own condition after.

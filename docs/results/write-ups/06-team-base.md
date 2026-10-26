@@ -629,6 +629,51 @@ the next decision. lc gathered logs and gave 47 of them to lb, who built the hom
   to save a teammate. Where animals were last seen is information a player would remember, and is a
   candidate for the observation (not done yet).
 
+## The same, with reflexes (bpoc4)
+
+*Three GPT-6 Luna agents, one rep, 26 October, on 6527403: bpoc3's settings, with the reflexes added
+after it (the agent steps back from a monster within reach while its model decides; `flee` runs into
+a known shelter on the far side from the mobs and steers off water). $0.37 (capped at $0.50 an agent).
+A proof run; one rep each, so bpoc3 and bpoc4 differ by more than the reflexes: a different night,
+different monsters.*
+
+| Part | bpoc3 | bpoc4 |
+|---|---|---|
+| Shared home built | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | 0 of 3 | 2 of 3 |
+| Everyone holds an iron pickaxe | 0 | 0 (two made) |
+| Food left in store | 0 | 8 (12 at most) |
+| Deaths | 17 | 24 |
+| Game time toward a part of the goal | 7% | 15% |
+| Keeping safe | 30% | 22% |
+
+**More of the goal moved, and more of them died.**
+- **Beds:** two were made and two agents slept in the home. Beds were still set back five times,
+  mostly wool dropped in a death.
+- **Food:** the store reached 12 cooked meat, enough, and lc said so ("the chest already has enough
+  cooked meat"). By the end it held 8: lb took three out to eat. Kept to the end it would have been
+  the food part met, as in tlunap1; spending what the goal needed to keep is still theirs.
+- **Iron:** la made iron pickaxes on day 1 and day 2; the first was dropped when it died that night,
+  and none was held at the end.
+- **Deaths:** 24, 18 of them at night. Skeletons killed 12 (in bpoc3, 3): arrows reach an agent
+  running across open ground, and stepping back from a skeleton doesn't take it out of range.
+
+**What the reflexes did.**
+- **Stepping back:** it ran in 34 decisions, 39 times in all. 9 deaths still came while the model was
+  deciding, the same as bpoc3: in 4 the step-back ran and the agent was killed anyway (at 2–5 health);
+  in 5 the nearest monster was 5–19 blocks off, a skeleton among the nearest in four, out of the
+  step-back's reach.
+- **Running home:** `flee` ran into a shelter 11 times. 10 deaths came during a flee (bpoc3: 7), five
+  of them to arrows, three after the agent had run 19–57 blocks.
+- **What it suggests, not acted on:** the reflexes answer melee; ranged attack is the gap. Whether to
+  answer it (for example, ending a flee out of a skeleton's line of sight, or in a shelter when one is
+  anywhere in reach) is open.
+
+**Where our code, not the agents, decided the outcome:**
+- The step cap, meant as a safety net, ended lc's run after 200 decisions with about 10,000 ticks of
+  game time left (it ended tlunap1's lb the same way). Fixed: the default cap scales with the time
+  budget, 200 decisions a day, so 600 for three (checked in the real agent).
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -664,6 +709,7 @@ working on real systems, such as support desks, IT operations and business tools
 | Gave a teammate a second, last pickaxe on "lb carries no iron_pickaxe", 16 s after the first | A shared view refreshed only when each member finished its own work | Each agent reports what it holds every 2 seconds | A cache or replica serving stale state right after a write, so the next action is taken twice |
 | Died while its model was still choosing to run (9 deaths) | The body did nothing during the seconds a decision takes | It steps back from any monster in reach while the model decides, and is told it did | A safety-critical response waiting on a slow planner, when a simple rule could act at once and report |
 | Fled away from home into a lake and drowned (7 deaths in a flee) | An escape action optimised "away from danger", not "toward safety" | It runs into a known shelter when one lies away from the danger, and steers off water | A failover that moves load away from a failing node onto whatever is next, including a worse one |
+| A run was ended by a cap on decisions, with game time left | A safety limit set for a short run bound a long one | The cap scales with the time budget | A rate or step limit tuned for one workload silently truncating a longer one |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**

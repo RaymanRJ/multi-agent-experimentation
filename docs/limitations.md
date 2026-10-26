@@ -261,8 +261,10 @@ building on it.
 - **Reflexes (since 26 October).** While the model decides, the agent steps back from any hostile
   within 3 blocks, unless it is in a closed shelter, and the next observation says so; `flee` runs
   into a known shelter that lies away from the mobs with a clear doorway, and otherwise steers off
-  water and drops. Checked live, not yet in a run. What they don't cover:
-  - a skeleton shooting from further off: stepping back only answers what is within reach;
+  water and drops. In bpoc4 (one rep) the step-back ran 39 times and `flee` ran into a shelter 11
+  times, but deaths didn't fall (24; bpoc3 17), and skeletons killed 12. What they don't cover:
+  - a skeleton shooting from further off: stepping back only answers what is within reach, and a
+    flee across open ground stays in bow range;
   - the moment between a skill being interrupted and the next decision starting;
   - a decision made after the step-back starts from an observation a few blocks out of date (the
     skill reads the world afresh, so this costs accuracy in the model's reasoning, not in what is done).
