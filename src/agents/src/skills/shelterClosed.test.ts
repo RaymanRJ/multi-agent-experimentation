@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, hostilesInside, insideClosedShelter, layout, mobsInsideNote } from "./buildShelter.js";
+import { floorCells, hostilesAtDoorway, hostilesInside, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote } from "./buildShelter.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
 
@@ -98,4 +98,23 @@ test("hostilesInside - a mob within the walls is named; one outside them is not"
   assert.deepEqual(hostilesInside(bot, spot), ["zombie villager"]);
   assert.equal(mobsInsideNote(bot, spot), ", but a zombie villager is inside with you");
   assert.equal(mobsInsideNote(fakeBot({ blocks: hut(), position: inside, entities: [zombie(4.5)] }).bot, spot), "");
+});
+
+test("hostilesAtDoorway - mobs outside near the doorway are named, nearest first; far off or inside, not", () => {
+  const mob = (name: string, x: number, z: number) => ({ name, type: "hostile", position: { x, y: 64, z } });
+  const outside = { x: 20.5, y: 64, z: 0.5 };
+  const { bot } = fakeBot({ blocks: hut(), position: outside, entities: [mob("skeleton", 0.5, 9.5), mob("zombie", 1.5, 4.5), mob("zombie", 0.5, 30.5), mob("spider", 0.5, 0.5)] });
+  assert.deepEqual(hostilesAtDoorway(bot, spot), ["zombie", "skeleton"]);
+  assert.equal(mobsAtDoorwayNote(bot, spot), ", with 2 hostile mobs (zombie, skeleton) at its doorway");
+  assert.equal(mobsAtDoorwayNote(fakeBot({ blocks: hut(), position: outside, entities: [mob("zombie", 0.5, 30.5)] }).bot, spot), "");
+});
+
+test("build_shelter - stops short of a shelter with mobs at its doorway, and says why", async () => {
+  const { buildShelter } = await import("./buildShelter.js");
+  const zombie = { name: "zombie", type: "hostile", position: { x: 0.5, y: 64, z: 5.5 } };
+  const { bot } = fakeBot({ blocks: hut(), position: { x: 20.5, y: 64, z: 0.5 }, inventory: {}, entities: [zombie] });
+  const result = await buildShelter.run({ ...context(bot), shelters: () => [{ ...spot, by: "qb" }] }, {});
+  assert.equal(result.status, "failed");
+  assert.match(result.reason ?? "", /did not go to a shelter \(qb's\) at 0,64,0: a zombie is within 8 blocks of its doorway/);
+  assert.equal(bot.entity.position.x, 20.5, "it stayed where it was");
 });

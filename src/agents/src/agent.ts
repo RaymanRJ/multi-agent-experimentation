@@ -8,7 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, DAMAGE_FLOOR, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
-import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -254,7 +254,7 @@ async function main(): Promise<void> {
         const owner = spot.by && spot.by !== agentName ? ` (${spot.by}'s)` : spot.by === agentName ? " (yours)" : "";
         const where = insideSpot(bot, spot) ? "you are inside it" : `${d} blocks away`;
         const state = spot.complete === false ? "" : insideClosedShelter(bot, spot) ? ", closed" : insideSpot(bot, spot) ? ", not closed" : "";
-        const company = insideSpot(bot, spot) ? mobsInsideNote(bot, spot) : "";
+        const company = insideSpot(bot, spot) ? mobsInsideNote(bot, spot) : mobsAtDoorwayNote(bot, spot);
         return `${describeShelter(spot)}${owner} at ${spotKey(spot)}, ${where}${state}${company}`;
       });
   };

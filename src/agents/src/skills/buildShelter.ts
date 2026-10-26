@@ -185,7 +185,38 @@ export function hostilesInside(bot: Bot, shelter: ShelterSpot): string[] {
 export function mobsInsideNote(bot: Bot, shelter: ShelterSpot): string {
   const mobs = hostilesInside(bot, shelter);
   if (mobs.length === 0) return "";
-  return `, but ${mobs.length === 1 ? `a ${mobs[0]} is` : `${mobs.length} hostile mobs (${[...new Set(mobs)].join(", ")}) are`} inside with you`;
+  return `, but ${mobList(mobs)} ${mobs.length === 1 ? "is" : "are"} inside with you`;
+}
+
+/** How near the doorway a hostile mob outside counts as at it: going in, the agent would open the doorway beside it. */
+export const DOORWAY_RANGE = 8;
+
+/**
+ * Hostile mobs outside the shelter within DOORWAY_RANGE of the cell in front of its doorway, nearest
+ * first, by name. In tlunap1, 32 trips into a shelter ended with the agent hit at the doorway and 22 of
+ * those agents died within two decisions; they had set off with no hostile in their own view, as mobs
+ * were listed only near the agent and a shelter's line said nothing of what waited at it.
+ */
+export function hostilesAtDoorway(bot: Bot, shelter: ShelterSpot): string[] {
+  const r = half(shelter.size ?? 3) + 1;
+  const front = new Vec3(shelter.x + 0.5, shelter.y, shelter.z + r + 1.5);
+  return Object.values(bot.entities)
+    .filter((e) => e?.type === "hostile" && !pointInside(e.position, shelter))
+    .map((e) => ({ name: (e.name ?? "hostile mob").replace(/_/g, " "), d: e.position.distanceTo(front) }))
+    .filter(({ d }) => d <= DOORWAY_RANGE)
+    .sort((a, b) => a.d - b.d)
+    .map(({ name }) => name);
+}
+
+/** "a zombie", "3 hostile mobs (zombie, skeleton)". */
+function mobList(mobs: string[]): string {
+  return mobs.length === 1 ? `a ${mobs[0]}` : `${mobs.length} hostile mobs (${[...new Set(mobs)].join(", ")})`;
+}
+
+/** ", with a zombie at its doorway" when one is; "" otherwise. */
+export function mobsAtDoorwayNote(bot: Bot, shelter: ShelterSpot): string {
+  const mobs = hostilesAtDoorway(bot, shelter);
+  return mobs.length === 0 ? "" : `, with ${mobList(mobs)} at its doorway`;
 }
 
 /**
@@ -451,7 +482,20 @@ async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: nu
 export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
   const bot = ctx.bot;
   if (!insideSpot(bot, spot)) {
-    const far = bot.entity.position.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5)) > REUSE_RANGE;
+    // Stop short of a crowded doorway: opening it takes seconds beside the mobs (tlunap1, hostilesAtDoorway).
+    const atDoor = hostilesAtDoorway(bot, spot);
+    if (atDoor.length > 0) {
+      const owner = spot.by && spot.by !== bot.username ? ` (${spot.by}'s)` : "";
+      return {
+        ok: false,
+        result: {
+          status: "failed",
+          reason: `did not go to ${describeShelter(spot)}${owner} at ${spotKey(spot)}: ${mobList(atDoor)} ${atDoor.length === 1 ? "is" : "are"} within ${DOORWAY_RANGE} blocks of its doorway, and getting in means opening the doorway beside them`,
+          detail: { shelter: spotKey(spot), hostilesAtDoorway: atDoor },
+        },
+      };
+    }
+    const far =bot.entity.position.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5)) > REUSE_RANGE;
     const timeout = far ? HOME_TIMEOUT_MS : ENTER_TIMEOUT_MS;
     try {
       await inThroughDoor(ctx, spot, timeout);
