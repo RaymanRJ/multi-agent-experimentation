@@ -155,9 +155,18 @@ asked, what can interrupt it and what happens without it.
   the right next step only costs a decision.
   *Evidence:* a monster outside a closed shelter interrupted an agent, which went out to it; once
   that stopped interrupting, no agent left its shelter at night. ([04](results/write-ups/04-p6-outpost-after-fixes.md))
-- **Put what can't wait in code, as a reflex.** Some things happen faster than a model answers.
+- **Put what can't wait in code, as a reflex.** Some things happen faster than a model answers. A
+  reflex keeps the agent alive until the model has chosen, then says what it did; it doesn't choose
+  for it.
   *Evidence:* an agent was killed during its 2.3-second decision to run; agents under water now swim
-  out before the model is asked anything. ([02](results/write-ups/02-outpost.md))
+  out before the model is asked anything ([02](results/write-ups/02-outpost.md)). In one team run, 9
+  of 17 deaths came while the model was still deciding, most with a monster already beside the
+  agent; stepping back while it decides kept health at 20 where standing still lost 15
+  ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)).
+- **An escape needs a destination.** "Away from danger" can lead somewhere worse; "toward safety"
+  is the goal.
+  *Evidence:* agents fled straight away from monsters, away from their home and into a lake, and 7 of
+  17 deaths came during a flee ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)).
 - **Give the agent honest ways out.** A way to say "done" that is checked, and a way to give up with
   a reason, both counted.
   *Evidence:* a premature "done" is refused once and told what is missing; a false claim of success

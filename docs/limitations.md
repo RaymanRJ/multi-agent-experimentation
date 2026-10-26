@@ -256,7 +256,16 @@ building on it.
   a crowd of mobs stood at the doorway of a holed base, and an agent coming back from the dead was
   hit down to 5 on the way in, fled and died, six times in one night. Since 26 October the shelter's line
   names hostile mobs within 8 blocks of its doorway, and going in stops short of them and says why;
-  the floor of 6 is unchanged. Not yet seen in a team run.
+  the floor of 6 is unchanged. In bpoc3 (one rep), a hit stopped the way in 2 times in 99 shelter
+  calls (tlunap1: 32 in 179).
+- **Reflexes (since 26 October).** While the model decides, the agent steps back from any hostile
+  within 3 blocks, unless it is in a closed shelter, and the next observation says so; `flee` runs
+  into a known shelter that lies away from the mobs with a clear doorway, and otherwise steers off
+  water and drops. Checked live, not yet in a run. What they don't cover:
+  - a skeleton shooting from further off: stepping back only answers what is within reach;
+  - the moment between a skill being interrupted and the next decision starting;
+  - a decision made after the step-back starts from an observation a few blocks out of date (the
+    skill reads the world afresh, so this costs accuracy in the model's reasoning, not in what is done).
 - **A death ends the skill it happens in (since 23 October),** reported as "interrupted: you died
   and respawned". Before, the skill ran on from the respawn point: 39 of tlunap1's 86 deaths came in
   a `flee` that then reported success. A death while the model is deciding (25 in tlunap1, with a

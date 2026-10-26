@@ -39,18 +39,35 @@ Done on 26 October, on local `main`, not pushed:
   11.1.1 (Dependabot #2) and take body-parser 1.20.9. `npm audit` is clean in both. A scripted agent
   with the viewer joined a test server on the new packages. Not checked in a browser: the How it's
   built diagram under mermaid 12.
-- Old worktrees and branches removed.
+- Old worktrees and branches removed. `main` up to 79af053 was pushed on 26 October.
+- **The Results page has a Goals section** (the owner's ask: let readers take in and compare the
+  goals, without ranking them): one card per goal with its text as the agents are told it (read from
+  `src/agents/src/goals.ts`, so it can't drift), its guided variant, the world, and how often each
+  model that tried it met it, in the order the goals were first tried.
+- **Proof run bpoc3** (three Lunas, `team-base`, one rep, on 79af053, $0.34; the first try failed on
+  an expired OpenAI key): the base on day 1, nothing else; 17 deaths. The doorway change worked (a hit
+  stopped the way in 2 times in 99 shelter calls, tlunap1 32 in 179). Deaths undid every other part:
+  9 came while the model was deciding, 7 during a flee that ran away from home, two of them to
+  drowned by a lake. No chest was ever placed; sheep stayed out of sight 50 blocks south. Written up
+  in 06.
+- **Reflexes, after bpoc3 (the owner's call: "providing more reflexes is the right call"):** while
+  the model decides, the agent steps back from any hostile within reach (`src/agents/src/reflexes.ts`);
+  `flee` runs into a known shelter that lies away from the mobs, and steers off water. Checked live:
+  health held at 20 beside two zombies where standing still fell to 5; flee got into a shelter 20
+  blocks off, and turned away from a lake. Not yet in a run. Also: an end-of-run report with no logs
+  no longer prints an earlier run's rows.
 
 Next, in order:
-1. **Before the paid run (proposed 26 October, waiting on the owner):** a three-Luna proof run on
-   `team-base` (about $0.30, as bpoc and hpoc were), since the doorway change and the 2-second team
-   state have not been in a team run; and one call per Claude model to check the key and credit
-   (about a cent). Also open: `give` to a teammate inside the closed home timed out from 22 blocks in
-   tbase3, cause unknown; hand-overs carried tbase4, so a live repro on a test server is worth doing.
+1. **Another three-Luna proof run on the reflexes** (about $0.35), before the paid run: the reflexes
+   haven't been in a team run. Then the key check for the Claude models (about a cent).
 2. **The owner's finetuning, then the paid run:** the mixed team (Opus, Sonnet, Luna) on `team-base`,
    about $12, capped with `BUDGET_USD`, with the minds panel (`npm run minds`, :3010) and `VIEW=on`;
    `--progress on` as its own condition after.
-3. **Not pushed:** the owner pushes `main` (which also redeploys the site).
+3. **Candidates from bpoc3, not started:** where animals were last seen (the agent's own sightings and
+   its teammates'), as a fact in the observation, since sheep were never found; and the tbase3 `give`
+   timeout to a teammate inside the closed home (cause unknown; worth a live repro).
+4. **Not pushed:** the owner pushes `main`. The branch `worktree-goals-section` was pushed to GitHub by
+   mistake and is merged into `main`; it can be deleted from GitHub.
 
 ## Setting up a new machine
 

@@ -31,6 +31,7 @@ Agents trust what they are told, answer requests but not needs, and interrupt ea
 - **Requests, not needs:** 31 of 35 hand-overs followed a request; design needs into explicit requests ([shared state](../../lessons.md#shared-state-between-agents)).
 - **Shared state is distributed state:** one rule for everyone, published on a clock, or agents disagree and act twice ([shared state](../../lessons.md#shared-state-between-agents)).
 - **Messages cost:** teammates' messages broke off work nearly as often as threats; questions worked, orders didn't ([shared state](../../lessons.md#shared-state-between-agents)).
+- **Reflexes for the seconds the model can't act:** nine deaths came while a model was still deciding to run; a step-back in code holds health where standing still lost three-quarters of it ([control loop](../../lessons.md#the-control-loop)).
 - **The improvement loop**, with every fix beside the same problem in real systems, is [at the end](#how-this-testbed-gets-better-from-where-the-agents-get-stuck) ([improvement loop](../../lessons.md#the-improvement-loop)).
 
 ## In short
@@ -554,6 +555,80 @@ Report: [tlunap1](../batch-reports/2026-10-23-2139-tlunap1.md).
   what it holds every 2 seconds (checked live: 2 s after a give, mid-skill).
 - `smelt` said "the run is ending" when an interrupt stopped its furnace craft mid-run. Not fixed.
 
+## A proof run on the doorway fix (bpoc3)
+
+*Three GPT-6 Luna agents, one rep, 26 October, on 79af053: tlunap1's settings without the progress
+list (as the mixed paid run will have), after two changes: a shelter's line in the observation names
+the hostile mobs at its doorway, and going in stops short of them and says why. Also `smelt`'s
+interrupt message. $0.34 (capped at $0.50 an agent). A proof run, so no published report; one rep, so
+it compares with tlunap1 loosely.*
+
+| Part | tlunap1 rep 1 | rep 2 | rep 3 | bpoc3 |
+|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | 1 of 3 | 0 of 3 | 1 of 3 | 0 of 3 |
+| Everyone holds an iron pickaxe | 0 | 0 | 0 | 0 |
+| Food left in store | **10** | **10** | **10** | 0 |
+| Deaths | 14 | 61 | 11 | 17 |
+
+**Told the doorway was crowded, they mostly stayed out.**
+- 42 observations named mobs at a shelter's doorway. The agent chose to go in anyway 5 times, and
+  the tool stopped short 7 times, three of them for a drowned at a shelter beside water.
+- Their reasons show the line being read: "the nearest shelter has a skeleton at its doorway; flee to
+  avoid being killed before regrouping"; "the shelter doorway is blocked by a spider and there is also
+  a nearby creeper; avoid another fatal approach while asking lb to clear the entrance".
+- A hit stopped the way in 2 times in 99 shelter calls (tlunap1: 32 in 179), and an agent died within
+  two decisions of one 10 times in 99 (tlunap1: 38 in 179). One rep, so a direction, not a size.
+
+**Every death undid work, and dying is what they spent their time avoiding.**
+- **Beds:** wool was gathered three times, and each time lost in a death before a bed was made.
+- **Iron:** la made the team's only iron pickaxe on day 3 and died with it five game-minutes later.
+- **Food:** cooked meat moved forward 22 times and back 14: dropped in deaths, eaten, and given to
+  keep a teammate alive: la, at under half a point of health, asked for food ("Can you bring me food immediately"),
+  and lb gave it all ("La is at critical health and explicitly needs food; deliver all four cooked
+  beef immediately"). Keeping a teammate alive beat keeping the store, and nothing was ever stored.
+- **Time:** keeping safe took 30% of the team's game time; 22% came to nothing.
+
+**Where they died: while thinking, and while running away from home.** Of 17 deaths:
+- **9 came while the model was deciding.** In the 7 where it was choosing to flee, the agent was
+  already at 2–8 health with a monster 0–12 blocks away (0–2 in five of them), and the decision took
+  2–7 seconds, through which the body stood still. The other two were choosing to craft and to hunt.
+- **7 came during a flee.** Fleeing meant running straight away from the mobs: four died 64–76 blocks
+  from the home, in the dark, two of them to drowned by a lake they had run to. Five of the seven
+  got 0–2 blocks before they were caught; one ran 21 blocks across open ground and was shot.
+- **1 came while building.**
+- Fleeing was their answer to nearly every threat: 141 times with a hostile in view, against no
+  fight with a monster at all. Most were unarmed (101 of 141 held no sword or axe) and outnumbered
+  (79 had two or more hostiles in view), so that was a sound choice; the tool's direction was the problem.
+
+**They looked for what wasn't there.**
+- **The chest:** the goal asks for meat in a chest, and the agents looked for one ten times ("Check
+  the shelter chest for the required cooked meat"), told each time "no chest within 32 blocks". lc
+  crafted one and never put it down. Nobody placed a chest all run.
+- **Sheep:** our herd of six stood untouched about 50 blocks south of the home, with 29 sheep in the
+  world. lc hunted for sheep from the home five times, each time "no sheep within 32 blocks", and no
+  sheep appeared in any of its observations. la saw sheep twice, but a sighting leaves the agent's
+  view when the animal does, and its teammates never heard of it.
+
+**Working together:** every question was answered (14 of 14); 4 of 14 instructions were followed at
+the next decision. lc gathered logs and gave 47 of them to lb, who built the home.
+
+**Where our code, not the agents, decided the outcome:**
+- The body stood still while the model decided (9 deaths, 7 of them choosing to flee). Fixed: while it decides, the agent steps
+  back from any hostile within reach, and the next observation says so (`src/agents/src/reflexes.ts`).
+  Checked live: beside two zombies for 10 seconds, health fell from 20 to 5 standing still and stayed
+  at 20 with the step-back.
+- `flee` ran straight away from the mobs, whatever lay that way (7 deaths). Fixed: it runs into a known
+  shelter on the far side from the mobs when there is one with a clear doorway, and otherwise turns
+  aside rather than end in, or cross, water or a drop. Checked live: it got into a shelter 20 blocks
+  off with zombies behind it, and turned away from a lake in its path (a first version checked only
+  where the run ended, and still swam the lake to get there).
+- With no logs written (the first try, on an expired key), the end-of-run report printed tlunap1's
+  rows under bpoc3's name. Fixed: it says there is nothing to report.
+- Not ours to fix in code, and left as their behaviour: never placing the chest, and eating the store
+  to save a teammate. Where animals were last seen is information a player would remember, and is a
+  candidate for the observation (not done yet).
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -587,6 +662,8 @@ working on real systems, such as support desks, IT operations and business tools
 | Read "flee success" beside "you died" (39 deaths) | A long-running action kept going after the thing it acted for was gone, then reported on what it found | A death ends the action, reported as "you died" | A job that loses its session mid-run, carries on against a fresh one, and reports success |
 | Two teammates told to sleep in two different homes | A shared status computed separately per agent, with a tie broken by each one's own view | One rule for everyone: most slept in, then first finished | Each instance of a service computing "the primary" for itself, so they disagree when it matters |
 | Gave a teammate a second, last pickaxe on "lb carries no iron_pickaxe", 16 s after the first | A shared view refreshed only when each member finished its own work | Each agent reports what it holds every 2 seconds | A cache or replica serving stale state right after a write, so the next action is taken twice |
+| Died while its model was still choosing to run (9 deaths) | The body did nothing during the seconds a decision takes | It steps back from any monster in reach while the model decides, and is told it did | A safety-critical response waiting on a slow planner, when a simple rule could act at once and report |
+| Fled away from home into a lake and drowned (7 deaths in a flee) | An escape action optimised "away from danger", not "toward safety" | It runs into a known shelter when one lies away from the danger, and steers off water | A failover that moves load away from a failing node onto whatever is next, including a worse one |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**
