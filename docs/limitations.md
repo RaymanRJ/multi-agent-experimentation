@@ -260,8 +260,6 @@ building on it.
   and respawned". Before, the skill ran on from the respawn point: 39 of tlunap1's 86 deaths came in
   a `flee` that then reported success. A death while the model is deciding (25 in tlunap1, with a
   median of about 3 seconds to decide) is still only seen in the next observation's events.
-- **`smelt` can say "the run is ending" when it isn't.** If an interrupt stops the furnace craft
-  inside `smelt`, the craft's generic stop reason comes through (tlunap1 rep 3, in daylight). Not fixed.
 - **CI runs no game.** Pull requests are checked by unit tests only. The skills' real
   behaviour is checked by hand with `src/agents/scripts/skill-smoke.sh`, and by the batches.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to

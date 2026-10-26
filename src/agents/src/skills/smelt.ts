@@ -103,7 +103,8 @@ export const smelt: Skill = {
     }
 
     const furnaceBlock = await ensureFurnace(ctx);
-    if (typeof furnaceBlock === "string") return { status: "failed", reason: furnaceBlock };
+    // An interrupt that stopped the furnace craft is an interrupt, not a failure: the agent then tells the model why.
+    if (typeof furnaceBlock === "string") return { status: ctx.shouldStop() ? "aborted" : "failed", reason: furnaceBlock };
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
 
     const sourceId = bot.registry.itemsByName[source]!.id;
@@ -138,7 +139,7 @@ export const smelt: Skill = {
 
     const total = countInventory(bot)[product] ?? 0;
     const madeNow = total - startedWith;
-    if (madeNow <= 0) return { status: "failed", reason: `the furnace produced no ${product}`, detail: { total } };
+    if (madeNow <= 0) return { status: ctx.shouldStop() ? "aborted" : "failed", reason: `the furnace produced no ${product}`, detail: { total } };
     if (madeNow < count) {
       return {
         status: ctx.shouldStop() ? "aborted" : "failed",
