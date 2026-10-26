@@ -254,8 +254,9 @@ building on it.
   stop it at all. In bpoc2, 7 entries were stopped by a hit (4 of those agents fled and never went
   back in) and 3 by a message. The floor of 6 can leave too little to get away on: in tlunap1 rep 2
   a crowd of mobs stood at the doorway of a holed base, and an agent coming back from the dead was
-  hit down to 5 on the way in, fled and died, six times in one night. Where to set the floor, and
-  whether the agent should be told the doorway is crowded, is open.
+  hit down to 5 on the way in, fled and died, six times in one night. Since 26 October the shelter's line
+  names hostile mobs within 8 blocks of its doorway, and going in stops short of them and says why;
+  the floor of 6 is unchanged. Not yet seen in a team run.
 - **A death ends the skill it happens in (since 23 October),** reported as "interrupted: you died
   and respawned". Before, the skill ran on from the respawn point: 39 of tlunap1's 86 deaths came in
   a `flee` that then reported success. A death while the model is deciding (25 in tlunap1, with a

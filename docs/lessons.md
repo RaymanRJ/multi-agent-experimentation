@@ -80,7 +80,8 @@ word is paid for on every call, and true, because the agent believes it.
   shown.
   *Evidence:* agents went home to a doorway crowded with monsters because hostiles were listed only
   within 24 blocks of the agent and the home's line said nothing of them; of 38 entries where an
-  agent was hit, 7 got in. ([next steps](next-steps.md) records it; not yet changed)
+  agent was hit, 7 got in. Now the home's line names the mobs at its doorway, and the tool for going in
+  stops short of them and says why. ([limitations](limitations.md); not yet seen in a team run)
 - **Tell the agent who it is.** Without its own name, an agent addresses itself.
   *Evidence:* agents tried to hand things to themselves and ask themselves questions until the prompt
   named them. ([next steps](next-steps.md), team run trio3)

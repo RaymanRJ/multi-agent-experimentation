@@ -1,7 +1,7 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 23 October 2026.*
+*Last updated 26 October 2026.*
 
 **21 October: the experiment moved to `src/agents/`.** Everything that runs (code, scripts, Docker,
 `package.json`) is there, and every command runs from there; the root keeps the docs, README,
@@ -21,36 +21,36 @@ with `src/agents/scripts/publish-reports.sh` puts it on the site at the next dep
 shows the README's control-loop diagram, read from the README. The Terraform is applied and the
 repository secrets are set, so a push to `main` deploys the site. Agentic work resumed on 23 October.
 
-## Next session (set 23 October)
+## Next session (set 26 October)
 
-1. **Reframe the docs and site around building agentic systems: done 24 October, on branch
-   `worktree-site-reframe`, not pushed.** `docs/lessons.md` holds the lessons by component, each
-   write-up opens with "What this teaches about building agents", and the site is renamed "Building
-   agents": the home page leads with six lesson cards, Lessons is in the nav, Findings is "Case
-   studies", How it works is "How it's built", and Results and each batch report show the covering
-   write-up's lesson. Batch reports themselves are unchanged (they are generated). A new write-up
-   should open with the same section. The original ask, for the record (the owner's words:
-   "the goal here is to learn how agentic systems can be built and tooling needed; our reports and
-   website all feel too game-focussed still"). Proposed, and the owner said it is good: a new
-   `docs/lessons.md` organised by system component — tools (results must be true), observations and
-   context (what is cut off or out of range), shared state between agents (one truth, fresh), the
-   control loop (model out of the fast loop, events, reflexes), evaluation (seeds, budgets, baseline,
-   logged decisions), and the improvement loop — each lesson in domain-neutral words with the game as
-   one-line evidence. The site's home page leads with it and its findings become lessons for
-   builders; write-ups and batch reports become the evidence, each opening with what it teaches about
-   building agents. Open question for the owner: start with `lessons.md` and the home page and leave
-   the write-ups for later?
-2. **The owner's finetuning, then the paid run** (24 October, after an Anthropic top-up): the mixed
-   team (Opus, Sonnet, Luna) on `team-base` on the fixed code, about $12, capped with `BUDGET_USD`,
-   with the minds panel (`npm run minds`, :3010) and `VIEW=on`.
-3. **Doorway deaths, investigated, no change yet (the owner's call).** In tlunap1, 32 shelter entries
-   were stopped by a hit (health 6 or less) and 22 of those agents died within two decisions; of 38
-   entries where the agent was hit, 7 got in. Agents chose to go home with no hostile in view (median
-   0 within 16 blocks): hostiles are listed only within 24 blocks of the agent, and a shelter's line
-   says nothing of mobs at it. So the gap is information, not the damage floor. Options: say in the
-   shelter's line when mobs are at its doorway (information, first choice), or have `build_shelter`
-   stop short of a crowded doorway and say why (tool).
-4. **Not pushed:** `main` holds everything to here; the owner pushes (which also redeploys the site).
+Done on 26 October, on local `main`, not pushed:
+- **The site reframe is merged** (the owner's choice: everything but the newest-first Results and the
+  Timeline). `docs/lessons.md` holds the lessons by system component, each write-up opens with "What
+  this teaches about building agents", and the site is "Building agents": six lesson cards on the
+  home page, Lessons in the nav, "Case studies", "How it's built". Results stays oldest first, in
+  chapters under the overview. A new write-up opens with the same section.
+- **Doorway deaths: both fixes.** A shelter's line in the observation names hostile mobs within 8
+  blocks of its doorway (", with a zombie at its doorway"), and going into a shelter (`build_shelter`,
+  `sleep`) stops short of them and says why. Checked live: a zombie 4 blocks from the doorway at night,
+  the agent stayed put at health 20; with it gone, it went in and closed the doorway.
+- **`smelt`** reports an interrupt while it makes the furnace as aborted, so the model hears the real
+  reason, not "the run is ending".
+- **Dependencies:** the site's mermaid is 12.2.0 (KaTeX 0.18.10, Dependabot #3); the agents pin uuid
+  11.1.1 (Dependabot #2) and take body-parser 1.20.9. `npm audit` is clean in both. A scripted agent
+  with the viewer joined a test server on the new packages. Not checked in a browser: the How it's
+  built diagram under mermaid 12.
+- Old worktrees and branches removed.
+
+Next, in order:
+1. **Before the paid run (proposed 26 October, waiting on the owner):** a three-Luna proof run on
+   `team-base` (about $0.30, as bpoc and hpoc were), since the doorway change and the 2-second team
+   state have not been in a team run; and one call per Claude model to check the key and credit
+   (about a cent). Also open: `give` to a teammate inside the closed home timed out from 22 blocks in
+   tbase3, cause unknown; hand-overs carried tbase4, so a live repro on a test server is worth doing.
+2. **The owner's finetuning, then the paid run:** the mixed team (Opus, Sonnet, Luna) on `team-base`,
+   about $12, capped with `BUDGET_USD`, with the minds panel (`npm run minds`, :3010) and `VIEW=on`;
+   `--progress on` as its own condition after.
+3. **Not pushed:** the owner pushes `main` (which also redeploys the site).
 
 ## Setting up a new machine
 
