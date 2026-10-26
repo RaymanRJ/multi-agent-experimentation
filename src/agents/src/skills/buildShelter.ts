@@ -490,7 +490,7 @@ export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promis
         ok: false,
         result: {
           status: "failed",
-          reason: `did not go to ${describeShelter(spot)}${owner} at ${spotKey(spot)}: ${mobList(atDoor)} ${atDoor.length === 1 ? "is" : "are"} within ${DOORWAY_RANGE} blocks of its doorway, and getting in means opening the doorway beside them`,
+          reason: `did not go to ${describeShelter(spot)}${owner} at ${spotKey(spot)}: ${mobList(atDoor)} ${atDoor.length === 1 ? "is" : "are"} within ${DOORWAY_RANGE} blocks of its doorway, and getting in means opening the doorway beside ${atDoor.length === 1 ? "it" : "them"}`,
           detail: { shelter: spotKey(spot), hostilesAtDoorway: atDoor },
         },
       };
