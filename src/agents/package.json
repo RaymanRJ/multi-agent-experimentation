@@ -24,6 +24,9 @@
     "prismarine-viewer": "^1.33.0",
     "rcon-client": "^4.2.4"
   },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "devDependencies": {
     "@types/minimist": "^1.2.5",
     "@types/node": "^22.10.2",
