@@ -12,6 +12,15 @@ Generated report: [batch-reports/2026-10-20-0930-thome1.md](../batch-reports/202
 > cooked meat in a chest. It does not matter who does what. The episode ends by itself once the
 > team has all of that.
 
+## What this teaches about building agents
+
+In a team, honest tool messages and honest reports matter as much as alone, and state that lives in one agent is lost with it.
+
+- **Honest results:** `flee` told agents they were cornered after they had escaped, 16 times in one run ([tools](../../lessons.md#tools)).
+- **Honest reports:** the report counted a teammate saying "I respawned" as a death ([evaluation](../../lessons.md#evaluation)).
+- **State in one place:** iron was made, kept by whoever mined it, and lost when it died; what was stored in the shared chest was what survived ([shared state](../../lessons.md#shared-state-between-agents)).
+- **Roles without a plan:** each agent took a role unasked, but no team settled who would do what before the first night ([shared state](../../lessons.md#shared-state-between-agents)).
+
 ## In one paragraph
 
 No rep met the goal. Every team built the shelter. Two of three left 10 cooked meat in a chest,

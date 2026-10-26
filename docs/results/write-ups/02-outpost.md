@@ -4,6 +4,16 @@
 Every number here comes from logged runs (`npm run report -- --by condition --batch bN`), and
 every failure was read from its log.*
 
+## What this teaches about building agents
+
+A baseline with no model in it tells you whether a failure is the harness or the model, and the slow parts of an agent (context, decisions) are a cost in a world that doesn't wait.
+
+- **Baseline:** the scripted agent met the goal 5 of 6 times on the same tools the model failed with, so the question was the model ([evaluation](../../lessons.md#evaluation)).
+- **Say what is still open:** listing the goal's open parts got the model to try the step it had skipped in 6 runs of 9, against 3 ([observations](../../lessons.md#observations-and-context)).
+- **Context costs time:** resending the whole conversation took decisions from 4–5 seconds to 21, and filled the window until the model gave up ([observations](../../lessons.md#observations-and-context)).
+- **Reflexes and notices:** an agent died during a 2.3-second decision; a looping model ignored 290 of 293 notes that it was repeating itself ([control loop](../../lessons.md#the-control-loop)).
+- **Check the checker:** one success was a bug in our goal check, and most "under water" alarms came from a library bug ([evaluation](../../lessons.md#evaluation)).
+
 ## In one paragraph
 
 The outpost goal is much harder than the earlier ones, and the small model mostly fails it. The

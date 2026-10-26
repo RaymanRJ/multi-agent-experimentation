@@ -4,6 +4,14 @@
 Every number here comes from logged runs (`npm run report -- --by condition --batch b13`), and
 every failure was read from its log.*
 
+## What this teaches about building agents
+
+An error message that names the next tool gets followed; one that doesn't gets retried.
+
+- **Actionable errors:** "smelted from raw_iron, not crafted" sent the model to mine ore; "need 3 more cobblestone", naming no tool, was retried 4–16 times ([tools](../../lessons.md#tools)).
+- **Rules leak:** a safety rule the baseline needed in a dangerous world cost it half its run in a safe one ([evaluation](../../lessons.md#evaluation)).
+- **Refusals must be true:** "could not be reached" on ore a few blocks away, left uninvestigated here, later turned out to be a tool bug that starved whole team runs ([tools](../../lessons.md#tools)).
+
 ## In one paragraph
 
 For the first time the `iron` goal was met in a full run: twice, both by the model with

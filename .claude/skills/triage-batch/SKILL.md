@@ -48,6 +48,13 @@ they handle the unexpected while keeping the goal in mind, and how did they work
 one another? Model with `write-ups/06-team-base.md`, the owner's chosen style ("not perfect, but
 better than before": keep improving it):
 
+- **It opens with what it teaches about building agents** (the owner's ask, 23 October: "the goal
+  here is to learn how agentic systems can be built"). Right after the italic note, a section
+  `## What this teaches about building agents`: one sentence (the site shows it on Case studies,
+  Results and the batch reports, so it must stand alone), then 3–5 bullets in domain-neutral words,
+  each linking to its part of `docs/lessons.md` (tools, observations and context, shared state,
+  control loop, evaluation, improvement loop). A new lesson goes into `docs/lessons.md` too, with
+  one line of evidence.
 - **Headings are behaviours.** For example: how they organised; keeping the goal in view; meeting
   the unexpected; working together, and in each other's way. For a single agent, drop the last.
 - **Findings are stated as behaviours**, such as "roles became silos" or "they trusted what they
@@ -71,6 +78,9 @@ better than before": keep improving it):
 - **The frame:**
   - `docs/results/write-ups/`: a new topic gets the next number and a row in
     `docs/results/README.md`; a new batch on an old topic gets a section in that topic's write-up.
+  - The site's Results page tells every batch as a story (`src/site/content/story.ts`): add the batch
+    to its chapter (or a new chapter with its question and lesson) with one line on what it showed and,
+    once fixes follow, one line on what was changed after it. Until then it shows as "Not yet written up".
   - In italics: batch, dates, models and conditions, **the commit it ran on**, total cost, and
     whether it is comparable with earlier batches.
 - **Every claim is checked against the logs before committing.** Numbers come from the reports and

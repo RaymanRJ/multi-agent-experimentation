@@ -19,7 +19,7 @@ export interface Chapter {
   /** What the chapter set out to find. */
   question: string;
   runs: StoryRun[];
-  /** What it taught about building agents; the anchor is its section in docs/lessons.md, once that doc is on main. */
+  /** What it taught about building agents, and where in docs/lessons.md. */
   lesson: { text: string; anchor: string };
 }
 

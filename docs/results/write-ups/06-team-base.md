@@ -23,6 +23,16 @@ Generated report, with every number below: [batch-reports/2026-10-20-2133-tbase1
 This write-up is about how they behaved: how they organised, whether they kept the goal in view,
 how they met the unexpected, and how they helped or hindered each other.
 
+## What this teaches about building agents
+
+Agents trust what they are told, answer requests but not needs, and interrupt each other; fixing tools and information moved the same team from one or two parts of the goal to three.
+
+- **They trust the summary:** a home reported "closed" with a monster inside, a health rounded to 0, a progress list over their own last action ([observations](../../lessons.md#observations-and-context)).
+- **Requests, not needs:** 31 of 35 hand-overs followed a request; design needs into explicit requests ([shared state](../../lessons.md#shared-state-between-agents)).
+- **Shared state is distributed state:** one rule for everyone, published on a clock, or agents disagree and act twice ([shared state](../../lessons.md#shared-state-between-agents)).
+- **Messages cost:** teammates' messages broke off work nearly as often as threats; questions worked, orders didn't ([shared state](../../lessons.md#shared-state-between-agents)).
+- **The improvement loop**, with every fix beside the same problem in real systems, is [at the end](#how-this-testbed-gets-better-from-where-the-agents-get-stuck) ([improvement loop](../../lessons.md#the-improvement-loop)).
+
 ## In short
 
 - **They answer requests, not needs** (the clearest finding; next section). An agent handed

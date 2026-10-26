@@ -5,11 +5,11 @@ export function Findings() {
   return (
     <main>
       <header className="page-head">
-        <h1>Findings</h1>
+        <h1>Case studies</h1>
         <p className="lede">
-          Each write-up reads one set of runs from their logs: how the agents behaved toward the goal, how
-          they handled the unexpected, how they helped or hindered each other, and what in our own code
-          got in their way. Newest first.
+          Each write-up reads one set of runs from their logs. It opens with what those runs teach about building
+          agents, then gives the evidence: what the agents did toward the goal and away from it, how they met the
+          unexpected and each other, and what in our own code got in their way. Newest first.
         </p>
       </header>
       <ol className="write-ups">
@@ -19,6 +19,7 @@ export function Findings() {
               <span className="number">{w.number}</span>
               <span>
                 <strong>{w.title}</strong>
+                {w.lesson && <span className="lesson">{w.lesson}</span>}
                 {w.note && <span className="note">{w.note}</span>}
               </span>
             </a>
@@ -26,7 +27,8 @@ export function Findings() {
         ))}
       </ol>
       <p className="muted">
-        The numbers behind each are in the <a href={HASH.results}>batch reports</a>, built from the logs by code.
+        The lessons drawn from all of them are in <a href={HASH.lessons}>one place</a>. The numbers behind each are
+        in the <a href={HASH.results}>batch reports</a>, built from the logs by code.
       </p>
     </main>
   );

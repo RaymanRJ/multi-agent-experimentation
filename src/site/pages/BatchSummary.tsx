@@ -35,10 +35,16 @@ export function BatchSummary({ batch, title }: { batch: Batch; title: string }) 
           <span>tokens in{batch.tokensOut ? `, ${batch.tokensOut} out` : ''}</span>
         </div>
       </div>
+      {writeUp?.lesson && (
+        <p className="lesson-line">
+          <strong>What these runs teach about building agents:</strong> {writeUp.lesson}
+        </p>
+      )}
       <OutcomeBar batch={batch} />
       {writeUp && (
         <p>
-          What these runs mean: <a href={HASH.doc(writeUp.path)}>{writeUp.title}</a>.
+          The evidence, read from the logs: <a href={HASH.doc(writeUp.path)}>{writeUp.title}</a>. All the lessons:{' '}
+          <a href={HASH.lessons}>lessons for building agents</a>.
         </p>
       )}
       {batch.conditions.length > 0 && (

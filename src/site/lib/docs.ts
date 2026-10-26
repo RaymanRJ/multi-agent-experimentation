@@ -1,8 +1,12 @@
 import { Marked } from 'marked';
+import { lessonOf } from './batches';
 import { HASH } from './route';
 
 /** The public repository; links from the docs to code open it on GitHub. */
 export const REPO = 'https://github.com/RaymanRJ/multi-agent-experimentation';
+
+/** The site's name, in the header and every page title. */
+export const SITE = 'Building agents';
 
 // Every doc in the repository's docs/, read when the site is built: one small chunk each, loaded when
 // opened. next-steps.md is working notes for whoever works on the repo, not for readers.
@@ -36,6 +40,8 @@ export interface WriteUp {
   title: string;
   /** The italic note under the title: which batches, when, on what. */
   note: string;
+  /** What it teaches about building agents, in a sentence. */
+  lesson: string;
 }
 
 /** The write-ups, newest first. */
@@ -44,7 +50,13 @@ export const writeUps: WriteUp[] = Object.entries(writeUpText)
     const path = docKey(file);
     const title = /^#\s+(.+)$/m.exec(text)?.[1]?.trim() ?? path;
     const italic = /^\*([^*][\s\S]*?)\*\s*$/m.exec(text)?.[1] ?? '';
-    return { path, number: /(\d+)-/.exec(path)?.[1] ?? '', title, note: italic.replace(/\s+/g, ' ').trim() };
+    return {
+      path,
+      number: /(\d+)-/.exec(path)?.[1] ?? '',
+      title,
+      note: italic.replace(/\s+/g, ' ').trim(),
+      lesson: lessonOf(text),
+    };
   })
   .sort((a, b) => b.number.localeCompare(a.number));
 

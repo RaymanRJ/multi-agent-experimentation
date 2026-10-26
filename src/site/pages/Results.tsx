@@ -106,7 +106,8 @@ function ChapterSection({ chapter, index, last }: { chapter: Chapter; index: num
         <footer className="chapter-end">
           {chapter.lesson.text && (
             <p>
-              <strong>What it taught:</strong> {chapter.lesson.text}
+              <strong>What it taught:</strong> {chapter.lesson.text}{' '}
+              <a href={HASH.doc('lessons', chapter.lesson.anchor)}>The lesson →</a>
             </p>
           )}
           {writeUp && (
