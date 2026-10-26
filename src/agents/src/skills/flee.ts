@@ -4,7 +4,8 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, opensOnClick, withTimeout } from "./util.js";
-import { isBuildingBlock } from "./buildShelter.js";
+import { describeShelter, enterShelter, half, hostilesAtDoorway, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
+import { retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -14,6 +15,8 @@ const LEG_TIMEOUT_MS = 8_000;
 const MAX_LEGS = 5;
 const MAX_FAILED_LEGS = 2;
 const PLACE_TIMEOUT_MS = 4_000;
+/** How far flee will run to a known shelter rather than into the open. */
+export const REFUGE_RANGE = 40;
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 const FACES = [...SIDES, new Vec3(0, 1, 0), new Vec3(0, -1, 0)];
 
@@ -62,6 +65,30 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
   return { placed, open: enclosure(feet).filter(isOpen).length, noBlocks };
 }
 
+/**
+ * A shelter to run into rather than away into the open: one that stands, that the agent isn't in,
+ * within REFUGE_RANGE of the cell in front of its doorway, on the side away from the mobs, and with
+ * no hostile at its doorway. Nearest first. In bpoc3, 7 of 17 deaths came during a flee, four of them
+ * 55-70 blocks from the team's home, in the dark or in a lake, after running straight away from it.
+ */
+export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[]): ShelterSpot | null {
+  if (threats.length === 0) return null;
+  const here = bot.entity.position;
+  const cx = threats.reduce((sum, e) => sum + e.position.x, 0) / threats.length;
+  const cz = threats.reduce((sum, e) => sum + e.position.z, 0) / threats.length;
+  const [ax, az] = [here.x - cx, here.z - cz];
+  const options = shelters
+    .filter((spot) => !insideSpot(bot, spot) && standing(bot, spot) && hostilesAtDoorway(bot, spot).length === 0)
+    .map((spot) => {
+      const front = new Vec3(spot.x + 0.5, spot.y, spot.z + half(spot.size ?? 3) + 1.5);
+      const [fx, fz] = [front.x - here.x, front.z - here.z];
+      return { spot, d: here.distanceTo(front), away: ax * fx + az * fz > 0 };
+    })
+    .filter(({ d, away }) => d <= REFUGE_RANGE && away)
+    .sort((a, b) => a.d - b.d);
+  return options[0]?.spot ?? null;
+}
+
 function hostilesNear(ctx: SkillContext, radius: number): Entity[] {
   return Object.values(ctx.bot.entities).filter(
     (e): e is Entity => !!e && e.type === "hostile" && e.position.distanceTo(ctx.bot.entity.position) <= radius,
@@ -71,8 +98,10 @@ function hostilesNear(ctx: SkillContext, radius: number): Entity[] {
 export const flee: Skill = {
   name: "flee",
   description:
-    "Run directly away from nearby hostile mobs (the centre of those within 16 blocks). " +
-    "Takes `distance` — how far to run (clamped 8-64). Succeeds when no hostile is within 12 blocks or the distance is covered; " +
+    "Get away from nearby hostile mobs (those within 16 blocks). If a shelter you know (yours or another agent's) stands within " +
+    `${REFUGE_RANGE} blocks on the side away from them, with no hostile at its doorway, you run into it and its doorway is closed behind you. ` +
+    "Otherwise you run directly away from them, turning aside rather than into water or off a drop. " +
+    "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks or the distance is covered; " +
     "succeeds immediately with `no threat` if no hostile is within 16. Returns new position and how many hostiles remain within 12. " +
     "If there is no path away (cornered, in a pit or a cave), it walls you in where you stand with blocks you carry " +
     "(dirt, cobblestone, planks) so mobs can't reach you; wait there, then carry on — any later move digs back out. " +
@@ -84,6 +113,23 @@ export const flee: Skill = {
     const start = ctx.bot.entity.position.clone();
     if (hostilesNear(ctx, THREAT_RADIUS).length === 0) {
       return { status: "success", detail: { note: "no threat" } };
+    }
+
+    // Somewhere safe to run to beats running into the open.
+    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS));
+    if (home) {
+      const entered = await enterShelter(ctx, home);
+      const owner = home.by && home.by !== ctx.bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
+      if (entered.ok) {
+        const here = ctx.bot.entity.position;
+        return {
+          status: "success",
+          reason: `ran into ${describeShelter(home)}${owner} at ${spotKey(home)}, ${entered.closed ? "and its doorway is closed behind you" : "but its doorway is open: no building block left to close it"}`,
+          detail: { position: { x: Math.round(here.x), y: Math.round(here.y), z: Math.round(here.z) }, shelter: spotKey(home), doorwayClosed: entered.closed },
+        };
+      }
+      if (entered.result.status === "aborted") return entered.result;
+      ctx.log(`could not get into the shelter at ${spotKey(home)} (${entered.result.reason}); running instead`);
     }
 
     const covered = () => Math.hypot(ctx.bot.entity.position.x - start.x, ctx.bot.entity.position.z - start.z);
@@ -120,17 +166,15 @@ export const flee: Skill = {
       const threats = hostilesNear(ctx, THREAT_RADIUS);
       if (threats.length === 0 || (leg > 0 && hostilesNear(ctx, SAFE_RADIUS).length === 0)) break;
 
-      const here = ctx.bot.entity.position;
-      const centroid = threats.reduce(
-        (c, e) => ({ x: c.x + e.position.x / threats.length, z: c.z + e.position.z / threats.length }),
-        { x: 0, z: 0 },
-      );
-      const dx = here.x - centroid.x;
-      const dz = here.z - centroid.z;
-      const length = Math.hypot(dx, dz) || 1;
       const step = Math.max(10, Math.min(distance - covered(), 20));
-      const tx = Math.round(here.x + (dx / length) * step);
-      const tz = Math.round(here.z + (dz / length) * step);
+      // Straight away, or the nearest turn off it onto dry ground; with none, straight away anyway.
+      const here = ctx.bot.entity.position;
+      const centroid = threats.reduce((c, e) => ({ x: c.x + e.position.x / threats.length, z: c.z + e.position.z / threats.length }), { x: 0, z: 0 });
+      const length = Math.hypot(here.x - centroid.x, here.z - centroid.z) || 1;
+      const { x: tx, z: tz } = retreatPoint(ctx.bot, threats, step) ?? {
+        x: Math.round(here.x + ((here.x - centroid.x) / length) * step),
+        z: Math.round(here.z + ((here.z - centroid.z) / length) * step),
+      };
 
       const before = ctx.bot.entity.position.clone();
       let stuck = false;
