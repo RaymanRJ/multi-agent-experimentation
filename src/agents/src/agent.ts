@@ -8,6 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, DAMAGE_FLOOR, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { guardWhileDeciding } from "./reflexes.js";
 import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
@@ -490,10 +491,21 @@ async function main(): Promise<void> {
 
     const startedAt = Date.now();
     let output;
+    // The body keeps out of reach while the model thinks (reflexes.ts).
+    const guard = guardWhileDeciding(bot, inShelter);
+    const guarded = () => {
+      const did = guard.stop();
+      if (did) {
+        recentEvents.push(did);
+        stepEvents.push(did);
+      }
+    };
     try {
       output = await policy.decide(observation, skills);
+      guarded();
       policyFailures = 0;
     } catch (error) {
+      guarded();
       // A slow or unreachable model must not end the run. Log the failed step,
       // let the world tick on, and ask again — the timeout is itself data.
       const reason = `the brain failed to decide: ${error instanceof Error ? error.message : String(error)}`;
