@@ -38,8 +38,11 @@ const argv = minimist(process.argv.slice(2), {
   string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress", "team"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
-  default: { scenario: "sandbox", brain: "scripted", steps: 200, ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
+  default: { scenario: "sandbox", brain: "scripted", ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
 });
+// The step cap scales with the time budget, 200 decisions per in-game day, so it stays a safety cap:
+// a flat 200 ended bpoc4's lc and tlunap1's lb with game time left on a three-day run.
+if (argv["steps"] === undefined) argv["steps"] = Math.max(200, Math.ceil((200 * Number(argv["ticks"])) / 24000));
 
 const scenarioName = argv["scenario"] as ScenarioName;
 const scenario = SCENARIOS[scenarioName];
