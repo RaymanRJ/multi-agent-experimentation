@@ -207,10 +207,23 @@ export const sleep: Skill = {
       return { status: "failed", reason: `could not reach the bed at ${x},${y},${z}: ${(error as Error).message}` };
     }
 
+    // The game says why it refuses a bed over the hotbar ("You can sleep only at night"); mineflayer
+    // reports only that the bot isn't asleep. Keep what the game said while getting in (bpoc10: refused
+    // at 12603, inside mineflayer's hours, and the agent was told "did not say why").
+    let told = "";
+    const hear = (message: { toString(): string }) => {
+      const text = message.toString();
+      if (/sleep|rest|bed|monster/i.test(text)) told = text;
+    };
+    bot.on("actionBar", hear);
+    bot.on("message", hear);
     try {
       await bot.sleep(bedBlock);
     } catch (error) {
-      const message = (error as Error).message;
+      await bot.waitForTicks(5);
+      bot.removeListener("actionBar", hear);
+      bot.removeListener("message", hear);
+      const message = told ? `${(error as Error).message} ${told}` : (error as Error).message;
       const reason = /monster/i.test(message)
         ? "monsters nearby"
         : /day/i.test(message)
@@ -219,11 +232,15 @@ export const sleep: Skill = {
             ? "someone else got into the bed first — try sleep again for another bed"
           : /half bed/i.test(message)
             ? `the bed at ${x},${y},${z} is broken: only one half of it is there`
+          : told
+            ? `the game did not let you sleep in the bed at ${x},${y},${z}: "${told}"`
           : /not sleeping/i.test(message)
             ? `you lay down in the bed at ${x},${y},${z} but the game did not let you sleep, and did not say why`
           : `could not sleep: ${message}`;
       return { status: "failed", reason };
     }
+    bot.removeListener("actionBar", hear);
+    bot.removeListener("message", hear);
 
     // The game shows sleepers "1/3 players sleeping" over the hotbar; keep the last count it gave.
     let count: string | null = null;
