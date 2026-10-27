@@ -22,7 +22,8 @@ export interface Scenario {
  * blocks from spawn (8, 38); `y` is the ground there on this seed.
  */
 export const HERDS = [
-  { animal: "sheep", count: 6, x: 8, y: 76, z: 83 }, // south
+  // 12, not 6: three beds take 9 wool, and killing a sheep gives 1 (bpoc3-bpoc5 got 6-10 wool a run, all by killing).
+  { animal: "sheep", count: 12, x: 8, y: 76, z: 83 }, // south
   { animal: "cow", count: 4, x: 40, y: 70, z: 70 }, // south-east
   { animal: "pig", count: 4, x: -23, y: 76, z: 70 }, // south-west
   { animal: "chicken", count: 4, x: -34, y: 69, z: -4 }, // north-west

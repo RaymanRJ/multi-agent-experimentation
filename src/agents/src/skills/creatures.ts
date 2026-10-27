@@ -75,7 +75,7 @@ export const hunt: Skill = {
     "Attack and kill a creature or a player: `target` is a kind of animal or mob (cow, sheep, pig, chicken, zombie, " +
     "skeleton, spider…) or another agent's name, and `count` how many to kill (default 1, up to 5). Goes after the nearest " +
     `one within ${CREATURE_RANGE} blocks, with the best sword or axe you hold (bare hands otherwise, much weaker), then ` +
-    "picks up what it drops: meat to cook and eat, wool from a sheep, string from a spider. Stops when your health falls " +
+    "picks up what it drops: meat to cook and eat, wool from a sheep (1 for each sheep killed), string from a spider. Stops when your health falls " +
     `to ${RETREAT_HEALTH}, or when the target gets away. Returns how many were killed and what was picked up.`,
   args: { target: "string", count: "number?" },
 
