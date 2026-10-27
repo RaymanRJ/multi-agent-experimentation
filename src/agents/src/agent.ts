@@ -19,7 +19,7 @@ import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, mergeShelters, stillWorking, type ChestViews } from "./team.js";
-import { AnimalMemory, describeSightings } from "./sightings.js";
+import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
@@ -339,10 +339,17 @@ async function main(): Promise<void> {
   });
   // Where animals were seen, by this agent (looked for every 2 s) and, through the board, its teammates.
   const animalMemory = new AnimalMemory(agentName);
-  const lookTimer = setInterval(() => animalMemory.look(bot), 2000);
+  // And where ore was seen, which an explore walk or a cave passed by used to forget.
+  const oreMemory = new OreMemory(agentName);
+  const lookTimer = setInterval(() => {
+    animalMemory.look(bot);
+    oreMemory.look(bot);
+  }, 2000);
   const animalsSeen = () =>
     describeSightings(bot.entity.position, [...animalMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.sightings ?? [])], agentName);
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list() });
+  const oreSeen = () =>
+    describeOreSightings(bot.entity.position, [...oreMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.oreSightings ?? [])], agentName);
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list() });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -481,6 +488,7 @@ async function main(): Promise<void> {
       inShelter: inShelter(),
       shelters: sheltersInSight(),
       animalsSeen: animalsSeen(),
+      oreSeen: oreSeen(),
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
