@@ -210,6 +210,7 @@ export const chapters: Chapter[] = [
       {
         name: 'tbase5',
         showed: 'Yes, once: rep 1 met every part halfway through day 2 with no deaths, each agent owning a part. In reps 2 and 3 the iron in sight lay beside water, which mining refuses, and Opus spent its cost cap and left before the end.',
+        then: 'Digging stops only for a monster that can reach the agent; ore seen is remembered and shared; digging steps out from under gravel; every dig uses the cheapest tool that does the job. And, after the latest chapter of the longest-running problem, agents dying, flee digs in at night when monsters are still after the agent.',
       },
     ],
     lesson: { text: 'Cover the seconds the model can\'t act, and share what each agent sees: a capable team then finishes.', anchor: 'the-control-loop' },

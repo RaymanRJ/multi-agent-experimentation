@@ -153,6 +153,14 @@ Next, waiting on the owner:
    and agents came back to life among them. Nothing of ours caused it; left open whether to give agents
    a way to deal with a besieged home. Fixed: the report read a death's drops, gone a step late, as
    tools worn out. Written up in 06.
+   **Done (27 October, the owner's call): `flee` digs in.** When a monster keeps up, the agent is
+   still in danger after running, or at night a melee mob is still within 32 blocks, it digs three
+   blocks down and covers the hole, needing nothing carried; a dug-in or walled-in agent counts as
+   sheltered, so the reflexes leave it there. Checked live: from empty-handed, dug in in 3.6 s; 30 s
+   dug in among four zombies and a skeleton cost no health; fleeing three zombies at night, the old code
+   was killed in 2 of 3 tries and the new survived 10 of 11. The owner asked for the run of deaths
+   and fixes to be told as one story: 06 "The problem that kept coming back: staying alive", a lesson in
+   lessons.md, and the site's Results page. Next: a Luna proof run to see whether it closes the night gap.
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch

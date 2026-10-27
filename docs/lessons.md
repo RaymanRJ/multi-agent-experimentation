@@ -177,6 +177,13 @@ asked, what can interrupt it and what happens without it.
   is the goal.
   *Evidence:* agents fled straight away from monsters, away from their home and into a lake, and 7 of
   17 deaths came during a flee ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)).
+- **A failure that keeps coming back is a chain of gaps, closed one run at a time.** The agent's
+  choice can be right throughout while the structure behind it fails it in a new way each run.
+  *Evidence:* agents answered monsters by running in every run of the team goal. Deaths came, in turn,
+  from a home reported safe with a zombie inside, the body standing still while the model decided,
+  running away from home, a tool running on after the death, arrows, drowning, digging under gravel,
+  and a home besieged at night; each was answered in the tools and the next showed itself
+  ([06](results/write-ups/06-team-base.md#the-problem-that-kept-coming-back-staying-alive)).
 - **Give the agent honest ways out.** A way to say "done" that is checked, and a way to give up with
   a reason, both counted.
   *Evidence:* a premature "done" is refused once and told what is missing; a false claim of success

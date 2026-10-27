@@ -332,7 +332,7 @@ export const flee: Skill = {
         }
       }
       // A mob keeping up with the run: running on only gets the agent hit from behind (in bpoc8, 18 of
-      // 125 flees at night ended in a death). Stop and dig in.
+      // 124 flees at night ended in a death). Stop and dig in.
       if (caughtUp()) break;
     }
 

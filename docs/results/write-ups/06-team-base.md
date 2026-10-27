@@ -914,6 +914,51 @@ three tried to clear the doorway or wall off the crowd.
   A death's step can still show what it dropped, which then goes missing in the next step and was read
   as wear. Fixed: a loss right after a death is the death's, counted there.
 
+## The problem that kept coming back: staying alive
+
+Across every run of this goal, one thing undid more work than anything else: agents dying. Each
+death drops everything carried (wool for beds, the team's iron pickaxes, its food), and the agent
+comes back empty-handed. The agents' own answer barely changed from run to run: when a monster came,
+they ran, which was sound, since most were unarmed and outnumbered (bpoc3: 101 of 141 flees held no
+weapon). What changed, run after run, was the code behind that choice. Each fix closed one way of
+dying, and the next run showed the next one.
+
+| Run | Deaths (3 agents, 3 days) | How they died | What we changed after |
+|---|---|---|---|
+| tbase1 | 33 in 3 reps | 10 in 75 seconds in a home with a zombie inside, which the observation called closed and safe | The shelter's status checks for a monster inside and says so |
+| tbase4 | 28 | No beds, so they came back to life at the home's door, among the mobs: 11 deaths in three minutes | (where to build and sleep left to the agents) |
+| tluna1 | 42, 16, 9 | Rep 1's home stood on the spawn point: 28 of 42 deaths at it | (the same) |
+| tlunap1 | 14, 61, 11 | 39 of 86 came during a `flee` that ran on after the death and then reported success | A death ends any skill, reported as "you died" |
+| bpoc3 | 17 | 9 while the model was still deciding, the body standing still; 7 running straight away from home into the dark or a lake | Reflexes: step back from a monster while the model decides. `flee` runs into a known shelter and steers off water |
+| bpoc4 | 24 | Skeletons killed 12: stepping back doesn't take an agent out of bow range | A second reflex, taking cover from an archer that can see the agent; `flee` treats an archer in sight as danger, stays put inside a closed shelter, runs only to finished ones, up to 64 blocks |
+| bpoc5 | 22 | Deaths while deciding fell from 9 to 4. 12 came during a flee: at night, "clear" doesn't last | (not yet answered) |
+| bpoc6 | 8 | A drowning while the model decided, with the team's three iron pickaxes | The reflexes swim out too |
+| tbase5 | 0, 11, 9 | Rep 1, the first full goal, had none | (the deaths were not what stopped reps 2 and 3) |
+| bpoc7 | 2 | Both from our new `climb_out`: gravel fell onto the head it had just dug under | No digging out from under gravel or sand; a reflex digs out any block that lands on the head |
+| bpoc8 | 22 | Mobs camped at the home's doorway every night; 18 of 124 night flees ended in a death, and 13 of the 20 killed in a flee held too few blocks to wall themselves in, 8 none | `flee` digs in: three blocks down and one over the head, which needs nothing carried |
+
+**The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
+zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):
+- On the old code the bot ran about 20 blocks, stopped "clear" at 12, and was caught and killed in 2
+  of 3 tries.
+- On the new code it survived in 10 of 11 tries: 8 dug in, and twice it ran off the test platform's
+  edge and lived. Once it was killed, ending a block below where it started, so its dig apparently
+  stopped part-way; the cause didn't show again. Digging in took 3.6 seconds from empty-handed.
+- Dug in, 30 seconds with four zombies at the hole's edges and an armed skeleton nearby cost no health,
+  and the step-back reflex left it where it was.
+- The trigger took two tries to get right. Digging in only when still in danger by flee's own measure
+  (a monster within 12) never fired: the bot stopped "clear" and was killed, 3 of 3. Digging in at night
+  with a monster within 16 fired twice in 3, and the third time zombies just beyond 16 came back. Zombies
+  follow from about 35 blocks, so it checks 32.
+
+**What it teaches:** a failure that keeps coming back is rarely one bug. Here it was a chain of gaps
+between the agent's choice and the world: what the agent was told (a home "safe" with a zombie inside),
+the seconds it couldn't act (standing still while deciding), where its escape led (away from safety),
+what a tool did after the goal was gone (running on after death), what it couldn't answer (arrows,
+drowning), and what our own new tools caused (digging under gravel). The model's choice was right
+throughout; the structure around it had to catch up, one run at a time. Whether the burrow closes the
+night-time gap is for the next run to show.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
