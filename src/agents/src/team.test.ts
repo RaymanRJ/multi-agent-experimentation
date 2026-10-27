@@ -3,7 +3,26 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TeamBoard, combine, inChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+import { TeamBoard, chestChanges, combine, describeChests, inChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+
+test("describeChests - each chest as last seen by anyone, nearest first, with who and when (bpoc10)", () => {
+  const now = 1_000_000_000;
+  // lb and lc saw 10 porkchops; la, later, saw the chest empty after taking them.
+  const lb: ChestViews = { "1,78,90": { holds: { cooked_porkchop: 10 }, seenAt: now - 600_000, by: "lb" } };
+  const la: ChestViews = { "1,78,90": { holds: {}, seenAt: now - 360_000, by: "la" }, "5,70,5": { holds: { cobblestone: 4 }, seenAt: now - 10_000, by: "la" } };
+  const lines = describeChests({ x: 2, y: 73, z: 72 }, latestChests([lb, la]), "lb", now);
+  assert.equal(lines[0], "chest at 1,78,90, 19 blocks away: empty (seen by la 6 min ago)");
+  assert.match(lines[1]!, /chest at 5,70,5, \d+ blocks away: 4 cobblestone \(seen by la just now\)/);
+});
+
+test("chestChanges - says when a teammate finds a chest changed; learns new chests and its own looks quietly", () => {
+  const known = new Map<string, string>();
+  const tally = (holds: Record<string, number>, by: string): ChestViews => ({ "1,78,90": { holds, seenAt: 1, by } });
+  assert.deepEqual(chestChanges(known, tally({ cooked_porkchop: 10 }, "lb"), "lb"), [], "its own store: learnt quietly");
+  assert.deepEqual(chestChanges(known, tally({}, "la"), "lb"), ["la found the chest at 1,78,90 empty; when you last knew it, it was holding 10 cooked_porkchop"]);
+  assert.deepEqual(chestChanges(known, tally({}, "la"), "lb"), [], "said once");
+  assert.deepEqual(chestChanges(new Map(), tally({}, "la"), "lc"), [], "a chest first heard of is listed, not announced");
+});
 
 test("mergeShelters - one entry per shelter, finished when the first agent saw it so", () => {
   const built = { x: 0, y: 64, z: 0, storeys: 2, size: 5 as const, complete: true, by: "qa", finishedAt: 100 };

@@ -97,6 +97,8 @@ export interface Observation {
   animalsSeen?: string[];
   /** Ore seen earlier and out of view now, by the agent or a teammate, with where and when. Omitted when none. */
   oreSeen?: string[];
+  /** Chests the agent or a teammate has opened, each with what it held when last opened, by whom and when. Omitted when none. */
+  chestsSeen?: string[];
   /**
    * Other players the bot can see. `doing` is their current skill, read from their
    * narration — only within sight (SIGHT_RADIUS), since it is something you see, not

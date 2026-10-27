@@ -19,7 +19,7 @@ import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
-import { TeamBoard, combine, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -351,6 +351,9 @@ async function main(): Promise<void> {
     describeSightings(bot.entity.position, [...animalMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.sightings ?? [])], agentName);
   const oreSeen = () =>
     describeOreSightings(bot.entity.position, [...oreMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.oreSightings ?? [])], agentName);
+  // And the chests the team knows, each as last seen by anyone: a teammate's look replaces an older one.
+  const teamChests = () => latestChests([chestViews, ...Object.values(board?.read() ?? {}).map((m) => m?.chests ?? {})]);
+  const knownChests = new Map<string, string>();
   const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list() });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
@@ -483,6 +486,8 @@ async function main(): Promise<void> {
     if (disconnected) break;
     const surfaced = await escapeWater();
     const asked = buffer?.pending() ?? { requests: [], mark: 0 };
+    // A teammate who opened a chest and found it changed: said once, as it happens.
+    for (const line of chestChanges(knownChests, teamChests(), agentName)) recentEvents.push(line);
     const observation = observe(bot, {
       step,
       scenario: scenario.name,
@@ -493,6 +498,7 @@ async function main(): Promise<void> {
       shelters: sheltersInSight(),
       animalsSeen: animalsSeen(),
       oreSeen: oreSeen(),
+      chestsSeen: describeChests(bot.entity.position, teamChests(), agentName),
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
@@ -677,7 +683,7 @@ async function main(): Promise<void> {
       stepEvents.push(note);
     }
     for (const view of (result.detail?.["chests"] as Array<{ at: string; holds: Record<string, number> }> | undefined) ?? []) {
-      chestViews[view.at] = { holds: view.holds, seenAt: Date.now() };
+      chestViews[view.at] = { holds: view.holds, seenAt: Date.now(), by: agentName };
     }
     // Any shelter built, finished, gone into or started (a large one, part-built) is one the team knows of.
     const at = decision.skill === "build_shelter" ? (result.detail?.["position"] as { x: number; y: number; z: number } | undefined) : undefined;

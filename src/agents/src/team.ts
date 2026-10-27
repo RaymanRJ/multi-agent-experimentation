@@ -10,8 +10,8 @@ import { join } from "node:path";
 import { spotKey, type ShelterSpot } from "./skills/buildShelter.js";
 import type { OreSighting, Sighting } from "./sightings.js";
 
-/** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch). */
-export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number }>;
+/** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch) and who. */
+export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number; by?: string }>;
 
 export interface MemberState {
   inventory: Record<string, number>;
@@ -127,6 +127,55 @@ export function latestChests(views: ChestViews[]): ChestViews {
     for (const [at, seen] of Object.entries(view)) if (!out[at] || out[at]!.seenAt < seen.seenAt) out[at] = seen;
   }
   return out;
+}
+
+/** "10 cooked porkchop, 4 cobblestone", or "empty". */
+function contents(holds: Record<string, number>): string {
+  const items = Object.entries(holds).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  if (items.length === 0) return "empty";
+  const shown = items.slice(0, 6).map(([name, n]) => `${n} ${name}`);
+  return items.length > 6 ? `${shown.join(", ")} and ${items.length - 6} more kinds` : shown.join(", ");
+}
+
+const MAX_CHESTS_SHOWN = 4;
+
+/**
+ * The chests the team knows, each as whoever opened it last saw it, nearest first: "chest at
+ * 1,78,90, 18 blocks away: empty (seen by la 6 min ago)". A chest's contents are a fact a teammate
+ * could tell you, like a shelter or a sighting. In bpoc10 la emptied the team's food chest, and its
+ * teammates, whose last look had been before, spent the rest of the run sure the food was stored.
+ */
+export function describeChests(here: { x: number; y: number; z: number }, chests: ChestViews, me: string, now = Date.now()): string[] {
+  return Object.entries(chests)
+    .map(([at, seen]) => {
+      const [x, y, z] = at.split(",").map(Number) as [number, number, number];
+      return { at, seen, d: Math.round(Math.hypot(x - here.x, y - here.y, z - here.z)) };
+    })
+    .sort((a, b) => a.d - b.d)
+    .slice(0, MAX_CHESTS_SHOWN)
+    .map(({ at, seen, d }) => {
+      const mins = Math.round((now - seen.seenAt) / 60_000);
+      const who = !seen.by || seen.by === me ? "you" : seen.by;
+      return `chest at ${at}, ${d} blocks away: ${contents(seen.holds)} (seen by ${who} ${mins < 1 ? "just now" : `${mins} min ago`})`;
+    });
+}
+
+/**
+ * Chests a teammate has seen change since this agent last knew them, as one line each, and `known`
+ * brought up to date. A chest first heard of is learnt quietly; the observation lists it.
+ */
+export function chestChanges(known: Map<string, string>, chests: ChestViews, me: string): string[] {
+  const lines: string[] = [];
+  for (const [at, seen] of Object.entries(chests)) {
+    const now = contents(seen.holds);
+    const before = known.get(at);
+    if (before !== undefined && before !== now && seen.by && seen.by !== me) {
+      const held = (what: string) => (what === "empty" ? "empty" : `holding ${what}`);
+      lines.push(`${seen.by} found the chest at ${at} ${held(now)}; when you last knew it, it was ${held(before)}`);
+    }
+    known.set(at, now);
+  }
+  return lines;
 }
 
 /** Everything in all the chests, added up. */

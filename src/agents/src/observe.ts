@@ -58,6 +58,8 @@ export function observe(
     animalsSeen?: string[];
     /** Ore seen earlier, out of view now, by the agent or a teammate (sightings.ts). */
     oreSeen?: string[];
+    /** Chests the agent or a teammate has opened, as last seen (team.ts). */
+    chestsSeen?: string[];
     /** What other agents last announced doing (see trackActivity); shown only within sight. */
     activities?: Map<string, string>;
   },
@@ -156,6 +158,7 @@ export function observe(
     ...(animals.length ? { animals: animals.sort((a, b) => a.distance - b.distance).slice(0, 5) } : {}),
     ...(opts.animalsSeen?.length ? { animalsSeen: opts.animalsSeen } : {}),
     ...(opts.oreSeen?.length ? { oreSeen: opts.oreSeen } : {}),
+    ...(opts.chestsSeen?.length ? { chestsSeen: opts.chestsSeen } : {}),
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };
