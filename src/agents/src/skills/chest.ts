@@ -106,7 +106,8 @@ async function chestToFill(ctx: SkillContext): Promise<Block | string> {
 export const store: Skill = {
   name: "store",
   description:
-    `Put items into a chest, for yourself or others to take later. Uses the nearest chest within ${CHEST_RANGE} blocks; ` +
+    "Put items into a chest, for yourself or others to take later. Items in a chest stay there whatever happens to you, even if you die. " +
+    `Uses the nearest chest within ${CHEST_RANGE} blocks; ` +
     "with none, puts one down (crafting it from 8 planks if you have none). `item` is what to store; without it, " +
     "stores everything except tools, weapons and food. `count` is how many at least (whole stacks are moved, so it " +
     "may be a few more); without it, all you hold of that item. Returns what was stored and what the chest now holds.",

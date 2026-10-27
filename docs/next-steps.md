@@ -78,6 +78,10 @@ Done on 26 October, on local `main`, not pushed:
   live: it stayed inside with zombies at the walls, and ran home from 56 blocks. The first bpoc5 was
   cut off when the session stopped (all three disconnected after 36-53 decisions, $0.09; set aside in
   `runs/.killed/`) and is restarted on these changes.
+- **`store` says chests keep items through a death** (the owner's call, 26 October: "we're describing a
+  tool, not telling them what to do"). In bpoc4 and bpoc5, 12 of 13 `store` calls were cooked meat,
+  the goal's item, while wool and an iron pickaxe were lost in deaths. Runs from bpoc6 on carry the new
+  wording, so compare deaths and losses across that line with care.
 
 Next, in order:
 1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
