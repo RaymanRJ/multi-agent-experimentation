@@ -226,6 +226,11 @@ building on it.
   around it is in the way. Cause unknown. Getting into a shelter now notices after 4 s, hops and
   tries again, and after three tries fails saying where it is stuck (37 s, not 80). `go_to` and
   `flee` have the same watch, and digging through something in the way counts as moving.
+  Since 27 October a spot where the bot got stuck is walked round for the rest of its run: in bpoc5 a
+  team's home stood 12 blocks from 2,74,34 and one agent was stuck there three times. Reproduced on
+  the same seed (sprinting it hangs at y=74.42; without sprinting it can't climb the step at all), and
+  checked live: the walk home froze once, went round, and arrived in 16 s; the next time it went round
+  from the start (4 s). The cause is still unknown.
 - **The pathfinder digs through what is in its way,** except chests, beds, furnaces and crafting
   tables (since 20 October, after tbase1). Live, with the library's defaults, it dug through a bed
   in a corridor too low to walk over it. Half of rep 3's base bed went missing in tbase1, and the

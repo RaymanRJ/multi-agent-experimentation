@@ -82,6 +82,18 @@ Done on 26 October, on local `main`, not pushed:
   tool, not telling them what to do"). In bpoc4 and bpoc5, 12 of 13 `store` calls were cooked meat,
   the goal's item, while wool and an iron pickaxe were lost in deaths. Runs from bpoc6 on carry the new
   wording, so compare deaths and losses across that line with care.
+- **Proof run bpoc5** (restarted on the split reflex and the flee changes, on 88f8d1b, $0.37): the
+  base, and the food part met and kept to the end (11 cooked meat) — 2 of 4; no beds, no iron. 22
+  deaths, 12 to skeletons; deaths while deciding fell to 4 (bpoc3 and bpoc4: 9 each), deaths during a
+  flee rose to 12. Not yet written up.
+- **Wool and beds (the owner's ask, after bpoc5):** in bpoc3-bpoc5 every wool came from killing sheep
+  (6-10 a run, against 9 for three beds), most was lost in deaths (6, 6, 3), nobody sheared, and a
+  sheep was in view in 6-7% of observations. Done, all three (the owner's call): the observation lists
+  animals the agent or a teammate saw in the last 10 minutes (`animalsSeen`, `src/agents/src/sightings.ts`,
+  shared on the team board); `hunt` says a killed sheep drops 1 wool; the herd near spawn is 12 sheep,
+  not 6. Checked live: a teammate's observation read "seen by sa"; a bot beside the herd remembered 13.
+- **The pathfinder freeze at 2,74,34** is walked round after a first stuck (see limitations), checked
+  live on the same seed.
 
 Next, in order:
 1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
