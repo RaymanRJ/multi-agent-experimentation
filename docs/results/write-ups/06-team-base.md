@@ -674,6 +674,48 @@ different monsters.*
   game time left (it ended tlunap1's lb the same way). Fixed: the default cap scales with the time
   budget, 200 decisions a day, so 600 for three (checked in the real agent).
 
+## Reflexes split in two, and flee leaning on shelter (bpoc5)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 88f8d1b: bpoc4's settings, after the reflex was split
+(step back from a monster within reach; take cover from a skeleton that can see the agent, its range
+measured at 16 blocks) and `flee` was changed to count an archer in sight as danger, stay put inside
+a closed shelter, run only to finished shelters and reach 64 blocks for one. $0.37 (capped at $0.50 an
+agent). A first try was cut off when the session stopped (all three disconnected after 36-53
+decisions, $0.09) and set aside; this is the restart. One rep, so it compares with bpoc3 and bpoc4
+loosely.*
+
+| Part | bpoc3 | bpoc4 | bpoc5 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | 0 of 3 | 2 of 3 | 0 of 3 |
+| Everyone holds an iron pickaxe | 0 | 0 | 0 |
+| Food left in store | 0 | 8 | **11** |
+| Deaths | 17 | 24 | 22 |
+| Deaths while the model was deciding | 9 | 9 | **4** |
+| Deaths during a flee | 7 | 10 | 12 |
+
+**The food part was met and kept.** Six times an agent put cooked meat in the chest, and 11 were
+still there at the end: the first proof run to hold that part to the end, as tlunap1's teams did with
+the progress list on.
+
+**The seconds while the model thinks are covered now.** Deaths while the model was deciding fell to 4,
+from 9 in each run before. The step-back ran about 50 times and taking cover from a skeleton about 65.
+
+**Running is still where they die.** 12 deaths came during a flee, and skeletons killed 12 of the 22
+again. `flee` ran into a shelter 14 times and ended clear in the open 107 times, but at night clear
+doesn't last: a skeleton keeps coming, and new monsters keep appearing in the dark.
+
+**Beds didn't move.** One bed was made; wool came only from killing sheep (6, of which 3 were lost in
+deaths), and nobody stored any. This, and how rarely a sheep was in view, led to the changes after it.
+
+**Where our code, not the agents, decided the outcome:**
+- An agent was stuck three times at one step on its way home (2,74,34, the unexplained pathfinder
+  freeze), 12 blocks from the team's home. Fixed: a spot where the bot got stuck is walked round for
+  the rest of the run (checked live on the same seed: home in 16 s, then 4 s, where it had never arrived).
+- After it, for wool: the observation lists animals the agent or a teammate saw in the last 10 minutes
+  (`animalsSeen`), `hunt` says a killed sheep drops 1 wool, `store` says a chest keeps items through a
+  death, and the herd near spawn is 12 sheep, not 6.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -710,6 +752,8 @@ working on real systems, such as support desks, IT operations and business tools
 | Died while its model was still choosing to run (9 deaths) | The body did nothing during the seconds a decision takes | It steps back from any monster in reach while the model decides, and is told it did | A safety-critical response waiting on a slow planner, when a simple rule could act at once and report |
 | Fled away from home into a lake and drowned (7 deaths in a flee) | An escape action optimised "away from danger", not "toward safety" | It runs into a known shelter when one lies away from the danger, and steers off water | A failover that moves load away from a failing node onto whatever is next, including a worse one |
 | A run was ended by a cap on decisions, with game time left | A safety limit set for a short run bound a long one | The cap scales with the time budget | A rate or step limit tuned for one workload silently truncating a longer one |
+| Stuck three times at one ordinary step on the way home | A movement library froze at one spot, for no reason found | The spot is walked round once it has stuck the agent | A client that retries the same failing endpoint forever, where marking it bad and routing round it would do |
+| Never found sheep that a teammate had seen | What one agent saw left its view, and no one else heard of it | Recent sightings, its own and its teammates', are listed with where and when | Observations kept only in one worker's short-term context, so the team re-discovers what one member already found |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**
