@@ -20,23 +20,40 @@ const GUARD_EVERY_MS = 250;
 /** A step back that hasn't arrived by now is abandoned, so a stuck path can't end the guard. */
 const STEP_BACK_MS = 3_000;
 
+/**
+ * Mobs that shoot, and how far. Measured live on 26 October: a skeleton with a bow, held in place,
+ * fired at 15 and 16.7 blocks and not at 17 or beyond, and never through a wall. Strays and bogged
+ * share its bow.
+ */
+export const ARCHERS = new Set(["skeleton", "stray", "bogged"]);
+export const BOW_RANGE = 16;
+/** How far to look for cover from an archer: a few steps, not a journey. */
+export const COVER_RADIUS = 5;
+const EYE = 1.62;
+
 /** Blocks a retreat must not end in or over. */
 const LIQUID = /^(water|lava|bubble_column)$|seagrass|kelp/;
 
 /**
- * Dry, solid ground near `y` at x, z, with room to stand: the first block found going down from a
- * few above. False if unloaded, liquid, or a drop of more than a few blocks (a cliff or a cave).
+ * Where the agent would stand at x, z near `y`: on the first block found going down from a few above,
+ * if it is dry and solid with room to stand. Null if unloaded, liquid, or a drop of more than a few
+ * blocks (a cliff or a cave).
  */
-export function safeGround(bot: Bot, x: number, z: number, y: number): boolean {
+export function standY(bot: Bot, x: number, z: number, y: number): number | null {
   let headroom = 0;
   for (let gy = Math.floor(y) + 3; gy >= Math.floor(y) - 4; gy--) {
     const block = bot.blockAt(new Vec3(x, gy, z));
-    if (!block) return false;
-    if (LIQUID.test(block.name)) return false;
-    if (block.boundingBox === "block") return headroom >= 2;
+    if (!block) return null;
+    if (LIQUID.test(block.name)) return null;
+    if (block.boundingBox === "block") return headroom >= 2 ? gy + 1 : null;
     headroom++;
   }
-  return false;
+  return null;
+}
+
+/** Dry, solid ground near `y` at x, z, with room to stand. */
+export function safeGround(bot: Bot, x: number, z: number, y: number): boolean {
+  return standY(bot, x, z, y) !== null;
 }
 
 /** Liquid is the first thing below x, z near `y`: a lake or river surface, which the pathfinder would swim. */
@@ -83,29 +100,90 @@ export function hostilesWithin(bot: Bot, radius: number): Entity[] {
   );
 }
 
+/** No solid block on the straight line between two points: what a mob needs to shoot. */
+export function inSight(bot: Bot, from: Vec3, to: Vec3): boolean {
+  const steps = Math.ceil(from.distanceTo(to) / 0.25);
+  for (let i = 1; i < steps; i++) {
+    const block = bot.blockAt(from.plus(to.minus(from).scaled(i / steps)));
+    if (block?.boundingBox === "block") return false;
+  }
+  return true;
+}
+
+const eyeOf = (mob: Entity) => mob.position.offset(0, (mob.height || 1.99) * 0.88, 0);
+
+/** Archers within bow range that can see a body standing at `feet` (the agent's own, by default). */
+export function archersWithSight(bot: Bot, feet: Vec3 = bot.entity.position): Entity[] {
+  const eye = feet.offset(0, EYE, 0);
+  return hostilesWithin(bot, BOW_RANGE + 4).filter(
+    (e) => ARCHERS.has(e.name ?? "") && e.position.distanceTo(feet) <= BOW_RANGE && inSight(bot, eyeOf(e), eye),
+  );
+}
+
 /**
- * While the model decides, step back from any hostile within reach. A decision takes seconds, and the
- * body used to stand still through them: in bpoc3, 9 of 17 deaths came while the model was still
- * deciding, each with the agent already at 2-8 health and a mob 0-2 blocks away. Nothing happens
- * inside a closed shelter, where nothing can reach. `stop` ends it when the decision arrives and
- * returns what it did, for the next observation, or null if it did nothing.
+ * The nearest place within COVER_RADIUS to stand where none of these archers can see the agent:
+ * behind a tree, a wall, a rise. A skeleton shoots only what it can see (measured), and stepping
+ * back from one keeps the agent in range: in bpoc4 skeletons killed 12 of 24, some of them agents
+ * that had run 19-57 blocks across open ground. Null when there is none so close.
+ */
+export function coverPoint(bot: Bot, archers: Entity[]): { x: number; y: number; z: number } | null {
+  const here = bot.entity.position;
+  const cells: Array<{ x: number; z: number; d: number }> = [];
+  for (let dx = -COVER_RADIUS; dx <= COVER_RADIUS; dx++) {
+    for (let dz = -COVER_RADIUS; dz <= COVER_RADIUS; dz++) {
+      const d = Math.hypot(dx, dz);
+      if (d > 0 && d <= COVER_RADIUS) cells.push({ x: Math.floor(here.x) + dx, z: Math.floor(here.z) + dz, d });
+    }
+  }
+  cells.sort((a, b) => a.d - b.d);
+  for (const { x, z } of cells) {
+    const y = standY(bot, x, z, here.y);
+    if (y === null) continue;
+    const eye = new Vec3(x + 0.5, y + EYE, z + 0.5);
+    if (archers.every((a) => !inSight(bot, eyeOf(a), eye))) return { x, y, z };
+  }
+  return null;
+}
+
+/**
+ * While the model decides, keep out of harm's way, in two ways:
+ * - a monster within reach: step back from it. In bpoc3, 9 of 17 deaths came while the model was
+ *   still deciding, most with a mob 0-2 blocks away;
+ * - an archer that can see the agent: move to the nearest cover from it, since stepping back doesn't
+ *   help against a bow (bpoc4: 12 of 24 deaths to skeletons).
+ * Within reach comes first. Nothing happens inside a closed shelter, where nothing can reach, or with
+ * no cover close by. `stop` ends it when the decision arrives and returns what it did, for the next
+ * observation, or null if it did nothing.
  */
 export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: () => string | null } {
-  const from = new Set<string>();
+  const steppedFrom = new Set<string>();
+  const hidFrom = new Set<string>();
   let backedOff = 0;
+  let tookCover = 0;
   let movingSince = 0;
+  const named = (e: Entity) => (e.name ?? "hostile mob").replace(/_/g, " ");
   const tick = () => {
     if (movingSince && Date.now() - movingSince < STEP_BACK_MS) return;
     movingSince = 0;
     if (sheltered()) return;
     const threats = hostilesWithin(bot, GUARD_RADIUS);
-    if (threats.length === 0) return;
-    const target = retreatPoint(bot, threats, BACK_OFF);
-    if (!target) return;
-    for (const t of threats) from.add((t.name ?? "hostile mob").replace(/_/g, " "));
-    backedOff++;
+    if (threats.length > 0) {
+      const target = retreatPoint(bot, threats, BACK_OFF);
+      if (!target) return;
+      for (const t of threats) steppedFrom.add(named(t));
+      backedOff++;
+      movingSince = Date.now();
+      bot.pathfinder.setGoal(new goals.GoalXZ(target.x, target.z));
+      return;
+    }
+    const archers = archersWithSight(bot);
+    if (archers.length === 0) return;
+    const cover = coverPoint(bot, archers);
+    if (!cover) return;
+    for (const a of archers) hidFrom.add(named(a));
+    tookCover++;
     movingSince = Date.now();
-    bot.pathfinder.setGoal(new goals.GoalXZ(target.x, target.z));
+    bot.pathfinder.setGoal(new goals.GoalBlock(cover.x, cover.y, cover.z));
   };
   const arrived = () => {
     movingSince = 0;
@@ -118,17 +196,21 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
   bot.on("path_update", updated);
   const timer = setInterval(tick, GUARD_EVERY_MS);
   tick();
+  const who = (mobs: string[]) => (mobs.length === 1 ? `a ${mobs[0]}` : `hostile mobs (${mobs.join(", ")})`);
+  const times = (n: number) => (n > 1 ? ` ${n} times` : "");
   return {
     stop: () => {
       clearInterval(timer);
       bot.removeListener("goal_reached", arrived);
       bot.removeListener("path_stop", arrived);
       bot.removeListener("path_update", updated);
-      if (backedOff === 0) return null;
+      if (backedOff + tookCover === 0) return null;
       bot.pathfinder.setGoal(null);
-      const mobs = [...from];
-      const who = mobs.length === 1 ? `a ${mobs[0]}` : `hostile mobs (${mobs.join(", ")})`;
-      return `while you were deciding, you stepped back from ${who}${backedOff > 1 ? ` ${backedOff} times` : ""}`;
+      const did = [
+        ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
+        ...(tookCover ? [`took cover from ${who([...hidFrom])}${times(tookCover)}`] : []),
+      ];
+      return `while you were deciding, you ${did.join(" and ")}`;
     },
   };
 }

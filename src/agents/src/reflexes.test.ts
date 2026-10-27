@@ -1,11 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { guardWhileDeciding, retreatPoint, safeGround } from "./reflexes.js";
+import { Vec3 } from "vec3";
+import { archersWithSight, coverPoint, guardWhileDeciding, inSight, retreatPoint, safeGround } from "./reflexes.js";
 import { refuge } from "./skills/flee.js";
 import { floorCells, layout } from "./skills/buildShelter.js";
 import { fakeBot, floor } from "./testing/fakeBot.js";
 
 const zombie = (x: number, z: number) => ({ name: "zombie", type: "hostile", position: { x, y: 64, z } });
+const skeleton = (x: number, z: number) => ({ name: "skeleton", type: "hostile", position: { x, y: 64, z } });
+
+/** A stone pillar 3 high at x, z on the floor at y 64. */
+function pillar(blocks: Record<string, string>, x: number, z: number): Record<string, string> {
+  for (let y = 64; y <= 66; y++) blocks[`${x},${y},${z}`] = "stone";
+  return blocks;
+}
 
 /** A stone floor under y 64, with water in the floor where `wet` says. */
 function ground(wet: (x: number, z: number) => boolean, r = 12): Record<string, string> {
@@ -71,4 +79,39 @@ test("refuge - a known shelter on the far side from the mobs, with its doorway c
   assert.equal(at(20.5, [zombie(10.5, 0.5)]), null, "the zombie stands between the agent and the shelter");
   assert.equal(at(20.5, [zombie(28.5, 0.5), zombie(0.5, 6.5)]), null, "a mob at the doorway");
   assert.equal(at(60.5, [zombie(68.5, 0.5)]), null, "too far to run to");
+  // With an archer in sight, a shelter on any side will do: open ground keeps the agent in bow range.
+  const { bot } = fakeBot({ position: { x: 20.5, y: 64, z: 0.5 }, blocks: hut, entities: [skeleton(10.5, 0.5)] });
+  assert.equal(refuge(bot, [spot], Object.values(bot.entities)), null);
+  assert.deepEqual(refuge(bot, [spot], Object.values(bot.entities), true), spot);
+});
+
+test("archersWithSight - a skeleton in range with a clear line, not past 16 blocks, not through a wall, never a zombie", () => {
+  const at = (mobs: Array<ReturnType<typeof skeleton>>, blocks = ground(() => false, 30)) =>
+    archersWithSight(fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks, entities: mobs }).bot).map((e) => e.name);
+  assert.deepEqual(at([skeleton(12.5, 0.5)]), ["skeleton"]);
+  assert.deepEqual(at([skeleton(18.5, 0.5)]), [], "measured: no shots beyond 16 blocks");
+  assert.deepEqual(at([zombie(5.5, 0.5)]), []);
+  const walled = ground(() => false, 30);
+  for (let z = -2; z <= 2; z++) pillar(walled, 6, z);
+  assert.deepEqual(at([skeleton(12.5, 0.5)], walled), [], "a wall between them");
+  const { bot } = fakeBot({ blocks: walled });
+  assert.equal(inSight(bot, new Vec3(12.5, 65.7, 0.5), new Vec3(0.5, 65.6, 0.5)), false);
+  assert.equal(inSight(bot, new Vec3(12.5, 65.7, 8.5), new Vec3(0.5, 65.6, 8.5)), true);
+});
+
+test("coverPoint - the nearest spot where the archer can't see the agent; none on bare ground", () => {
+  const blocks = pillar(ground(() => false, 20), 2, 0);
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks, entities: [skeleton(-10.5, 0.5)] });
+  const cover = coverPoint(bot, Object.values(bot.entities))!;
+  assert.deepEqual(cover, { x: 3, y: 64, z: 0 }, "just behind the pillar, from the skeleton to the west");
+  const bare = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: ground(() => false, 20), entities: [skeleton(-10.5, 0.5)] }).bot;
+  assert.equal(coverPoint(bare, Object.values(bare.entities)), null);
+});
+
+test("guardWhileDeciding - takes cover from a skeleton that can see the agent, and says so", () => {
+  const goals: Array<{ x: number; y?: number; z: number } | null> = [];
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: pillar(ground(() => false, 20), 2, 0), entities: [skeleton(-10.5, 0.5)] });
+  bot.pathfinder.setGoal = (goal: any) => void goals.push(goal && { x: goal.x, y: goal.y, z: goal.z });
+  assert.equal(guardWhileDeciding(bot, () => false).stop(), "while you were deciding, you took cover from a skeleton");
+  assert.deepEqual(goals[0], { x: 3, y: 64, z: 0 });
 });
