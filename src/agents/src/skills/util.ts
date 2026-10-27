@@ -100,7 +100,48 @@ export function asNumber(value: unknown, fallback: number): number {
  * needed (seen in a batch: mine 3, walk to place a table, craft fails "need 2 more cobblestone",
  * repeat). Dirt is never an ingredient we plan around; cobblestone always is.
  */
+/** Tools worth sparing: iron and better. */
+export const PRECIOUS_TOOL = /^(iron|diamond|netherite)_(pickaxe|axe|shovel|hoe|sword)$/;
+/** A cheaper tool, or a bare hand, this quick on a block does the job; an iron one isn't worn for it. */
+const CHEAP_ENOUGH_MS = 2000;
+const spared = new WeakSet<Bot>();
+
+/**
+ * The pathfinder digs its way with the fastest tool held, so walking wore down iron pickaxes on dirt
+ * and stone (bpoc7: an agent's last iron pickaxe broke on the way home). Every dig, the pathfinder's and
+ * the skills', now takes the fastest of the cheaper tools or a bare hand when that is quick enough,
+ * and an iron (or better) tool only when nothing cheaper is: "the cheapest tool that does the job",
+ * whatever the goal. Wraps the bot's bestHarvestTool once.
+ */
+export function spareGoodTools(bot: Bot): void {
+  if (spared.has(bot) || !bot.pathfinder?.bestHarvestTool) return;
+  spared.add(bot);
+  const fastest = bot.pathfinder.bestHarvestTool;
+  bot.pathfinder.bestHarvestTool = (block) => {
+    const effects = bot.entity.effects ?? {};
+    const time = (item: { type: number } | null) => block.digTime(item ? item.type : null, false, false, false, [], effects);
+    const items = bot.inventory.items();
+    let best: ReturnType<typeof fastest> = null;
+    let bestTime = time(null);
+    for (const item of items) {
+      if (PRECIOUS_TOOL.test(item.name)) continue;
+      const t = time(item);
+      if (t < bestTime) {
+        best = item;
+        bestTime = t;
+      }
+    }
+    if (bestTime > CHEAP_ENOUGH_MS) return fastest(block);
+    if (best) return best;
+    // A bare hand is quickest. The pathfinder digs with whatever is in hand when given nothing, which
+    // was often the iron pickaxe, so hold something that isn't a tool (it digs as a hand does), or
+    // else the cheapest tool.
+    return items.find((item) => !item.maxDurability) ?? items.find((item) => item.maxDurability && !PRECIOUS_TOOL.test(item.name)) ?? null;
+  };
+}
+
 export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
+  spareGoodTools(bot);
   const movements = new Movements(bot);
   const dirt = bot.registry.itemsByName["dirt"]?.id;
   movements.scafoldingBlocks = dirt === undefined ? [] : [dirt];

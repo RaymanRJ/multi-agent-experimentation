@@ -236,7 +236,7 @@ export function buildSystemPrompt(
     '"otherAgents" lists other agents you can see, nearest first, with what they are doing when close enough to tell.',
     ...(stance ? [stance] : []),
     '"canCraft" lists tools you do not have yet that craft can make right now from your inventory.',
-    '"wearingOut" lists tools close to breaking, with how many uses each has left; a tool that breaks is gone.',
+    '"wearingOut" lists tools close to breaking, with how many uses each has left; a tool that breaks is gone. Skills and walking dig with the cheapest tool that does the job, and use an iron or better one only when nothing cheaper will.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
     '"animals" lists animals near you, nearest first.',
     '"animalsSeen" lists animals you or another agent saw in the last 10 minutes and are out of your sight now, with where and how long ago; they may have moved.',

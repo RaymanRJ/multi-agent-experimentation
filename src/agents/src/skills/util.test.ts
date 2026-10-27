@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { context, fakeBot } from "../testing/fakeBot.js";
-import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, threatened } from "./util.js";
+import { Vec3 } from "vec3";
+import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, spareGoodTools, threatened } from "./util.js";
 
 test("threatened - for digging, a mob behind solid rock doesn't count; one in view or right beside does", () => {
   const creeper = (x: number) => ({ name: "creeper", type: "hostile", position: { x, y: 64, z: 0.5 } });
@@ -58,4 +59,17 @@ test("onTreetops - on leaves with a drop beneath, not on leaves over ground nor 
   const bush = { "0,80,0": "oak_leaves", "0,79,0": "dirt" };
   assert.equal(onTreetops(fakeBot({ position: at, blocks: bush }).bot), false);
   assert.equal(onTreetops(fakeBot({ position: at, blocks: { "0,80,0": "grass_block" } }).bot), false);
+});
+
+test("spareGoodTools - digs with the cheapest tool quick enough, an iron one only when nothing cheaper is", () => {
+  const pick = (inventory: Record<string, number>, block: string) => {
+    const { bot } = fakeBot({ inventory, blocks: { "0,64,0": block } });
+    (bot.pathfinder as unknown as { bestHarvestTool: unknown }).bestHarvestTool = () => ({ name: "fastest" });
+    spareGoodTools(bot);
+    return (bot.pathfinder.bestHarvestTool(bot.blockAt(new Vec3(0, 64, 0))!) as { name: string } | null)?.name ?? "hand";
+  };
+  assert.equal(pick({ iron_pickaxe: 1, stone_pickaxe: 1 }, "stone"), "stone_pickaxe");
+  assert.equal(pick({ iron_pickaxe: 1 }, "dirt"), "hand", "a hand digs dirt quickly enough");
+  assert.equal(pick({ iron_pickaxe: 1, cobblestone: 4 }, "dirt"), "cobblestone", "held in place of the pickaxe, it digs as a hand does");
+  assert.equal(pick({ iron_pickaxe: 1 }, "stone"), "fastest", "stone by hand takes 7.5 s: the iron one is used");
 });

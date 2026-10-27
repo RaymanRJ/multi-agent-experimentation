@@ -22,8 +22,11 @@ const MAX_DROP_TO_STONE = 6;
 /** How far down to dig for stone when none is exposed. Overworld stone is usually 3-5 blocks down. */
 const MAX_DIG_DEPTH = 12;
 const LIQUIDS = new Set(["lava", "water"]);
-/** Best first. */
-const PICKAXES = ["netherite_pickaxe", "diamond_pickaxe", "iron_pickaxe", "stone_pickaxe", "golden_pickaxe", "wooden_pickaxe"];
+/**
+ * Cheapest first, as the digging skills and mine_ore choose: any pickaxe mines stone, so an iron one is
+ * kept for ore. Best-first wore iron pickaxes down on cobblestone.
+ */
+const PICKAXES = ["stone_pickaxe", "wooden_pickaxe", "golden_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
 const STONE_BLOCKS = ["stone", "cobblestone"];
 
 function cobbleHeld(ctx: SkillContext): number {
@@ -31,7 +34,7 @@ function cobbleHeld(ctx: SkillContext): number {
 }
 
 /**
- * Puts the best pickaxe held in hand and waits to land, before each dig. mineflayer fixes a dig's time
+ * Puts the cheapest pickaxe held in hand and waits to land, before each dig. mineflayer fixes a dig's time
  * when it starts, from the item in hand and whether the bot is on the ground. The pathfinder equips
  * whatever digs its way fastest (a shovel for dirt) or the dirt it places as a step, and leaves it in
  * hand: live, 50 of 83 stone digs were made with a shovel or dirt, 7.5 s each and no cobblestone, and
@@ -113,7 +116,7 @@ export const mineStone: Skill = {
   description:
     "Mine stone and collect cobblestone. Takes `count` — how many cobblestone you want to gain. " +
     "Uses exposed stone nearby, or digs straight down to the stone under the ground when there is none. " +
-    "Requires a pickaxe in inventory (at least a wooden_pickaxe; the best one is equipped automatically) — " +
+    "Requires a pickaxe in inventory (at least a wooden_pickaxe; it digs with your cheapest, keeping an iron one for ore) — " +
     "it does not craft one, so use craft first. Fails if no pickaxe, if digging down hits water or lava, " +
     "or blocks cannot be reached. Returns how many cobblestone were gained and the new total.",
   args: { count: "number" },
