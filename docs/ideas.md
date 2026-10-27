@@ -94,3 +94,30 @@ Options, best first:
 The proposal: option 1 now, for `team-homestead` and as a setting in both scenarios; a sheep survey
 of the current seed first, to say exactly what is there and where; option 3 later, for runs of more
 than a few days. A new seed only if hand-placed animals turn out not to work.
+
+## The prompt
+
+### Are the skill descriptions earning their length? (the owner's question, 27 October)
+
+**What we know.** A decision's prompt is about 5,700 tokens (bpoc9, Luna; Claude about 8,200 with
+history): the 25 skill descriptions are about 3,400 of it (60%), the rest of the system prompt about
+900, the observation about 1,400. That is small against the paid models' windows, and caching reads
+75-78% of it at a tenth of the price, so length is not a cost problem. On the local 4B model it was a
+problem: full memory filled its 8,192-token window and five of six runs gave up early
+(`docs/limitations.md`).
+
+**What we don't.** Whether the detail in the descriptions helps the paid models or buries the rules.
+Each tool fix tends to add a sentence (`flee` is the longest, about 390 tokens), and agents have
+missed things a description says: nobody stored a pickaxe after `store` said a chest keeps items
+through a death, and la kept digging with 7 uses left. That could be the length or their judgement;
+it hasn't been measured.
+
+**The test (no game, under a dollar on Luna).** Every decision's prompt is logged, so:
+1. Pick about 50 logged decisions where the choice mattered: a monster close, at night, low health,
+   a goal item in hand.
+2. Re-ask the same model with today's descriptions and with trimmed ones (each skill cut to what it
+   does, its arguments and its main failure).
+3. Compare the decisions. If they agree, trim and keep the saving; if the trimmed prompt chooses
+   worse, the detail is earning its place, and the next question is which parts.
+
+Do it before descriptions grow much further, or before comparing a model with a smaller window.
