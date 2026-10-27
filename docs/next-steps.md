@@ -70,6 +70,14 @@ Done on 26 October, on local `main`, not pushed:
   such a skeleton as danger, takes a shelter on any side with one in sight, and ends behind cover.
   Checked live: no arrows after taking cover, where standing still drew three; flee got into a
   shelter to the side. The Agent minds page has a favicon.
+- **Flee and shelters (the owner's call, from bpoc4's logs):** running in the open gets an agent clear
+  for a moment but rarely for good at night (65% of open-ground flees were followed by another within
+  two decisions, 14% by a death), so `flee` now leans on shelters: it stays put inside a closed one
+  (15 flees in bpoc4 started inside one), runs only to finished ones (all 26 failed ways in were an
+  agent trying to finish a half-built base mid-chase), and reaches 64 blocks for one, not 40. Checked
+  live: it stayed inside with zombies at the walls, and ran home from 56 blocks. The first bpoc5 was
+  cut off when the session stopped (all three disconnected after 36-53 decisions, $0.09; set aside in
+  `runs/.killed/`) and is restarted on these changes.
 
 Next, in order:
 1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
