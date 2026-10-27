@@ -872,6 +872,48 @@ counts should be dug with at all is open (below).
   the old code failed the same way; the new one says there isn't enough fuel left, and with two more
   planks smelts all three).
 
+## A besieged home (bpoc8)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 1118006: bpoc7's settings after its fixes (no digging
+out from under gravel, a block on the head dug out, `smelt` fuel chosen after the furnace) and the
+cheapest-tool rule (`mine_stone` and walking keep an iron pickaxe for when nothing cheaper will do).
+$0.41 (capped at $0.50 an agent).*
+
+| Part | bpoc6 | bpoc7 | bpoc8 |
+|---|---|---|---|
+| Shared home built | **yes** (day 1) | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | **3 of 3** | **3 of 3** | 2 of 3 (not lb) |
+| Everyone holds an iron pickaxe | 0 | 1 of 3 | 0 (two made, both lost in deaths) |
+| Food left in store | **10** | 0 | **10** |
+| Deaths | 8 | **2** | 22 |
+| Game time toward a part of the goal | 18% | 14% | 19% |
+
+**The home drew the night to it.** Night after night the observations said the home had "a zombie at
+its doorway", once "3 hostile mobs (zombie, skeleton)". 10 of the 22 deaths came within 6 blocks of it,
+nearly all to zombies at night, most during a `flee` toward it: "At 1 health with a zombie only 3 blocks
+away, get into a closed shelter immediately to avoid dying" (lb, killed on the way). Agents came back
+to life near the home, among the same mobs, and three times lb died from full health within a single
+decision. A creeper killed lc beside the home by day, and the home was repaired seven times, once 54
+blocks.
+
+**Iron was found and made, and lost the same way.** la made two iron pickaxes on day 2; it died with
+both, picked one up, and lost it again in two more deaths; lc picked one up and died with it. None wore
+out. The cheapest-tool rule had little to act on: no agent mined stone holding both an iron and a
+cheaper pickaxe.
+
+**The food held.** lb stored 10 cooked porkchops on day 1 and cooked more on day 2; with 1 health
+inside the home it reasoned "recover using one cooked meat while preserving 10 in the chest".
+
+bpoc7, on the same seed, had 2 deaths; the difference is where the mobs gathered, not a change in the
+code. Whether to do anything about a home under siege (a fight-back skill, a second door, sleeping to
+move the respawn point inside) is left open: it is the agents' situation to handle, and none of the
+three tried to clear the doorway or wall off the crowd.
+
+**Where our code, not the agents, decided the outcome:**
+- The report said "la wore out 2 iron pickaxe" ten minutes after "la died, dropping 2 iron pickaxe".
+  A death's step can still show what it dropped, which then goes missing in the next step and was read
+  as wear. Fixed: a loss right after a death is the death's, counted there.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:

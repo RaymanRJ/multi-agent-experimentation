@@ -23,6 +23,12 @@ test("classify - a death between steps counts what was held at the end of the st
   assert.deepEqual(classify(died, parts, false, { iron_pickaxe: 3, cobblestone: 5 }).setbacks, [{ part: "iron pickaxes", how: "died", items: { iron_pickaxe: 3 } }]);
 });
 
+test("classify - what a death dropped, gone a step late, is not a tool worn out (bpoc8)", () => {
+  const after = step("flee", { distance: 16 }, { iron_pickaxe: 2 }, {});
+  assert.deepEqual(classify(after, parts).setbacks, [{ part: "iron pickaxes", how: "wore out", items: { iron_pickaxe: 2 } }], "with no death before, a vanished tool wore out");
+  assert.deepEqual(classify(after, parts, false, { iron_pickaxe: 2 }, true).setbacks, [], "right after a death: already counted there");
+});
+
 test("classify - toward a part, groundwork, staying alive, and nothing", () => {
   assert.deepEqual(classify(step("mine_ore", { ore: "iron" }, {}, { raw_iron: 2 }), parts).parts, ["iron pickaxes"]);
   assert.equal(classify(step("mine_ore", { ore: "iron" }, {}, { raw_iron: 2 }), parts).kind, "toward");

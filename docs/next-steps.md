@@ -147,6 +147,12 @@ Next, waiting on the owner:
    6 after; digging out of a sealed room took the stone pickaxe through stone and a bare hand through
    dirt, the iron one untouched. Wear was rare anyway: 1 of 14 iron pickaxes wore out, 24 were held at
    a death.
+   **Proof run bpoc8 (27 October, Luna, $0.41)** on all of that: home and food (10 in the chest) met;
+   2 of 3 slept; two iron pickaxes made, none worn out, all lost in deaths. 22 deaths (bpoc7: 2), 10 of
+   them within 6 blocks of the home, mostly zombies at night: mobs gathered at its doorway every night
+   and agents came back to life among them. Nothing of ours caused it; left open whether to give agents
+   a way to deal with a besieged home. Fixed: the report read a death's drops, gone a step late, as
+   tools worn out. Written up in 06.
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch

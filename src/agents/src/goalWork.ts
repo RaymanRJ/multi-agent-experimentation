@@ -145,8 +145,11 @@ const losses = (step: LoggedStep): Record<string, number> => {
  * `heldBefore`: what the agent held at the end of the step before. A death between steps (after one skill
  * ended, before the next observation) is logged with the next step, whose observation already shows the
  * agent respawned empty-handed; in bpoc6 that hid three iron pickaxes lost in a drowning ("set back 0 times").
+ * `diedBefore`: the step before had a death. Its inventory can still show what the death dropped, which
+ * then goes missing in this step; that is the death's loss, counted there, not a tool worn out (bpoc8
+ * showed "la wore out 2 iron pickaxe" ten minutes after "la died, dropping 2 iron pickaxe").
  */
-export function classify(step: LoggedStep, parts: GoalPart[], sleptBefore = false, heldBefore: Record<string, number> = {}): Classified {
+export function classify(step: LoggedStep, parts: GoalPart[], sleptBefore = false, heldBefore: Record<string, number> = {}, diedBefore = false): Classified {
   const d = step.decision;
   const out: Classified = { kind: "nothing", parts: [], aimed: [], setbacks: [] };
   if (!d) return out;
@@ -164,7 +167,7 @@ export function classify(step: LoggedStep, parts: GoalPart[], sleptBefore = fals
       const items = pick(held, p.items);
       if (Object.keys(items).length) out.setbacks.push({ part: p.name, how: "died", items });
     }
-  } else if (!["craft", "smelt", "give", "store", "build_shelter"].includes(d.skill)) {
+  } else if (!diedBefore && !["craft", "smelt", "give", "store", "build_shelter"].includes(d.skill)) {
     for (const [item, n] of Object.entries(lost)) {
       const part = partOf(item);
       if (!part) continue;
@@ -325,7 +328,8 @@ export function goalWork(members: Member[], goalName: string): GoalWork | null {
   for (const member of members) {
     out.time[member.name] = zero();
     member.steps.forEach((step, i) => {
-      const c = classify(step, parts, firstSleep.has(member.name), member.steps[i - 1]?.inventoryAfter);
+      const before = member.steps[i - 1];
+      const c = classify(step, parts, firstSleep.has(member.name), before?.inventoryAfter, (before?.deaths?.length ?? 0) > 0);
       const ticks = span(member.steps, i);
       out.time[member.name]![c.kind] += ticks;
       out.time["team"]![c.kind] += ticks;
