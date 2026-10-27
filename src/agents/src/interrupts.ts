@@ -102,11 +102,11 @@ export const DAMAGE_FLOOR: Record<string, number> = {
 };
 
 /**
- * Digging skills, which a mob coming near interrupts only if it can get at the agent. Down a shaft or
+ * Digging skills, which a mob coming near interrupts only if it can get at the agent. Down a shaft, up a staircase or
  * along a tunnel the agent is walled in by rock; in tbase5 creepers and skeletons in caves beside the
  * shaft stopped `descend` again and again, and the team never reached the iron below its home.
  */
-export const REACHABLE_ONLY = new Set(["descend", "tunnel", "mine_ore"]);
+export const REACHABLE_ONLY = new Set(["descend", "tunnel", "mine_ore", "climb_out"]);
 
 export interface Watch {
   /** Returns an interrupt reason the first time one fires, then null forever (one per run). */

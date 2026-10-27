@@ -388,7 +388,7 @@ export const climbOut: Skill = {
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
     while (groundAbove(bot) > 0) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-      const danger = threatened(ctx);
+      const danger = threatened(ctx, 8, true);
       if (danger) return { status: "aborted", reason: `stopped climbing because ${danger}`, detail: report() };
       if (Date.now() - startedAt > MAX_SKILL_MS) {
         return { status: "failed", reason: `climbed to y=${Math.floor(bot.entity.position.y)}, still under ${groundAbove(bot)} blocks of ground, before running out of time — call climb_out again to continue.${brokenSince(bot, tools)}`, detail: report() };
