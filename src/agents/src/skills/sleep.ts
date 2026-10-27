@@ -56,13 +56,24 @@ function inRoom(spot: ShelterSpot, point: Vec3): boolean {
  * Puts a bed down inside the shelter the bot is in, with both halves in the room and the cell inside
  * the doorway left free: the agent stands on one cell, the bed's foot goes on the next and its head
  * (which points the way the agent faces) beyond it. A large shelter has room for four; a small one, one.
+ * Returns whether it put one down, and how many spots the game refused.
  */
-async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<boolean> {
+async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<{ placed: boolean; refused: number }> {
   const bot = ctx.bot;
   const h = half(spot.size ?? 3);
   const centre = new Vec3(spot.x, spot.y, spot.z);
   const doorway = centre.offset(0, 0, h);
-  const free = (cell: Vec3) => inRoom(spot, cell) && !cell.equals(doorway) && bot.blockAt(cell)?.name === "air" && bot.blockAt(cell.offset(0, -1, 0))?.boundingBox === "block";
+  // The game won't put a bed where any body overlaps it, a teammate's or a monster's (checked live): in
+  // bpoc6 a third bed was refused at nine spots in a room with space for it, and the agent was told the
+  // room was full. Spots with someone in them are passed over.
+  const occupied = (cell: Vec3) =>
+    Object.values(bot.entities).some((e) => {
+      if (!e || e === bot.entity || !BODIES.has(e.type)) return false;
+      const w = (e.width || 0.6) / 2, p = e.position;
+      return p.x + w > cell.x && p.x - w < cell.x + 1 && p.z + w > cell.z && p.z - w < cell.z + 1 && p.y < cell.y + BED_HEIGHT && p.y + (e.height || 1.8) > cell.y;
+    });
+  const free = (cell: Vec3) => inRoom(spot, cell) && !cell.equals(doorway) && bot.blockAt(cell)?.name === "air" && bot.blockAt(cell.offset(0, -1, 0))?.boundingBox === "block" && !occupied(cell);
+  let refused = 0;
   const stands: Vec3[] = [centre];
   for (let dx = -h; dx <= h; dx++) for (let dz = -h; dz <= h; dz++) if (dx || dz) stands.push(centre.offset(dx, 0, dz));
   const directions = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, -1), new Vec3(0, 0, 1)];
@@ -72,7 +83,7 @@ async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<boo
       const foot = stand.plus(d), head = stand.plus(d.scaled(2));
       if (!free(foot) || !free(head)) continue;
       const bed = bot.inventory.items().find((item) => item.name.endsWith("_bed"));
-      if (!bed) return false;
+      if (!bed) return { placed: false, refused };
       try {
         if (!bot.entity.position.floored().equals(stand)) {
           await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(stand.x, stand.y, stand.z)), 10_000, "stepping to the bed's place");
@@ -87,11 +98,17 @@ async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<boo
       }
       // Both halves arrive as separate block updates; sleeping before the second reads as "only half a bed".
       await bot.waitForTicks(6);
-      if (bot.blockAt(foot)?.name.endsWith("_bed")) return true;
+      if (bot.blockAt(foot)?.name.endsWith("_bed")) return { placed: true, refused };
+      refused++;
     }
   }
-  return false;
+  return { placed: false, refused };
 }
+
+/** Entity types with a body that blocks a bed; dropped items, arrows and the like don't. */
+const BODIES = new Set(["player", "hostile", "animal", "passive", "mob", "ambient", "water_creature"]);
+/** A bed is this tall. */
+const BED_HEIGHT = 0.5625;
 
 /** A player lying in a bed: mineflayer keeps each entity's pose, and 2 is sleeping. */
 const asleep = (entity: { metadata?: unknown[] } | undefined) => entity?.metadata?.[6] === 2;
@@ -146,7 +163,7 @@ export const sleep: Skill = {
     const free = beds.filter((block) => !occupied(block));
     const carried = bot.inventory.items().some((item) => item.name.endsWith("_bed"));
     const putDown = async () => {
-      const placed = await (inside ? placeBedInside(ctx, inside) : placeBed(ctx)).catch((error: Error) => {
+      const placed = await (inside ? placeBedInside(ctx, inside).then((outcome) => outcome.placed) : placeBed(ctx)).catch((error: Error) => {
         ctx.log(`placing bed failed: ${error.message}`);
         return false;
       });
@@ -290,15 +307,18 @@ export const placeBedSkill: Skill = {
       }
     }
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
-    const placed = await (inside ? placeBedInside(ctx, inside) : placeBed(ctx)).catch((error: Error) => {
+    const outcome = await (inside ? placeBedInside(ctx, inside) : placeBed(ctx).then((placed) => ({ placed, refused: 0 }))).catch((error: Error) => {
       ctx.log(`placing bed failed: ${error.message}`);
-      return false;
+      return { placed: false, refused: 0 };
     });
-    if (!placed) {
-      return {
-        status: "failed",
-        reason: inside ? `no room left for a bed in the shelter at ${spotKey(inside)}` : "no flat open ground next to you to put a bed on — move somewhere clearer",
-      };
+    if (!outcome.placed) {
+      // "No room" only when there was none: a refused spot is not a full room.
+      const reason = !inside
+        ? "no flat open ground next to you to put a bed on — move somewhere clearer"
+        : outcome.refused
+          ? `the game would not put the bed down at the ${outcome.refused} free spot${outcome.refused === 1 ? "" : "s"} tried in the shelter at ${spotKey(inside)} (something may have been standing there) — try again in a moment`
+          : `no room left for a bed in the shelter at ${spotKey(inside)}`;
+      return { status: "failed", reason };
     }
     const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
     const heads = bot.findBlocks({ matching: bedIds, maxDistance: 8, count: 16 }).filter((point) => bot.blockAt(point)?.getProperties()["part"] === "head");
