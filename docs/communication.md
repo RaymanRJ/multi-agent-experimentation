@@ -91,6 +91,12 @@ Even with messaging off, an agent sees the other agents within 32 blocks in its 
 taken from their narration. This is like watching someone chop a tree: it isn't a message, but
 it can stop two agents doing the same job.
 
+Teammates (agents launched together) also share a little of what they've seen, as a person would
+mention it: the shelters each has built appear in a teammate's `shelters` when in sight, and animals a
+teammate saw in the last 10 minutes appear in `animalsSeen` ("3 sheep at 10,76,80, 45 blocks south,
+seen by lb 2 min ago"). In bpoc6 an agent walked straight to sheep a teammate had seen, and the team
+made a bed for everyone.
+
 ## Stance: how agents regard each other
 
 How to talk is explained the same way to every agent. Why they would talk, or whether to help each

@@ -55,7 +55,8 @@ export function Home() {
           </p>
           <p>
             Fixes to tools and information alone took the same team of three models from one or two parts of a
-            four-part goal to three, and cut its failed decisions by about two fifths.
+            four-part goal to three, and cut its failed decisions by about two fifths. With reflexes and shared
+            sightings added, it met all four once, with no deaths.
           </p>
           <a className="more" href={HASH.doc('results/write-ups/06-team-base', 'how-this-testbed-gets-better-from-where-the-agents-get-stuck')}>
             Every fix, beside the same problem in real systems →
@@ -77,7 +78,8 @@ export function Home() {
             ))}
           </ol>
           <p className="chart-foot">
-            One rep each after the first run: a sign, not proof. Same models, settings and world each time.
+            One rep each from tbase2 to tbase4, three each in tbase1 and tbase5: a sign, not proof. Same models,
+            settings and world each time.
           </p>
         </figure>
       </section>

@@ -13,7 +13,10 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
    - what the agent is holding;
    - what useful blocks are within 24 blocks, as counts only (for example "14 dark oak logs", with no positions);
    - health, hunger, and time of day;
-   - nearby mobs and other agents;
+   - nearby mobs, animals and other agents;
+   - animals it or a teammate saw in the last 10 minutes that are out of view now, with where and when
+     (`animalsSeen`);
+   - shelters in sight (its own and its teammates'), and beds put down nearby;
    - the result of its last skill;
    - which tools it could craft right now;
    - by day, how long until night;
@@ -30,8 +33,14 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
 Every skill also stops when the run ends. Skills that move around also stop when a hostile mob
 comes close, when the agent takes damage, at dusk (about a minute before night) and at nightfall,
 so the model can decide what to do about the dark. `build_shelter` is the exception for dusk and
-nightfall: getting under cover is the answer to them. One reflex runs before any skill: if the agent's head is under water, the code first
-moves it to the nearest dry spot, since drowning damage would otherwise stop every skill at once.
+nightfall: getting under cover is the answer to them.
+
+**Reflexes** run without the model, in the seconds it can't act (`src/agents/src/reflexes.ts`), and the
+next observation says what they did. Before each skill, an agent whose head is under water is moved
+to the nearest dry spot. While the model decides, the agent swims out if under water, steps back
+about 6 blocks from a monster within 3, and moves to the nearest cover from a skeleton (or stray,
+bogged) within 16 blocks that can see it; it does nothing inside a closed shelter. A spot where the
+pathfinder got stuck is walked round for the rest of the run.
 
 **No seeing through walls.** The bot's code knows every block around it, including ore sealed
 inside solid rock. Observations and `mine_ore` count only ore a player could see, touching air or
@@ -53,16 +62,16 @@ comparable.
 | `descend(y)` | Dig down to height `y` | Digs a staircase, which can be walked back up. It checks every block before breaking it and turns away from lava, water and drops into caves. It stops if every way down is unsafe, and reports the ore now in sight. | "stopped at y=12: every way down is unsafe (north: lava behind the stone; …)" |
 | `tunnel(length, direction)` | Dig a 2-high tunnel up to 32 long | Strip-mining: the walls uncover ore hidden in rock, which `mine_ore` can then see. It keeps the same heading between calls and stops before lava, water or a drop. | "cannot tunnel north: water — try another direction" |
 | `climb_out()` | Get back up to open sky | Digs a staircase up, with the same checks as `descend`. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks it carries (dirt or cobblestone first, logs last). If the agent is in water it first moves to dry ground nearby. When the agent is under the ground, its observation says how deep as `underground` (blocks of solid ground overhead, shown from 3, so a shelter roof doesn't count). | "stopped at y=49, under 13 blocks of ground: every way up is unsafe (…; straight up: nothing to stand on …)" |
-| `hunt(target, count)` | Kill a creature or a player | `target` is a kind of animal or mob (cow, sheep, zombie…) or another agent's name; `count` up to 5. Chases the nearest within 32 blocks with the best sword or axe held (bare hands otherwise), hitting as fast as the weapon recovers, then picks up the drops (meat, wool, string). It isn't stopped by being hit or by mobs close by, unlike other skills, but it stops at health 6 or when the target gets away for 30 seconds. | "no cow within 32 blocks — explore to find one" |
+| `hunt(target, count)` | Kill a creature or a player | `target` is a kind of animal or mob (cow, sheep, zombie…) or another agent's name; `count` up to 5. Chases the nearest within 32 blocks with the best sword or axe held (bare hands otherwise), hitting as fast as the weapon recovers, then picks up the drops (meat, wool (1 per sheep killed), string). It isn't stopped by being hit or by mobs close by, unlike other skills, but it stops at health 6 or when the target gets away for 30 seconds. | "no cow within 32 blocks — explore to find one" |
 | `shear(count)` | Wool from sheep, without hurting them | Needs shears (2 iron ingots). Walks to the nearest unsheared adult sheep, shears it (1–3 wool each) and picks the wool up. Observations list animals nearby as `animals`. | "every sheep within 32 blocks is already sheared or a lamb — wool grows back after a sheep eats grass" |
 | `eat()` | Eat | Eats the best safe food it holds. | "no food in inventory" |
-| `flee(distance)` | Get away from mobs | Runs directly away from the hostile mobs nearby. With no way out (a pit, a cave), it walls the agent in with dirt, cobblestone or planks it carries; any later move digs back out. | "could not find a path away … and could not wall yourself in (no dirt, cobblestone or planks to place)" |
+| `flee(distance)` | Get away from mobs | Inside a closed shelter with nothing in it, stays put and says so. Otherwise runs into a finished shelter it knows within 64 blocks, on the side away from the mobs (any side, if a skeleton can see it), with no mob at its doorway, and closes it. Failing that, runs away from them, turning aside rather than into or across water or off a drop, and ends behind cover if a skeleton can still see it (a skeleton shoots up to 16 blocks, only with a clear line of sight). Safe means no melee mob within 12 blocks and no skeleton in sight. With no way out (a pit, a cave), it walls the agent in with dirt, cobblestone or planks it carries; any later move digs back out. | "could not find a path away … and could not wall yourself in (no dirt, cobblestone or planks to place)" |
 | `sleep()` | Sleep through the night | Finds a bed within 32 blocks, or places one it holds, then walks to it and sleeps. Beds work only from about tick 12,541 to 23,459, as in the game. A bed takes 3 wool (from `shear` or `hunt`) and 3 planks. If another agent is in the nearest bed it uses a free one, or puts down its own. Inside a shelter it puts its bed down inside; outside, with a shelter near, it goes into the shelter (closing it) and puts it down there, so a team's beds end up together. If the night does not pass, it says how many the game counted asleep and who it can see awake. | "too early to sleep: beds can be used from about 12541 (18 seconds from now) until 23459" |
-| `place_bed()` | Put a bed down without sleeping | Puts one bed it carries down inside the shelter it is in, or, outside with a shelter within 32 blocks, goes into the largest such one and puts it there; otherwise next to itself. Says how many beds are then down nearby. Added after tbase3, where an agent meant to "place beds" for the team and could only do it by sleeping. | "you carry no bed — a bed is crafted from 3 wool and 3 planks…" |
+| `place_bed()` | Put a bed down without sleeping | Puts one bed it carries down inside the shelter it is in, or, outside with a shelter within 32 blocks, goes into the largest such one and puts it there; otherwise next to itself. Says how many beds are then down nearby. Passes over spots where anyone stands (the game refuses a bed there), and if the game still refuses, says so rather than calling the room full. Added after tbase3, where an agent meant to "place beds" for the team and could only do it by sleeping. | "you carry no bed — a bed is crafted from 3 wool and 3 planks…" |
 | `wait(seconds)` | Do nothing for 1–60 s | Stands still, but stops early if interrupted. Three waits in a row in daylight with no mob in sight are reported as a loop. | (none) |
 | `give(to, item, count)` | Hand items to another agent | Says in chat that it is coming (which pauses them), walks up beside them, drops the items at its feet and steps back. Succeeds when they pick the items up; otherwise tells them the items are on the ground. | "qwen is not in sight; ask where they are, or go to them first" |
 | `pick_up(item)` | Collect dropped items within 8 blocks | Walks over each one (all, or only `item`). Dropped items near an agent are listed in its observation as `itemsOnGround`. | "there is no dropped stone_sword within 8 blocks" |
-| `store(item, count)` | Put items in a chest | Uses the nearest chest within 32 blocks, or puts one down (crafting it from 8 planks). Without `item`, stores everything but tools, weapons and food. Moves whole stacks, one shift-click per server reply, and reports what the chest now holds. | "the chest at 20,70,39 is full (…)" |
+| `store(item, count)` | Put items in a chest | Items in a chest stay there whatever happens to the agent, even if it dies (its description says so). Uses the nearest chest within 32 blocks, or puts one down (crafting it from 8 planks). Without `item`, stores everything but tools, weapons and food. Moves whole stacks, one shift-click per server reply, and reports what the chest now holds. | "the chest at 20,70,39 is full (…)" |
 | `take(item, count)` | Take items from a chest | Looks in the nearest chests within 32 blocks for `item`, takes as many as `count` asks for (whole stacks by shift-click, the rest of a stack one click at a time), and reports what each chest it opened holds. | "no diamond in the chest nearby: the chest at 20,70,39 holds 40 cobblestone, …" |
 | `look_in_chest()` | See inside the chests nearby | Opens up to 4 chests within 32 blocks, nearest first, and reports what each holds, moving nothing. Added after tbase2, where an agent took meat out of the team's store to find out what was in it. | "no chest within 32 blocks" |
 | `go_to(to)` or `go_to(x, z)`, optionally with `y` | Walk to an agent in sight, or to coordinates | Walks in legs of 32 blocks, up to 512, following an agent that moves. With `y` it also climbs or descends to that height (up a hill, say); without it, height doesn't count. It only walks: from under the ground, `climb_out` is the way up. | "qwen is not in sight; ask them where they are, then go_to with x and z" |
@@ -87,7 +96,9 @@ See [communication.md](communication.md).
 
 ## Known gaps
 
-- There's no fighting, farming or chest storage yet.
+- There's no farming, and fighting is melee only (`hunt`): no bows or shields.
+- `mine_ore` won't mine ore beside water or lava; whether to allow ore beside water now that agents
+  swim out by themselves is open (see `docs/next-steps.md`).
 
 To add a skill, write it in `src/agents/src/skills/` and add it to the list in `src/agents/src/skills/index.ts`. Its
 `description` text is exactly what the model reads, so write it for the model.

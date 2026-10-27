@@ -78,8 +78,9 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 What it is *not* given: advice. The harness adds facts, never suggestions: it says when the agent
 has made the same decision several times running, refuses a premature "done" and says what is still
 missing (a false claim of success is itself a result worth counting), lets it give up with a reason
-and flags that it did, and, as its own experimental condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: an
-agent under water swims out before it is asked anything.
+and flags that it did, and, as its own experimental condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: in the
+seconds while the model decides, the agent steps back from a monster within reach, takes cover from a skeleton that can see it,
+and swims out if its head is under water; each is reported in its next observation.
 
 ## What gets measured
 
@@ -131,7 +132,7 @@ environment is a game; the questions are the same ones a company faces.
 | **Cheaper models loop.** The small model repeated the same failing action dozens of times, even when told exactly what was wrong. The larger models changed course about half the time or more. | Budget and monitor for repetition. Set limits on time and spend per task, watch for an agent doing the same thing over and over, and match the model to how much judgement the work needs. |
 | **Cost varies enormously, and isn't the same as quality.** A single decision cost from nothing (a model on our own machine) to up to about $0.02 (Claude Sonnet); GPT-6 Luna's cost about $0.0005, ten or more times less. In one team run that cheapest paid model built the shelter, and its whole run cost under half a cent. | Price per decision tells you little on its own. Measure cost per *completed task* on your own work: a cheap model that finishes can beat an expensive one, and a free local model keeps data in-house. |
 | **Teams of agents can split the work, but need ground rules.** In one run, four agents on four different models met a shared goal: one made every tool and handed them out, another built the shelter. Along the way, agents didn't know their own names until told, and interrupted each other so often that work kept getting cancelled. | Multi-agent setups are workable, but the coordination has to be designed: who each agent is, how work is handed over, and when one may interrupt another. Those rules belong in the system, not left to the agents to work out. |
-| **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
+| **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. Later, letting the body step back, take cover and swim out by itself while the model decides cut deaths during a decision from 9 a run to 1. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
 | **Every decision is recorded.** Each choice is logged with exactly what the agent saw and why it chose, so any run can be replayed and audited, and its cost traced to the cent. | Insist on the same from any agent you deploy. When something goes wrong, you need to see what it knew and why it acted, not just the end result. |
 
 **In short:** autonomous agents can do useful work unattended, but how reliable they are depends far
@@ -181,7 +182,7 @@ layout:
 |---|---|
 | `src/agents/` | The experiment: the agents and skill library (`src/`), the run scripts (`scripts/`), the game server's Docker setup, and, kept out of git, the run logs (`runs/`) and the world (`world/`) |
 | `docs/` | How it works, and the results: write-ups and batch reports |
-| `src/site/` | The project site: the findings and every doc, built from `docs/`; see its README |
+| `src/site/` | The project site: the lessons, case studies, results and every doc, built from `docs/`; see its README |
 | `src/terraform/` | AWS hosting for the project site (S3, CloudFront, a certificate, DNS), deployed by `.github/workflows/site.yaml`; see its README |
 
 ### 3. Check your setup
@@ -286,8 +287,8 @@ The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5, Sonne
 5.5, and GPT-6 Luna. A scripted agent with fixed rules and no model is the baseline: without it
 there would be no way to tell whether a model adds anything. The local model has been through the
 most comparison batches (b1–b16); the paid models through two (p5, p6: three runs each) and the
-team runs. A three-day team game costs about $3.50 with the Claude models in the team, or about
-$0.30 with three GPT-6 Luna agents.
+team runs. A three-day team game costs about $1.40-3.30 a rep with Opus, Sonnet and GPT-6 Luna
+together (less when the team finishes early), or about $0.30 with three GPT-6 Luna agents.
 
 **What we've found so far** (details in [docs/results/](docs/results/)):
 - **Fixing the tools mattered more than anything about the model.** The biggest improvements came
@@ -305,6 +306,10 @@ $0.30 with three GPT-6 Luna agents.
 - **Hands-off teams can work.** In one run (one run, not yet a comparison), four agents on four
   models met a shared goal in under five minutes of game time for $0.28: one made every tool and
   handed them out, another built the shelter.
+- **A team can finish a long shared goal.** After fixes to tools, information and reflexes, a team of
+  Claude Opus, Claude Sonnet and GPT-6 Luna met the whole three-day `team-base` goal (one home, a bed
+  each, an iron pickaxe each, food stored) in one of three reps, with no deaths, for $1.36: each agent
+  took one part and finished it. In the other two the home and food were done, and iron wasn't.
 
 What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
 
@@ -312,6 +317,7 @@ What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitati
 
 | Read | For |
 |---|---|
+| [docs/lessons.md](docs/lessons.md) | What the runs teach about building agents, by part of the system |
 | [docs/skills.md](docs/skills.md) | Every tool (skill) an agent can use, how it works and how it fails |
 | [docs/communication.md](docs/communication.md) | How agents see, talk to and ask things of each other, and the three stances |
 | [docs/experiments.md](docs/experiments.md) | Running a fair comparison and reading the reports |

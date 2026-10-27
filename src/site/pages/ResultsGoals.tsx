@@ -1,5 +1,6 @@
 import { batches } from 'virtual:batches';
 import { GOALS, TEAM_GOALS } from '../../agents/src/goals';
+import { goalNotes } from '../content/goals';
 import type { Batch } from '../lib/batches';
 
 // The Results page's goals: what each goal asks, in the words the agents are given (read from the
@@ -107,6 +108,7 @@ function GoalCard({ plain, guided }: { plain: GoalView; guided?: GoalView }) {
           {worlds && <span className="goal-tag">{worlds}</span>}
         </span>
       </header>
+      {goalNotes[plain.name] && <p className="goal-why">{goalNotes[plain.name]}</p>}
       <blockquote className="goal-text">{GOALS[plain.name] ?? 'Not a preset goal.'}</blockquote>
       <Outcome goal={plain} />
       {guided && (

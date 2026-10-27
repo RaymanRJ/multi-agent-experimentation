@@ -81,4 +81,7 @@ export const reps: Array<{ label: string; met: number; note: string }> = [
   { label: 'tbase2', met: 1, note: 'mining, chests, health fixed' },
   { label: 'tbase3', met: 2, note: 'plus treetops' },
   { label: 'tbase4', met: 3, note: 'plus beds, chest views, sleep' },
+  { label: 'tbase5 · 1', met: 4, note: 'plus reflexes, shared sightings, bed fixes' },
+  { label: 'tbase5 · 2', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
+  { label: 'tbase5 · 3', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
 ];

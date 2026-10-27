@@ -73,8 +73,9 @@ export function HowItWorks() {
           agent has made the same decision several times running, refuses a premature "done" and says what
           is still missing (a false claim of success is itself a result worth counting), lets it give up
           with a reason and flags that it did, and, as its own experimental condition, can list what the
-          goal still lacks. A few reflexes are code, not the model's choice: an agent under water swims out
-          before it is asked anything.
+          goal still lacks. A few reflexes are code, not the model's choice: in the seconds while the model
+          decides, the agent steps back from a monster within reach, takes cover from a skeleton that can see
+          it, and swims out if its head is under water, and its next observation says what it did.
         </p>
         <p>
           Lessons on each part: <a href={HASH.doc('lessons', 'tools')}>tools</a>,{' '}
@@ -86,8 +87,9 @@ export function HowItWorks() {
         <p>
           Claude Opus 5.5, Sonnet 5.5 and Haiku 4.5, GPT-6 Luna, and a small model that runs locally for
           free (Qwen3 4B). A scripted agent with fixed rules and no model is the baseline: without it there would
-          be no way to tell whether a model adds anything. A three-day team game costs about $3.50 with the
-          Claude models in the team, or about $0.30 with three GPT-6 Luna agents.
+          be no way to tell whether a model adds anything. A three-day team game costs about $1.40-3.30 a rep
+          with Opus, Sonnet and GPT-6 Luna together (less when the team finishes early), or about $0.30 with
+          three GPT-6 Luna agents.
         </p>
 
         <h2>What gets measured</h2>

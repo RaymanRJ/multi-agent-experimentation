@@ -1129,6 +1129,13 @@ h3 {
   font-size: 12px;
 }
 
+.goal-why {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .goal-text {
   margin: 0;
   padding: 0 0 0 10px;

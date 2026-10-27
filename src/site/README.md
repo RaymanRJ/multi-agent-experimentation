@@ -28,7 +28,9 @@ last chapter, "Not yet written up", until it is added to `content/story.ts` with
 linked to its write-up if the write-up links to the report or `docs/results/README.md`'s table names it. Opening a report shows the
 same summary above its full text. The overview above the chapters (`pages/ResultsOverview.tsx`)
 totals the same summaries: how often runs met their goal, by goal and by model, and how many teams
-met theirs. If `publish-reports.sh` changes the layout of a report, change
+met theirs. Below it, the goals (`pages/ResultsGoals.tsx`): each goal's text is read from the agents'
+own `src/agents/src/goals.ts` and its tallies from the reports, so both are automatic; the one-line note
+on why each goal exists is hand-written in `content/goals.ts`. If `publish-reports.sh` changes the layout of a report, change
 `lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.
 
