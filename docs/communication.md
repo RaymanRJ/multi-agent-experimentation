@@ -95,7 +95,8 @@ Teammates (agents launched together) also share a little of what they've seen, a
 mention it: the shelters each has built appear in a teammate's `shelters` when in sight, and animals a
 teammate saw in the last 10 minutes appear in `animalsSeen` ("3 sheep at 10,76,80, 45 blocks south,
 seen by lb 2 min ago"). In bpoc6 an agent walked straight to sheep a teammate had seen, and the team
-made a bed for everyone.
+made a bed for everyone. Ore a teammate saw in the last 30 minutes appears the same way, in `oreSeen`,
+with how far above or below it lies.
 
 ## Stance: how agents regard each other
 

@@ -80,11 +80,12 @@ piece built against it simultaneously. This has already bitten this project's pl
 - **Scenario parity.** `sandbox` and `survival` must differ only in world settings and the goal
   text. If a code path checks the scenario name for anything else, that is a bug.
 - **Teams share a tally; the model sees only facts drawn from it.** Agents launched together (`src/agents/scripts/team.sh`,
-  `--team a,b`) each write what they hold, the shelters they built and the animals they saw to
+  `--team a,b`) each write what they hold, the shelters they built and the animals and ore they saw to
   `runs/.teams/<episode>/` (`src/agents/src/team.ts`). A team goal (`team-camp`, `team-base`) is checked against
   all of it, and a collaborative agent's run ends only when the whole team is done. The tally itself is
   never shown; what reaches an observation from it are facts a teammate could tell you: shelters in sight
-  (`shelters`), animals a teammate saw lately (`animalsSeen`), and, with `--progress on`, the goal's gaps.
+  (`shelters`), animals and ore a teammate saw lately (`animalsSeen`, `oreSeen`), and, with `--progress on`,
+  the goal's gaps.
   Otherwise teammates learn about each other by looking (`otherAgents`) and by chat; agents
   act on each other through `give`, `pick_up` and `go_to`. They can ask things of each other with
   `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log

@@ -112,9 +112,9 @@ Done on 26 October, on local `main`, not pushed:
   through our backend).
 
 Next, waiting on the owner:
-1. **The cost cap.** Opus costs about $2.50-2.70 over three days; with a $2 cap it left reps 2 and 3
-   early, which alone made "everyone slept" unreachable. A $3 cap per agent per rep would keep it in;
-   three reps would then cost about $10-12.
+1. **The cost cap: $3 per agent per rep from tbase6 on (the owner's call, 27 October).** Opus costs about
+   $2.50-2.70 over three days; with a $2 cap it left reps 2 and 3 early, which alone made "everyone
+   slept" unreachable. Three reps should cost about $10-12.
 2. **Iron: done differently (27 October, the owner's call).** Looking closer, tbase5's iron wasn't far,
    it was deep: rep 1 mined it 42 blocks below the home's area, and in reps 2 and 3 `descend` toward it
    was called off at least 15 times by creepers, skeletons and endermen in caves beside the shaft,
@@ -123,7 +123,12 @@ Next, waiting on the owner:
    agent (in view, or right beside it), skill and interrupt alike. Checked live: a dig passed 5.9 blocks
    from a creeper behind rock and reached its depth; one with a creeper in view stopped at once. Ore
    beside water or lava stays off limits (the owner preferred not to change that).
-3. **Then the same run again** (tbase6), to see whether rep 1 repeats and iron comes in reps like 2 and 3.
+   **Also done (27 October): ore memory.** `explore` reported only what was in view where it stopped, so
+   ore passed on the way, or seen down a cave and left, was forgotten. Now each agent remembers ore it
+   saw (as a player could see it) for 30 minutes and shares it with teammates; the observation lists it
+   as `oreSeen`, with how far above or below, and flags a vein touching water or lava. Checked live.
+3. **Then the same run again** (tbase6, `BUDGET_USD=3`), to see whether rep 1 repeats and iron comes in
+   reps like 2 and 3.
 4. **Open, not urgent:** the report counting a death between steps as no setback (limitations); the
    tbase3 `give` timeout to a teammate inside the closed home (cause unknown); the second drowning gap
    (a skill started after a failed escape).
