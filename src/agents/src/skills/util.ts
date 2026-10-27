@@ -80,7 +80,26 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   for (const block of bot.registry.blocksArray) {
     if (FURNITURE.test(block.name)) movements.blocksCantBreak.add(block.id);
   }
+  // Steer round anywhere the bot has got stuck this run (gotoWatched records them).
+  movements.exclusionAreasStep.push((block) => (stuckSpots.get(bot)?.has(`${block.position.x},${block.position.y},${block.position.z}`) ? STUCK_SPOT_COST : 0));
   return movements;
+}
+
+/**
+ * Where a bot got stuck, by "x,y,z", kept for the rest of its run. The pathfinder can freeze mid-jump at
+ * an ordinary step for no reason found (at 2,74,34 on this seed, on a team's way home: one agent was
+ * stuck there three times in bpoc5), so a spot that stuck it once is one to walk round.
+ */
+const stuckSpots = new WeakMap<Bot, Set<string>>();
+/** What stepping into a stuck spot costs the pathfinder, against 1 for a block of walking: a detour that long is worth it. */
+const STUCK_SPOT_COST = 40;
+
+/** Marks the bot's spot, and the cells round it, at feet and head height, as ones to walk round. */
+export function avoidSpot(bot: Bot): void {
+  const at = bot.entity.position.floored();
+  const spots = stuckSpots.get(bot) ?? new Set<string>();
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) spots.add(`${at.x + dx},${at.y + dy},${at.z + dz}`);
+  stuckSpots.set(bot, spots);
 }
 
 const FURNITURE = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$/;
@@ -341,6 +360,8 @@ export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["
       await withTimeout(bot.pathfinder.goto(goal), Math.max(1000, deadline - Date.now()), label);
       return;
     } catch (error) {
+      // Wherever it froze, the next path (this call's retry, or any later skill's) goes round.
+      if (stuck) avoidSpot(bot);
       if (!stuck || nudge >= MAX_NUDGES || Date.now() >= deadline) {
         const at = bot.entity.position.floored();
         const where = onTreetops(bot) ? " on top of tree leaves, too high to drop down safely" : "";
