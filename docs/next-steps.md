@@ -64,11 +64,16 @@ Done on 26 October, on local `main`, not pushed:
   the monster 5–19 blocks off, out of reach. After it: the step cap scales with the time budget
   (600 for three days), since 200 ended lc's run early. Written up in 06.
 
+- **Ranged attack (the owner's call, after bpoc4): the reflex is split in two.** A monster within 3
+  blocks is stepped back from; a skeleton within 16 blocks that can see the agent is hidden from (the
+  range measured live: shots at 15 and 16.7 blocks, none at 17+, none through a wall). `flee` counts
+  such a skeleton as danger, takes a shelter on any side with one in sight, and ends behind cover.
+  Checked live: no arrows after taking cover, where standing still drew three; flee got into a
+  shelter to the side. The Agent minds page has a favicon.
+
 Next, in order:
-1. **Ranged attack, the owner's call:** the reflexes answer melee, not arrows. Options: have `flee`
-   prefer a shelter whenever one is in reach (not only on the far side), or end a flee out of a
-   skeleton's line of sight; or leave it, as one rep may just have been a bad night. Then the key
-   check for the Claude models (about a cent).
+1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
+   owner): do arrow deaths fall? Then the key check for the Claude models (about a cent).
 2. **The owner's finetuning, then the paid run:** the mixed team (Opus, Sonnet, Luna) on `team-base`,
    about $12, capped with `BUDGET_USD`, with the minds panel (`npm run minds`, :3010) and `VIEW=on`;
    `--progress on` as its own condition after.

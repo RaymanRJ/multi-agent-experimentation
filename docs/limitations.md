@@ -262,9 +262,15 @@ building on it.
   within 3 blocks, unless it is in a closed shelter, and the next observation says so; `flee` runs
   into a known shelter that lies away from the mobs with a clear doorway, and otherwise steers off
   water and drops. In bpoc4 (one rep) the step-back ran 39 times and `flee` ran into a shelter 11
-  times, but deaths didn't fall (24; bpoc3 17), and skeletons killed 12. What they don't cover:
-  - a skeleton shooting from further off: stepping back only answers what is within reach, and a
-    flee across open ground stays in bow range;
+  times, but deaths didn't fall (24; bpoc3 17), and skeletons killed 12. After bpoc4 the
+  reflex was split in two (the owner's call): a monster within 3 blocks is stepped back from; a
+  skeleton (or stray, bogged) within 16 blocks that can see the agent is hidden from, at the nearest
+  spot within 5 blocks it can't see. The range was measured live: a skeleton with a bow fired at 15
+  and 16.7 blocks, not at 17 or beyond, and never through a wall. `flee` counts such a skeleton as
+  danger, takes a shelter on any side when one is in sight, and ends behind cover. What they don't cover:
+  - a skeleton that keeps coming: cover holds until it walks round it (checked live: hidden at the
+    end of a flee, seen again five seconds later), so the next step-to-cover waits for the next decision;
+  - open ground with no cover within 5 blocks, where the reflex does nothing;
   - the moment between a skill being interrupted and the next decision starting;
   - a decision made after the step-back starts from an observation a few blocks out of date (the
     skill reads the world afresh, so this costs accuracy in the model's reasoning, not in what is done).
