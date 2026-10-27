@@ -155,6 +155,7 @@ export function fakeBot(setup: FakeWorld = {}): FakeBot {
     lookAt: async () => {},
     look: async () => {},
     setControlState: (control: string, state: boolean) => calls.push(`${control} ${state ? "on" : "off"}`),
+    clearControlStates: () => {},
     toss: async (id: number, _metadata: unknown, count: number) => {
       calls.push(`toss ${count} ${registry.items[id]?.name}`);
     },

@@ -87,6 +87,8 @@ export function enclosed(bot: Bot): boolean {
 const BURROW_DEPTH = 3;
 /** A block slower than this to dig, with the best tool held, makes digging in too slow to be safe. */
 const BURROW_DIG_MS = 1500;
+/** Room for one dig of up to BURROW_DIG_MS, with the server's lag. */
+const BURROW_DIG_TIMEOUT_MS = 6_000;
 
 /**
  * Dig in where the agent stands: three blocks straight down, then a block over the head, as a player
@@ -95,6 +97,14 @@ const BURROW_DIG_MS = 1500;
  * fewer than the 10 blocks walling in takes, 8 of them none. Returns null when dug in, or why not.
  */
 export async function burrow(bot: Bot): Promise<string | null> {
+  // Land first: measured mid-jump, the hole is planned in the air, and a dig made off the ground takes
+  // five times as long (bpoc9's lb: "digging the stone timed out" with a stone pickaxe, then killed).
+  bot.pathfinder.setGoal(null);
+  bot.clearControlStates();
+  const landed = async () => {
+    for (let tick = 0; tick < 40 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+  };
+  await landed();
   const feet = bot.entity.position.floored();
   const dig = [1, 2, 3].slice(0, BURROW_DEPTH).map((d) => feet.offset(0, -d, 0));
   const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
@@ -123,13 +133,13 @@ export async function burrow(bot: Bot): Promise<string | null> {
   const cap = dig[0]!;
   if (!SIDES.some((d) => solid(cap.plus(d)))) return "nothing to build the cover against";
 
-  bot.pathfinder.setGoal(null);
   for (const cell of dig) {
     const block = bot.blockAt(cell);
     if (!block || block.boundingBox !== "block") continue;
     const tool = bot.pathfinder.bestHarvestTool(block);
     if (tool) await bot.equip(tool, "hand");
-    await withTimeout(bot.dig(block), PLACE_TIMEOUT_MS, `digging the ${block.name}`);
+    await landed();
+    await withTimeout(bot.dig(block), BURROW_DIG_TIMEOUT_MS, `digging the ${block.name}`);
     for (let tick = 0; tick < 20 && bot.entity.position.y > cell.y + 0.01; tick++) await bot.waitForTicks(1);
   }
   // Now standing at the bottom: the cover goes where the first block was dug, over the head.
