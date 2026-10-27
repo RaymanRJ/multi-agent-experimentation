@@ -16,6 +16,13 @@ const step = (skill: string, args: Record<string, unknown>, before: Record<strin
 const base = (by: string, reason = "the large two-storey shelter is finished") =>
   step("build_shelter", { size: "large", storeys: 2 }, {}, {}, { status: "success", reason, detail: { size: 5, storeys: 2, position: { x: 0, y: 64, z: 0 }, by } });
 
+test("classify - a death between steps counts what was held at the end of the step before (bpoc6)", () => {
+  // la drowned after one skill ended and before its next observation: that observation shows it empty-handed.
+  const died = step("flee", { distance: 32 }, {}, {}, { status: "success" }, { deaths: [{ x: 32, y: 56, z: 9, cause: "drowned", ticks: 43600, timeOfDay: 20257 }] });
+  assert.deepEqual(classify(died, parts).setbacks, [], "without the step before, nothing seems lost");
+  assert.deepEqual(classify(died, parts, false, { iron_pickaxe: 3, cobblestone: 5 }).setbacks, [{ part: "iron pickaxes", how: "died", items: { iron_pickaxe: 3 } }]);
+});
+
 test("classify - toward a part, groundwork, staying alive, and nothing", () => {
   assert.deepEqual(classify(step("mine_ore", { ore: "iron" }, {}, { raw_iron: 2 }), parts).parts, ["iron pickaxes"]);
   assert.equal(classify(step("mine_ore", { ore: "iron" }, {}, { raw_iron: 2 }), parts).kind, "toward");
