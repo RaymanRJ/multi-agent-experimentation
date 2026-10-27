@@ -160,7 +160,14 @@ Next, waiting on the owner:
    dug in among four zombies and a skeleton cost no health; fleeing three zombies at night, the old code
    was killed in 2 of 3 tries and the new survived 10 of 11. The owner asked for the run of deaths
    and fixes to be told as one story: 06 "The problem that kept coming back: staying alive", a lesson in
-   lessons.md, and the site's Results page. Next: a Luna proof run to see whether it closes the night gap.
+   lessons.md, and the site's Results page.
+   **Proof run bpoc9 (27 October, Luna, $0.37):** 3 of 4 parts (home, 3 of 3 slept, 20 meat; iron 1 of
+   3), 10 deaths, 2 at night (bpoc8: 19), mostly because the agents spent more of the night inside (35%
+   of night decisions against 13%). `flee` dug in 3 times at night; one was false (knocked off the hole
+   while digging, told it had dug in, then killed). Fixed and checked live: the burrow lands first,
+   reports a dig-in only when the agent is really shut in alone, digs only with a 5-block lead, and stops
+   when a monster reaches it. Whether digging in closes the night gap is still open: it ran too rarely
+   here to say. Written up in 06.
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch

@@ -914,6 +914,42 @@ three tried to clear the doorway or wall off the crowd.
   A death's step can still show what it dropped, which then goes missing in the next step and was read
   as wear. Fixed: a loss right after a death is the death's, counted there.
 
+## Digging in, first try (bpoc9)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 59c4d13: bpoc8's settings, with `flee` digging in at
+night when monsters are still after the agent (above and below). $0.37 (capped at $0.50 an agent).*
+
+| Part | bpoc7 | bpoc8 | bpoc9 |
+|---|---|---|---|
+| Shared home built | **yes** (day 1) | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | **3 of 3** | 2 of 3 | **3 of 3** |
+| Everyone holds an iron pickaxe | 1 of 3 | 0 | 1 of 3 (la) |
+| Food left in store | 0 | **10** | **20** |
+| Deaths | **2** | 22 | 10 |
+| Game time toward a part of the goal | 14% | 19% | 17% |
+
+**Three parts of four again, and the nights were quieter.** 2 deaths at night against 19 in bpoc8.
+Most of that is where the agents spent the night: inside a shelter at 35% of night decisions, against
+13%. `flee` dug in only 3 times at night (once more by day), and stayed put twice when already shut in.
+
+**When it worked, they used it.** Dug in at 2 health, lb reasoned "I'm dug in and covered, so waiting
+through the last of the night is safer than emerging beside hostiles at 5 health", and waited.
+
+**Where our code, not the agents, decided the outcome:**
+- lb dug in with a zombie 5 blocks off and a skeleton in sight, was hit from 20 health to 5 while
+  digging and knocked off the hole, and was told it had dug in. The next decision's reflexes, no longer
+  seeing it as sheltered, moved it, and a skeleton killed it. Another time lb, counted as sheltered in
+  its hole, had a zombie at distance 0 and was killed: apparently the zombie got in before the cover. Fixed: the burrow says it
+  is dug in only when the agent is in the hole, closed round, with no monster in it; a hole with a
+  monster in it is not a shelter to the reflexes either; it digs only with a lead of 5 blocks and stops
+  if a monster comes within 2. Checked live: digging with a zombie 2 blocks off, the old code said "dug
+  in" in 3 of 4 tries and the bot died in two of those; the new one said "a monster fell into the hole
+  with you" in the two tries where one had.
+- Once a dig timed out on stone with a stone pickaxe: the burrow had started while the agent was still
+  in the air. Fixed: it lands first (checked live: from mid-jump it dug in 3 of 3, before it refused).
+- Fleeing at night with two zombies 2-10 blocks off and a skeleton, old and new code alike dug in 8 of 9
+  times; the new code adds honesty, not more dig-ins.
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -936,6 +972,7 @@ dying, and the next run showed the next one.
 | tbase5 | 0, 11, 9 | Rep 1, the first full goal, had none | (the deaths were not what stopped reps 2 and 3) |
 | bpoc7 | 2 | Both from our new `climb_out`: gravel fell onto the head it had just dug under | No digging out from under gravel or sand; a reflex digs out any block that lands on the head |
 | bpoc8 | 22 | Mobs camped at the home's doorway every night; 18 of 124 night flees ended in a death, and 13 of the 20 killed in a flee held too few blocks to wall themselves in, 8 none | `flee` digs in: three blocks down and one over the head, which needs nothing carried |
+| bpoc9 | 10 | 2 at night (bpoc8: 19), but the agents spent far more of the night inside (35% of night decisions, against 13%). Of 3 dig-ins at night, one was false: knocked aside while digging, the agent was told it had dug in, and died. A zombie apparently got into another hole with an agent | The burrow lands before digging, says it is dug in only if it is (in the hole, closed round, alone), digs only with a lead of 5 blocks, and stops a dig a monster reaches |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):
