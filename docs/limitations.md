@@ -129,9 +129,12 @@ building on it.
     `climb_out` gets an agent back to the surface, but agents near it still mine slowly.
 - **Ore must be visible to be mined.** By design there is no x-ray. Finding iron and diamonds
   means digging staircases and tunnels, which wears out pickaxes and takes many minutes.
-- **An iron pickaxe gets dug with.** The digging skills use the cheapest pickaxe and spare an iron one
-  only at its last 16 uses; the pathfinder, digging its own way, doesn't spare it at all. In bpoc7 the
-  last iron pickaxe of an agent whose team goal counted it wore out that way. Open: the owner's call.
+- **An iron pickaxe still gets dug with, but only where nothing cheaper will do.** Since bpoc7 every dig
+  takes the cheapest tool that does the job, whatever the goal: `mine_stone` the cheapest pickaxe, and
+  walking a cheaper tool or a bare hand when that is quick enough (2 s a block), an iron one only when
+  not (stone with no other pickaxe). The digging skills still use an iron pickaxe down to its last 16
+  uses when it is the only one. Across this machine's runs, 1 of 14 iron pickaxes wore out; 24 were
+  held at a death.
 
 ## What the measurements can and can't show
 

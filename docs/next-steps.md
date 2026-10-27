@@ -140,9 +140,13 @@ Next, waiting on the owner:
    the second 8 of the meat. Fixed (checked live): the digging skills won't dig out from under gravel or
    sand and step aside instead, and a reflex digs out any block that lands on an agent's head. Also
    fixed: `smelt` chose planks as fuel and then crafted a table from them. Written up in 06.
-   **Open, the owner's call:** an iron pickaxe the goal counts is still dug with, down to its last 16
-   uses, and pathfinding digs with it past that; la's last one wore out that way. Spare it entirely
-   while the goal counts it, or leave it as a player would use it?
+   **Done (27 October, the owner's call): the cheapest tool that does the job, everywhere.** Not tied to
+   the goal, so it holds for a later goal of a better pickaxe. `mine_stone` used the best pickaxe and
+   walking the fastest tool, iron included; now both take the cheapest quick enough, and the prompt's
+   `wearingOut` line says so. Checked live: 6 stone cost the iron pickaxe 6 uses before and the stone one
+   6 after; digging out of a sealed room took the stone pickaxe through stone and a bare hand through
+   dirt, the iron one untouched. Wear was rare anyway: 1 of 14 iron pickaxes wore out, 24 were held at
+   a death.
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch
