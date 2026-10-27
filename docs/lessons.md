@@ -140,6 +140,14 @@ the same problems as state in any distributed system.
   *Evidence:* twice an agent made every pickaxe the team needed, carried them all, and died with
   them; things stored in the shared chest were the only things that survived deaths.
   ([05](results/write-ups/05-team-homestead.md), [06](results/write-ups/06-team-base.md))
+  It happened again with the tool describing the chest as safe: an agent drowned carrying the team's
+  three iron pickaxes ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6)).
+- **Share what each agent observes, not only what it holds.** A finding that stays in one agent's
+  context is rediscovered, or never found, by the rest.
+  *Evidence:* with sightings of animals forgotten as soon as they left an agent's view, sheep were in
+  view in 6-7% of observations and three beds were never made; shared for ten minutes, an agent walked
+  to the sheep a teammate had seen, and everyone slept in the home.
+  ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6))
 
 ## The control loop
 
@@ -162,7 +170,9 @@ asked, what can interrupt it and what happens without it.
   out before the model is asked anything ([02](results/write-ups/02-outpost.md)). In one team run, 9
   of 17 deaths came while the model was still deciding, most with a monster already beside the
   agent; stepping back while it decides kept health at 20 where standing still lost 15
-  ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)).
+  ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)). A reflex has to cover
+  the whole gap: swimming out before and after each decision missed the drowning that came during
+  one ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6)).
 - **An escape needs a destination.** "Away from danger" can lead somewhere worse; "toward safety"
   is the goal.
   *Evidence:* agents fled straight away from monsters, away from their home and into a lake, and 7 of

@@ -94,6 +94,12 @@ Done on 26 October, on local `main`, not pushed:
   not 6. Checked live: a teammate's observation read "seen by sa"; a bot beside the herd remembered 13.
 - **The pathfinder freeze at 2,74,34** is walked round after a first stuck (see limitations), checked
   live on the same seed.
+- **Proof run bpoc6** (on 7bb0432, $0.30): **3 of 4 parts**, level with tbase4's best: the home on day
+  1, everyone slept in it (first since bpoc2), 10 cooked meat stored; only iron missing. 8 deaths
+  (bpoc4 24, bpoc5 22), one to a skeleton. Sightings were in 415 of 422 observations and agents walked
+  to them. The iron was lost when la drowned mid-decision with all three pickaxes. Fixed after it, both
+  checked live: swimming out while the model decides; `place_bed` passing over spots with a body in
+  them and reporting a refusal as one (it had said "no room left" six times). Written up in 06.
 
 Next, in order:
 1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
@@ -383,6 +389,6 @@ Next, in order:
    `protect-main` ruleset is enforced and now also requires CI; outside contributors' pull requests
    need approval before any workflow runs; only GitHub-owned actions are allowed; the workflow token
    is read-only. Work goes through branches and pull requests (`CLAUDE.md`).
-8. **Two drowning gaps, deferred by the owner (18 October):** water while the model is thinking,
-   and a skill started after a failed escape. Both are described with their fixes in
-   `docs/limitations.md` ("Rough edges in the code"). Leave them unless drowning shows up again.
+8. **Two drowning gaps, deferred by the owner (18 October):** water while the model is thinking
+   (closed on 27 October: drowning showed up again in bpoc6 and cost the iron part), and a skill
+   started after a failed escape (still open). See `docs/limitations.md` ("Rough edges in the code").

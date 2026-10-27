@@ -182,9 +182,10 @@ building on it.
 - **Two gaps in the drowning reflex, left on purpose (18 October).** A skill is stopped when air
   falls to half, and the code swims the agent out before the model decides, so the model is told
   afterwards and never asked to handle the water. Not covered:
-  - **Water while the model is thinking.** No interrupt watches while a decision is being made, so
-    an agent that slips into water then waits until the decision returns (5–20 s on a paid model)
-    before the swim-out runs. Fix: run the same check on a timer during the decision.
+  - **Water while the model is thinking: closed on 27 October.** In bpoc6 an agent drowned
+    underground mid-decision carrying the team's three iron pickaxes. The guard that runs while the
+    model decides now swims out too (checked live: air held at 20 where standing still fell to 5 in
+    8 seconds).
   - **A failed escape.** If the swim-out finds no way out, the next skill starts with air already
     below half, and the air interrupt only fires when air *crosses* half, so only drowning damage
     stops it (and `flee`, `eat` and `sleep` ignore damage). The model does see "could not find a
@@ -263,6 +264,12 @@ building on it.
   names hostile mobs within 8 blocks of its doorway, and going in stops short of them and says why;
   the floor of 6 is unchanged. In bpoc3 (one rep), a hit stopped the way in 2 times in 99 shelter
   calls (tlunap1: 32 in 179).
+- **`place_bed` passes over spots with a body in them (since 27 October).** The game refuses a bed
+  where a teammate, a monster or the agent stands, and our check looked only at blocks; in bpoc6 the
+  agent was told "no room left" six times in a room with space. A refusal is now reported as one.
+- **The team report misses losses from deaths between steps.** A death while the model is deciding is
+  logged with the next step, and the goal story doesn't count what it dropped as a setback (bpoc6: three
+  iron pickaxes shown as "set back 0 times"). Not fixed.
 - **Reflexes (since 26 October).** While the model decides, the agent steps back from any hostile
   within 3 blocks, unless it is in a closed shelter, and the next observation says so; `flee` runs
   into a known shelter that lies away from the mobs with a clear doorway, and otherwise steers off

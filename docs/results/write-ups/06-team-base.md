@@ -31,6 +31,7 @@ Agents trust what they are told, answer requests but not needs, and interrupt ea
 - **Requests, not needs:** 31 of 35 hand-overs followed a request; design needs into explicit requests ([shared state](../../lessons.md#shared-state-between-agents)).
 - **Shared state is distributed state:** one rule for everyone, published on a clock, or agents disagree and act twice ([shared state](../../lessons.md#shared-state-between-agents)).
 - **Messages cost:** teammates' messages broke off work nearly as often as threats; questions worked, orders didn't ([shared state](../../lessons.md#shared-state-between-agents)).
+- **Memory shared is work saved:** once each agent's sightings reached its teammates, the team found sheep, made beds and everyone slept in its home ([shared state](../../lessons.md#shared-state-between-agents)).
 - **Reflexes for the seconds the model can't act:** nine deaths came while a model was still deciding to run; a step-back in code holds health where standing still lost three-quarters of it ([control loop](../../lessons.md#the-control-loop)).
 - **The improvement loop**, with every fix beside the same problem in real systems, is [at the end](#how-this-testbed-gets-better-from-where-the-agents-get-stuck) ([improvement loop](../../lessons.md#the-improvement-loop)).
 
@@ -716,6 +717,58 @@ deaths), and nobody stored any. This, and how rarely a sheep was in view, led to
   (`animalsSeen`), `hunt` says a killed sheep drops 1 wool, `store` says a chest keeps items through a
   death, and the herd near spawn is 12 sheep, not 6.
 
+## Remembering where the sheep were (bpoc6)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 7bb0432: bpoc5's settings, after the changes for
+wool and beds: the observation lists animals the agent or a teammate saw in the last 10 minutes
+(`animalsSeen`), `hunt` says a killed sheep drops 1 wool, `store` says a chest keeps items through a
+death, the herd near spawn is 12 sheep rather than 6, and a spot where the pathfinder got stuck is
+walked round. $0.30 (capped at $0.50 an agent). One rep.*
+
+| Part | bpoc4 | bpoc5 | bpoc6 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | 2 of 3 | 0 of 3 | **3 of 3** |
+| Everyone holds an iron pickaxe | 0 | 0 | 0 (three made, lost in one death) |
+| Food left in store | 8 | **11** | **10** |
+| Deaths | 24 | 22 | **8** |
+| Game time toward a part of the goal | 15% | 12% | 18% |
+
+**Three parts of four, level with tbase4's best, and everyone slept in the team's home for the first
+time since bpoc2.** Only iron was missing.
+
+**What one agent saw, the others used.** 415 of 422 observations carried a remembered sighting, and the
+agents walked to them: "Reach the sheep last seen south of me so I can gather wool for beds; teammates
+are already handling iron" (lc, going to the coordinates a sighting gave). Twelve wool came from nine
+sheep, all by killing; three beds were made, and all three agents slept in the home (five sleeps in all).
+
+**Organised by part, from the first minutes.** lb took beds ("Beds are still unclaimed; explore for
+sheep so I can gather wool for the team's three beds"), lc the shelter, la iron and food. lb stored
+11 cooked mutton in one go on the first day, and 10 were still there at the end.
+
+**One death took the last part.** la made three iron pickaxes on day 2, one for each of them, and set
+off to bring them home. It got lost underground, and drowned while its model was still deciding what
+to do, with all three in its pack. No agent stored a pickaxe on the way, though `store` now said a
+chest keeps what is in it through a death.
+
+**Fewer deaths, and fewer to arrows.** 8 deaths, against 22-24 in the two runs before; one to a
+skeleton (bpoc5: 12). Six came during a flee, one while the model decided (the drowning), one while
+walking.
+
+**Where our code, not the agents, decided the outcome:**
+- `place_bed` failed 9 times before the third bed went down, six of them telling lc "no room left for
+  a bed" in a large shelter with two beds in it. The game had refused the spots: it won't put a bed
+  where any body stands, and our code checked only for blocks. Fixed: spots with a body in them are
+  passed over, and a refused spot is reported as refused, not as a full room (checked live with a
+  teammate standing in the room).
+- The drowning that cost the iron came while the model decided; the agent swam out by itself only
+  before a decision and before a skill. Fixed: the guard that runs while the model decides swims out
+  too (checked live: a bot at the bottom of a 4-deep pool kept its air at 20 where standing still left
+  it at 5 in 8 seconds). This was one of the two drowning gaps left open on 18 October "unless drowning
+  shows up again".
+- The run's report counted that loss as no setback for iron, since the death came between steps. Not
+  fixed yet.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -754,6 +807,8 @@ working on real systems, such as support desks, IT operations and business tools
 | A run was ended by a cap on decisions, with game time left | A safety limit set for a short run bound a long one | The cap scales with the time budget | A rate or step limit tuned for one workload silently truncating a longer one |
 | Stuck three times at one ordinary step on the way home | A movement library froze at one spot, for no reason found | The spot is walked round once it has stuck the agent | A client that retries the same failing endpoint forever, where marking it bad and routing round it would do |
 | Never found sheep that a teammate had seen | What one agent saw left its view, and no one else heard of it | Recent sightings, its own and its teammates', are listed with where and when | Observations kept only in one worker's short-term context, so the team re-discovers what one member already found |
+| Told "no room left for a bed" in a room with space for it | A refusal was reported as a fact about the world ("full") instead of as what happened ("refused") | Spots with someone in them are passed over; a refusal is reported as one | An error mapped to the wrong cause, so the agent plans around a limit that isn't there |
+| Drowned while its model was deciding, carrying the team's tools | A safety response ran before and after the planner, but not during it | It also runs while the model decides | A watchdog that only checks between jobs, so a failure mid-job goes unanswered |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**

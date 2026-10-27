@@ -46,7 +46,7 @@ export const lessons: Lesson[] = [
     body:
       'The model chooses a goal; code carries it out, retries and reports. Replan on events, filter the ones ' +
       'that don’t matter, and put what can’t wait in a reflex.',
-    evidence: 'An agent was killed during its own 2.3-second decision to run.',
+    evidence: 'Deaths while the model was still deciding fell from 9 a run to 1 once the body stepped back, took cover and swam out on its own.',
     anchor: 'the-control-loop',
   },
   {
