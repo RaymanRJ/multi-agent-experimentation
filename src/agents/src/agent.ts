@@ -9,6 +9,7 @@ import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
+import { enclosed } from "./skills/flee.js";
 import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
@@ -247,7 +248,8 @@ async function main(): Promise<void> {
   const shelters: ShelterSpot[] = [];
   const knownShelters = (): ShelterSpot[] => mergeShelters([shelters, ...Object.values(board?.read() ?? {}).map((m) => m?.shelters ?? [])]);
   // Closed with nothing hostile inside: then no mob can reach it, and one outside is no reason to stop.
-  const inShelter = () => knownShelters().some((spot) => insideClosedShelter(bot, spot) && hostilesInside(bot, spot).length === 0);
+  // Dug in or walled in counts too: the reflexes must not lead the agent out of its hole (flee.ts).
+  const inShelter = () => enclosed(bot) || knownShelters().some((spot) => insideClosedShelter(bot, spot) && hostilesInside(bot, spot).length === 0);
   /** The shelters in sight, nearest first, as the agent would describe them. */
   const sheltersInSight = (): string[] => {
     const here = bot.entity.position;
