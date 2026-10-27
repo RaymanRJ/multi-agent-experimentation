@@ -115,11 +115,15 @@ Next, waiting on the owner:
 1. **The cost cap.** Opus costs about $2.50-2.70 over three days; with a $2 cap it left reps 2 and 3
    early, which alone made "everyone slept" unreachable. A $3 cap per agent per rep would keep it in;
    three reps would then cost about $10-12.
-2. **Ore beside water or lava.** `mine_ore` refuses it (a rule from the drowning fixes), and in tbase5
-   that was the iron in sight. With agents now swimming out while they decide, ore beside *water* could
-   be allowed (lava stays off limits). A real risk trade-off, so the owner's call; it would change what
-   iron runs compare with.
-3. **Then the same run again** (tbase6) on whichever of those is chosen, to see whether rep 1 repeats.
+2. **Iron: done differently (27 October, the owner's call).** Looking closer, tbase5's iron wasn't far,
+   it was deep: rep 1 mined it 42 blocks below the home's area, and in reps 2 and 3 `descend` toward it
+   was called off at least 15 times by creepers, skeletons and endermen in caves beside the shaft,
+   behind rock. Exploring the surface wouldn't have helped: iron came into view right after an `explore`
+   only twice in two reps. Now `descend`, `tunnel` and `mine_ore` stop only for a mob that can get at the
+   agent (in view, or right beside it), skill and interrupt alike. Checked live: a dig passed 5.9 blocks
+   from a creeper behind rock and reached its depth; one with a creeper in view stopped at once. Ore
+   beside water or lava stays off limits (the owner preferred not to change that).
+3. **Then the same run again** (tbase6), to see whether rep 1 repeats and iron comes in reps like 2 and 3.
 4. **Open, not urgent:** the report counting a death between steps as no setback (limitations); the
    tbase3 `give` timeout to a teammate inside the closed home (cause unknown); the second drowning gap
    (a skill started after a failed escape).

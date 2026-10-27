@@ -33,7 +33,10 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
 Every skill also stops when the run ends. Skills that move around also stop when a hostile mob
 comes close, when the agent takes damage, at dusk (about a minute before night) and at nightfall,
 so the model can decide what to do about the dark. `build_shelter` is the exception for dusk and
-nightfall: getting under cover is the answer to them.
+nightfall: getting under cover is the answer to them. The digging skills (`descend`, `tunnel`,
+`mine_ore`) stop only for a mob that can get at the agent, one in view of it or right beside it: down
+a shaft, a creeper in the next cave over is behind solid rock (in tbase5 such mobs called off the dig
+to the iron again and again).
 
 **Reflexes** run without the model, in the seconds it can't act (`src/agents/src/reflexes.ts`), and the
 next observation says what they did. Before each skill, an agent whose head is under water is moved
@@ -97,8 +100,7 @@ See [communication.md](communication.md).
 ## Known gaps
 
 - There's no farming, and fighting is melee only (`hunt`): no bows or shields.
-- `mine_ore` won't mine ore beside water or lava; whether to allow ore beside water now that agents
-  swim out by themselves is open (see `docs/next-steps.md`).
+- `mine_ore` won't mine ore beside water or lava.
 
 To add a skill, write it in `src/agents/src/skills/` and add it to the list in `src/agents/src/skills/index.ts`. Its
 `description` text is exactly what the model reads, so write it for the model.
