@@ -2,6 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
+import { getOutOfWater, headInWater } from "./skills/util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -146,13 +147,15 @@ export function coverPoint(bot: Bot, archers: Entity[]): { x: number; y: number;
 }
 
 /**
- * While the model decides, keep out of harm's way, in two ways:
+ * While the model decides, keep out of harm's way, in three ways:
+ * - head under water: swim out, as the agent already does before each decision and skill. In bpoc6 an
+ *   agent drowned underground while its model decided, carrying the team's three iron pickaxes;
  * - a monster within reach: step back from it. In bpoc3, 9 of 17 deaths came while the model was
  *   still deciding, most with a mob 0-2 blocks away;
  * - an archer that can see the agent: move to the nearest cover from it, since stepping back doesn't
  *   help against a bow (bpoc4: 12 of 24 deaths to skeletons).
- * Within reach comes first. Nothing happens inside a closed shelter, where nothing can reach, or with
- * no cover close by. `stop` ends it when the decision arrives and returns what it did, for the next
+ * In that order. Nothing happens inside a closed shelter, where nothing can reach, or with no cover
+ * close by. `stop` ends it when the decision arrives and returns what it did, for the next
  * observation, or null if it did nothing.
  */
 export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: () => string | null } {
@@ -161,8 +164,20 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
   let backedOff = 0;
   let tookCover = 0;
   let movingSince = 0;
+  let swimming = false;
+  let swam: boolean | null = null;
   const named = (e: Entity) => (e.name ?? "hostile mob").replace(/_/g, " ");
   const tick = () => {
+    if (swimming) return;
+    if (headInWater(bot)) {
+      swimming = true;
+      bot.pathfinder.setGoal(null);
+      getOutOfWater(bot)
+        .then((out) => { swam = out; })
+        .catch(() => { swam = false; })
+        .finally(() => { swimming = false; });
+      return;
+    }
     if (movingSince && Date.now() - movingSince < STEP_BACK_MS) return;
     movingSince = 0;
     if (sheltered()) return;
@@ -204,9 +219,15 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
       bot.removeListener("goal_reached", arrived);
       bot.removeListener("path_stop", arrived);
       bot.removeListener("path_update", updated);
-      if (backedOff + tookCover === 0) return null;
+      if (swimming) {
+        // The decision has come: the swim stops here, and agent.ts swims out again before the skill if still under.
+        bot.setControlState("jump", false);
+        bot.pathfinder.setGoal(null);
+      }
+      if (backedOff + tookCover === 0 && swam === null && !swimming) return null;
       bot.pathfinder.setGoal(null);
       const did = [
+        ...(swam === true ? ["were under water and swam out"] : swam === false || swimming ? ["were under water and tried to swim out"] : []),
         ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
         ...(tookCover ? [`took cover from ${who([...hidFrom])}${times(tookCover)}`] : []),
       ];
