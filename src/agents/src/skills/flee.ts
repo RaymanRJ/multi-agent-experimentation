@@ -5,7 +5,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, opensOnClick, withTimeout } from "./util.js";
 import { describeShelter, enterShelter, half, hostilesAtDoorway, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
-import { retreatPoint } from "../reflexes.js";
+import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -15,6 +15,7 @@ const LEG_TIMEOUT_MS = 8_000;
 const MAX_LEGS = 5;
 const MAX_FAILED_LEGS = 2;
 const PLACE_TIMEOUT_MS = 4_000;
+const COVER_TIMEOUT_MS = 5_000;
 /** How far flee will run to a known shelter rather than into the open. */
 export const REFUGE_RANGE = 40;
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
@@ -70,8 +71,10 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
  * within REFUGE_RANGE of the cell in front of its doorway, on the side away from the mobs, and with
  * no hostile at its doorway. Nearest first. In bpoc3, 7 of 17 deaths came during a flee, four of them
  * 55-70 blocks from the team's home, in the dark or in a lake, after running straight away from it.
+ * `anySide`: with an archer in sight, a shelter on any side will do, since running in the open keeps
+ * the agent in bow range (bpoc4: five flee deaths to arrows).
  */
-export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[]): ShelterSpot | null {
+export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[], anySide = false): ShelterSpot | null {
   if (threats.length === 0) return null;
   const here = bot.entity.position;
   const cx = threats.reduce((sum, e) => sum + e.position.x, 0) / threats.length;
@@ -84,7 +87,7 @@ export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[]): Sh
       const [fx, fz] = [front.x - here.x, front.z - here.z];
       return { spot, d: here.distanceTo(front), away: ax * fx + az * fz > 0 };
     })
-    .filter(({ d, away }) => d <= REFUGE_RANGE && away)
+    .filter(({ d, away }) => d <= REFUGE_RANGE && (away || anySide))
     .sort((a, b) => a.d - b.d);
   return options[0]?.spot ?? null;
 }
@@ -99,10 +102,13 @@ export const flee: Skill = {
   name: "flee",
   description:
     "Get away from nearby hostile mobs (those within 16 blocks). If a shelter you know (yours or another agent's) stands within " +
-    `${REFUGE_RANGE} blocks on the side away from them, with no hostile at its doorway, you run into it and its doorway is closed behind you. ` +
-    "Otherwise you run directly away from them, turning aside rather than into water or off a drop. " +
-    "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks or the distance is covered; " +
-    "succeeds immediately with `no threat` if no hostile is within 16. Returns new position and how many hostiles remain within 12. " +
+    `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton can see you), with no hostile at its doorway, ` +
+    "you run into it and its doorway is closed behind you. " +
+    "Otherwise you run directly away from them, turning aside rather than into water or off a drop, and if a skeleton can still " +
+    "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, only at what it can see). " +
+    "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
+    `within ${BOW_RANGE} can see you, or the distance is covered; ` +
+    "succeeds immediately with `no threat` if no hostile is within 16. Returns new position, how many hostiles remain within 12 and how many archers can see you. " +
     "If there is no path away (cornered, in a pit or a cave), it walls you in where you stand with blocks you carry " +
     "(dirt, cobblestone, planks) so mobs can't reach you; wait there, then carry on — any later move digs back out. " +
     "Fails only if it can't run and can't wall you in. Fleeing does not fight; follow up with shelter or sleep.",
@@ -115,8 +121,8 @@ export const flee: Skill = {
       return { status: "success", detail: { note: "no threat" } };
     }
 
-    // Somewhere safe to run to beats running into the open.
-    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS));
+    // Somewhere safe to run to beats running into the open; with an archer in sight, on any side.
+    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), archersWithSight(ctx.bot).length > 0);
     if (home) {
       const entered = await enterShelter(ctx, home);
       const owner = home.by && home.by !== ctx.bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
@@ -133,13 +139,20 @@ export const flee: Skill = {
     }
 
     const covered = () => Math.hypot(ctx.bot.entity.position.x - start.x, ctx.bot.entity.position.z - start.z);
+    // Safe: nothing that strikes up close within 12 blocks, and no archer that can see the agent. A
+    // skeleton at 13-16 blocks with a clear shot is not safe (measured: it fires out to 16).
     const report = () => {
       const here = ctx.bot.entity.position;
       return {
         position: { x: Math.round(here.x), y: Math.round(here.y), z: Math.round(here.z) },
         distanceCovered: Math.round(covered()),
-        hostilesWithin12: hostilesNear(ctx, SAFE_RADIUS).length,
+        hostilesWithin12: hostilesNear(ctx, SAFE_RADIUS).filter((e) => !ARCHERS.has(e.name ?? "")).length,
+        archersInSight: archersWithSight(ctx.bot).length,
       };
+    };
+    const safe = () => {
+      const r = report();
+      return r.hostilesWithin12 === 0 && r.archersInSight === 0;
     };
 
     const cornered = async (): Promise<SkillResult> => {
@@ -164,7 +177,7 @@ export const flee: Skill = {
       if (covered() >= distance) break;
 
       const threats = hostilesNear(ctx, THREAT_RADIUS);
-      if (threats.length === 0 || (leg > 0 && hostilesNear(ctx, SAFE_RADIUS).length === 0)) break;
+      if (threats.length === 0 || (leg > 0 && safe())) break;
 
       const step = Math.max(10, Math.min(distance - covered(), 20));
       // Straight away, or the nearest turn off it onto dry ground; with none, straight away anyway.
@@ -195,20 +208,39 @@ export const flee: Skill = {
       }
     }
 
+    // An archer that can still see the agent: end the run behind the nearest cover from it.
+    let hid = false;
+    const archers = archersWithSight(ctx.bot);
+    const cover = archers.length > 0 && !ctx.shouldStop() ? coverPoint(ctx.bot, archers) : null;
+    if (cover) {
+      try {
+        await gotoWatched(ctx.bot, new goals.GoalBlock(cover.x, cover.y, cover.z), COVER_TIMEOUT_MS, "taking cover");
+        hid = archersWithSight(ctx.bot).length === 0;
+      } catch (error) {
+        ctx.bot.pathfinder.setGoal(null);
+        ctx.log(`taking cover failed: ${(error as Error).message}`);
+      }
+    }
+
     const detail = report();
-    if (detail.hostilesWithin12 === 0) return { status: "success", detail };
+    const left = () => {
+      const parts: string[] = [];
+      if (detail.hostilesWithin12) parts.push(`${detail.hostilesWithin12} hostile(s) are still within ${SAFE_RADIUS} blocks`);
+      if (detail.archersInSight) {
+        const names = [...new Set(archersWithSight(ctx.bot).map((e) => e.name ?? "skeleton"))].join(", ");
+        parts.push(`${detail.archersInSight === 1 ? `a ${names}` : `${detail.archersInSight} archers (${names})`} within ${BOW_RANGE} blocks can still see you`);
+      }
+      return parts.join(" and ");
+    };
+    if (safe()) {
+      return hid
+        ? { status: "success", reason: `ran ${detail.distanceCovered} blocks and took cover where no archer can see you`, detail }
+        : { status: "success", detail };
+    }
     if (detail.distanceCovered >= distance) {
-      return {
-        status: "success",
-        reason: `ran ${detail.distanceCovered} blocks but still being chased — ${detail.hostilesWithin12} hostile(s) within 12 blocks`,
-        detail,
-      };
+      return { status: "success", reason: `ran ${detail.distanceCovered} blocks but still in danger: ${left()}`, detail };
     }
     if (detail.distanceCovered < 4) return cornered();
-    return {
-      status: "failed",
-      reason: `ran ${detail.distanceCovered} blocks but ${detail.hostilesWithin12} hostile(s) are still within ${SAFE_RADIUS} blocks`,
-      detail,
-    };
+    return { status: "failed", reason: `ran ${detail.distanceCovered} blocks but ${left()}`, detail };
   },
 };
