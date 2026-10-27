@@ -16,7 +16,8 @@ The list below is the agent's whole vocabulary. If something isn't here, the age
    - nearby mobs, animals and other agents;
    - animals it or a teammate saw in the last 10 minutes that are out of view now, with where and when
      (`animalsSeen`), and ore it or a teammate saw in the last 30 minutes, with how far above or below
-     and whether it touches water or lava (`oreSeen`);
+     and whether it touches water or lava (`oreSeen`), and the chests it or a teammate opened, with
+     what each held when last opened, by whom and when (`chestsSeen`);
    - shelters in sight (its own and its teammates'), and beds put down nearby;
    - the result of its last skill;
    - which tools it could craft right now;

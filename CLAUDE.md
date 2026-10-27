@@ -84,8 +84,10 @@ piece built against it simultaneously. This has already bitten this project's pl
   `runs/.teams/<episode>/` (`src/agents/src/team.ts`). A team goal (`team-camp`, `team-base`) is checked against
   all of it, and a collaborative agent's run ends only when the whole team is done. The tally itself is
   never shown; what reaches an observation from it are facts a teammate could tell you: shelters in sight
-  (`shelters`), animals and ore a teammate saw lately (`animalsSeen`, `oreSeen`), and, with `--progress on`,
-  the goal's gaps.
+  (`shelters`), animals and ore a teammate saw lately (`animalsSeen`, `oreSeen`), chests as last opened by
+  anyone (`chestsSeen`, with a one-line event when a teammate finds one changed), and, with
+  `--progress on`, the goal's gaps. Facts about the world, never what the goal still needs: that is the
+  progress list's job.
   Otherwise teammates learn about each other by looking (`otherAgents`) and by chat; agents
   act on each other through `give`, `pick_up` and `go_to`. They can ask things of each other with
   `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log

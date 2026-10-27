@@ -96,7 +96,10 @@ mention it: the shelters each has built appear in a teammate's `shelters` when i
 teammate saw in the last 10 minutes appear in `animalsSeen` ("3 sheep at 10,76,80, 45 blocks south,
 seen by lb 2 min ago"). In bpoc6 an agent walked straight to sheep a teammate had seen, and the team
 made a bed for everyone. Ore a teammate saw in the last 30 minutes appears the same way, in `oreSeen`,
-with how far above or below it lies.
+with how far above or below it lies. Chests anyone on the team has opened appear in `chestsSeen`, each
+as whoever opened it last found it ("chest at 1,78,90, 18 blocks away: empty (seen by la 6 min ago)"),
+and a teammate finding one changed is said once as an event. In bpoc10 la emptied the team's food chest,
+and the other two, whose last look was before, spent the rest of the run sure the food was stored.
 
 ## Stance: how agents regard each other
 
