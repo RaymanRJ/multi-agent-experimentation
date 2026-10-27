@@ -769,6 +769,54 @@ walking.
 - The run's report counted that loss as no setback for iron, since the death came between steps. Not
   fixed yet.
 
+## The mixed team again, on everything since (tbase5)
+
+*Team run tbase5, 27 October, on 6799e5a. Claude Opus 5.5, Claude Sonnet 5.5 and GPT-6 Luna,
+collaborative, chat on, plan memory, no progress list, three in-game days, three reps on fresh worlds,
+$2 cap per agent per rep, $7.96 in all. Since tbase4 the code gained everything the proof runs bpoc3-bpoc6
+led to: the doorway line and stop, reflexes while the model decides (step back, take cover, swim out),
+`flee` leaning on finished shelters, shared animal sightings, a 12-sheep herd, `store` saying a chest keeps
+items through a death, the walk-round for stuck spots, and `place_bed` passing over occupied spots.
+Comparable with tbase1-tbase4 part by part, not as a whole.*
+Report: [tbase5](../batch-reports/2026-10-27-0347-tbase5.md).
+
+| Part | Rep 1 | Rep 2 | Rep 3 |
+|---|---|---|---|
+| Shared home built | **yes** (Luna, day 1) | **yes** (Luna, day 1) | **yes** (Luna, day 1) |
+| Everyone slept there | **3 of 3** | 2 of 3 (not Opus) | 2 of 3 (not Opus) |
+| Everyone holds an iron pickaxe | **3 of 3** | 0 | 0 |
+| Food left in store | **11** | **13** | **24** |
+| Deaths | **0** | 11 | 9 |
+| Ended | **goal met at 30:05 of game time** | time (Opus: cost cap) | time (Opus: cost cap) |
+
+**The first team to meet the whole goal.** In rep 1 every part was done halfway through the second day,
+with no deaths, for $1.36.
+
+**How they did it: each took a part, and finished it.**
+- **Luna built the home** in the first five minutes of day 1, as it did in every rep.
+- **Opus took food and beds:** 12 cooked mutton in the chest by early day 1, then wool and three beds
+  before the first night.
+- **Sonnet took iron:** 9 ingots and three iron pickaxes twelve minutes into day 1, then walked them round
+  ("bringing you 1 iron_pickaxe, stay where you are"), and Opus passed one on to Luna.
+- **Opus called the night:** "Beds are usable now and luna is asleep. Please sleep now, I'm going to bed
+  too." When everyone was in bed in the home, the goal was met.
+- Not all smooth: Sonnet twice took meat Opus had stored, and Opus hit Sonnet twice by mistake.
+
+**Reps 2 and 3: home and food at once, then iron out of reach.**
+- **The home and food came early again,** and stayed: 13 and 24 cooked meat at the end.
+- **Iron never came.** No one made an iron pickaxe in either rep; the team never held more than three
+  pieces of iron. Iron ore was in view in 6-25% of each agent's observations, but `mine_ore` turned it down ten times:
+  the ore in sight lay beside water or lava, which it won't mine, and the rest was 10-14 blocks below,
+  and every way down was stopped by monsters, water below or a drop.
+- **Opus spent its cap before the end** (at 57,440 and 53,540 ticks of 72,000) and left, so it couldn't
+  sleep or hold a pickaxe at the end. It costs about $2.60 over three days; the cap was $2.
+
+**Where our code, not the agents, decided the outcome:**
+- The cost cap ended Opus's run before the end in reps 2 and 3, which on its own made "everyone slept"
+  unreachable. A setting of ours, not a bug; noted for the next run.
+- `mine_ore` won't mine ore beside water or lava, a rule from the drowning fixes. With the agents now
+  swimming out by themselves, whether ore beside water should stay off limits is an open question.
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:

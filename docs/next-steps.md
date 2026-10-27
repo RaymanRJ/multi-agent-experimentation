@@ -1,7 +1,7 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 26 October 2026.*
+*Last updated 27 October 2026.*
 
 **21 October: the experiment moved to `src/agents/`.** Everything that runs (code, scripts, Docker,
 `package.json`) is there, and every command runs from there; the root keeps the docs, README,
@@ -101,17 +101,30 @@ Done on 26 October, on local `main`, not pushed:
   checked live: swimming out while the model decides; `place_bed` passing over spots with a body in
   them and reporting a refusal as one (it had said "no room left" six times). Written up in 06.
 
-Next, in order:
-1. **Proof run bpoc5 on the split reflex** (three Lunas, same settings, about $0.37, approved by the
-   owner): do arrow deaths fall? Then the key check for the Claude models (about a cent).
-2. **The owner's finetuning, then the paid run:** the mixed team (Opus, Sonnet, Luna) on `team-base`,
-   about $12, capped with `BUDGET_USD`, with the minds panel (`npm run minds`, :3010) and `VIEW=on`;
-   `--progress on` as its own condition after.
-3. **Candidates from bpoc3, not started:** where animals were last seen (the agent's own sightings and
-   its teammates'), as a fact in the observation, since sheep were never found; and the tbase3 `give`
-   timeout to a teammate inside the closed home (cause unknown; worth a live repro).
-4. **Not pushed:** the owner pushes `main`. The branch `worktree-goals-section` was pushed to GitHub by
-   mistake and is merged into `main`; it can be deleted from GitHub.
+- **The mixed team run tbase5** (27 October overnight, on 6799e5a; Opus 5.5, Sonnet 5.5, GPT-6 Luna;
+  3 reps; $2 cap per agent per rep; $7.96): **1 of 3 teams met the whole goal — the first ever.** Rep 1
+  finished every part halfway through day 2 with no deaths, for $1.36: Luna built the home, Opus did
+  food and beds, Sonnet made three iron pickaxes and walked them round, and Opus called everyone to bed.
+  Reps 2 and 3 met the home and food (13 and 24 cooked meat) but no one made an iron pickaxe: the ore in
+  sight lay beside water or lava, which `mine_ore` refuses, and the way down to the rest was blocked.
+  Opus also spent its $2 cap with time left in both, so it couldn't sleep at the end. Report published,
+  written up in 06, on the site's Results story. The Claude key was checked first (both models answered
+  through our backend).
+
+Next, waiting on the owner:
+1. **The cost cap.** Opus costs about $2.50-2.70 over three days; with a $2 cap it left reps 2 and 3
+   early, which alone made "everyone slept" unreachable. A $3 cap per agent per rep would keep it in;
+   three reps would then cost about $10-12.
+2. **Ore beside water or lava.** `mine_ore` refuses it (a rule from the drowning fixes), and in tbase5
+   that was the iron in sight. With agents now swimming out while they decide, ore beside *water* could
+   be allowed (lava stays off limits). A real risk trade-off, so the owner's call; it would change what
+   iron runs compare with.
+3. **Then the same run again** (tbase6) on whichever of those is chosen, to see whether rep 1 repeats.
+4. **Open, not urgent:** the report counting a death between steps as no setback (limitations); the
+   tbase3 `give` timeout to a teammate inside the closed home (cause unknown); the second drowning gap
+   (a skill started after a failed escape).
+5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch
+   `worktree-goals-section` on GitHub is merged and can be deleted.
 
 ## Setting up a new machine
 

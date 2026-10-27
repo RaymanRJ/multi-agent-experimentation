@@ -198,9 +198,20 @@ export const chapters: Chapter[] = [
       {
         name: 'tlunap1',
         showed: 'With the list, food was stored and kept in every rep. But agents trusted the list over their own last action, and the list was stale and named different homes to different agents.',
-        then: 'A death ends any skill; one rule names the shared home for everyone; each agent reports what it holds every 2 seconds.',
+        then: 'A death ends any skill; one rule names the shared home for everyone; each agent reports what it holds every 2 seconds. Then, from four proof runs: reflexes while the model decides (step back, take cover, swim out), flee running to a finished shelter, sightings of animals shared with the team, and bed spots that are really free.',
       },
     ],
     lesson: { text: 'What agents share is distributed state: one rule for everyone, published on a clock.', anchor: 'shared-state-between-agents' },
+  },
+  {
+    title: 'The first full goal',
+    question: 'The mixed team again, after the reflexes, safer flight, shared sightings and bed fixes. Can a team now finish?',
+    runs: [
+      {
+        name: 'tbase5',
+        showed: 'Yes, once: rep 1 met every part halfway through day 2 with no deaths, each agent owning a part. In reps 2 and 3 the iron in sight lay beside water, which mining refuses, and Opus spent its cost cap and left before the end.',
+      },
+    ],
+    lesson: { text: 'Cover the seconds the model can\'t act, and share what each agent sees: a capable team then finishes.', anchor: 'the-control-loop' },
   },
 ];
