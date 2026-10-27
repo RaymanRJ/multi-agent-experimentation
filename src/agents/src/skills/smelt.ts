@@ -95,17 +95,17 @@ export const smelt: Skill = {
     if (raw < count) {
       return { status: "failed", reason: `need ${count - raw} more ${source} to make ${count} ${product}`, detail: { missing: { [source]: count - raw } } };
     }
-    // Wood burnt as fuel must not be the wood a furnace or later crafts need; the furnace itself
-    // is cobblestone, so only fuel is checked here.
-    const fuel = chooseFuel(inventory, count);
-    if (!fuel) {
-      return { status: "failed", reason: `not enough fuel to smelt ${count} ${source}: carry coal (mine_ore coal), or logs or planks` };
-    }
+    const noFuel = { status: "failed" as const, reason: `not enough fuel to smelt ${count} ${source}: carry coal (mine_ore coal), or logs or planks` };
+    if (!chooseFuel(inventory, count)) return noFuel;
 
     const furnaceBlock = await ensureFurnace(ctx);
     // An interrupt that stopped the furnace craft is an interrupt, not a failure: the agent then tells the model why.
     if (typeof furnaceBlock === "string") return { status: ctx.shouldStop() ? "aborted" : "failed", reason: furnaceBlock };
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
+    // Chosen again now: a crafting table made for the furnace takes planks, which bpoc7's lb had
+    // picked as fuel ("Can't find dark_oak_planks").
+    const fuel = chooseFuel(countInventory(bot), count);
+    if (!fuel) return noFuel;
 
     const sourceId = bot.registry.itemsByName[source]!.id;
     const startedWith = countInventory(bot)[product] ?? 0;
