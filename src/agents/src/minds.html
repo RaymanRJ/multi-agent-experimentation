@@ -171,7 +171,7 @@ pre { margin: 0; font: 12.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; ba
   <aside>
     <div class="brand"><h1>Agent minds</h1><div class="sub" id="summary">Loading…</div></div>
     <div class="controls">
-      <label title="Jump to the newest running agent automatically"><input type="checkbox" id="follow" checked> Follow live</label>
+      <label title="Show a running agent automatically, and move to another when its run ends"><input type="checkbox" id="follow" checked> Follow live</label>
       <label><input type="checkbox" id="showEnded" checked> Show finished</label>
     </div>
     <div id="runs"></div>
@@ -246,7 +246,9 @@ const viewUrl = (port) => location.protocol + "//" + (location.hostname || "loca
 
 function renderList() {
   const box = $("runs");
-  const live = runs.filter((r) => r.status === "running" || r.status === "starting");
+  // Running agents in a fixed order: the server lists the most recently active first, which with a
+  // team reshuffled the rows every few seconds.
+  const live = runs.filter((r) => r.status === "running" || r.status === "starting").sort((a, b) => a.agent.localeCompare(b.agent));
   const done = runs.filter((r) => r.status !== "running" && r.status !== "starting");
   $("summary").textContent = live.length + " running · " + done.length + " finished (last 6h)";
   const row = (r) => h("button", { class: "run" + (r.file === selected ? " sel" : ""), onclick: () => { $("follow").checked = false; save(); select(r.file); } },
@@ -465,8 +467,13 @@ function poll() {
   fetch("/api/runs").then((r) => r.json()).then((j) => {
     serverOffset = j.now - Date.now();
     runs = j.runs || [];
+    // Follow stays with the agent on screen while it runs, and moves on only when its run ends: with a
+    // team, "the newest running agent" changed every few seconds and the page jumped between them.
+    const running = (r) => r.status === "running" || r.status === "starting";
+    const current = runs.find((r) => r.file === selected);
     const live = runs.find((r) => r.status === "running");
-    if (($("follow").checked && live && live.file !== selected) || (!selected && runs[0]) || (selected && !runs.some((r) => r.file === selected))) {
+    const follow = $("follow").checked && live && !(current && running(current));
+    if (follow || (!selected && runs[0]) || (selected && !current)) {
       return select(($("follow").checked && live ? live : runs[0] || {}).file || null);
     }
     renderList();
