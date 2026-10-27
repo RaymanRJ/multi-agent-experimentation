@@ -8,7 +8,7 @@ import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
-import { guardWhileDeciding } from "./reflexes.js";
+import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
@@ -378,6 +378,8 @@ async function main(): Promise<void> {
   await new Promise<void>((resolve) => bot.once("spawn", () => resolve()));
   // bot.inventory exists only once the bot has spawned.
   watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
+  // A block landing on the agent's head suffocates it in seconds, so the body digs it out (reflexes.ts).
+  const unbury = unburyHead(bot, (name) => recentEvents.push(`a ${name.replace(/_/g, " ")} fell onto your head and you dug it out`));
   let lastAttackLine = "";
   let stepHits: NonNullable<LoggedStep["hits"]> = [];
   watchAttacks(bot, {
@@ -717,6 +719,7 @@ async function main(): Promise<void> {
   stopping = true;
   if (teamTimer) clearInterval(teamTimer);
   clearInterval(lookTimer);
+  unbury.stop();
   publish();
   console.log(`[${agentName}] done — log at ${runLog.file}`);
   try {

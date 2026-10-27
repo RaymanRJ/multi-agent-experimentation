@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { archersWithSight, coverPoint, guardWhileDeciding, inSight, retreatPoint, safeGround } from "./reflexes.js";
+import { archersWithSight, buriedHead, coverPoint, guardWhileDeciding, inSight, retreatPoint, safeGround, unburyHead } from "./reflexes.js";
 import { refuge } from "./skills/flee.js";
 import { floorCells, layout } from "./skills/buildShelter.js";
 import { fakeBot, floor } from "./testing/fakeBot.js";
@@ -134,4 +134,22 @@ test("flee - inside a closed shelter with nothing in it, stays put and says why;
   const shared = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(1.5, 0.5)] }).bot;
   const ran = await flee.run({ ...ctx, bot: shared }, { distance: 24 });
   assert.doesNotMatch(ran.reason ?? "", /you stayed/, "a monster inside with you: no reason to stay");
+});
+
+test("buriedHead - a block at eye height is found; air, water and the block underfoot are not", () => {
+  const at = { x: 0.5, y: 64, z: 0.5 };
+  assert.equal(buriedHead(fakeBot({ position: at, blocks: { "0,63,0": "stone", "0,66,0": "gravel" } }).bot), null);
+  assert.equal(buriedHead(fakeBot({ position: at, blocks: { "0,65,0": "water" } }).bot), null);
+  assert.equal(buriedHead(fakeBot({ position: at, blocks: { "0,65,0": "gravel" } }).bot)?.name, "gravel");
+});
+
+test("unburyHead - digs out the block over the head and says so", async () => {
+  const fake = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: { "0,63,0": "stone", "0,65,0": "sand" } });
+  const dug: string[] = [];
+  const reflex = unburyHead(fake.bot, (name) => dug.push(name));
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  reflex.stop();
+  assert.deepEqual(dug, ["sand"]);
+  assert.equal(fake.world.has("0,65,0"), false);
+  assert.equal(fake.world.get("0,63,0"), "stone", "the floor stays");
 });

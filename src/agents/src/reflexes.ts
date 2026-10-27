@@ -226,3 +226,35 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
     },
   };
 }
+
+/**
+ * The block the agent's head is inside, if any. The body can't walk into a block, so this happens
+ * only when one lands there: gravel or sand falling into a stair just dug, as killed la twice in
+ * bpoc7 ("suffocated in a wall"), once mid-climb carrying two iron pickaxes.
+ */
+export function buriedHead(bot: Bot): { name: string; position: Vec3 } | null {
+  const block = bot.blockAt(bot.entity.position.offset(0, EYE, 0).floored());
+  if (!block || block.boundingBox !== "block" || LIQUID.test(block.name)) return null;
+  return bot.canDigBlock(block) ? block : null;
+}
+
+/**
+ * Digs out a block the head is stuck in, during a skill as much as a decision, since suffocating
+ * kills in seconds. Checks every tick until `stop`; `onDug` hears each block dug out.
+ */
+export function unburyHead(bot: Bot, onDug: (name: string) => void): { stop: () => void } {
+  let digging = false;
+  const timer = setInterval(() => {
+    if (digging) return;
+    const block = buriedHead(bot);
+    if (!block) return;
+    digging = true;
+    const tool = bot.pathfinder.bestHarvestTool?.(block as never);
+    (tool ? bot.equip(tool, "hand") : Promise.resolve())
+      .then(() => bot.dig(block as never))
+      .then(() => onDug(block.name))
+      .catch(() => {})
+      .finally(() => { digging = false; });
+  }, 50);
+  return { stop: () => clearInterval(timer) };
+}

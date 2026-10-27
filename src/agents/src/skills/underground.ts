@@ -31,6 +31,20 @@ const HEADINGS: Array<{ name: string; dx: number; dz: number }> = [
   { name: "west", dx: -1, dz: 0 },
 ];
 
+/** Blocks that fall when what holds them up is dug out. */
+const FALLS = /^(gravel|sand|red_sand|suspicious_sand|suspicious_gravel|.*_concrete_powder)$/;
+
+/**
+ * Why the block over the bot's head can't be dug from below, or null if it can: with gravel or sand
+ * on top, that falls straight onto the head (la suffocated this way in bpoc7, climbing out).
+ */
+function fallsOnHead(bot: Bot, feet: Vec3): string | null {
+  const over = bot.blockAt(feet.offset(0, 2, 0));
+  if (!over || over.boundingBox === "empty") return null;
+  const above = bot.blockAt(feet.offset(0, 3, 0));
+  return above && FALLS.test(above.name) ? `${above.name} above, which would fall on your head` : null;
+}
+
 /** The heading each bot last dug in, so repeated calls keep one straight line. Keyed by username. */
 const lastHeading = new Map<string, number>();
 
@@ -86,11 +100,21 @@ function brokenSince(bot: Bot, before: Record<string, number>): string {
   return broke.length ? ` Your ${broke.join(" and ")} wore out and broke.` : "";
 }
 
-/** Digs the cells top-down. Gravel and sand fall into a cleared space, so it goes round a few times. */
+/** A block of gravel or sand on its way down into one of the cells, which looks like air until it lands. */
+function falling(bot: Bot, cells: Vec3[]): boolean {
+  return Object.values(bot.entities).some(
+    (e) => e.name === "falling_block" && cells.some((c) => Math.abs(e.position.x - c.x - 0.5) < 1 && Math.abs(e.position.z - c.z - 0.5) < 1 && e.position.y >= c.y),
+  );
+}
+
+/**
+ * Digs the cells top-down. Gravel and sand fall into a cleared space, so it goes round a few times,
+ * and waits for any still falling: one landing after the bot steps in buries its head (bpoc7).
+ */
 async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
-  for (let round = 0; round < 4; round++) {
+  for (let round = 0; round < 6; round++) {
     const solid = cells.map((cell) => bot.blockAt(cell)).filter((block) => block && block.boundingBox !== "empty");
-    if (solid.length === 0) return;
+    if (solid.length === 0 && !falling(bot, cells)) return;
     for (const block of solid) {
       // Ore a cheap pickaxe can't harvest (redstone, diamond) takes it ages; use the right tool for that block.
       if (bot.digTime(block!) > SLOW_DIG_MS) {
@@ -122,6 +146,8 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     const problem = unsafe(bot, cell);
     if (problem) return problem;
   }
+  const overhead = dy > 0 && fallsOnHead(bot, feet);
+  if (overhead) return overhead;
   let landing = next;
   // Only a step across or down may land lower; a stair up stands on the block it climbs onto.
   for (let drop = 0; dy <= 0 && drop < MAX_SAFE_DROP && badFloor(bot, landing) === "a drop into a cave"; drop++) {
@@ -338,6 +364,8 @@ async function pillar(bot: Bot): Promise<string | null> {
   const feet = bot.entity.position.floored();
   const problem = unsafe(bot, feet.offset(0, 2, 0));
   if (problem) return `above: ${problem}`;
+  const overhead = fallsOnHead(bot, feet);
+  if (overhead) return `above: ${overhead}`;
   const floor = bot.blockAt(feet.offset(0, -1, 0));
   if (!floor || floor.boundingBox !== "block") return "not standing on solid ground";
   const held = countInventory(bot);
@@ -367,7 +395,8 @@ export const climbOut: Skill = {
   description:
     "Dig a staircase up until there is open sky above you: the way back to the surface from a cave or a mine. Uses your " +
     "cheapest pickaxe, sparing an iron one as descend does, or your hands when you have none (much slower through stone). " +
-    "Checks every block before breaking it and turns away from lava and water; if you are in water it first moves to dry " +
+    "Checks every block before breaking it and turns away from lava and water, and steps out from under gravel or sand " +
+    "that would fall on your head; if you are in water it first moves to dry " +
     "ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
     "from your inventory (dirt or cobblestone first, logs last). Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
     "it again to continue.",
@@ -386,6 +415,7 @@ export const climbOut: Skill = {
 
     const startedAt = Date.now();
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
+    let sidesteps = 0;
     while (groundAbove(bot) > 0) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
       const danger = threatened(ctx, 8, true);
@@ -406,6 +436,26 @@ export const climbOut: Skill = {
           refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
         }
       }
+      if (!moved && sidesteps < 4 && refusals.every((r) => r.includes("would fall on your head"))) {
+        // Gravel over the head blocks every stair from here; a level step aside gets out from under it,
+        // to a spot with none over it if there is one.
+        const feet = bot.entity.position.floored();
+        const order = [0, 1, 2, 3]
+          .map((turn) => (heading + turn) % 4)
+          .sort((a, b) => Number(!!fallsOnHead(bot, feet.offset(HEADINGS[a]!.dx, 0, HEADINGS[a]!.dz))) - Number(!!fallsOnHead(bot, feet.offset(HEADINGS[b]!.dx, 0, HEADINGS[b]!.dz))));
+        for (const index of order) {
+          if (moved) break;
+          if ((await step(bot, HEADINGS[index]!, 0).catch((error: Error) => error.message)) === null) {
+            heading = index;
+            moved = true;
+          }
+        }
+        if (moved) {
+          sidesteps++;
+          continue;
+        }
+      }
+      if (moved) sidesteps = 0;
       if (!moved) {
         // No rock to cut a step into: build up instead.
         const built = await pillar(bot).catch((error: Error) => error.message);
