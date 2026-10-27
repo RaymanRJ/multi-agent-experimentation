@@ -4,7 +4,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, opensOnClick, withTimeout } from "./util.js";
-import { describeShelter, enterShelter, half, hostilesAtDoorway, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
+import { describeShelter, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
 import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
@@ -16,8 +16,11 @@ const MAX_LEGS = 5;
 const MAX_FAILED_LEGS = 2;
 const PLACE_TIMEOUT_MS = 4_000;
 const COVER_TIMEOUT_MS = 5_000;
-/** How far flee will run to a known shelter rather than into the open. */
-export const REFUGE_RANGE = 40;
+/**
+ * How far flee will run to a known shelter rather than into the open. 40 at first; in bpoc3 and bpoc4,
+ * 21 more of the flees that ran into the open had a finished shelter 41-64 blocks off.
+ */
+export const REFUGE_RANGE = 64;
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 const FACES = [...SIDES, new Vec3(0, 1, 0), new Vec3(0, -1, 0)];
 
@@ -67,9 +70,10 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
 }
 
 /**
- * A shelter to run into rather than away into the open: one that stands, that the agent isn't in,
- * within REFUGE_RANGE of the cell in front of its doorway, on the side away from the mobs, and with
- * no hostile at its doorway. Nearest first. In bpoc3, 7 of 17 deaths came during a flee, four of them
+ * A shelter to run into rather than away into the open: a finished one that stands, that the agent
+ * isn't in, within REFUGE_RANGE of the cell in front of its doorway, on the side away from the mobs,
+ * and with no hostile at its doorway. Unfinished ones are left out: in bpoc4 every failed way in (26)
+ * was an agent trying to finish building a large shelter with monsters behind it. Nearest first. In bpoc3, 7 of 17 deaths came during a flee, four of them
  * 55-70 blocks from the team's home, in the dark or in a lake, after running straight away from it.
  * `anySide`: with an archer in sight, a shelter on any side will do, since running in the open keeps
  * the agent in bow range (bpoc4: five flee deaths to arrows).
@@ -81,7 +85,7 @@ export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[], any
   const cz = threats.reduce((sum, e) => sum + e.position.z, 0) / threats.length;
   const [ax, az] = [here.x - cx, here.z - cz];
   const options = shelters
-    .filter((spot) => !insideSpot(bot, spot) && standing(bot, spot) && hostilesAtDoorway(bot, spot).length === 0)
+    .filter((spot) => spot.complete !== false && !insideSpot(bot, spot) && standing(bot, spot) && hostilesAtDoorway(bot, spot).length === 0)
     .map((spot) => {
       const front = new Vec3(spot.x + 0.5, spot.y, spot.z + half(spot.size ?? 3) + 1.5);
       const [fx, fz] = [front.x - here.x, front.z - here.z];
@@ -101,7 +105,8 @@ function hostilesNear(ctx: SkillContext, radius: number): Entity[] {
 export const flee: Skill = {
   name: "flee",
   description:
-    "Get away from nearby hostile mobs (those within 16 blocks). If a shelter you know (yours or another agent's) stands within " +
+    "Get away from nearby hostile mobs (those within 16 blocks). Inside a closed shelter with nothing in it, you stay put: " +
+    "nothing outside can reach you there. If a finished shelter you know (yours or another agent's) stands within " +
     `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton can see you), with no hostile at its doorway, ` +
     "you run into it and its doorway is closed behind you. " +
     "Otherwise you run directly away from them, turning aside rather than into water or off a drop, and if a skeleton can still " +
@@ -119,6 +124,17 @@ export const flee: Skill = {
     const start = ctx.bot.entity.position.clone();
     if (hostilesNear(ctx, THREAT_RADIUS).length === 0) {
       return { status: "success", detail: { note: "no threat" } };
+    }
+
+    // Already in the one place nothing can reach: running would mean going out to the monsters. In
+    // bpoc4, 15 flees started inside a shelter, and 6 of the 11 that ended in one fled again at once.
+    const inside = (ctx.shelters?.() ?? []).find((spot) => insideClosedShelter(ctx.bot, spot) && hostilesInside(ctx.bot, spot).length === 0);
+    if (inside) {
+      return {
+        status: "success",
+        reason: `you are inside a closed shelter at ${spotKey(inside)}: nothing outside can reach you here, so you stayed; leaving would take you out to them`,
+        detail: { stayed: true, shelter: spotKey(inside) },
+      };
     }
 
     // Somewhere safe to run to beats running into the open; with an archer in sight, on any side.

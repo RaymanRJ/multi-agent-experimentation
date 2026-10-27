@@ -66,7 +66,7 @@ test("guardWhileDeciding - steps back from a mob in reach and says so; nothing i
   assert.equal(guardWhileDeciding(far, () => false).stop(), null);
 });
 
-test("refuge - a known shelter on the far side from the mobs, with its doorway clear and within 40 blocks", () => {
+test("refuge - a finished shelter on the far side from the mobs, with its doorway clear and within 64 blocks", () => {
   const spot = { x: 0, y: 64, z: 0, storeys: 1, by: "qb" };
   const hut: Record<string, string> = floor(64, "grass_block", 40);
   const { walls, roof, door } = layout(1);
@@ -78,7 +78,10 @@ test("refuge - a known shelter on the far side from the mobs, with its doorway c
   assert.deepEqual(at(20.5, [zombie(28.5, 0.5)]), spot, "the zombie is east, the shelter west: run home");
   assert.equal(at(20.5, [zombie(10.5, 0.5)]), null, "the zombie stands between the agent and the shelter");
   assert.equal(at(20.5, [zombie(28.5, 0.5), zombie(0.5, 6.5)]), null, "a mob at the doorway");
-  assert.equal(at(60.5, [zombie(68.5, 0.5)]), null, "too far to run to");
+  assert.deepEqual(at(60.5, [zombie(68.5, 0.5)]), spot, "60 blocks: within reach since bpoc4");
+  assert.equal(at(80.5, [zombie(88.5, 0.5)]), null, "too far to run to");
+  const site = fakeBot({ position: { x: 20.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(28.5, 0.5)] }).bot;
+  assert.equal(refuge(site, [{ ...spot, complete: false }], Object.values(site.entities)), null, "unfinished: no building with monsters behind you");
   // With an archer in sight, a shelter on any side will do: open ground keeps the agent in bow range.
   const { bot } = fakeBot({ position: { x: 20.5, y: 64, z: 0.5 }, blocks: hut, entities: [skeleton(10.5, 0.5)] });
   assert.equal(refuge(bot, [spot], Object.values(bot.entities)), null);
@@ -114,4 +117,21 @@ test("guardWhileDeciding - takes cover from a skeleton that can see the agent, a
   bot.pathfinder.setGoal = (goal: any) => void goals.push(goal && { x: goal.x, y: goal.y, z: goal.z });
   assert.equal(guardWhileDeciding(bot, () => false).stop(), "while you were deciding, you took cover from a skeleton");
   assert.deepEqual(goals[0], { x: 3, y: 64, z: 0 });
+});
+
+test("flee - inside a closed shelter with nothing in it, stays put and says why; with a monster inside, runs", async () => {
+  const { flee } = await import("./skills/flee.js");
+  const spot = { x: 0, y: 64, z: 0, storeys: 1, by: "qa" };
+  const hut: Record<string, string> = floor(64, "stone", 30);
+  const { walls, roof, door } = layout(1);
+  for (const cell of [...floorCells(), ...walls, ...roof, ...door]) hut[`${cell.x},${64 + cell.y},${cell.z}`] = "oak_planks";
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(6.5, 0.5)] });
+  const ctx = { bot, log: () => {}, shouldStop: () => false, shelters: () => [spot] } as any;
+  const stayed = await flee.run(ctx, { distance: 24 });
+  assert.equal(stayed.status, "success");
+  assert.match(stayed.reason ?? "", /you are inside a closed shelter at 0,64,0: nothing outside can reach you here, so you stayed/);
+
+  const shared = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(1.5, 0.5)] }).bot;
+  const ran = await flee.run({ ...ctx, bot: shared }, { distance: 24 });
+  assert.doesNotMatch(ran.reason ?? "", /you stayed/, "a monster inside with you: no reason to stay");
 });
