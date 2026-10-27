@@ -16,8 +16,14 @@ const MAX_LEGS = 5;
 const MAX_FAILED_LEGS = 2;
 const PLACE_TIMEOUT_MS = 4_000;
 const COVER_TIMEOUT_MS = 5_000;
-/** A melee mob this close after a leg of running has kept up with the agent. */
-const CAUGHT_RADIUS = 4;
+/**
+ * Digging in takes about 3.5 s; a melee mob closer than this gets there first and can follow the agent
+ * into the hole (live, digging with a zombie 2 blocks off: down to 1-17 health, and in half the tries
+ * the zombie ended up in the hole with it). A run usually opens this gap before it ends.
+ */
+const DIG_LEAD = 5;
+/** A melee mob this close stops a dig half done: better to run on than be trapped with it. */
+const DIG_ABORT = 2;
 /** A zombie follows from about 35 blocks; at night a melee mob this close is still coming (16 let one back in live). */
 const HUNTED_RADIUS = 32;
 /**
@@ -80,7 +86,18 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
 export function enclosed(bot: Bot): boolean {
   const feet = bot.entity.position.floored();
   const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
-  return solid(feet.offset(0, 2, 0)) && SIDES.every((d) => solid(feet.plus(d)) && solid(feet.plus(d).offset(0, 1, 0)));
+  return solid(feet.offset(0, 2, 0)) && SIDES.every((d) => solid(feet.plus(d)) && solid(feet.plus(d).offset(0, 1, 0))) && !hostileInside(bot);
+}
+
+/**
+ * A hostile in the agent's own cell: shut in with it, not away from it. In bpoc9 a zombie close
+ * behind dropped into the hole before it was covered, and the agent, counted as dug in, was killed.
+ */
+function hostileInside(bot: Bot): boolean {
+  const here = bot.entity.position;
+  return Object.values(bot.entities).some(
+    (e) => e?.type === "hostile" && Math.abs(e.position.x - here.x) < 1 && Math.abs(e.position.z - here.z) < 1 && Math.abs(e.position.y - here.y) < 2,
+  );
 }
 
 /** Three deep, so the block over the head sits in the ground, with ground beside it to build against. */
@@ -116,7 +133,7 @@ export async function burrow(bot: Bot): Promise<string | null> {
     if (!bot.canDigBlock(block)) return `unbreakable ${block.name} below`;
     const tool = bot.pathfinder.bestHarvestTool(block);
     if (block.digTime(tool ? tool.type : null, false, false, false, [], effects) > BURROW_DIG_MS) {
-      return `the ${block.name.replace(/_/g, " ")} below is too slow to dig${tool ? "" : " without a pickaxe"}`;
+      return `the ${block.name.replace(/_/g, " ")} below is too slow to dig${tool?.maxDurability ? "" : " without a pickaxe"}`;
     }
   }
   if (!solid(feet.offset(0, -BURROW_DEPTH - 1, 0))) return "no solid floor under where the hole would end";
@@ -133,15 +150,28 @@ export async function burrow(bot: Bot): Promise<string | null> {
   const cap = dig[0]!;
   if (!SIDES.some((d) => solid(cap.plus(d)))) return "nothing to build the cover against";
 
+  // A hit knocks the body sideways: once off the hole's column it is digging a hole it isn't in
+  // (bpoc9: lb went from 20 health to 5 while digging, ended beside its hole, and was told it had dug in).
+  const inColumn = () => {
+    const at = bot.entity.position.floored();
+    return at.x === feet.x && at.z === feet.z;
+  };
   for (const cell of dig) {
     const block = bot.blockAt(cell);
     if (!block || block.boundingBox !== "block") continue;
     const tool = bot.pathfinder.bestHarvestTool(block);
     if (tool) await bot.equip(tool, "hand");
     await landed();
+    if (!inColumn()) return "knocked out of the hole while digging it";
+    const close = Object.values(bot.entities).find(
+      (e) => e?.type === "hostile" && !ARCHERS.has(e.name ?? "") && e.position.distanceTo(bot.entity.position) <= DIG_ABORT,
+    );
+    if (close) return `a ${(close.name ?? "monster").replace(/_/g, " ")} reached you before the hole was deep enough`;
     await withTimeout(bot.dig(block), BURROW_DIG_TIMEOUT_MS, `digging the ${block.name}`);
     for (let tick = 0; tick < 20 && bot.entity.position.y > cell.y + 0.01; tick++) await bot.waitForTicks(1);
   }
+  await landed();
+  if (!inColumn()) return "knocked out of the hole while digging it";
   // Now standing at the bottom: the cover goes where the first block was dug, over the head.
   const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
   if (!stack) return "dug down but had nothing to cover the hole with";
@@ -154,9 +184,12 @@ export async function burrow(bot: Bot): Promise<string | null> {
     } catch {
       await bot.waitForTicks(4);
     }
-    if (solid(cap)) return null;
+    if (solid(cap)) break;
   }
-  return solid(cap) ? null : "dug down but could not cover the hole";
+  if (!solid(cap)) return "dug down but could not cover the hole";
+  // Only shut in if it really is: in the hole, closed round, and alone in it.
+  if (hostileInside(bot)) return "a monster fell into the hole with you";
+  return enclosed(bot) ? null : "dug down, but the hole is not closed round you";
 }
 
 /**
@@ -204,7 +237,7 @@ export const flee: Skill = {
     "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
     `within ${BOW_RANGE} can see you, or the distance is covered; ` +
     "succeeds immediately with `no threat` if no hostile is within 16. Returns new position, how many hostiles remain within 12 and how many archers can see you. " +
-    "If a monster keeps up with you, you are still in danger after running, or there is no path away, it digs you in where you " +
+    "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
     "without a pickaxe, nor beside water or lava). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
@@ -269,8 +302,8 @@ export const flee: Skill = {
       const r = report();
       return r.hostilesWithin12 === 0 && r.archersInSight === 0;
     };
-    /** A mob that strikes up close is right behind: it has kept pace. */
-    const caughtUp = () => hostilesNear(ctx, CAUGHT_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""));
+    /** No mob that strikes up close is near enough to reach the hole before it is covered. */
+    const lead = () => !hostilesNear(ctx, DIG_LEAD).some((e) => !ARCHERS.has(e.name ?? ""));
 
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";
@@ -341,17 +374,18 @@ export const flee: Skill = {
           break;
         }
       }
-      // A mob keeping up with the run: running on only gets the agent hit from behind (in bpoc8, 18 of
-      // 124 flees at night ended in a death). Stop and dig in.
-      if (caughtUp()) break;
+      // At night, stop as soon as the run has bought a lead and dig in, rather than run on into the next
+      // monsters in the dark.
+      if (!ctx.bot.time.isDay && lead()) break;
     }
 
-    // Still in danger after running, or at night still hunted: dig in where it stands, unless an archer
-    // can be hidden from. A run at night only buys time: live, a bot that ran 20 blocks from three zombies
-    // and stopped "safe" at 12 was caught and killed within 30 s in 5 of 6 tries.
+    // Still in danger after running, or at night still hunted: dig in where it stands, if the run has
+    // bought enough of a lead, and unless an archer can be hidden from. A run at night only buys time:
+    // live, a bot that ran 20 blocks from three zombies and stopped "safe" at 12 was caught and killed
+    // within 30 s in 5 of 6 tries (in bpoc8, 18 of 124 flees at night ended in a death).
     const hunted = !ctx.bot.time.isDay && hostilesNear(ctx, HUNTED_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""));
-    if (caughtUp() || hunted || (!safe() && archersWithSight(ctx.bot).length === 0)) {
-      const why = caughtUp() ? "a monster kept up with you" : hunted ? "it is night and monsters are still after you" : `you ran ${Math.round(covered())} blocks but were still in danger`;
+    if ((hunted || (!safe() && archersWithSight(ctx.bot).length === 0)) && lead()) {
+      const why = hunted ? "it is night and monsters are still after you" : `you ran ${Math.round(covered())} blocks but were still in danger`;
       const dug = await digIn(why);
       if (dug) return dug;
     }

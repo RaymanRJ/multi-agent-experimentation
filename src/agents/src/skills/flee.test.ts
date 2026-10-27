@@ -30,6 +30,8 @@ test("enclosed - shut in on every side at feet and head and over the head; open 
   const hole = ground("dirt");
   for (const y of [61, 62]) delete hole[`0,${y},0`];
   assert.equal(enclosed(fakeBot({ position: at, blocks: hole }).bot), true);
+  const zombie = { name: "zombie", type: "hostile", position: { x: 0.6, y: 61, z: 0.4 } };
+  assert.equal(enclosed(fakeBot({ position: at, blocks: hole, entities: [zombie] }).bot), false, "shut in with a zombie (bpoc9)");
   delete hole["1,62,0"];
   assert.equal(enclosed(fakeBot({ position: at, blocks: hole }).bot), false);
 });
