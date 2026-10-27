@@ -7,7 +7,7 @@ import { mineflayer as startViewer } from "prismarine-viewer";
 import { env, loadEnv } from "./env.js";
 import { countInventory, observe } from "./observe.js";
 import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuffer } from "./comms.js";
-import { createWatch, DAMAGE_FLOOR, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
+import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding } from "./reflexes.js";
 import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -23,7 +23,7 @@ import { AnimalMemory, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
+import { canReach, getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -132,7 +132,9 @@ function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null, enclosed: b
   const hostiles: WorldSnapshot["hostiles"] = [];
   for (const entity of Object.values(bot.entities)) {
     if (!entity || entity.type !== "hostile") continue;
-    hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance: entity.position.distanceTo(bot.entity.position) });
+    const distance = entity.position.distanceTo(bot.entity.position);
+    // Whether it can get at the agent matters only near enough to interrupt; the sight test walks the line block by block.
+    hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance, ...(distance <= 16 ? { reachable: canReach(bot, entity) } : {}) });
   }
   return {
     health: bot.health,
@@ -615,7 +617,7 @@ async function main(): Promise<void> {
     if (wet) stepEvents.push(wet);
     interruptReason = null;
     diedInSkill = false;
-    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name]);
+    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name], REACHABLE_ONLY.has(skill.name));
     const skillStartAge = bot.time.age;
     let result = await runSkill(skill, ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without

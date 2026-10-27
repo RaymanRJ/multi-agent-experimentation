@@ -119,7 +119,7 @@ export const mineOre: Skill = {
 
     while (dropsHeld() < wanted) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
-      const danger = threatened(ctx);
+      const danger = threatened(ctx, 8, true);
       if (danger) return { status: "aborted", reason: `stopped mining because ${danger}`, detail: { gained: gained() } };
       if (Date.now() - startedAt > MAX_TOTAL_MS) {
         return { status: "failed", reason: `ran out of time after gaining ${gained()} of ${target} ${drop}`, detail: { gained: gained() } };

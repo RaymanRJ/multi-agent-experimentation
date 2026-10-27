@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
-import { getOutOfWater, headInWater } from "./skills/util.js";
+import { eyeOf, getOutOfWater, headInWater, inSight } from "./skills/util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -101,17 +101,8 @@ export function hostilesWithin(bot: Bot, radius: number): Entity[] {
   );
 }
 
-/** No solid block on the straight line between two points: what a mob needs to shoot. */
-export function inSight(bot: Bot, from: Vec3, to: Vec3): boolean {
-  const steps = Math.ceil(from.distanceTo(to) / 0.25);
-  for (let i = 1; i < steps; i++) {
-    const block = bot.blockAt(from.plus(to.minus(from).scaled(i / steps)));
-    if (block?.boundingBox === "block") return false;
-  }
-  return true;
-}
-
-const eyeOf = (mob: Entity) => mob.position.offset(0, (mob.height || 1.99) * 0.88, 0);
+// The sight test lives in util.ts, where the digging skills' danger check uses it too.
+export { inSight };
 
 /** Archers within bow range that can see a body standing at `feet` (the agent's own, by default). */
 export function archersWithSight(bot: Bot, feet: Vec3 = bot.entity.position): Entity[] {

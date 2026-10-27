@@ -1,5 +1,7 @@
 import type { Bot } from "mineflayer";
 import type { Block } from "prismarine-block";
+import type { Entity } from "prismarine-entity";
+import type { Vec3 } from "vec3";
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 
@@ -47,12 +49,42 @@ export function nearestUncrowded<T extends { distanceTo(other: any): number }>(b
     .map(({ point }) => point);
 }
 
-/** A hostile close enough that continuing is a bad idea. */
-export function threatened(ctx: SkillContext, within = 8): string | null {
+/** No solid block on the straight line between two points: what a mob needs to see, shoot or reach the agent directly. */
+export function inSight(bot: Bot, from: Vec3, to: Vec3): boolean {
+  const steps = Math.ceil(from.distanceTo(to) / 0.25);
+  for (let i = 1; i < steps; i++) {
+    const block = bot.blockAt(from.plus(to.minus(from).scaled(i / steps)));
+    if (block?.boundingBox === "block") return false;
+  }
+  return true;
+}
+
+export const eyeOf = (mob: Entity) => mob.position.offset(0, (mob.height || 1.99) * 0.88, 0);
+
+/** Within this, a mob is a danger whatever stands between: it may be about to come round the corner. */
+const BESIDE = 2;
+
+/**
+ * A hostile mob can get at the agent: right beside it, or with a clear line from its eyes to the agent's.
+ * Underground, a creeper in the next cave over is behind solid rock.
+ */
+export function canReach(bot: Bot, mob: Entity): boolean {
+  if (mob.position.distanceTo(bot.entity.position) <= BESIDE) return true;
+  return inSight(bot, eyeOf(mob), bot.entity.position.offset(0, 1.62, 0));
+}
+
+/**
+ * A hostile close enough that continuing is a bad idea. `reachable`: only one that can get at the agent
+ * counts (canReach). For digging, where the agent is in its own shaft or tunnel: in tbase5, `descend` was
+ * stopped at least 15 times by creepers, skeletons and endermen in caves beside the shaft, and the team
+ * never got down to the iron rep 1 had mined 42 blocks below its home.
+ */
+export function threatened(ctx: SkillContext, within = 8, reachable = false): string | null {
   for (const entity of Object.values(ctx.bot.entities)) {
     if (!entity || entity.type !== "hostile") continue;
     const distance = entity.position.distanceTo(ctx.bot.entity.position);
-    if (distance <= within) return `${entity.name ?? "a hostile mob"} is ${Math.round(distance)} blocks away`;
+    if (distance > within || (reachable && !canReach(ctx.bot, entity))) continue;
+    return `${entity.name ?? "a hostile mob"} is ${Math.round(distance)} blocks away`;
   }
   return null;
 }

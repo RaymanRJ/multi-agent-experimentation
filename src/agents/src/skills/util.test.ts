@@ -1,7 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fakeBot } from "../testing/fakeBot.js";
-import { groundAbove, nearestUncrowded, onTreetops, opensOnClick } from "./util.js";
+import { context, fakeBot } from "../testing/fakeBot.js";
+import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, threatened } from "./util.js";
+
+test("threatened - for digging, a mob behind solid rock doesn't count; one in view or right beside does", () => {
+  const creeper = (x: number) => ({ name: "creeper", type: "hostile", position: { x, y: 64, z: 0.5 } });
+  // A wall of stone 3 high at x = 3, between the agent and a creeper in the next cave.
+  const wall: Record<string, string> = {};
+  for (let y = 63; y <= 67; y++) for (let z = -3; z <= 3; z++) wall[`3,${y},${z}`] = "stone";
+  const at = (x: number, blocks: Record<string, string>) => context(fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks, entities: [creeper(x)] }).bot);
+  assert.equal(threatened(at(6.5, wall), 8, true), null, "behind the wall");
+  assert.match(threatened(at(6.5, wall)) ?? "", /creeper is 6 blocks away/, "the old rule: any mob near");
+  assert.match(threatened(at(6.5, {}), 8, true) ?? "", /creeper is 6 blocks away/, "nothing between them");
+  assert.match(threatened(at(2.0, wall), 8, true) ?? "", /creeper is 2 blocks away/, "right beside: counts, wall or not");
+});
 
 test("opensOnClick - tables, furnaces, beds and doors open; building blocks don't", () => {
   for (const name of ["crafting_table", "furnace", "chest", "red_bed", "oak_door", "spruce_trapdoor", "stone_button"]) {

@@ -33,6 +33,15 @@ test("a hostile arriving inside 6 blocks interrupts", () => {
   assert.match(w.check({ ...calm, hostiles: [zombie(5)] })!, /zombie came within 6 blocks/);
 });
 
+test("digging skills: a hostile that can't reach the agent doesn't interrupt; one that can does; other skills, either", () => {
+  const walled = { ...zombie(5), reachable: false };
+  const open = { ...zombie(5, 2), reachable: true };
+  const dig = createWatch(calm, [], undefined, true);
+  assert.equal(dig.check({ ...calm, hostiles: [walled] }), null, "a creeper in the next cave over, behind rock");
+  assert.match(dig.check({ ...calm, hostiles: [open] })!, /zombie came within 6 blocks/);
+  assert.match(createWatch(calm).check({ ...calm, hostiles: [walled] })!, /zombie came within 6 blocks/, "walking about: any mob near counts");
+});
+
 test("a hostile already inside the threshold at start does not interrupt", () => {
   const w = createWatch({ ...calm, hostiles: [zombie(5)] });
   assert.equal(w.check({ ...calm, hostiles: [zombie(5)] }), null);

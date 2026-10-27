@@ -14,6 +14,8 @@ export interface Hostile {
   id: number;
   name: string;
   distance: number;
+  /** Beside the agent, or with a clear line to it (canReach in skills/util.ts). Absent: assume it can. */
+  reachable?: boolean;
 }
 
 export interface WorldSnapshot {
@@ -99,6 +101,13 @@ export const DAMAGE_FLOOR: Record<string, number> = {
   build_shelter: 6,
 };
 
+/**
+ * Digging skills, which a mob coming near interrupts only if it can get at the agent. Down a shaft or
+ * along a tunnel the agent is walled in by rock; in tbase5 creepers and skeletons in caves beside the
+ * shaft stopped `descend` again and again, and the team never reached the iron below its home.
+ */
+export const REACHABLE_ONLY = new Set(["descend", "tunnel", "mine_ore"]);
+
 export interface Watch {
   /** Returns an interrupt reason the first time one fires, then null forever (one per run). */
   check(now: WorldSnapshot): string | null;
@@ -106,7 +115,7 @@ export interface Watch {
   firedBy(): Trigger | null;
 }
 
-export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], damageFloor?: number): Watch {
+export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], damageFloor?: number, reachableOnly = false): Watch {
   const off = new Set(suppressed);
   const startDistance = new Map(start.hostiles.map((h) => [h.id, h.distance]));
   // Night falls during the skill: not night when it started, night now. (At dawn the time is past
@@ -133,7 +142,7 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], da
     // A mob outside closed walls can't reach the agent; damage still interrupts if one somehow does.
     if (!off.has("hostile") && !now.enclosed) {
       for (const h of [...now.hostiles].sort((a, b) => a.distance - b.distance)) {
-        if (h.distance > HOSTILE_RADIUS) continue;
+        if (h.distance > HOSTILE_RADIUS || (reachableOnly && h.reachable === false)) continue;
         const before = startDistance.get(h.id);
         if (before === undefined || h.distance <= before - CLOSING_MARGIN) {
           return ["hostile", `interrupted: a ${h.name} came within ${HOSTILE_RADIUS} blocks (now ${Math.round(h.distance)})`];

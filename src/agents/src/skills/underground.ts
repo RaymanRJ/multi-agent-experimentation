@@ -246,7 +246,7 @@ export const descend: Skill = {
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
     while (Math.floor(bot.entity.position.y) > target) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-      const danger = threatened(ctx);
+      const danger = threatened(ctx, 8, true);
       if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
       if (Date.now() - startedAt > MAX_SKILL_MS) {
         return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} before running out of time — call descend again to continue.${brokenSince(bot, tools)}`, detail: report() };
@@ -305,7 +305,7 @@ export const tunnel: Skill = {
     const report = () => ({ dug, direction: heading.name, y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot) });
     for (; dug < length; dug++) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-      const danger = threatened(ctx);
+      const danger = threatened(ctx, 8, true);
       if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
       const noTool = await equipDigger(bot);
       if (noTool) return { status: dug ? "success" : "failed", reason: `dug ${dug} blocks, then ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
