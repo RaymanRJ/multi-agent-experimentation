@@ -119,8 +119,9 @@ building on it.
     was repeating itself, and kept on"), but nothing stops the loop for it.
   - **Full memory fills the local model's 8,192-token window** (~7,200 tokens per call), and
     five of six runs gave up early.
-  - **`smelt` once failed three times with "destination full".** Not investigated. (The other
-    rough edge noted here, `build_shelter` failing to clear dirt, was an interrupt reported as a
+  - **`smelt` once failed three times with "destination full".** It was two kinds of fuel in one
+    slot, fixed after tbase1 (below). In bpoc7 it also burnt planks it had just crafted into a table
+    for the furnace; fuel is now chosen once the furnace is ready. (The other rough edge noted here, `build_shelter` failing to clear dirt, was an interrupt reported as a
     blocked floor, and stone dug bare-handed; both fixed after p5.)
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
@@ -128,6 +129,9 @@ building on it.
     `climb_out` gets an agent back to the surface, but agents near it still mine slowly.
 - **Ore must be visible to be mined.** By design there is no x-ray. Finding iron and diamonds
   means digging staircases and tunnels, which wears out pickaxes and takes many minutes.
+- **An iron pickaxe gets dug with.** The digging skills use the cheapest pickaxe and spare an iron one
+  only at its last 16 uses; the pathfinder, digging its own way, doesn't spare it at all. In bpoc7 the
+  last iron pickaxe of an agent whose team goal counted it wore out that way. Open: the owner's call.
 
 ## What the measurements can and can't show
 

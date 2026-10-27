@@ -766,8 +766,9 @@ walking.
   too (checked live: a bot at the bottom of a 4-deep pool kept its air at 20 where standing still left
   it at 5 in 8 seconds). This was one of the two drowning gaps left open on 18 October "unless drowning
   shows up again".
-- The run's report counted that loss as no setback for iron, since the death came between steps. Not
-  fixed yet.
+- The run's report counted that loss as no setback for iron, since the death came between steps.
+  Fixed after tbase5: a death counts what the agent held at the end of the step before, and bpoc6's
+  rebuilt report shows "la died, dropping 4 iron ingot, 3 iron pickaxe".
 
 ## The mixed team again, on everything since (tbase5)
 
@@ -817,6 +818,60 @@ with no deaths, for $1.36.
 - `mine_ore` won't mine ore beside water or lava, a rule from the drowning fixes. With the agents now
   swimming out by themselves, whether ore beside water should stay off limits is an open question.
 
+## Remembering ore, and digging past what can't reach (bpoc7)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 7aae394: bpoc6's settings, after the changes tbase5
+led to: the observation lists ore the agent or a teammate saw in the last 30 minutes, with how far
+above or below (`oreSeen`); `descend`, `tunnel`, `mine_ore` and `climb_out` stop only for a monster
+that can see or reach the agent, not one behind rock; and the run's report counts what a death between
+steps took. $0.23 (capped at $0.50 an agent).*
+
+| Part | bpoc5 | bpoc6 | bpoc7 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | 0 of 3 | **3 of 3** | **3 of 3** |
+| Everyone holds an iron pickaxe | 0 | 0 (three made, lost in one death) | 1 of 3 (five made) |
+| Food left in store | **11** | **10** | 0 (10 stored on day 1, taken out on day 3) |
+| Deaths | 22 | 8 | **2** |
+| Game time toward a part of the goal | 12% | 18% | 14% |
+
+**Iron came on the first day, and kept coming.** la had 5 raw iron by 5:26 of day 1 and two iron
+pickaxes by 10:11; it made four over the run, and lb mined iron too. The remembered ore was in 311 of
+312 observations and was used: "I need three iron ingots for my own iron pickaxe; exposed iron is
+listed nearby and I have a stone pickaxe" (lb, before mining it). No dig was stopped by a monster;
+the few that stopped were cut short by damage, night, a teammate's message or a death.
+
+**Two deaths, both ours, and they took two parts of the goal.** At 13:03 of day 1, la was climbing back
+up with both iron pickaxes when gravel fell onto its head, and it suffocated. Near the end of day 3 it
+died the same way underground, carrying 8 of the team's cooked meat.
+
+**The team's food left the store for one agent's hunger.** lb cooked 10 porkchops and stored them before
+7:00 of day 1, so that part was done for two days. On day 3 la came home and took all ten: "I'm low on
+health and hunger; take the shelter's cooked meat so I can eat safely inside before night." It ate two
+and went back underground for iron with the other eight. That is the agent's own judgement (the goal
+says the meat must be in the chest), and it is left alone.
+
+**An iron pickaxe spent as a digging tool.** la's last iron pickaxe wore out on a staircase down and the
+paths after it ("your iron_pickaxe broke"). The digging skills spare an iron pickaxe only once it is down
+to its last 16 uses, and the pathfinder's own digging doesn't spare it at all. Whether a pickaxe the goal
+counts should be dug with at all is open (below).
+
+**Where our code, not the agents, decided the outcome:**
+- Both deaths were suffocation, a cause never seen in any earlier run, and only after `climb_out` came
+  in. A stair up digs the block over the agent's own head; with gravel on top, it falls straight into
+  the space the head is in. Reproduced live: a bot climbing through gravel on the old code died in 11
+  seconds from full health, and `climb_out` then reported "success" from where it had respawned. Fixed:
+  the digging skills won't dig out from under gravel or sand and step aside from it first, `clear`
+  waits for any block still falling, and a reflex digs out any block that lands on an agent's head,
+  during a skill as well as a decision. Checked live: the same climb with gravel overhead on one side
+  stepped aside and climbed 10 blocks at full health; with the reflex alone (checking every 250 ms,
+  since made every tick), three sand blocks dropped on a bot left it at 13 health where doing nothing
+  left it at 6.
+- lb's first smelt failed with "Can't find dark_oak_planks": `smelt` chose its fuel, then crafted a table
+  for the furnace from the same planks. Fixed: fuel is chosen once the furnace is ready (checked live:
+  the old code failed the same way; the new one says there isn't enough fuel left, and with two more
+  planks smelts all three).
+
 ## How this testbed gets better: from where the agents get stuck
 
 The structure around the agents improves by one loop, run after every batch:
@@ -857,6 +912,8 @@ working on real systems, such as support desks, IT operations and business tools
 | Never found sheep that a teammate had seen | What one agent saw left its view, and no one else heard of it | Recent sightings, its own and its teammates', are listed with where and when | Observations kept only in one worker's short-term context, so the team re-discovers what one member already found |
 | Told "no room left for a bed" in a room with space for it | A refusal was reported as a fact about the world ("full") instead of as what happened ("refused") | Spots with someone in them are passed over; a refusal is reported as one | An error mapped to the wrong cause, so the agent plans around a limit that isn't there |
 | Drowned while its model was deciding, carrying the team's tools | A safety response ran before and after the planner, but not during it | It also runs while the model decides | A watchdog that only checks between jobs, so a failure mid-job goes unanswered |
+| Suffocated twice climbing out, with the team's iron and food | A tool's own step created the danger (digging out from under gravel), and nothing recovered from it | It won't dig from under falling blocks; the body digs out of any that land on it | An automated change that triggers the failure it then can't see, with no recovery for the state it caused |
+| Smelt failed with "can't find planks" it had just checked for | A tool checked its inputs, then used them up in its own setup | Inputs are chosen after the setup | A check-then-act gap: a resource validated, then consumed by an earlier step of the same job |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**

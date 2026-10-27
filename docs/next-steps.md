@@ -133,6 +133,16 @@ Next, waiting on the owner:
    agent, like the other digging skills (in recent runs a mob nearby stopped 8 of 28 calls, and 3
    succeeded; checked live: it climbed out past a creeper 5 blocks off behind rock, and stopped for one
    in view). And the team report now counts what a death between steps took (see limitations).
+   **Proof run bpoc7 (27 October, Luna, $0.23)** on all of that: home, beds and 3 of 3 asleep on day 1;
+   iron on day 1 too (la had two iron pickaxes by 10:11, four made in all), but 1 of 3 held one at the
+   end; 10 cooked meat stored on day 1 and taken back out by la on day 3. Only 2 deaths (bpoc6: 8),
+   both la suffocating under gravel, never seen before `climb_out`: the first took both iron pickaxes,
+   the second 8 of the meat. Fixed (checked live): the digging skills won't dig out from under gravel or
+   sand and step aside instead, and a reflex digs out any block that lands on an agent's head. Also
+   fixed: `smelt` chose planks as fuel and then crafted a table from them. Written up in 06.
+   **Open, the owner's call:** an iron pickaxe the goal counts is still dug with, down to its last 16
+   uses, and pathfinding digs with it past that; la's last one wore out that way. Spare it entirely
+   while the goal counts it, or leave it as a player would use it?
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch
