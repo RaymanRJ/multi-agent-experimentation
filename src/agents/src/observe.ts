@@ -54,6 +54,8 @@ export function observe(
     inShelter?: boolean;
     /** Shelters within sight, described (the agent's and teammates', checked against the world). */
     shelters?: string[];
+    /** Animals seen earlier, out of view now, by the agent or a teammate (sightings.ts). */
+    animalsSeen?: string[];
     /** What other agents last announced doing (see trackActivity); shown only within sight. */
     activities?: Map<string, string>;
   },
@@ -150,6 +152,7 @@ export function observe(
     ...(beds.total ? { beds } : {}),
     hostiles: hostiles.slice(0, 5),
     ...(animals.length ? { animals: animals.sort((a, b) => a.distance - b.distance).slice(0, 5) } : {}),
+    ...(opts.animalsSeen?.length ? { animalsSeen: opts.animalsSeen } : {}),
     otherAgents: otherAgents.sort((a, b) => a.distance - b.distance),
     recentEvents: opts.recentEvents.slice(-6),
   };

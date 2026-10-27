@@ -239,6 +239,7 @@ export function buildSystemPrompt(
     '"wearingOut" lists tools close to breaking, with how many uses each has left; a tool that breaks is gone.',
     '"itemsOnGround" lists dropped items within a few blocks of you; pick_up collects them.',
     '"animals" lists animals near you, nearest first.',
+    '"animalsSeen" lists animals you or another agent saw in the last 10 minutes and are out of your sight now, with where and how long ago; they may have moved.',
     '"beds" appears when beds are put down near you: how many, and how many have someone in them.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
     '"inShelter" appears only when you are inside a shelter with its floor, walls, roof and doorway all closed: mobs cannot reach you there.',

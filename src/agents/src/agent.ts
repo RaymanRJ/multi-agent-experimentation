@@ -19,6 +19,7 @@ import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, combine, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+import { AnimalMemory, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
@@ -334,7 +335,12 @@ async function main(): Promise<void> {
     sleptInBed = true;
     for (const spot of knownShelters()) if (insideSpot(bot, spot)) sleptIn.add(spotKey(spot));
   });
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn] });
+  // Where animals were seen, by this agent (looked for every 2 s) and, through the board, its teammates.
+  const animalMemory = new AnimalMemory(agentName);
+  const lookTimer = setInterval(() => animalMemory.look(bot), 2000);
+  const animalsSeen = () =>
+    describeSightings(bot.entity.position, [...animalMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.sightings ?? [])], agentName);
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list() });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -472,6 +478,7 @@ async function main(): Promise<void> {
       activities,
       inShelter: inShelter(),
       shelters: sheltersInSight(),
+      animalsSeen: animalsSeen(),
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps
@@ -699,6 +706,7 @@ async function main(): Promise<void> {
   console.log(`[${agentName}] ended: ${ended} after ${elapsedTicks()} ticks, $${spentUSD.toFixed(4)}`);
   stopping = true;
   if (teamTimer) clearInterval(teamTimer);
+  clearInterval(lookTimer);
   publish();
   console.log(`[${agentName}] done — log at ${runLog.file}`);
   try {

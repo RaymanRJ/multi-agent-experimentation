@@ -8,6 +8,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spotKey, type ShelterSpot } from "./skills/buildShelter.js";
+import type { Sighting } from "./sightings.js";
 
 /** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch). */
 export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number }>;
@@ -26,6 +27,8 @@ export interface MemberState {
   shelters?: ShelterSpot[];
   /** The shelters (by "x,y,z" of their centre) this member has slept in a bed inside. */
   sleptIn?: string[];
+  /** Animals this member has seen lately, and where (sightings.ts). */
+  sightings?: Sighting[];
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;
