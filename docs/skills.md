@@ -35,7 +35,7 @@ Every skill also stops when the run ends. Skills that move around also stop when
 comes close, when the agent takes damage, at dusk (about a minute before night) and at nightfall,
 so the model can decide what to do about the dark. `build_shelter` is the exception for dusk and
 nightfall: getting under cover is the answer to them. The digging skills (`descend`, `tunnel`,
-`mine_ore`) stop only for a mob that can get at the agent, one in view of it or right beside it: down
+`mine_ore`, `climb_out`) stop only for a mob that can get at the agent, one in view of it or right beside it: down
 a shaft, a creeper in the next cave over is behind solid rock (in tbase5 such mobs called off the dig
 to the iron again and again).
 

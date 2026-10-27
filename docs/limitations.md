@@ -267,9 +267,11 @@ building on it.
 - **`place_bed` passes over spots with a body in them (since 27 October).** The game refuses a bed
   where a teammate, a monster or the agent stands, and our check looked only at blocks; in bpoc6 the
   agent was told "no room left" six times in a room with space. A refusal is now reported as one.
-- **The team report misses losses from deaths between steps.** A death while the model is deciding is
-  logged with the next step, and the goal story doesn't count what it dropped as a setback (bpoc6: three
-  iron pickaxes shown as "set back 0 times"). Not fixed.
+- **The team report missed losses from deaths between steps (fixed 27 October).** A death after one
+  skill ended and before the next observation is logged with the next step, whose observation already
+  shows the agent respawned empty-handed, so the goal story counted nothing lost (bpoc6: three iron
+  pickaxes shown as "set back 0 times"). It now counts what the agent held at the end of the step
+  before too; bpoc6's rebuilt report reads "la died, dropping 4 iron ingot, 3 iron pickaxe".
 - **Reflexes (since 26 October).** While the model decides, the agent steps back from any hostile
   within 3 blocks, unless it is in a closed shelter, and the next observation says so; `flee` runs
   into a known shelter that lies away from the mobs with a clear doorway, and otherwise steers off

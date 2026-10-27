@@ -129,9 +129,12 @@ Next, waiting on the owner:
    as `oreSeen`, with how far above or below, and flags a vein touching water or lava. Checked live.
 3. **Then the same run again** (tbase6, `BUDGET_USD=3`), to see whether rep 1 repeats and iron comes in
    reps like 2 and 3.
-4. **Open, not urgent:** the report counting a death between steps as no setback (limitations); the
-   tbase3 `give` timeout to a teammate inside the closed home (cause unknown); the second drowning gap
-   (a skill started after a failed escape).
+   **Also done (27 October, the owner's call):** `climb_out` stops only for a mob that can get at the
+   agent, like the other digging skills (in recent runs a mob nearby stopped 8 of 28 calls, and 3
+   succeeded; checked live: it climbed out past a creeper 5 blocks off behind rock, and stopped for one
+   in view). And the team report now counts what a death between steps took (see limitations).
+4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
+   unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch
    `worktree-goals-section` on GitHub is merged and can be deleted.
 
