@@ -41,7 +41,7 @@ From smallest to largest:
 | [03 Iron](write-ups/03-iron.md) | 17 Oct | b11, b13 | Can the local model mine, smelt and craft an iron pickaxe in a day? |
 | [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
 | [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
-| [06 Team base](write-ups/06-team-base.md) | 20–28 Oct | bpoc–bpoc12, thaiku1–2, tbase1–7, tluna1, tlunap1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed; on the fixed code (tbase2, tbase3) iron and food moved, and the agents' own habits (one agent carrying every pickaxe, a spare bed kept) and time stopped them. After reflexes, shared sightings and bed fixes (proof runs bpoc3–bpoc6), tbase5's, tbase6's and tbase7's first reps met the whole goal. |
+| [06 Team base](write-ups/06-team-base.md) | 20–28 Oct | bpoc–bpoc12, tbase1–7, tluna1–2, tlunap1, thaiku1–2, tmix1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed; on the fixed code (tbase2, tbase3) iron and food moved, and the agents' own habits (one agent carrying every pickaxe, a spare bed kept) and time stopped them. After reflexes, shared sightings and bed fixes (proof runs bpoc3–bpoc6), tbase5's, tbase6's and tbase7's first reps met the whole goal; on later fixes, so did one of three all-Luna reps (tluna2), for US$0.15. |
 
 [`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
@@ -118,6 +118,10 @@ runs that no write-up uses are not published.
 | [tbase5](batch-reports/2026-10-27-0347-tbase5.md) | 27 Oct | `team-base` | Opus, Sonnet and Luna, after the reflexes, shared sightings and bed fixes | **1 of 3 teams** (rep 1, no deaths); home and food met in all 3 | [team base](write-ups/06-team-base.md) |
 | [tbase6](batch-reports/2026-10-27-2131-tbase6.md) | 27 Oct | `team-base` | Opus, Sonnet and Luna, with `flee` digging in, remembered ore and the shared chest | **1 of 3 teams** (rep 1, no deaths); rep 2 one pickaxe short; rep 3 no beds | [team base](write-ups/06-team-base.md) |
 | [tbase7](batch-reports/2026-10-28-0058-tbase7.md) | 28 Oct | `team-base` | The same team with the progress list on, two reps | **1 of 2 teams** (rep 1); rep 2 home and beds only | [team base](write-ups/06-team-base.md) |
+| [thaiku1](batch-reports/2026-10-28-1430-thaiku1.md) | 28 Oct | `team-base` | Three Claude Haiku 5.5 | 0 of 1 (no parts) | [team base](write-ups/06-team-base.md) |
+| [thaiku2](batch-reports/2026-10-28-1556-thaiku2.md) | 28 Oct | `team-base` | Three Claude Haiku 5.5, with `respawn` and the swim-up | 0 of 2 (home and food in each) | [team base](write-ups/06-team-base.md) |
+| [tluna2](batch-reports/2026-10-28-1812-tluna2.md) | 28 Oct | `team-base` | Three GPT-6 Luna | **1 of 3 teams** (rep 2, US$0.15), the first all-Luna win | [team base](write-ups/06-team-base.md) |
+| [tmix1](batch-reports/2026-10-28-2051-tmix1.md) | 28 Oct | `team-base` | Claude Sonnet 5.5 with two Haiku 5.5 | 0 of 1 (home and food) | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 

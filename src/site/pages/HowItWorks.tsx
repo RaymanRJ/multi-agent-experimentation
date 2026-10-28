@@ -101,7 +101,7 @@ export function HowItWorks() {
 
         <h2>Who plays</h2>
         <p>
-          Claude Opus 5.5, Sonnet 5.5 and Haiku 4.5, GPT-6 Luna, and a small model that runs locally for
+          Claude Opus 5.5, Sonnet 5.5, Haiku 5.5 and Haiku 4.5, GPT-6 Luna, and a small model that runs locally for
           free (Qwen3 4B). A scripted agent with fixed rules and no model is the baseline: without it there would
           be no way to tell whether a model adds anything. A three-day team game costs about $1.40-3.30 a rep
           with Opus, Sonnet and GPT-6 Luna together (less when the team finishes early), or about $0.30 with

@@ -249,6 +249,11 @@ What an agent did is only worth knowing if it can be repeated and trusted.
   outside will burn in sunlight shortly", 9 times; "Endermen leave you alone unless you look at
   them"). Goals that state only the outcome work partly because of that. In a private domain, the
   tool descriptions and observations have to carry what the model can't already know.
+- **A cheaper model's ceiling rises with the harness; compare prices after fixing the tools.**
+  *Evidence:* teams of three GPT-6 Luna agents never met the whole shared-home goal in any earlier run
+  while our tools were failing them; after those fixes one of three reps met it all for US$0.15, against
+  US$1.36-1.43 for the mixed team's wins. One win in three is a hint, not a rate.
+  ([06](results/write-ups/06-team-base.md))
 - **Measure cost per outcome, not per call.** The same one-day task cost about 1 cent a run on one
   model and 13–22 cents on others; prompt caching cut 81–86% of input on the models that support it,
   and one model's prompt was below its caching minimum and never cached. ([04](results/write-ups/04-p6-outpost-after-fixes.md), [05](results/write-ups/05-team-homestead.md))

@@ -231,4 +231,29 @@ export const chapters: Chapter[] = [
     ],
     lesson: { text: 'Share what changed, not only what was seen: agents act on their last belief until something tells them otherwise.', anchor: 'shared-state-between-agents' },
   },
+  {
+    title: 'The same goal, for less',
+    question: 'Can a cheaper team meet the goal as often as the mixed team, which won 3 of 8 reps at $1.36-3.31 a rep?',
+    runs: [
+      {
+        name: 'thaiku1',
+        showed: 'Three Haiku 5.5 agents: no deaths and no parts. They mostly waited, talked status, built a one-storey "large" home, and one sat all game in water a tool couldn\'t get it out of.',
+        then: 'A respawn skill (die on purpose, lose everything carried, come back at the bed or spawn), and climb_out swims up onto a bank.',
+      },
+      {
+        name: 'thaiku2',
+        showed: 'Two more Haiku reps: the home and the food in each, two of three asleep, no iron, about $0.22 a rep. Three drownings came from digging up through rock under water.',
+        then: 'Under rock, climb_out swims to the nearest air first.',
+      },
+      {
+        name: 'tluna2',
+        showed: 'Three Lunas: rep 2 met the whole goal for $0.15, the first all-Luna win, one agent on each part; reps 1 and 3 met 2 and 3 parts.',
+      },
+      {
+        name: 'tmix1',
+        showed: 'Sonnet with two Haikus: home and food for $0.95. Sonnet made all three iron pickaxes and died with them two decisions later.',
+      },
+    ],
+    lesson: { text: 'A cheaper model\'s ceiling rises with the harness: fix the tools first, then compare prices.', anchor: 'evaluation' },
+  },
 ];

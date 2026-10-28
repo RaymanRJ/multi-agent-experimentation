@@ -1274,6 +1274,53 @@ library error reached the agent as "The goal was changed…"; it now reads plain
 |---|---|---|
 | Claude Haiku 5.5 (×3) | 0.66 | 0, 4, 11 |
 
+## Cheaper teams: three Lunas, and Sonnet with two Haikus (tluna2, tmix1)
+
+*The owner's new question, 28 October: can a cheaper team meet the goal as often as the mixed team?
+tluna2: three GPT-6 Luna agents (la, lb, lc), three reps on 89fbe4d (`climb_out` swimming to air),
+US$0.76. tmix1: Claude Sonnet 5.5 with two Claude Haiku 5.5 agents, neutral names (ma, mb, mc), one
+rep on the same code, US$0.95. Both with thaiku1-2's settings.*
+Reports: [thaiku1](../batch-reports/2026-10-28-1430-thaiku1.md), [thaiku2](../batch-reports/2026-10-28-1556-thaiku2.md), [tluna2](../batch-reports/2026-10-28-1812-tluna2.md), [tmix1](../batch-reports/2026-10-28-2051-tmix1.md).
+
+| Team | Reps | Whole goal | Parts met per rep | Cost per rep (USD) |
+|---|---|---|---|---|
+| Opus, Sonnet, Luna (tbase5-7, older code) | 8 | **3** | 4, 2, 2, 4, 3, 1, 4, 2 | 1.36-3.31 |
+| Three Lunas (tluna2) | 3 | **1** | 2, **4**, 3 | **0.15-0.33** |
+| Three Haiku 5.5 (thaiku1-2) | 3 | 0 | 0, 2, 2 | 0.20-0.24 |
+| Sonnet and two Haiku 5.5 (tmix1) | 1 | 0 | 2 | 0.95 |
+
+**Three Lunas met the whole goal for the first time, for US$0.15.** In tluna2 rep 2 the team split the
+work in its first decisions and kept to it: lb built the home by 4:56 of day 1 and stored the food, lc
+hunted, and la went down for iron, came back up with 13, made three pickaxes and handed two over. One
+death in the whole rep. When `climb_out` refused at y=13 ("water behind the stone" on every side), la
+tunnelled sideways and found another way up. The goal was met late on day 2.
+
+**The other Luna reps fell short on deaths and iron.** Rep 1: 14 deaths, 10 of them lc's, during
+flees round the home through night 2 and into the first minutes of dawn, when zombies still walk; no
+food stayed stored and no iron got made. Rep 3: home, beds and 27 cooked meat, but only la got an iron
+pickaxe: the most iron anyone else held was 2.
+
+**Sonnet with two Haikus: the same parts as two Haikus, at four times the price.** Sonnet (ma) took
+iron and had three iron pickaxes made early on day 3, then a zombie killed it two decisions later and
+all three were lost with it; it made one more and lost that to a creeper at the end. Nobody made a bed:
+mb's wool was two white and one gray, and a bed needs three of a colour ("need 1 more white_wool"). mc
+chose to hunt a zombie and then a creeper, and was blown up twice. Sonnet cost US$0.79 of the US$0.95.
+
+**What it says so far:** on today's code a team of three Lunas can meet the whole goal, at a tenth of
+the mixed team's price per win; one win in three reps is a hint, not a rate. Haiku 5.5 got the home and
+food but no further in three reps. Adding Sonnet to two Haikus didn't add a part: the iron it made was
+lost with it, the familiar way. The mixed team ran on older code, so the comparison across rows is
+rough.
+
+**Where our code, not the agents, decided the outcome:** nothing new in tluna2 or tmix1. No agent chose
+`respawn`.
+
+| Model | Cost (USD) | Deaths per rep |
+|---|---|---|
+| GPT-6 Luna (×3, tluna2) | 0.76 for 3 reps | 14, 1, 4 |
+| Claude Sonnet 5.5 (tmix1) | 0.79 | 3 |
+| Claude Haiku 5.5 (×2, tmix1) | 0.16 | 2, 3 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1301,6 +1348,8 @@ dying, and the next run showed the next one.
 | tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 | bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
+| thaiku1-2 | 0, 4, 11 | Haiku agents mostly waited at night; three drownings digging up through rock under water | `climb_out` swims to the nearest air first |
+| tluna2 | 14, 1, 4 | Rep 1: lc died 10 times in flees round a besieged home at night and dawn, as in bpoc8 | (none) |
 | bpoc12 | 8 | Skeletons' arrows killed 5; lb died 5 times (an enderman, a creeper, two skeletons, drowning); together they lost the wool four times, the meat and an iron pickaxe | (none yet) |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
