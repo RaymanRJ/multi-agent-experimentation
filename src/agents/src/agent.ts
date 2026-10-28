@@ -679,6 +679,9 @@ async function main(): Promise<void> {
       interruptReason = DIED;
       result = { ...result, status: "aborted" };
     }
+    // An interrupt cancels the walk or dig in flight, and a skill can report that as its own failure
+    // ("could not step in: The goal was changed…", bpoc11). It was cut off, not refused: say why.
+    if (interruptReason && !stopping && result.status === "failed") result = { ...result, status: "aborted" };
     if (interruptReason && !stopping) {
       // Tell the model why, in place of the skill's generic "the run is ending".
       if (result.status === "aborted") result = { ...result, reason: interruptReason };

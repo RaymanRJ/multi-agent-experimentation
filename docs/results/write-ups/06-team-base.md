@@ -1139,15 +1139,23 @@ lc took wool and beds; la helped with iron and repaired the home. Questions were
 teammates' messages cut off each other's work 25 times. Once lb was stuck, la and lc kept asking it to
 "bring the iron pickaxes here", and lb kept saying it would.
 
-**Where our code, not the agents, decided the outcome:** lb's way out. Not yet fixed:
-- `climb_out` building straight up tried to place the iron pickaxe in lb's hand ("Server refused to
-  place iron_pickaxe"), and once cobblestone that the server didn't place: the pillar doesn't make sure
-  a block is in hand, or check the placement before going on.
-- In the cave it reported "not standing on solid ground" five times at the same spot, with every
-  side "a drop into a cave", so it had no way up at all.
-- `tunnel` and `climb_out` passed on library errors the agent can't act on: "invalid operation" and
-  "The goal was changed before it could be completed!".
-- `give` couldn't walk the last 8 blocks to la in the cave ("walking to la timed out").
+**Where our code, not the agents, decided the outcome:** lb's way out. Fixed after it, and checked
+live in an open room with nothing to cut steps into:
+- Standing at the edge of a block, its middle over air, `climb_out` said "not standing on solid
+  ground" (five times for lb, in an amethyst geode). Reproduced exactly; now it steps onto the middle
+  of the block first, and built 8 blocks up from the same spot in 4 seconds.
+- Building up, it tried to place the iron pickaxe in lb's hand, and once a block the server didn't
+  take. Now it checks the hand just before placing and tries up to three jumps; with the hand forced
+  to the pickaxe every 150 ms, it put nothing wrong down and said why. What swapped lb's hand is not
+  known.
+- `tunnel` and `climb_out` passed on library errors: "invalid operation" (an inventory click refused
+  while something else moved items) and "The goal was changed before it could be completed!" (our
+  own interrupt cancelling the step). Items are now picked afresh before each equip, the errors are
+  put in plain words, and a skill cut off by an interrupt is reported as interrupted, with the reason,
+  instead of as its own failure. Going up, open space is "no rock to step up onto", not "a drop into
+  a cave".
+- `give` couldn't walk the last 8 blocks to la in the cave ("walking to la timed out"): the
+  pathfinder found no way through, which the message says. Left as it is.
 
 | Model | Cost (USD) | Deaths |
 |---|---|---|
@@ -1179,7 +1187,7 @@ dying, and the next run showed the next one.
 | bpoc10 | **2** | One drowning, one arrow. `flee` dug in once, for real, and the agent lived | (none for deaths) |
 | tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
-| bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | (getting out of caves, next) |
+| bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):
@@ -1244,6 +1252,7 @@ working on real systems, such as support desks, IT operations and business tools
 | Told "no room left for a bed" in a room with space for it | A refusal was reported as a fact about the world ("full") instead of as what happened ("refused") | Spots with someone in them are passed over; a refusal is reported as one | An error mapped to the wrong cause, so the agent plans around a limit that isn't there |
 | Drowned while its model was deciding, carrying the team's tools | A safety response ran before and after the planner, but not during it | It also runs while the model decides | A watchdog that only checks between jobs, so a failure mid-job goes unanswered |
 | Suffocated twice climbing out, with the team's iron and food | A tool's own step created the danger (digging out from under gravel), and nothing recovered from it | It won't dig from under falling blocks; the body digs out of any that land on it | An automated change that triggers the failure it then can't see, with no recovery for the state it caused |
+| Trapped in a cave with the team's three iron pickaxes for the rest of the run (bpoc11) | A tool judged where the agent stood by one point of it ("not on solid ground" at a block's edge), and took for granted that what it had put in hand was still there | It steps onto the block first, and checks the hand just before acting | A check made on a simplified model of the state (one field, a cached value) that disagrees with the real state, so a possible action is refused, or the wrong one taken |
 | Smelt failed with "can't find planks" it had just checked for | A tool checked its inputs, then used them up in its own setup | Inputs are chosen after the setup | A check-then-act gap: a resource validated, then consumed by an earlier step of the same job |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):

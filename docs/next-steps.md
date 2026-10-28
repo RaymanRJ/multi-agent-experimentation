@@ -39,11 +39,10 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      lc lost its wool to deaths three times and gathered it again, and three beds went into the home.
      2 of 4 parts: lb made all three iron pickaxes 43 blocks underground and never got out, so neither
      the pickaxes nor the last sleeper reached the home. Write-up 06.
-   - **Next: getting out of caves** (bpoc11, our code): `climb_out`'s pillar placed whatever was in
-     hand (an iron pickaxe) instead of making sure of a block; "not standing on solid ground" and "a
-     drop into a cave" on every side left no way up; `tunnel` and `climb_out` pass on library errors
-     ("invalid operation", "The goal was changed…"). Reproduce at lb's spot (12,24,60 on the seed),
-     fix, check live, then another Luna proof run.
+   - **Done: getting out of caves** (after bpoc11): `climb_out` steps onto the block it hangs off
+     before building up, checks the hand before each placement and retries a jump; library errors are
+     in plain words; a skill cut off by an interrupt is reported as interrupted. Checked live (the
+     edge case reproduced, then fixed). **Next:** a Luna proof run to see it in a full game (ask first).
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
@@ -170,3 +169,4 @@ The write-up named on each line has the detail.
 - Herds restocked each morning; proof run bpoc11 (2 of 4 parts, an agent trapped underground with
   the team's iron pickaxes). Write-up 06.
 - The Stats page shows each model's typical time to decide; the browser viewer darkens at night.
+- Getting out of caves: `climb_out` from the edge of a block, the right item in hand, plain errors.

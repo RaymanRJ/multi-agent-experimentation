@@ -68,6 +68,57 @@ function badFloor(bot: Bot, feet: Vec3): string | null {
   return null;
 }
 
+/**
+ * The block the bot really stands on. Usually the one under its feet; but standing at an edge, the
+ * bot's middle can hang over air while the rest of it rests on the block beside (lb in bpoc11, in a
+ * cave, told "not standing on solid ground" five times on solid ground). Null when it stands on nothing.
+ */
+function support(bot: Bot): Vec3 | null {
+  const { x, y, z } = bot.entity.position;
+  for (const [dx, dz] of [[0, 0], [0.3, 0.3], [0.3, -0.3], [-0.3, 0.3], [-0.3, -0.3]] as const) {
+    const cell = new Vec3(Math.floor(x + dx), Math.floor(y) - 1, Math.floor(z + dz));
+    if (bot.blockAt(cell)?.boundingBox === "block") return cell;
+  }
+  return null;
+}
+
+/** Steps onto the middle of the block the bot rests on when it hangs over an edge, so every check below starts from solid ground. */
+async function centre(bot: Bot): Promise<void> {
+  const under = support(bot);
+  const feet = bot.entity.position.floored();
+  if (!under || (under.x === feet.x && under.z === feet.z)) return;
+  try {
+    await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(under.x, under.y + 1, under.z)), 5000, "stepping onto the block underfoot");
+  } catch {
+    bot.pathfinder.setGoal(null);
+  }
+}
+
+/**
+ * Puts the named item in hand, found afresh: anything else can move items in between (a reflex digging
+ * the head free picks its own tool), and a stale item makes the game refuse the click ("invalid operation").
+ */
+async function hold(bot: Bot, name: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (bot.heldItem?.name === name) return true;
+    const item = bot.inventory.items().find((i) => i.name === name);
+    if (!item) return false;
+    try {
+      await bot.equip(item, "hand");
+    } catch {
+      await bot.waitForTicks(2);
+    }
+  }
+  return bot.heldItem?.name === name;
+}
+
+/** A library error in words the agent can act on; anything else unchanged. */
+export function plainError(message: string): string {
+  if (message === "invalid operation") return "the inventory was busy moving an item";
+  if (/goal was changed/i.test(message)) return "interrupted before getting there";
+  return message;
+}
+
 function usesLeft(item: { maxDurability?: number; durabilityUsed?: number }): number {
   return item.maxDurability ? item.maxDurability - (item.durabilityUsed ?? 0) : Infinity;
 }
@@ -84,7 +135,7 @@ async function equipDigger(bot: Bot): Promise<string | null> {
     .sort((a, b) => DIGGERS.indexOf(a.name) - DIGGERS.indexOf(b.name) || usesLeft(a) - usesLeft(b));
   const usable = candidates.find((item) => !(PRECIOUS.has(item.name) && usesLeft(item) <= KEEP_USES));
   if (usable) {
-    if (bot.heldItem?.slot !== usable.slot) await bot.equip(usable, "hand");
+    if (bot.heldItem?.slot !== usable.slot) await hold(bot, usable.name);
     return null;
   }
   const saved = candidates[0];
@@ -119,7 +170,7 @@ async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
       // Ore a cheap pickaxe can't harvest (redstone, diamond) takes it ages; use the right tool for that block.
       if (bot.digTime(block!) > SLOW_DIG_MS) {
         const better = bot.pathfinder.bestHarvestTool(block!);
-        if (better) await bot.equip(better, "hand");
+        if (better) await hold(bot, better.name);
       }
       await withTimeout(bot.dig(block!), DIG_TIMEOUT_MS, `digging ${block!.name}`);
     }
@@ -156,14 +207,15 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     landing = below;
   }
   const floor = badFloor(bot, landing);
-  if (floor) return floor;
+  // Going up, the "floor" is the block to step onto; none there is open space, not a drop.
+  if (floor) return dy > 0 && floor === "a drop into a cave" ? "no rock to step up onto" : floor;
   await clear(bot, cells);
   await bot.waitForTicks(2);
   try {
     await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(landing.x, landing.y, landing.z)), STEP_TIMEOUT_MS, "stepping");
   } catch (error) {
     bot.pathfinder.setGoal(null);
-    return `could not step in: ${(error as Error).message}`;
+    return `could not step in: ${plainError((error as Error).message)}`;
   }
   return null;
 }
@@ -281,9 +333,11 @@ export const descend: Skill = {
       if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
       let moved = false;
       const refusals: string[] = [];
+      await centre(bot);
       for (let turn = 0; turn < 4 && !moved; turn++) {
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
         const index = (heading + turn) % 4;
-        const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => error.message);
+        const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
         if (problem === null) {
           heading = index;
           moved = true;
@@ -335,7 +389,9 @@ export const tunnel: Skill = {
       if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
       const noTool = await equipDigger(bot);
       if (noTool) return { status: dug ? "success" : "failed", reason: `dug ${dug} blocks, then ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
-      const problem = await step(bot, heading, 0).catch((error: Error) => error.message);
+      await centre(bot);
+      const problem = await step(bot, heading, 0).catch((error: Error) => plainError(error.message));
+      if (problem && ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
       if (problem) {
         // Next call should try another way rather than hit the same wall.
         lastHeading.set(bot.username, (index + 1) % 4);
@@ -361,6 +417,7 @@ const PILLAR_BLOCKS = [
  * Returns null on success or why it could not.
  */
 async function pillar(bot: Bot): Promise<string | null> {
+  await centre(bot);
   const feet = bot.entity.position.floored();
   const problem = unsafe(bot, feet.offset(0, 2, 0));
   if (problem) return `above: ${problem}`;
@@ -370,24 +427,40 @@ async function pillar(bot: Bot): Promise<string | null> {
   if (!floor || floor.boundingBox !== "block") return "not standing on solid ground";
   const held = countInventory(bot);
   const name = PILLAR_BLOCKS.find((block) => (held[block] ?? 0) > 0);
-  const item = name && bot.inventory.items().find((i) => i.name === name);
-  if (!item) return "nothing to stand on: building up needs a block such as dirt, cobblestone, planks or logs";
+  if (!name) return "nothing to stand on: building up needs a block such as dirt, cobblestone, planks or logs";
   await clear(bot, [feet.offset(0, 2, 0)]);
-  await bot.equip(item, "hand");
   bot.pathfinder.setGoal(null);
-  await bot.lookAt(feet.offset(0.5, 0, 0.5), true);
-  bot.setControlState("jump", true);
-  try {
-    for (let tick = 0; tick < 20 && bot.entity.position.y < feet.y + 1; tick++) await bot.waitForTicks(1);
-    if (bot.entity.position.y < feet.y + 1) return "could not jump high enough to build up";
-    await withTimeout(bot.placeBlock(floor, new Vec3(0, 1, 0)), 3000, "placing a block underfoot");
-  } catch (error) {
-    return `could not build up: ${(error as Error).message}`;
-  } finally {
-    bot.setControlState("jump", false);
+  // A placement at the top of a jump is sometimes not taken by the server; land and jump again.
+  let failure = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (let tick = 0; tick < 20 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+    // Checked again just before placing: anything that moved items in between (in bpoc11 the pillar
+    // tried to place the iron pickaxe in hand) would otherwise put the wrong item down.
+    if (!(await hold(bot, name))) return `could not hold the ${name} to stand on`;
+    await bot.lookAt(feet.offset(0.5, 0, 0.5), true);
+    bot.setControlState("jump", true);
+    try {
+      for (let tick = 0; tick < 20 && bot.entity.position.y < feet.y + 1; tick++) await bot.waitForTicks(1);
+      if (bot.entity.position.y < feet.y + 1) {
+        failure = "could not jump high enough to build up";
+        continue;
+      }
+      if (bot.heldItem?.name !== name) {
+        failure = `something else was in hand (${bot.heldItem?.name ?? "nothing"})`;
+        continue;
+      }
+      await withTimeout(bot.placeBlock(floor, new Vec3(0, 1, 0)), 3000, "placing a block underfoot");
+    } catch (error) {
+      failure = `could not build up: ${plainError((error as Error).message)}`;
+    } finally {
+      bot.setControlState("jump", false);
+    }
+    for (let tick = 0; tick < 20 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
+    if (bot.entity.position.floored().y > feet.y) return null;
+    if (bot.blockAt(feet)?.boundingBox === "block") return "the block was placed but you did not land on it";
+    failure ||= "the block underfoot did not hold";
   }
-  for (let tick = 0; tick < 20 && !bot.entity.onGround; tick++) await bot.waitForTicks(1);
-  return bot.entity.position.floored().y > feet.y ? null : "the block underfoot did not hold";
+  return failure;
 }
 
 export const climbOut: Skill = {
@@ -426,9 +499,11 @@ export const climbOut: Skill = {
       await equipDigger(bot);
       let moved = false;
       const refusals: string[] = [];
+      await centre(bot);
       for (let turn = 0; turn < 4 && !moved; turn++) {
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
         const index = (heading + turn) % 4;
-        const problem = await step(bot, HEADINGS[index]!, 1).catch((error: Error) => error.message);
+        const problem = await step(bot, HEADINGS[index]!, 1).catch((error: Error) => plainError(error.message));
         if (problem === null) {
           heading = index;
           moved = true;
@@ -445,7 +520,7 @@ export const climbOut: Skill = {
           .sort((a, b) => Number(!!fallsOnHead(bot, feet.offset(HEADINGS[a]!.dx, 0, HEADINGS[a]!.dz))) - Number(!!fallsOnHead(bot, feet.offset(HEADINGS[b]!.dx, 0, HEADINGS[b]!.dz))));
         for (const index of order) {
           if (moved) break;
-          if ((await step(bot, HEADINGS[index]!, 0).catch((error: Error) => error.message)) === null) {
+          if ((await step(bot, HEADINGS[index]!, 0).catch((error: Error) => plainError(error.message))) === null) {
             heading = index;
             moved = true;
           }
@@ -458,8 +533,10 @@ export const climbOut: Skill = {
       if (moved) sidesteps = 0;
       if (!moved) {
         // No rock to cut a step into: build up instead.
-        const built = await pillar(bot).catch((error: Error) => error.message);
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+        const built = await pillar(bot).catch((error: Error) => plainError(error.message));
         if (built === null) continue;
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
         refusals.push(`straight up: ${built}`);
         lastHeading.set(bot.username, (heading + 1) % 4);
         return {
