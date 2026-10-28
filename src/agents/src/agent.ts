@@ -106,6 +106,8 @@ if (viewPort !== null) config.view = viewPort;
 const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
 /** The reason a skill gets when the agent dies during it; recentEvents says where and how. */
 const DIED = "interrupted: you died and respawned";
+/** How long to wait for the game to respawn a dead bot before observing anyway. */
+const RESPAWN_WAIT_MS = 5_000;
 
 function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
   switch (brain) {
@@ -275,7 +277,17 @@ async function main(): Promise<void> {
   let diedInSkill = false;
   const deathEvent = (d: { x: number; y: number; z: number; cause: string | null }) =>
     `you died at ${d.x},${d.y},${d.z} and respawned${d.cause ? `; you ${d.cause.replace(/^was /, "were ")}` : ""}; what you carried was dropped there and disappears 5 minutes after you died`;
+  // Dead until the game respawns the bot. An observation taken before that shows health 0 at the spot
+  // where it died: 90 decisions in the logs were made that way, all right after a death, and in tbase6
+  // Opus decided six times running from "health 0" at the spawn point, beside the zombie that killed it.
+  let respawning = false;
+  bot.on("spawn", () => { respawning = false; });
+  const awaitRespawn = async () => {
+    for (let waited = 0; (respawning || bot.health <= 0) && waited < RESPAWN_WAIT_MS; waited += 100) await new Promise((r) => setTimeout(r, 100));
+    if (bot.health > 0) await bot.waitForTicks(2); // health and position arrive just after the respawn
+  };
   bot.on("death", () => {
+    respawning = true;
     // Where, so it can go back: a player sees where they fell. Dropped items vanish after 5 minutes.
     const { x, y, z } = bot.entity.position.floored();
     const death = { x, y, z, cause: null as string | null, ticks: bot.time.age - startAge, timeOfDay: bot.time.timeOfDay };
@@ -484,6 +496,7 @@ async function main(): Promise<void> {
   for (let step = 1; !ended; step++) {
     lastStep = step;
     if (disconnected) break;
+    await awaitRespawn();
     const surfaced = await escapeWater();
     const asked = buffer?.pending() ?? { requests: [], mark: 0 };
     // A teammate who opened a chest and found it changed: said once, as it happens.
