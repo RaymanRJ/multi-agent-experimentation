@@ -33,7 +33,6 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      finding "no sheep within 32 blocks", which meant no beds and the spawn trap (Opus died 18 times).
      Check where the herd stood against the home; it may be a setting of ours.
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
-   - A `/stats` page on the site: decisions, cost and runs played per model (being built).
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
    - The merged branch `worktree-goals-section` on GitHub can be deleted.
@@ -152,3 +151,5 @@ The write-up named on each line has the detail.
 - Beds and chests drawn in the browser viewer (`scripts/patch-viewer.mjs`); the minds page no longer
   bounces past its panels.
 - The prompt-caching article drafted on rrjamal.ca (pushed as a draft).
+- A Stats page on the site (`#/stats`): runs, decisions, cost, deaths and goals met, in all and by
+  model, added up from the published reports.
