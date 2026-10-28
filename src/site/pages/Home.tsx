@@ -15,7 +15,9 @@ export function Home() {
         </p>
         <p className="lede muted">
           The agents play Minecraft, alone and in teams of different models, because there an agent can be
-          watched and a run repeated from the same seed. The game is the evidence, not the subject.
+          watched and a run repeated from the same seed. The game is the evidence, not the subject. The
+          models came knowing it already: Minecraft is one of the best-documented games there is, and nothing
+          here trains them.
         </p>
         <div className="actions">
           <a className="button primary" href={HASH.lessons}>

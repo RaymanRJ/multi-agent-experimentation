@@ -83,6 +83,22 @@ export function HowItWorks() {
           <a href={HASH.doc('lessons', 'shared-state-between-agents')}>shared state between agents</a>.
         </p>
 
+        <h2>What the models already knew</h2>
+        <p>
+          Nothing here trains a model or fine-tunes it. They are used as they come, and they came knowing
+          Minecraft: it is one of the most written-about games there is, in wikis, guides and forums, and
+          that is in what they learned from. Agents reasoned with game facts we never gave them: "zombies
+          just outside will burn in sunlight shortly", and "Endermen leave you alone unless you look at
+          them". Neither is anywhere in their prompt.
+        </p>
+        <p>
+          So these runs test whether the structure lets a model act on what it knows, not whether it can
+          learn a world from scratch. That is also why a goal can state only the outcome. In a domain a
+          model has never read about, such as a company's own systems, none of that comes for free: more has
+          to reach it through tool descriptions, observations and documents it can look up, and the lessons
+          here about what an agent is told matter more, not less.
+        </p>
+
         <h2>Who plays</h2>
         <p>
           Claude Opus 5.5, Sonnet 5.5 and Haiku 4.5, GPT-6 Luna, and a small model that runs locally for

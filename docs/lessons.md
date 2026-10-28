@@ -7,7 +7,9 @@ queue or a business tool. The evidence under each comes from a logged run here, 
 link to the write-up that has the numbers.
 
 The environment is Minecraft because agents in it can be watched and runs can be repeated. It is the
-evidence, not the subject.
+evidence, not the subject. The models were never trained here: they came knowing the game, which is
+among the best-documented anywhere, so these runs test the structure around a model that already knows
+its world (see [Evaluation](#evaluation)).
 
 **The short version.** When an agent fails, look first at what its tools did and what it was told,
 then at its judgement. Most early failures here were ours: tools that misled it, information it
@@ -241,6 +243,12 @@ What an agent did is only worth knowing if it can be repeated and trusted.
   judgement.
   *Evidence:* agents stopped leaving their shelters at night once nothing false alarmed them; whether
   their judgement changed can't be told. ([04](results/write-ups/04-p6-outpost-after-fixes.md))
+- **Know what the model brings before crediting the structure.** A model that knows the domain from
+  its training needs only outcomes and tools; one that doesn't needs that knowledge carried in.
+  *Evidence:* nothing here was trained, and agents used game facts no prompt gave them ("zombies just
+  outside will burn in sunlight shortly", 9 times; "Endermen leave you alone unless you look at
+  them"). Goals that state only the outcome work partly because of that. In a private domain, the
+  tool descriptions and observations have to carry what the model can't already know.
 - **Measure cost per outcome, not per call.** The same one-day task cost about 1 cent a run on one
   model and 13–22 cents on others; prompt caching cut 81–86% of input on the models that support it,
   and one model's prompt was below its caching minimum and never cached. ([04](results/write-ups/04-p6-outpost-after-fixes.md), [05](results/write-ups/05-team-homestead.md))
