@@ -67,7 +67,7 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 - **A goal, stated as an outcome:** "Make a stone pickaxe, axe, sword and shovel, build a shelter,
   then survive the night." Never the steps. (Step-by-step `-guided` versions exist only to measure
   how much a model needs that help.)
-- **Tools, and only tools.** A fixed list of 25 skills, each with a plain description of what it
+- **Tools, and only tools.** A fixed list of 26 skills, each with a plain description of what it
   does and how it fails. Nothing happens outside that list. See [docs/skills.md](docs/skills.md).
 - **Observations:** a short summary of its situation (what it holds, what is nearby, its health,
   the time, who else is around), not a dump of the environment.

@@ -8,6 +8,7 @@
  * decision gained something on a part's way or did the part itself (built the base, slept, stored
  * meat); what a decision aimed at is read from its skill and arguments, before knowing how it went.
  */
+import { CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import type { LoggedStep } from "./types.js";
 import { COOKED_MEAT } from "./scenario.js";
 import { gameTime } from "./summary.js";
@@ -112,7 +113,7 @@ export const doing = (skill: string) => SKILL_WORDS[skill] ?? skill.replace(/_/g
 
 export interface Setback {
   part: string;
-  how: "died" | "wore out" | "ate" | "took from the chest";
+  how: "died" | "respawned" | "wore out" | "ate" | "took from the chest";
   items: Record<string, number>;
 }
 
@@ -165,7 +166,8 @@ export function classify(step: LoggedStep, parts: GoalPart[], sleptBefore = fals
     for (const [item, count] of Object.entries(step.observation.inventory)) held[item] = Math.max(held[item] ?? 0, count);
     for (const p of parts) {
       const items = pick(held, p.items);
-      if (Object.keys(items).length) out.setbacks.push({ part: p.name, how: "died", items });
+      const chosen = step.deaths!.every((death) => death.cause === CHOSE_TO_RESPAWN);
+      if (Object.keys(items).length) out.setbacks.push({ part: p.name, how: chosen ? "respawned" : "died", items });
     }
   } else if (!diedBefore && !["craft", "smelt", "give", "store", "build_shelter"].includes(d.skill)) {
     for (const [item, n] of Object.entries(lost)) {
@@ -223,7 +225,10 @@ export interface Disruption {
 
 export function disruptionOf(step: LoggedStep): { kind: DisruptionKind; what: string } | null {
   const reason = step.result?.reason ?? "";
-  if (step.deaths?.length) return { kind: "died", what: step.deaths[0]!.cause ?? "died" };
+  // A chosen respawn is the agent's own decision, not something that broke its work off.
+  const killed = (step.deaths ?? []).filter((death) => death.cause !== CHOSE_TO_RESPAWN);
+  if (killed.length) return { kind: "died", what: killed[0]!.cause ?? "died" };
+  if (step.deaths?.length) return null;
   if (step.result?.status === "failed") return { kind: "failed", what: reason };
   if (step.result?.status !== "aborted" || /run is ending|time budget ran out/.test(reason)) return null;
   if (/said to you/.test(reason)) return { kind: "message", what: reason };
@@ -396,6 +401,7 @@ export function goalWork(members: Member[], goalName: string): GoalWork | null {
 
 function setbackText(s: Setback): string {
   if (s.how === "died") return `died, dropping ${itemList(s.items)}`;
+  if (s.how === "respawned") return `chose to respawn, dropping ${itemList(s.items)}`;
   if (s.how === "wore out") return `wore out ${itemList(s.items)}`;
   if (s.how === "ate") return `ate ${itemList(s.items)}`;
   return `took ${itemList(s.items)} from the chest`;

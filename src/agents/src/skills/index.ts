@@ -18,6 +18,7 @@ import { tellAgent } from "./tellAgent.js";
 import { askAgent } from "./askAgent.js";
 import { hunt, shear } from "./creatures.js";
 import { lookInChest, store, take } from "./chest.js";
+import { respawn } from "./respawn.js";
 
 /**
  * The complete vocabulary of goals an agent may pursue. Nothing an agent does
@@ -35,6 +36,7 @@ export const SKILLS: Skill[] = [
   give, pickUp, goTo, store, take, lookInChest,
   hunt, shear,
   tellAgent, askAgent,
+  respawn,
 ];
 
 export function findSkill(name: string): Skill | undefined {

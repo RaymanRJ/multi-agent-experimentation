@@ -303,6 +303,7 @@ function verdict(s: RunSummary, b: Behaviour, steps: LoggedStep[], lacking: stri
   if (thinking > 0 && total > 0) lines.push(`The world ran on for ${pct(thinking, total)} of the run while it was thinking.`);
   if (s.doneRefused > 0) lines.push(`It claimed to be done ${s.doneRefused} time${s.doneRefused > 1 ? "s" : ""} before the goal was met.`);
   if (s.deaths > 0) lines.push(`It died ${s.deaths} time${s.deaths > 1 ? "s" : ""}, losing what it carried each time.`);
+  if (s.respawns > 0) lines.push(`It chose to respawn ${s.respawns} time${s.respawns > 1 ? "s" : ""}, leaving what it carried behind.`);
   if (hitPair(s) !== "-") {
     const parts = [hitList(s.hitsGiven, "on"), hitList(s.hitsTaken, "from")].filter(Boolean);
     lines.push(`It fought other agents: hits ${parts.join("; ")}.`);
@@ -357,6 +358,7 @@ export function renderSummary(steps: LoggedStep[], file: string): string {
     add(`| Unusable answers (re-asked, or no such skill) | ${s.retries} re-asked, ${b.invalid} no such skill |`);
   }
   add(`| Deaths | ${s.deaths} |`);
+  if (s.respawns) add(`| Chose to respawn | ${s.respawns} |`);
   add(`| Lowest food (of 20) | ${s.lowestFood} |`);
   add(`| Hits on / from other agents | ${hitPair(s) === "-" ? "-" : `${hitList(s.hitsGiven, "on") || "none"} / ${hitList(s.hitsTaken, "from") || "none"}`} |`);
   add(`| Game time used | ${gameTime(ticks)} of a 20:00 day${first && last ? `, in ${wallTime(new Date(last.at).getTime() - new Date(first.at).getTime())} of real time` : ""} |`);

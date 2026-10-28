@@ -1,3 +1,4 @@
+import { CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -28,6 +29,8 @@ export interface RunSummary {
   howEnded: EndReason | "policy ended" | "step limit / stopped";
   skillCounts: Record<string, { success: number; failed: number; aborted: number }>;
   deaths: number;
+  /** Times it chose to die and come back (the respawn skill): not counted in deaths. */
+  respawns: number;
   /** The lowest food level (0-20) seen in any observation; 20 when nothing was logged. */
   lowestFood: number;
   /** Hits on other agents and from them, by the other agent's name (from each step's `hits`). */
@@ -278,9 +281,16 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
   // event, counted from new events per step (deduplicated by window alignment). Two deaths in one step
   // leave one event (tbase1: 2 of 31 deaths were lost that way).
   let deaths = 0;
+  // A chosen respawn (the respawn skill) is logged as a death with its own cause, and counted apart.
+  let respawns = 0;
   const newEvents = newEventsPerStep(steps);
   if (steps.some((step) => step.deaths?.length)) {
-    for (const step of steps) deaths += step.deaths?.length ?? 0;
+    for (const step of steps) {
+      for (const death of step.deaths ?? []) {
+        if (death.cause === CHOSE_TO_RESPAWN) respawns++;
+        else deaths++;
+      }
+    }
   } else {
     for (const eventList of newEvents) {
       for (const event of eventList) {
@@ -445,6 +455,7 @@ export function summarizeRun(steps: LoggedStep[], file: string): RunSummary {
     howEnded,
     skillCounts,
     deaths,
+    respawns,
     lowestFood,
     hitsGiven,
     hitsTaken,

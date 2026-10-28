@@ -51,7 +51,7 @@ export function HowItWorks() {
             versions exist only to measure how much a model needs that help.)
           </li>
           <li>
-            <strong>Tools, and only tools.</strong> A fixed list of 25 skills, each with a plain description
+            <strong>Tools, and only tools.</strong> A fixed list of 26 skills, each with a plain description
             of what it does and how it fails. Nothing happens outside that list. See{' '}
             <a href={HASH.doc('skills')}>the skills</a>.
           </li>

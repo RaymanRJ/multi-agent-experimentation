@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOAL_PARTS, aimsOf, classify, disruptions, goalAtEnd, goalWork, needs, type Member } from "./goalWork.js";
+import { GOAL_PARTS, aimsOf, classify, disruptionOf, disruptions, goalAtEnd, goalWork, needs, type Member } from "./goalWork.js";
 import type { LoggedStep, Observation, SkillResult } from "./types.js";
 
 const parts = GOAL_PARTS["team-base"]!;
@@ -130,4 +130,10 @@ test("needs - handovers asked for or not, and a spare bed kept while a teammate 
   assert.equal(n.gives, 2);
   assert.equal(n.askedGives, 1, "the bed was asked for; the cobblestone wasn't");
   assert.deepEqual(n.spareBeds, [{ lacking: "a", holder: "b", asked: true, handed: true }]);
+});
+
+test("classify - a chosen respawn drops what it held, as its own choice, and breaks nothing off", () => {
+  const chosen = step("respawn", {}, { white_wool: 3 }, {}, { status: "success" }, { deaths: [{ x: 0, y: 58, z: 0, cause: "chose to respawn", ticks: 100, timeOfDay: 1000 }] });
+  assert.deepEqual(classify(chosen, parts).setbacks, [{ part: "beds", how: "respawned", items: { white_wool: 3 } }]);
+  assert.equal(disruptionOf(chosen), null);
 });

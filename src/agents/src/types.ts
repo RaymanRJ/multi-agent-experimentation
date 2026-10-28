@@ -143,6 +143,8 @@ export interface SkillContext {
    * Skills check each one against the world before using it. Absent in tests and tools.
    */
   shelters?: () => import("./skills/buildShelter.js").ShelterSpot[];
+  /** Sends a server command (RCON) and returns the reply. Only `respawn` uses it; absent in tests and tools. */
+  rcon?: (command: string) => Promise<string>;
 }
 
 /** An arg's type; a trailing "?" marks it optional (the skill has a default, or takes one arg or another). */

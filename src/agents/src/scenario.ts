@@ -306,6 +306,16 @@ export async function restockHerds(opts: { host: string; port: number; password:
   return summoned;
 }
 
+/** Sends one server command and returns the reply (the `respawn` skill's /kill). */
+export async function serverCommand(command: string, opts: { host: string; port: number; password: string }): Promise<string> {
+  const rcon = await Rcon.connect({ host: opts.host, port: opts.port, password: opts.password });
+  try {
+    return await rcon.send(command);
+  } finally {
+    await rcon.end();
+  }
+}
+
 /**
  * Gives a player who has just joined every recipe. Crafting asks the server to fill the grid from the
  * recipe book, and the server does that only for recipes the player has unlocked; a chest unlocks only

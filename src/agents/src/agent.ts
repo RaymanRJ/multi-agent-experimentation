@@ -19,11 +19,12 @@ import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
+import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
 import { canReach, getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
@@ -487,6 +488,7 @@ async function main(): Promise<void> {
     },
     shouldStop: () => stopping || interruptReason !== null,
     shelters: knownShelters,
+    rcon: (command) => serverCommand(command, { host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") }),
   };
 
   let policyFailures = 0;
@@ -672,13 +674,24 @@ async function main(): Promise<void> {
     if (wet) stepEvents.push(wet);
     interruptReason = null;
     diedInSkill = false;
-    watch = createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name], REACHABLE_ONLY.has(skill.name));
+    // A chosen respawn dies on purpose: nothing should interrupt it, and its death is not "you died".
+    const choosingToDie = skill.name === respawn.name;
+    const deathsBefore = stepDeaths.length;
+    watch = choosingToDie ? null : createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name], REACHABLE_ONLY.has(skill.name));
     const skillStartAge = bot.time.age;
     let result = await runSkill(skill, ctx, decision.args);
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
     // ever yielding, the bot stops reading its socket, and the server drops it.
     if (bot.time.age === skillStartAge) await bot.waitForTicks(20);
-    if (watch.firedBy() === "message") lastMessageInterruptMs = Date.now();
+    if (watch?.firedBy() === "message") lastMessageInterruptMs = Date.now();
+    if (choosingToDie) {
+      for (const death of stepDeaths.slice(deathsBefore)) {
+        const before = deathEvent(death);
+        death.cause = CHOSE_TO_RESPAWN;
+        const i = recentEvents.lastIndexOf(before);
+        if (i >= 0) recentEvents.splice(i, 1); // the skill's own result says what happened
+      }
+    }
     watch = null;
     // Whatever the skill made of it, a death during it ended it, even when a hit at health 0 interrupted first.
     if (diedInSkill) {

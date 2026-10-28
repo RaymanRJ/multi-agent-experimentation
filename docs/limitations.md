@@ -131,7 +131,10 @@ building on it.
     blocked floor, and stone dug bare-handed; both fixed after p5.)
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
-  - A flooded cave lies under the spawn area. The skills now stop before digging into water, and
+  - A flooded cave lies under the spawn area. In thaiku1 an agent was in it from its 12th decision to
+    the end: walking, climbing out and tunnelling all refused for the water. The way out now is
+    `respawn`, at the cost of everything carried; no skill swims out of it.
+  - The skills now stop before digging into water, and
     `climb_out` gets an agent back to the surface, but agents near it still mine slowly. In bpoc11
     an agent in an open cave found no way up and stayed there for the rest of the run: it stood at a
     block's edge, and its pillar had the wrong item in hand. Both fixed after it.

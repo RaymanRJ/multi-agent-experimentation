@@ -1197,6 +1197,44 @@ way was blocked. The craft message said exactly what was missing.
 |---|---|---|
 | GPT-6 Luna (×3) | 0.31 | 1, 5, 2 |
 
+## Three Haiku 5.5 agents (thaiku1)
+
+*Three Claude Haiku 5.5 agents with neutral names (ha, hb, hc), one rep, 28 October, on 606d444:
+bpoc12's settings. The first run of the cheaper-models workstream. US$0.20 (capped at $0.35 an
+agent). Comparable with the Luna proof runs.*
+
+| Part | bpoc11 (Luna) | bpoc12 (Luna) | thaiku1 (Haiku 5.5) |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | no |
+| Everyone slept there | 2 of 3 | 0 of 3 | 0 of 3 |
+| Everyone holds an iron pickaxe | 1 of 3 | 0 of 3 | 0 of 3 |
+| Food left in store | **10** | 0 | 0 |
+| Deaths | 3 | 8 | **0** |
+| Cost (USD) | 0.25 | 0.31 | **0.20** |
+
+**Safe, busy talking, and nowhere near the goal.** No Haiku agent died, a first on this goal; the
+team spent 46% of its time keeping safe, hb 83% (67 of its 89 decisions were `wait`, healing in its
+hut: "Waiting here lets health regenerate safely until morning"). They sent 84 to 124 messages each, nearly
+all status ("ha here. Mining coal for fuel, then iron for iron pickaxes"), but none asked or told a
+teammate to do anything, and nothing was handed over.
+
+**A home that was "large" but one storey.** ha asked for a large shelter without a second storey, and
+told the team "I'm sealed in the large shelter at 2,73,22"; the goal needs two storeys, and nobody
+checked it against the goal. The Luna agents asked for `{"storeys": 2, "size": "large"}`.
+
+**Where our code, not the agents, decided the outcome:** hc was in the flooded cave under the spawn
+area from its 12th decision to the end, 3 blocks under the ground. `climb_out` refused 6 times ("in
+water, and could not reach dry ground within 8 blocks to dig from"), `go_to` 42 times ("could not get
+closer"), and `build_shelter` 37 times for the water; it was told 13 times it was repeating itself.
+Changed after it: a `respawn` skill (die on purpose and come back at the respawn point, losing
+everything carried), which the owner asked for; checked live from that cave (back at the world spawn
+in 2 seconds, items left where it was) and with a set spawn point, and in the real agent, where the
+report counts it apart from deaths.
+
+| Model | Cost (USD) | Deaths |
+|---|---|---|
+| Claude Haiku 5.5 (×3) | 0.20 | 0, 0, 0 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each

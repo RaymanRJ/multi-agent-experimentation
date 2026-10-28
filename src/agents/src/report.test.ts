@@ -935,3 +935,14 @@ test("summarizeRun - counts hits between agents, given and taken, by who", () =>
   assert.equal(hitList(s.hitsGiven, "on"), "2 on qb, 1 on qc");
   assert.equal(hitPair(summarizeRun([makeStep()], "runs/x-qa.jsonl")), "-");
 });
+
+test("deaths: a chosen respawn is counted apart, not as a death", () => {
+  const death = { x: 1, y: 64, z: 1, cause: "was slain by Zombie", ticks: 100, timeOfDay: 14000 };
+  const steps: LoggedStep[] = [
+    makeStep({ step: 1, observation: makeObservation({ recentEvents: [] }), deaths: [death] }),
+    makeStep({ step: 2, observation: makeObservation({ recentEvents: [] }), deaths: [{ ...death, cause: "chose to respawn" }] }),
+  ];
+  const summary = summarizeRun(steps, "test-run.jsonl");
+  assert.equal(summary.deaths, 1);
+  assert.equal(summary.respawns, 1);
+});

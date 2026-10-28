@@ -35,6 +35,9 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    US$0.35 an agent to learn the cost (estimated US$0.30 a rep), then two more if it holds. Then one
    strong model with two cheap ones, to find the least that has to be paid. Credit on 28 October:
    Anthropic US$3.30, OpenAI US$2.55.
+   **thaiku1** (US$0.20): 0 of 4 parts, no deaths; the agents mostly waited and talked status, built a
+   one-storey "large" home, and one was stuck all run in the flooded cave, which led to the `respawn`
+   skill. Reps 2 and 3 next (about US$0.40), now that a trapped agent has a way out. Write-up 06.
 5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
@@ -180,3 +183,4 @@ The write-up named on each line has the detail.
 - The Stats page shows each model's typical time to decide; the browser viewer darkens at night.
 - Getting out of caves: `climb_out` from the edge of a block, the right item in hand, plain errors.
 - Proof run bpoc12 (1 of 4 parts, 8 deaths); crashes keep their stack.
+- thaiku1, three Haiku 5.5 agents (0 of 4, no deaths, US$0.20); a `respawn` skill for an agent no skill can move.
