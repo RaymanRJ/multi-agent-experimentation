@@ -1,3 +1,4 @@
+import { plainError } from "./underground.js";
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
@@ -363,7 +364,7 @@ export const flee: Skill = {
         await gotoWatched(ctx.bot, new goals.GoalXZ(tx, tz), LEG_TIMEOUT_MS, "fleeing");
       } catch (error) {
         ctx.bot.pathfinder.setGoal(null);
-        ctx.log(`flee leg toward ${tx},${tz} failed: ${(error as Error).message}`);
+        ctx.log(`flee leg toward ${tx},${tz} failed: ${plainError((error as Error).message)}`);
         stuck = true;
       }
       // With no way out the pathfinder sometimes gives up without an error and without moving.

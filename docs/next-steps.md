@@ -37,7 +37,11 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    Anthropic US$3.30, OpenAI US$2.55.
    **thaiku1** (US$0.20): 0 of 4 parts, no deaths; the agents mostly waited and talked status, built a
    one-storey "large" home, and one was stuck all run in the flooded cave, which led to the `respawn`
-   skill and to `climb_out` swimming up onto a bank. Reps 2 and 3 next (about US$0.40). Write-up 06.
+   skill and to `climb_out` swimming up onto a bank. **thaiku2** (reps 2-3, US$0.46): 2 of 4 parts in
+   each (home, food; 2 of 3 slept), as many as the best Luna proof runs, for about US$0.22 a rep; iron
+   never started, and the third bed was nobody's job. Next: swimming to the nearest air instead of
+   digging up through rock under water (three drownings in rep 2), then the same comparison with Luna
+   (three reps on the current code) and one strong model with two cheap ones.
 5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
@@ -184,3 +188,4 @@ The write-up named on each line has the detail.
 - Getting out of caves: `climb_out` from the edge of a block, the right item in hand, plain errors.
 - Proof run bpoc12 (1 of 4 parts, 8 deaths); crashes keep their stack.
 - thaiku1, three Haiku 5.5 agents (0 of 4, no deaths, US$0.20); a `respawn` skill for an agent no skill can move.
+- `climb_out` swims up onto a bank; thaiku2 (Haiku reps 2-3): 2 of 4 parts each.

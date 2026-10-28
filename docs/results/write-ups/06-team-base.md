@@ -1237,6 +1237,40 @@ seconds (checked from three spots), and in water filled to its roof it says so p
 |---|---|---|
 | Claude Haiku 5.5 (×3) | 0.20 | 0, 0, 0 |
 
+**Reps 2 and 3 (thaiku2), with `respawn` and the swim-up** (28 October, on b8c1571, US$0.46 for both):
+
+| Part | thaiku1 | thaiku2 rep 1 | thaiku2 rep 2 |
+|---|---|---|---|
+| Shared home built | no | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | 0 of 3 | 2 of 3 | 2 of 3 |
+| Everyone holds an iron pickaxe | 0 of 3 | 0 of 3 | 0 of 3 |
+| Food left in store | 0 | **10** | **12** |
+| Deaths | 0 | 4 | 11 |
+| Cost (USD) | 0.20 | 0.22 | 0.24 |
+
+**Two parts in each rep, as many as the best Luna proof runs.** Both teams had the two-storey home up early
+on day 1 (5:29 and 5:57 of a 20-minute day) and stored the meat, and in each two agents slept in the
+home. No agent chose `respawn`.
+
+**The third bed was nobody's job.** In rep 1 hb knew it was the one left out ("Both beds are in use and
+I have no wool for a bed, so I wait for dawn") and waited out two nights in the home, never asking a
+teammate for wool or a bed. In rep 2 the one who didn't sleep, ha, died five times.
+
+**Iron never got started.** The most anyone held was 5 raw iron and ingots, against 9 for three
+pickaxes. Iron ore "beside water or lava, which this won't mine" was the most common refusal (20 of the
+mining failures), as for the Luna teams.
+
+**Where our code, not the agents, decided the outcome:** rep 2's ha drowned three times in flooded
+water near spawn, 3-5 blocks under the ground, with drowned attacking it. It chose `climb_out` each
+time ("climb_out swims me up to the nearest bank so I can breathe"), and died during it: digging up
+through rock under water is slow (the game makes it five times slower), and the air ran out first.
+Not yet changed; a swim toward the nearest air, not up through rock, is the likely fix. A flee leg's
+library error reached the agent as "The goal was changed…"; it now reads plainly.
+
+| Model | Cost, 3 reps (USD) | Deaths per rep |
+|---|---|---|
+| Claude Haiku 5.5 (×3) | 0.66 | 0, 4, 11 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
