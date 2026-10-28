@@ -83,9 +83,15 @@ building on it.
   emptied rep 3's food chest of its 10.
 - **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
   too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
-  sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (6 sheep, 4 cows,
-  4 pigs, 4 chickens; `HERDS` in `src/agents/src/scenario.ts`). Runs before then had almost no animals in reach,
+  sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (12 sheep since
+  bpoc6, 4 cows, 4 pigs, 4 chickens; `HERDS` in `src/agents/src/scenario.ts`). Runs before then had almost no animals in reach,
   so food and wool results from them are not comparable with later ones.
+- **The herds are restocked each morning (since 28 October, after tbase7).** The game barely brings
+  animals back in that dark forest, so killed ones stayed gone and food and wool ran out mid-run
+  (tbase6 rep 3: no sheep, no beds; tbase7 rep 2: no cows by day 2). Now at each dawn one agent per
+  world puts back the herd animals that are gone, silently; no agent is told. An animal that has only
+  wandered out of loaded ground can be put back twice, so a herd may grow a little. Runs before this
+  compare with later ones only loosely on food and beds.
 - **`give` needs the receiver within reach of the giver.** The giver walks up beside them and drops
   the items at its feet; 8 of 8 live hand-overs worked that way. Tossing from two blocks or more
   overshot (1 of 5), and from one block the giver swept its own toss back up. A wall between them,

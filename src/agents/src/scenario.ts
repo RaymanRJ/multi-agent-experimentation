@@ -285,6 +285,28 @@ export async function applyScenario(
 }
 
 /**
+ * Puts back the herd animals that are gone, as a farm's stock would be by morning: the same commands
+ * as at the start, which summon only an animal whose tag no longer exists. Killed animals didn't come
+ * back on their own, so food and wool ran out: in tbase7 rep 2 hunts found "no cow within 32 blocks" by
+ * day 2, and in tbase6 rep 3 no sheep meant no beds. Returns how many it put back. An animal that has
+ * only wandered into an unloaded chunk can't be seen, so it may be put back twice: a herd can grow a
+ * little, never shrink for good.
+ */
+export async function restockHerds(opts: { host: string; port: number; password: string }): Promise<number> {
+  const rcon = await Rcon.connect({ host: opts.host, port: opts.port, password: opts.password });
+  let summoned = 0;
+  try {
+    for (const command of herdCommands()) {
+      const reply = await rcon.send(command);
+      if (/summoned/i.test(reply)) summoned++;
+    }
+  } finally {
+    await rcon.end();
+  }
+  return summoned;
+}
+
+/**
  * Gives a player who has just joined every recipe. Crafting asks the server to fill the grid from the
  * recipe book, and the server does that only for recipes the player has unlocked; a chest unlocks only
  * once 10 or more stacks are held, so a chest craft failed with planks to spare. Agents already learn

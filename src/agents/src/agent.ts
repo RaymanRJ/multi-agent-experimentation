@@ -18,7 +18,8 @@ import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { watchBreaks } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { newDayBegan } from "./daytime.js";
+import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
@@ -337,6 +338,23 @@ async function main(): Promise<void> {
     pendingCause = null;
   });
   bot.on("time", () => night.tick(shelterBuilt, bot.time.timeOfDay, bot.isSleeping));
+  // Each morning the herds are back to their number, as a farm's would be: killed animals never came
+  // back on their own, so food and wool ran out mid-run. One agent per world does it (the team's first
+  // by name, or an agent alone), and no agent is told: it finds the animals there, as a player would.
+  const restocker = team.length === 0 || [...team].sort()[0] === agentName;
+  let lastTimeOfDay = -1;
+  bot.on("time", () => {
+    const now = bot.time.timeOfDay;
+    const dawn = lastTimeOfDay >= 0 && newDayBegan(lastTimeOfDay, now);
+    lastTimeOfDay = now;
+    if (!dawn || !restocker) return;
+    restockHerds({ host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") })
+      .then((n) => {
+        console.log(`[${agentName}] morning: put back ${n} herd animals`);
+        if (n > 0) stepEvents.push(`morning: ${n} herd animals put back (not shown to the agent)`);
+      })
+      .catch((error: Error) => console.error(`[${agentName}] restocking the herds failed: ${error.message}`));
+  });
 
   const board = team.length > 1 ? new TeamBoard("runs", config.episode, agentName, team.includes(agentName) ? team : [...team, agentName]) : null;
   const collaborative = board !== null && stance === "collaborative";

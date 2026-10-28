@@ -22,6 +22,14 @@ export function isNight(timeOfDay: number): boolean {
   return timeOfDay >= NIGHT_START && timeOfDay < NIGHT_END;
 }
 
+/**
+ * A new day has begun between two readings of the time: it went round past 24000 to the morning, as
+ * it does through a night or when sleeping skips one (beds work from 12541, before NIGHT_START).
+ */
+export function newDayBegan(before: number, now: number): boolean {
+  return now < before;
+}
+
 /** Ticks until the next night starts; 0 during one. */
 export function ticksUntilNight(timeOfDay: number): number {
   if (isNight(timeOfDay)) return 0;

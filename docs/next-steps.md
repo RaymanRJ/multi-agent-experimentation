@@ -30,9 +30,11 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      cheapest-tool rule and the safety reflexes.
    - **Competitive:** two teams in one world with scarce resources (the stances support it already).
 4. **Small, any time:**
-   - Why tbase6 rep 3 found no sheep: the world places a 12-sheep herd near spawn, yet hunts kept
-     finding "no sheep within 32 blocks", which meant no beds and the spawn trap (Opus died 18 times).
-     Check where the herd stood against the home; it may be a setting of ours.
+   - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
+     with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
+     the game barely brings animals back in the dark forest. Now at each dawn the herds are put back to
+     their number, silently (checked live: 12 sheep, 5 killed, 12 again after dawn). keepInventory was
+     considered and left alone: it would remove the cost of dying, which is part of the test.
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
@@ -88,6 +90,8 @@ Runs on either side of these lines compare only loosely.
 - **27 October:** the team report counts what a death between steps took, and no longer reads a
   death's drops as tools worn out; reports rebuilt since may differ from ones published before.
 - **From tbase6:** the cap is $3 (tbase5: $2, which ended Opus early in reps 2 and 3).
+- **After tbase7 (28 October):** the herds are restocked each morning; food and bed results compare
+  with earlier runs only loosely.
 
 ## Done, in short
 
