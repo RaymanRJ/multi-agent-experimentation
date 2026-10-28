@@ -93,4 +93,16 @@ better than before": keep improving it):
 - `docs/limitations.md`: add what is newly known, and **remove or correct what the batch made
   out of date** (it fell behind once; check every entry the batch touched).
 - If the owner asked for a report file, write it as markdown in `docs/results/write-ups/` and say where.
+- **Every page of the site, checked each time** (`src/site/`; it builds from these files on push):
+
+  | Page | Comes from | Updated by |
+  |---|---|---|
+  | Overview (home) | `src/site/content/lessons.ts`: six lesson cards with their evidence, and the chart | Hand: change a card's evidence or the chart when the batch adds to or overturns it |
+  | Lessons | `docs/lessons.md` | Hand: a new lesson, or new evidence for one (above) |
+  | Case studies | `docs/results/write-ups/` | Hand: the write-up (above) |
+  | Results | `src/site/content/story.ts` and the published reports | Hand for the story (above); `publish-reports.sh` for the reports |
+  | Stats | The published reports, and `docs/results/token-usage.json` for prompt caching | Automatic for the reports; run `cd src/agents && npx tsx scripts/token-usage.ts` and commit the file |
+
+  Then `npm run build` in `src/site` must pass. Say in the hand-off which pages changed and which didn't
+  need to.
 - Commit locally, one sentence per commit message. Don't push.
