@@ -76,6 +76,8 @@ for rep in $(seq 1 "$reps"); do
         echo "    $(grep -E 'ended:' <<<"$out" | tail -1 | sed 's/^\[[^]]*\] //')"
       else
         echo "    DID NOT FINISH:"; grep -iE 'error|kicked|not usable' <<<"$out" | head -3 | sed 's/^/      /'
+        # Its console holds the stack; keep it.
+        printf '%s\n' "$out" > "runs/batch-$name-$n-$agent.crash.out"; echo "      output kept: runs/batch-$name-$n-$agent.crash.out"
       fi
       [ -n "$file" ] && [ -s "$file" ] && echo "$file" >> "$list"
       # The server is regenerated for the next run, so keep its log beside the run's.

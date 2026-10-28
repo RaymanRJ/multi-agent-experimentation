@@ -127,6 +127,7 @@ function outcomeLine(s: RunSummary): string {
     "model gave up": "the model gave up",
     disconnected: "the connection to the game server dropped, so this run says nothing about the model and is left out of comparisons",
     "step limit": "it hit the safety cap on decisions",
+    crashed: "our code crashed (the error is the last step's result)",
     "cost budget": "it reached its spending cap",
     "brain failed": "the model failed to answer three times in a row",
     "brain unavailable": "the model provider refused (key or credits): not the model's fault",

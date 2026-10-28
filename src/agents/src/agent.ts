@@ -374,8 +374,14 @@ async function main(): Promise<void> {
   // And where ore was seen, which an explore walk or a cave passed by used to forget.
   const oreMemory = new OreMemory(agentName);
   const lookTimer = setInterval(() => {
-    animalMemory.look(bot);
-    oreMemory.look(bot);
+    // Remembering sightings is a help, not worth a run: a throw in a timer would end the agent (bpoc12's
+    // crash may have been one), so log it with its stack and look again in 2 seconds.
+    try {
+      animalMemory.look(bot);
+      oreMemory.look(bot);
+    } catch (error) {
+      console.error(`[${agentName}] looking for animals and ore failed: ${(error as Error).stack ?? error}`);
+    }
   }, 2000);
   const animalsSeen = () =>
     describeSightings(bot.entity.position, [...animalMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.sightings ?? [])], agentName);
@@ -747,7 +753,15 @@ async function main(): Promise<void> {
     write({ decision, result, events: stepEvents, ...extra });
   }
   } catch (error) {
-    if (!disconnected) throw error; // anything else is a real crash, as before
+    if (!disconnected) {
+      // A real crash: still a bug, but say so in the run's own log, with the stack. In bpoc12 lb's run
+      // stopped with only "Cannot read properties of undefined (reading 'x')" on a console since deleted.
+      ended = "crashed";
+      const stack = (error as Error).stack ?? String(error);
+      console.error(`[${agentName}] crashed: ${stack}`);
+      if (lastObservation) runLog.write({ step: lastStep, at: new Date().toISOString(), observation: lastObservation, decision: null, result: { status: "aborted", reason: `our code crashed: ${stack}` }, decisionMs: 0, calls: [], config, ticks: elapsedTicks(), ended });
+      throw error;
+    }
   }
   if (disconnected && ended !== "disconnected") {
     // Lost between steps or mid-step: one more line says so, with the last thing it saw.

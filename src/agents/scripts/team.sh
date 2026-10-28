@@ -84,6 +84,8 @@ for rep in $(seq 1 "$reps"); do
       echo "    $agent: $(grep -E 'ended:' "$out" | tail -1 | sed 's/^\[[^]]*\] //')"
     else
       echo "    $agent: DID NOT FINISH"; grep -iE 'error|kicked|not usable' "$out" | head -3 | sed 's/^/      /'
+      # Its console holds the stack; keep it (bpoc12 lost one this way).
+      cp "$out" "runs/team-$name-$rep-$agent.crash.out"; echo "      output kept: runs/team-$name-$rep-$agent.crash.out"
     fi
     file="$(grep -oE 'runs/[^ ]+\.jsonl' "$out" | head -1 || true)"
     [ -n "$file" ] && [ -s "$file" ] && echo "$file" >> "$list"

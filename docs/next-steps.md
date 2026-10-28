@@ -29,7 +29,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    - **Deeper:** a diamond pickaxe each: iron tools first, deep mining, and real pressure on the
      cheapest-tool rule and the safety reflexes.
    - **Competitive:** two teams in one world with scarce resources (the stances support it already).
-4. **Small, any time:**
+4. **New workstream (the owner's ask, 28 October): the same results for less.** Can a cheaper team
+   meet team-base as often as the mixed team (3 of 8 reps, US$1.40-3.30 a rep)? First **thaiku1**:
+   three Haiku 5.5 agents with neutral names (ha, hb, hc), the same settings, one rep capped at
+   US$0.35 an agent to learn the cost (estimated US$0.30 a rep), then two more if it holds. Then one
+   strong model with two cheap ones, to find the least that has to be paid. Credit on 28 October:
+   Anthropic US$3.30, OpenAI US$2.55.
+5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
      the game barely brings animals back in the dark forest. Now at each dawn the herds are put back to
@@ -42,7 +48,10 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    - **Done: getting out of caves** (after bpoc11): `climb_out` steps onto the block it hangs off
      before building up, checks the hand before each placement and retries a jump; library errors are
      in plain words; a skill cut off by an interrupt is reported as interrupted. Checked live (the
-     edge case reproduced, then fixed). **Next:** a Luna proof run to see it in a full game (ask first).
+     edge case reproduced, then fixed). **bpoc12** (US$0.31): the cave fix held (six climbs, none
+     refused), but 8 deaths cost the wool, the meat and an iron pickaxe: 1 of 4 parts. lb's agent
+     crashed (cause unknown); crashes now write their stack to the run's log and the scripts keep the
+     console. Write-up 06.
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
@@ -170,3 +179,4 @@ The write-up named on each line has the detail.
   the team's iron pickaxes). Write-up 06.
 - The Stats page shows each model's typical time to decide; the browser viewer darkens at night.
 - Getting out of caves: `climb_out` from the edge of a block, the right item in hand, plain errors.
+- Proof run bpoc12 (1 of 4 parts, 8 deaths); crashes keep their stack.

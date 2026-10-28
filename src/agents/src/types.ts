@@ -293,7 +293,8 @@ export type EndReason =
   | "brain failed"    // three failed decisions in a row
   | "brain unavailable" // the provider refused for good: no credits, quota, bad key — not the model's fault
   | "step limit"      // the safety cap on decisions
-  | "disconnected";   // the connection to the game server dropped: not the model's doing, so not a valid run
+  | "disconnected"    // the connection to the game server dropped: not the model's doing, so not a valid run
+  | "crashed";        // our code threw: the error and its stack are the last step's result
 
 export interface RunConfig {
   /** Shared by every agent launched together, so their logs can be merged into one episode. */

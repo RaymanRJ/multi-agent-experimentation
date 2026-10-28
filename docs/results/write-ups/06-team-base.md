@@ -1161,6 +1161,42 @@ live in an open room with nothing to cut steps into:
 |---|---|---|
 | GPT-6 Luna (×3) | 0.25 | 0, 0, 3 |
 
+## Out of the caves, and back to dying (bpoc12)
+
+*Three GPT-6 Luna agents, one rep, 28 October, on a54fbb2: bpoc11's settings with the cave fixes
+(`climb_out` from a block's edge, the right item in hand, plain errors). US$0.31.*
+
+| Part | bpoc10 | bpoc11 | bpoc12 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | **3 of 3** | 2 of 3 | 0 of 3 |
+| Everyone holds an iron pickaxe | **3 of 3** | 1 of 3 | 0 of 3 |
+| Food left in store | 8 | **10** | 0 |
+| Deaths | **2** | 3 | 8 |
+
+**The cave fix held; the deaths came back.** la used `climb_out` six times and climbed every time (1
+to 28 blocks), each stopped only by a creeper, nightfall or a teammate's message, never by "every way
+up is unsafe", and no library error reached any agent. But 8 deaths, 5 of them lb's (an enderman, a
+creeper, two skeletons, drowning); skeletons killed 5 of the 8, cost everything carried: lb died holding 7 wool and 15 raw meat on day
+1, la holding its iron pickaxe and 5 raw iron on day 2, and wool was lost four times in all.
+
+**Iron failed for want of two sticks.** On day 3 la had 7 iron ingots, one stick and one plank,
+underground at night with no logs: "I have 7 iron ingots but only 1 stick, so I can't craft an iron
+pickaxe". lc, in the home, offered "12 sticks for your iron pickaxes"; la tried to get back and the
+way was blocked. The craft message said exactly what was missing.
+
+**Where our code, not the agents, decided the outcome:**
+- lb's agent crashed at tick 57,040 of 72,000 ("Cannot read properties of undefined (reading 'x')"),
+  and the console holding the stack was deleted by the team script. The cause is unknown. Changed
+  after it: a crash writes a last line to the run's log, with the error and its stack, and the report
+  says "crashed"; the team and batch scripts keep a crashed agent's console; the 2-second look for
+  animals and ore, which runs outside the main loop, logs an error and carries on instead of ending
+  the agent. Checked with a crash forced at step 3.
+
+| Model | Cost (USD) | Deaths |
+|---|---|---|
+| GPT-6 Luna (×3) | 0.31 | 1, 5, 2 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1188,6 +1224,7 @@ dying, and the next run showed the next one.
 | tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 | bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
+| bpoc12 | 8 | Skeletons' arrows killed 5; lb died 5 times (an enderman, a creeper, two skeletons, drowning); together they lost the wool four times, the meat and an iron pickaxe | (none yet) |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):

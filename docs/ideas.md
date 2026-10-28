@@ -142,3 +142,12 @@ miscount of iron. A few trimmed choices were as good or better (fleeing a skelet
 eating at critical health instead of patching walls). **The detail earns its place, mostly in how
 agents handle danger; a blanket trim would cost safety.** Not tested: which parts carry the weight
 (per skill, or the failure and safety sentences only), and other models.
+
+## Names that give the model away
+
+The mixed teams (tbase5-7) were named `opus`, `sonnet` and `luna`, and each agent's prompt gives its
+own name, so every agent could tell which models its teammates were. No rationale or message in those
+runs mentions a model or anyone's ability, and roles went to whoever claimed them first in chat. But
+the split was the same in every successful rep (opus took iron, the longest job), which names could
+explain as well as chance or speed. To find out: a mixed-team rep with neutral names, or with the names
+swapped (Opus called "luna"). Runs for comparison now use neutral names (la/lb/lc, ha/hb/hc).
