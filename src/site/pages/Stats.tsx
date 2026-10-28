@@ -31,6 +31,19 @@ batches.forEach((b: Batch, i: number) => b.agentRuns.forEach((r) => lastPlayed.s
 const goals = [...lastPlayed.keys()].filter(Boolean).sort((a, b) => lastPlayed.get(b)! - lastPlayed.get(a)!);
 const runsOf = (goal: string) => runs.filter((r) => goal === ALL || r.goal === goal);
 
+// How long a model takes to decide, from each report's "Success per condition" table (the median per
+// condition), averaged over the conditions weighted by their runs. Those tables name the local model
+// "Qwen3 4B", the per-agent ones "Qwen3 4B Instruct, local", so names are compared loosely.
+const same = (name: string) => name.toLowerCase().replace(/, local$/, '').replace(/ instruct\b/, '').trim();
+function thinkMs(goal: string, model: string): number | null {
+  const conditions = batches
+    .flatMap((b: Batch) => b.conditions)
+    .filter((c) => (goal === ALL || c.goal === goal) && same(c.model) === same(model) && c.medianMs > 0 && c.runs > 0);
+  const weight = conditions.reduce((n, c) => n + c.runs, 0);
+  return weight ? conditions.reduce((n, c) => n + c.medianMs * c.runs, 0) / weight : null;
+}
+const seconds = (ms: number | null) => (ms === null ? '–' : `${(ms / 1000).toFixed(1)} s`);
+
 function tally(selected: AgentRun[]): { rows: ModelTotals[]; total: Omit<ModelTotals, 'model'> } {
   const byModel = new Map<string, ModelTotals>();
   for (const r of selected) {
@@ -141,6 +154,7 @@ export function Stats() {
                 <th className="num">Runs</th>
                 <th className="num">Decisions</th>
                 <th className="num">Per run</th>
+                <th className="num">Time to decide</th>
                 <th className="num">Tokens in / out</th>
                 <th className="num">Cost</th>
                 <th className="num">Per decision</th>
@@ -155,6 +169,7 @@ export function Stats() {
                   <td className="num">{n(t.runs)}</td>
                   <td className="num">{n(t.decisions)}</td>
                   <td className="num">{one(t.decisions / t.runs)}</td>
+                  <td className="num">{seconds(thinkMs(goal, t.model))}</td>
                   <td className="num">{t.tokensIn ? `${millions(t.tokensIn)} / ${millions(t.tokensOut)}` : '–'}</td>
                   <td className="num">{dollars(t.cost)}</td>
                   <td className="num">{t.cost ? cents(perDecision(t)) : 'free'}</td>
@@ -239,7 +254,10 @@ export function Stats() {
       <p className="muted small">
         Counted from the published reports on the <a href={HASH.results}>Results</a> page: every agent in every run they
         cover. Proof runs (one rep, to check a fix) are not published, so they are not here. A team agent's run counts as
-        met when its team met the goal. The local model and the scripted baseline cost nothing.
+        met when its team met the goal. The local model and the scripted baseline cost nothing. "Time to decide" is the
+        typical wait for one decision, from asking the model to having its answer: each report's median, averaged
+        over its conditions by their runs. It measures the provider and, for the local model, this machine's hardware,
+        as much as the model.
       </p>
       <p className="muted small">
         <strong>Every cost is in US dollars (USD)</strong>, as Anthropic and OpenAI bill it, at their list prices
