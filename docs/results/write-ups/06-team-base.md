@@ -1105,6 +1105,54 @@ decision at health 0 in either rep), and both of `flee`'s dig-ins in rep 2 were 
 | Sonnet 5.5 | 1.65 | 0, 1 |
 | GPT-6 Luna | 0.11 | 1, 4 |
 
+## Herds put back each morning (bpoc11)
+
+*Three GPT-6 Luna agents, one rep, 28 October, on c0a4a49: bpoc10's settings, with `chestsSeen`, the
+respawn wait, and the herds put back to their number at each dawn, silently. US$0.25 (capped at $0.50
+an agent).*
+
+| Part | bpoc9 | bpoc10 | bpoc11 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | **3 of 3** | **3 of 3** | 2 of 3 |
+| Everyone holds an iron pickaxe | 1 of 3 | **3 of 3** | 1 of 3 (lb held all three) |
+| Food left in store | **20** | 8 | **10** |
+| Deaths | 10 | 2 | 3 |
+
+**Two parts met, with all three iron pickaxes made and three beds down: one agent, trapped, held the
+rest back.** lb mined and smelted iron on day 2 and made three iron pickaxes early on day 3 ("exactly
+enough to craft the three iron pickaxes the team needs"), 43 blocks underground. It spent its remaining
+34 decisions trying to get them to the others ("I need to reach the shelter to distribute two while
+keeping one"): `climb_out`, `tunnel` and `go_to` failed 16 times between them. la came down to within 8
+blocks of it, and lb's three tries to hand la a pickaxe there failed ("could not reach la") until
+nightfall; lb dug in for the night. lc made three beds on the evening of day 3 and put them in the home; lc and la lay down, and
+the night didn't pass, because the game passes it only when every player sleeps, and lb was still
+underground. One stuck agent cost both missing parts.
+
+**The restock did its job: food and wool came back.** 4, 5 and 9 animals were put back on the three
+mornings. lc lost its wool to deaths three times (5 white, then 4 of mixed colours, then 3 white) and
+went back each time; the third gathering, 9 white wool, became three beds. The food store was filled
+on day 1 (11 cooked beef), eaten from, and refilled to 10.
+
+**The team kept to the roles it chose.** lb built the home, stored the first food and then took iron;
+lc took wool and beds; la helped with iron and repaired the home. Questions were answered 8 of 9 times;
+teammates' messages cut off each other's work 25 times. Once lb was stuck, la and lc kept asking it to
+"bring the iron pickaxes here", and lb kept saying it would.
+
+**Where our code, not the agents, decided the outcome:** lb's way out. Not yet fixed:
+- `climb_out` building straight up tried to place the iron pickaxe in lb's hand ("Server refused to
+  place iron_pickaxe"), and once cobblestone that the server didn't place: the pillar doesn't make sure
+  a block is in hand, or check the placement before going on.
+- In the cave it reported "not standing on solid ground" five times at the same spot, with every
+  side "a drop into a cave", so it had no way up at all.
+- `tunnel` and `climb_out` passed on library errors the agent can't act on: "invalid operation" and
+  "The goal was changed before it could be completed!".
+- `give` couldn't walk the last 8 blocks to la in the cave ("walking to la timed out").
+
+| Model | Cost (USD) | Deaths |
+|---|---|---|
+| GPT-6 Luna (×3) | 0.25 | 0, 0, 3 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1131,6 +1179,7 @@ dying, and the next run showed the next one.
 | bpoc10 | **2** | One drowning, one arrow. `flee` dug in once, for real, and the agent lived | (none for deaths) |
 | tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
+| bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | (getting out of caves, next) |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):

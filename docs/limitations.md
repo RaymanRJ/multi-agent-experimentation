@@ -132,7 +132,9 @@ building on it.
 - **The terrain near spawn is awkward.**
   - Some agents start on top of dark oak trees and lose time getting down.
   - A flooded cave lies under the spawn area. The skills now stop before digging into water, and
-    `climb_out` gets an agent back to the surface, but agents near it still mine slowly.
+    `climb_out` gets an agent back to the surface, but agents near it still mine slowly. Not always:
+    in bpoc11 an agent at y=24 in an open cave found no way up (a drop on every side, its pillar
+    placing the wrong item) and stayed there for the rest of the run; to be fixed.
 - **Ore must be visible to be mined.** By design there is no x-ray. Finding iron and diamonds
   means digging staircases and tunnels, which wears out pickaxes and takes many minutes.
 - **An iron pickaxe still gets dug with, but only where nothing cheaper will do.** Since bpoc7 every dig

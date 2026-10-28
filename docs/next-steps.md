@@ -35,6 +35,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      the game barely brings animals back in the dark forest. Now at each dawn the herds are put back to
      their number, silently (checked live: 12 sheep, 5 killed, 12 again after dawn). keepInventory was
      considered and left alone: it would remove the cost of dying, which is part of the test.
+     **Proof run bpoc11** (three Lunas, US$0.25): the restock worked (4, 5 and 9 animals put back);
+     lc lost its wool to deaths three times and gathered it again, and three beds went into the home.
+     2 of 4 parts: lb made all three iron pickaxes 43 blocks underground and never got out, so neither
+     the pickaxes nor the last sleeper reached the home. Write-up 06.
+   - **Next: getting out of caves** (bpoc11, our code): `climb_out`'s pillar placed whatever was in
+     hand (an iron pickaxe) instead of making sure of a block; "not standing on solid ground" and "a
+     drop into a cave" on every side left no way up; `tunnel` and `climb_out` pass on library errors
+     ("invalid operation", "The goal was changed…"). Reproduce at lb's spot (12,24,60 on the seed),
+     fix, check live, then another Luna proof run.
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
@@ -59,7 +68,7 @@ per rep (Opus costs up to about $2.70 over three days).
     local model met it 0 of 9, looping on what it already had (write-ups 02 and 04).
   - Teams of three, three days (`team-homestead`, then `team-base`, write-ups 05 and 06): the mixed
     team (Opus, Sonnet, Luna) met the whole goal in rep 1 of tbase5 and of tbase6; teams of three
-    Lunas never have, though bpoc6, bpoc9 and bpoc10 met three of four parts.
+    Lunas never have, though bpoc6, bpoc9 and bpoc10 met three of four parts (bpoc11 two).
   - What the agents do: split the work at once and keep to it; answer requests, not needs; trust what
     they were last told over what changed; run from monsters (a sound choice: most are unarmed).
   - What the tools learned (`docs/lessons.md`, and 06's "How this testbed gets better"): reflexes for
@@ -158,3 +167,6 @@ The write-up named on each line has the detail.
 - The prompt-caching article drafted on rrjamal.ca (pushed as a draft).
 - A Stats page on the site (`#/stats`): runs, decisions, cost, deaths and goals met, in all and by
   model, added up from the published reports.
+- Herds restocked each morning; proof run bpoc11 (2 of 4 parts, an agent trapped underground with
+  the team's iron pickaxes). Write-up 06.
+- The Stats page shows each model's typical time to decide; the browser viewer darkens at night.
