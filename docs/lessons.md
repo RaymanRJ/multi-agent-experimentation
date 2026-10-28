@@ -20,6 +20,12 @@ A tool is the only way an agent touches the world, and the only account it gets 
 The agent plans on that account. If it is wrong, every decision after it is wrong too, however good
 the model.
 
+- **A tool's description carries the cautions; measure before trimming it.** Long descriptions cost
+  tokens, but the sentences beyond "what it does" are where the risks and limits are.
+  *Evidence:* 50 logged decisions replayed with every description cut to its first sentence (the
+  prompt 60% shorter) changed the choice beyond the model's own noise (29 of 50 the same, against 36 of
+  50 between two full runs), and the changes leaned from safety to the goal: picking up an item beside
+  monsters, mining at 5 health. ([ideas](ideas.md#are-the-skill-descriptions-earning-their-length-the-owners-question-27-october))
 - **Report what happened, not what was expected.** A result that says "delivered" because delivery
   was attempted sends the next decision the wrong way.
   *Evidence:* a hand-over said two pickaxes lay "beside" a teammate who had walked off; the teammate

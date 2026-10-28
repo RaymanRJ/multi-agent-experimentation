@@ -180,6 +180,10 @@ Next, waiting on the owner:
    the logs were made at health 0, at the death spot), and chest calls say why a chest didn't open.
    Report published; written up in 06. Credit left: about $7 Anthropic, $1 OpenAI. **No Claude run
    without the owner's OK.**
+   **Also done (28 October):** the description-length replay (`docs/ideas.md`, "The prompt": the
+   detail earns its place, mostly in safety; $0.10 on Luna); beds and chests drawn in the browser
+   viewer (`scripts/patch-viewer.mjs`, run by `npm install`'s postinstall); the minds page no longer
+   bounces past its panels; the prompt-caching article drafted on rrjamal.ca (four TODOs left).
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch

@@ -121,3 +121,24 @@ it hasn't been measured.
    worse, the detail is earning its place, and the next question is which parts.
 
 Do it before descriptions grow much further, or before comparing a model with a smaller window.
+
+**Done (28 October, Luna, $0.10).** 50 logged decisions from bpoc8-bpoc10 and tbase6 where the choice
+mattered (a monster within 8 blocks, night, or health 10 or under), each re-asked three times through
+the agent's own policy code: today's descriptions twice, to measure the model's own noise, and once
+with every description cut to its first sentence (the system prompt 60% shorter: 17,237 characters to
+6,869).
+
+| Compared | Same skill chosen |
+|---|---|
+| Full against full (noise) | 36 of 50 |
+| Full against trimmed | 29 of 50 |
+| Trimmed matching either full answer | 33 of 50 |
+
+The trim changes choices beyond noise, and of the 17 where it matched neither full answer, most moved
+from safety to the goal: picking up a dropped pickaxe with monsters within 5 blocks where the full
+prompt fled twice; going down to mine at 5 health; waiting at 5 health instead of eating; walking to
+the shelter by `build_shelter` where `flee`'s full description explains it runs into one; and one
+miscount of iron. A few trimmed choices were as good or better (fleeing a skeleton at low health,
+eating at critical health instead of patching walls). **The detail earns its place, mostly in how
+agents handle danger; a blanket trim would cost safety.** Not tested: which parts carry the weight
+(per skill, or the failure and safety sentences only), and other models.
