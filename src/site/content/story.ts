@@ -224,6 +224,10 @@ export const chapters: Chapter[] = [
         showed: 'Yes, in rep 1 again: every part by halfway through day 2, no deaths, $1.43. Rep 2 ended one pickaxe short, with Opus carrying Luna\'s. Rep 3 found no sheep, so no beds, so the dead came back at the world spawn among the monsters: one agent died there 18 times. The shared chest was read and acted on.',
         then: 'An agent waits for its respawn before it observes (some decisions had been made from "health 0" at the death spot), and a chest that won\'t open says why.',
       },
+      {
+        name: 'tbase7',
+        showed: 'With the goal\'s open parts listed each step: rep 1 met the whole goal at the same point of day 2 as before; in rep 2 the agents knew exactly what was missing (one pickaxe, seven cooked meat) and still couldn\'t close it, with the animals gone and the ore beside water. Two reps only.',
+      },
     ],
     lesson: { text: 'Share what changed, not only what was seen: agents act on their last belief until something tells them otherwise.', anchor: 'shared-state-between-agents' },
   },

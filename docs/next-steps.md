@@ -11,10 +11,11 @@ One change at a time, so each result says what caused it. team-base is now a sol
 mixed team met the whole goal in 2 of 6 reps (tbase5 and tbase6, rep 1 both times), Luna-only teams
 never did, and what stops teams now is mostly their own behaviour, not our bugs.
 
-1. **Now: tbase7** (running): the mixed team with the progress list on, against tbase6 as the
-   comparison. Rep by rep: evaluate after rep 1, carry on if nothing major; rep 3 only if the
-   Anthropic credit allows (about $2.50 a rep). Then close the team-base chapter with one short
-   summary of what all its runs showed.
+1. **Done: tbase7** (28 October, two reps, US$4.51; the third left out for Anthropic credit, about
+   US$2.90 left): rep 1 met the whole goal again (30:05, like tbase5 and tbase6); rep 2 had the home and
+   beds, with the list saying exactly what was missing (a pickaxe, 7 cooked meat) and the world not
+   giving it up. Written up in 06. **Still to do:** close the team-base chapter with one short summary
+   of what all its runs showed. A third tbase7 rep, if wanted, after an Anthropic top-up.
 2. **Next: new bots on the same goal.** Keep team-base fixed and change only the team, so a difference
    is the model, not the task.
    - New models: Gemini, Grok and OpenRouter backends exist already (each needs its key in `.env` and

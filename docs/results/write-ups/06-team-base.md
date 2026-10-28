@@ -1051,6 +1051,60 @@ chose to eat. The chest ended one short.
 | Sonnet 5.5 | $3.29 | 0, 3, 2 |
 | GPT-6 Luna | $0.23 | 0, 1, 1 |
 
+## The mixed team, told what's left (tbase7)
+
+*Team run tbase7, 28 October: the same team and settings as tbase6, with the progress list on (each
+observation lists what the goal still lacks, as facts). Two reps, run one at a time (tbase7a on
+c68fd51, tbase7b on ea23943, which only corrected the price table); a third was left out because the
+Anthropic credit might not have lasted it. US$4.51 at the verified prices. Comparable with tbase6 rep
+by rep, with one condition changed.*
+Report: [tbase7](../batch-reports/2026-10-28-0058-tbase7.md).
+
+| Part | tbase6 rep 1 | tbase6 rep 2 | tbase7 rep 1 | tbase7 rep 2 |
+|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (Luna, day 1) | **yes** (Luna, day 1) |
+| Everyone slept there | **3 of 3** | **3 of 3** | **3 of 3** | **3 of 3** |
+| Everyone holds an iron pickaxe | **3 of 3** | 2 of 3 | **3 of 3** | 2 of 3 |
+| Food left in store | **19** | **12** | **11** | 3 |
+| Deaths | **0** | 7 | 1 | 6 |
+| Ended | goal met at 30:10 | time | **goal met at 30:05** | time |
+
+**Rep 1 met the whole goal again, the third mixed-team rep 1 running,** at the same point of day 2 as
+tbase5 and tbase6 without the list (30:05, against 30:05 and 30:10). The same split, chosen in the first
+decisions: Luna built the home by 5:08 on day 1; Sonnet cooked and stored 11 porkchops by 7:08 and made
+the first two beds; Opus had three iron pickaxes made by 15:12 and handed them out, then made the third
+bed. The list was read (Luna cited what was still needed 6 times), but there was nothing left for it to
+point at that the team wasn't already doing.
+
+**Rep 2: the list said what was missing, and the gaps stayed.** By the end it said "sonnet carries no
+iron_pickaxe" and "the chests the team has opened hold 3 cooked meat, not 10", and Luna cited what was
+still needed 23 times. Neither gap closed:
+- **Food was lost to deaths, then the animals ran out.** Three deaths on days 1 and 2 dropped 35 raw
+  meat and 3 cooked beef; later hunts found "no cow within 32 blocks" and lost pigs that got away.
+- **A pickaxe was moved, not added.** On the evening of day 3 Luna asked "Please bring me an iron
+  pickaxe when you have it", and Sonnet gave Luna its own, its only one: "Luna lacks an iron pickaxe; I
+  can make another". Its next try for iron found only ore beside water, which mining won't take. The
+  gap moved from Luna to Sonnet, and the count stayed 2 of 3.
+
+**What it says about the list, from two reps:** nothing measurable yet. Rep 1 finished as fast without
+it; in rep 2 the agents knew exactly what was missing and still couldn't close it, for want of animals
+and reachable ore, not for want of knowing. The list helps when the gap is something an agent can act
+on; it can't make the world give up what isn't there.
+
+**Where our code, not the agents, decided the outcome:** nothing new. The respawn wait held (no
+decision at health 0 in either rep), and both of `flee`'s dig-ins in rep 2 were real.
+- One report fix: reps run one at a time and reported together were all labelled "rep 1"; they are now
+  numbered in order under the report's name.
+- Costs: the price table was checked against both providers' pages on 28 October; Opus 5.5 and Sonnet
+  5.5 cache reads cost a twentieth of input, not a tenth. tbase5 and tbase6 were republished at the
+  verified prices: US$7.43 and US$7.29 (published before as US$7.96 and US$7.80).
+
+| Model | Cost, 2 reps (USD) | Deaths per rep |
+|---|---|---|
+| Opus 5.5 | 2.75 | 0, 1 |
+| Sonnet 5.5 | 1.65 | 0, 1 |
+| GPT-6 Luna | 0.11 | 1, 4 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1076,6 +1130,7 @@ dying, and the next run showed the next one.
 | bpoc9 | 10 | 2 at night (bpoc8: 19), but the agents spent far more of the night inside (35% of night decisions, against 13%). Of 3 dig-ins at night, one was false: knocked aside while digging, the agent was told it had dug in, and died. A zombie apparently got into another hole with an agent | The burrow lands before digging, says it is dug in only if it is (in the hole, closed round, alone), digs only with a lead of 5 blocks, and stops a dig a monster reaches |
 | bpoc10 | **2** | One drowning, one arrow. `flee` dug in once, for real, and the agent lived | (none for deaths) |
 | tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
+| tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):

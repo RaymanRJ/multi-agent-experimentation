@@ -84,4 +84,9 @@ export const reps: Array<{ label: string; met: number; note: string }> = [
   { label: 'tbase5 · 1', met: 4, note: 'plus reflexes, shared sightings, bed fixes' },
   { label: 'tbase5 · 2', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
   { label: 'tbase5 · 3', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
+  { label: 'tbase6 · 1', met: 4, note: 'plus digging past rock, ore memory, digging in, shared chest' },
+  { label: 'tbase6 · 2', met: 3, note: 'one iron pickaxe still in the bag' },
+  { label: 'tbase6 · 3', met: 1, note: 'no sheep, no beds: a spawn trap' },
+  { label: 'tbase7 · 1', met: 4, note: 'plus the respawn wait; progress list on' },
+  { label: 'tbase7 · 2', met: 2, note: 'food lost in deaths; a pickaxe handed on, not added' },
 ];
