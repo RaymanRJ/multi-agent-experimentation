@@ -80,9 +80,21 @@ async function moveSome(bot: Bot, window: Window, slot: number, count: number): 
   return true;
 }
 
-async function walkTo(bot: Bot, chest: Block): Promise<void> {
+/** Walks to the chest; null when it got there, or why not, for the message if the chest then won't open. */
+async function walkTo(bot: Bot, chest: Block): Promise<string | null> {
   const { x, y, z } = chest.position;
-  await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), WALK_TIMEOUT_MS, "walking to the chest").catch(() => undefined);
+  return withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), WALK_TIMEOUT_MS, "walking to the chest")
+    .then(() => null)
+    .catch((error: Error) => error.message);
+}
+
+/**
+ * Why a chest didn't open, with what happened on the way: 15 chest calls said only "did not open", most
+ * with the agent in a closed shelter and the chest outside it, so neither agent nor log said why.
+ */
+function notOpened(error: unknown, walk: string | null): string {
+  const said = (error as Error).message;
+  return walk ? `${said}; walking to it failed: ${walk}` : said;
 }
 
 /** Kept by `store` unless asked for by name: what an agent works or eats with. */
@@ -124,13 +136,13 @@ export const store: Skill = {
 
     const chest = await chestToFill(ctx);
     if (typeof chest === "string") return { status: "failed", reason: chest };
-    await walkTo(bot, chest);
+    const walk = await walkTo(bot, chest);
     await closeStrayWindow(bot);
     let window: Window;
     try {
       window = await openOrWalk(bot, chest, "chest");
     } catch (error) {
-      return { status: "failed", reason: (error as Error).message };
+      return { status: "failed", reason: notOpened(error, walk) };
     }
     const before = countInventory(bot);
     let holds: Counts;
@@ -189,13 +201,13 @@ export const take: Skill = {
       if (ctx.shouldStop() || full) break;
       const taken = movedOut[item] ?? 0;
       if (taken >= wanted) break;
-      await walkTo(bot, chest);
+      const walk = await walkTo(bot, chest);
       await closeStrayWindow(bot);
       let window: Window;
       try {
         window = await openOrWalk(bot, chest, "chest");
       } catch (error) {
-        seen.push(`the chest at ${where(chest)} did not open`);
+        seen.push(notOpened(error, walk));
         continue;
       }
       const before = chestContents(window);
@@ -270,13 +282,13 @@ export const lookInChest: Skill = {
     const views: Array<{ at: string; holds: Counts }> = [];
     for (const chest of chests) {
       if (ctx.shouldStop()) break;
-      await walkTo(bot, chest);
+      const walk = await walkTo(bot, chest);
       await closeStrayWindow(bot);
       let window: Window;
       try {
         window = await openOrWalk(bot, chest, "chest");
-      } catch {
-        seen.push(`the chest at ${where(chest)} did not open`);
+      } catch (error) {
+        seen.push(notOpened(error, walk));
         continue;
       }
       try {
