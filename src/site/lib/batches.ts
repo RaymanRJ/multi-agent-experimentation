@@ -28,6 +28,37 @@ export interface Condition {
   excluded: number;
 }
 
+/** One agent in one run (one rep of a team counts once per agent), from a report's per-agent tables. */
+export interface AgentRun {
+  /** As the report writes it, e.g. "Claude Opus 5.5". */
+  model: string;
+  decisions: number;
+  deaths: number;
+  /** In dollars; 0 for free models. */
+  cost: number;
+  /** Whether its goal was met (for a team, the team's). */
+  met: boolean;
+}
+
+/** Every row of a report's per-agent tables ("| Agent | Model | Goal | Decisions | … | Deaths | Tokens | Cost |"). */
+export function parseAgentRuns(markdown: string): AgentRun[] {
+  const runs: AgentRun[] = [];
+  for (const line of markdown.split('\n')) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+    if (cells.length !== 12 || !/^\d+$/.test(cells[3] ?? '')) continue;
+    const [, model = '', goal = '', decisions = '0', , , , , , deaths = '', , cost = ''] = cells;
+    runs.push({
+      model,
+      decisions: Number(decisions),
+      deaths: /^\d+$/.test(deaths) ? Number(deaths) : 0,
+      cost: cost.startsWith('$') ? Number(cost.slice(1)) : 0,
+      met: goal.startsWith('met'),
+    });
+  }
+  return runs;
+}
+
 /** One team, one rep, in a team run. */
 export interface Team {
   rep: number;
@@ -58,6 +89,8 @@ export interface Batch {
   /** Runs that met their goal, by the report's own count. */
   met: number;
   teams: Team[];
+  /** Each agent's run, from the per-agent tables. */
+  agentRuns: AgentRun[];
   /** The report's note on which code built it. */
   builtBy: string;
 }
@@ -157,6 +190,7 @@ export function parseBatch(path: string, markdown: string): Batch {
     conditions,
     met: conditions.reduce((n, c) => n + c.met, 0),
     teams: parseTeams(markdown),
+    agentRuns: parseAgentRuns(markdown),
     builtBy: /^\*(Built from the run logs[^\n]*)\*$/m.exec(markdown)?.[1] ?? '',
   };
 }

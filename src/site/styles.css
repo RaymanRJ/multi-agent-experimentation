@@ -1190,3 +1190,20 @@ h3 {
   color: var(--muted);
   font-size: 14px;
 }
+
+/* Stats */
+
+.stats-facts {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  max-width: 760px;
+}
+
+.stats-facts li {
+  margin: 0 0 6px;
+}
+
+.prose .stats-table td:first-child {
+  white-space: normal;
+  min-width: 120px;
+}
