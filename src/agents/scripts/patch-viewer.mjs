@@ -1,7 +1,8 @@
 // Gives beds and chests a shape in the browser viewer (prismarine-viewer). The real game draws them with
 // special code, so the viewer's block models for them are empty and a placed bed or chest showed as
 // nothing at all. Each bed becomes a half-height block of its colour's wool, each chest a block of planks
-// a little smaller than a full one. Run after `npm install` (package.json "postinstall"); safe to run again.
+// a little smaller than a full one. It also darkens the sky at night (below). Run after `npm install`
+// (package.json "postinstall"); safe to run again.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -47,3 +48,30 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
   if (changed) writeFileSync(path, JSON.stringify(states));
 }
 console.log(`patch-viewer: gave ${patched} bed and chest models a shape`);
+
+// The viewer draws a light-blue sky at every hour, so night looked like day. Its server now sends the
+// game's time of day to the page, and the page darkens the sky and lights by it (dusk 12000-13000,
+// night to 23000, dawn to 24000). Each change is a plain text replacement, skipped if already made;
+// a newer viewer whose code no longer matches is left alone, with a warning.
+function replaceOnce(path, marker, find, replace, what) {
+  const text = readFileSync(path, "utf8");
+  if (text.includes(marker)) return;
+  if (!text.includes(find)) return console.log(`patch-viewer: could not find where to ${what}; left as it was`);
+  writeFileSync(path, text.replace(find, replace));
+  console.log(`patch-viewer: ${what}`);
+}
+replaceOnce(
+  join(root, "lib", "mineflayer.js"),
+  "mae-time",
+  "    bot.on('move', botPosition)\n",
+  "    bot.on('move', botPosition)\n" +
+    "    const sendTime = () => socket.emit('time', bot.time.timeOfDay) // mae-time\n" +
+    "    sendTime()\n    bot.on('time', sendTime)\n" +
+    "    socket.on('disconnect', () => bot.removeListener('time', sendTime))\n",
+  "send the time of day to the viewer page",
+);
+const SKY =
+  'o.on("time",(t=>{/*mae-time*/const d=t<12e3?1:t<13e3?1-(t-12e3)/1e3:t<23e3?0:(t-23e3)/1e3,' +
+  "c=(a,b)=>Math.round(a+(b-a)*d);u.scene.background=new THREE.Color(`rgb(${c(11,173)},${c(16,216)},${c(38,230)})`);" +
+  "u.ambientLight.intensity=.3+.7*d;u.directionalLight.intensity=.1+.4*d}));";
+replaceOnce(join(root, "public", "index.js"), "mae-time", "u.listen(o),", `u.listen(o),${SKY}`, "darken the viewer's sky at night");
