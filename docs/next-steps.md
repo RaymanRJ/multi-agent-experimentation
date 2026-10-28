@@ -39,9 +39,9 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    one-storey "large" home, and one was stuck all run in the flooded cave, which led to the `respawn`
    skill and to `climb_out` swimming up onto a bank. **thaiku2** (reps 2-3, US$0.46): 2 of 4 parts in
    each (home, food; 2 of 3 slept), as many as the best Luna proof runs, for about US$0.22 a rep; iron
-   never started, and the third bed was nobody's job. Next: swimming to the nearest air instead of
-   digging up through rock under water (three drownings in rep 2), then the same comparison with Luna
-   (three reps on the current code) and one strong model with two cheap ones.
+   never started, and the third bed was nobody's job. Done after it: under rock, `climb_out` swims
+   to the nearest air first (checked live). Next, on that code: three Luna reps (tluna2), then one
+   strong model with two cheap ones (Sonnet with two Haiku 5.5, one rep first).
 5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:

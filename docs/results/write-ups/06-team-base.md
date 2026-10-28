@@ -1264,7 +1264,10 @@ mining failures), as for the Luna teams.
 water near spawn, 3-5 blocks under the ground, with drowned attacking it. It chose `climb_out` each
 time ("climb_out swims me up to the nearest bank so I can breathe"), and died during it: digging up
 through rock under water is slow (the game makes it five times slower), and the air ran out first.
-Not yet changed; a swim toward the nearest air, not up through rock, is the likely fix. A flee leg's
+Changed after it: under rock, `climb_out` first swims to the nearest water with air above it,
+within 16 blocks, then to a bank. Checked live in a flooded cave with a roof and open water 11 blocks
+off: out and on the bank in 7.6 seconds at full health, where the old code was still under the roof
+after 20. A flee leg's
 library error reached the agent as "The goal was changed…"; it now reads plainly.
 
 | Model | Cost, 3 reps (USD) | Deaths per rep |

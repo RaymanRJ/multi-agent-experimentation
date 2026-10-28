@@ -255,6 +255,8 @@ function inWater(bot: Bot): boolean {
 }
 
 const WET = new Set(["water", "bubble_column"]);
+/** How far along the surface a swim looks for a bank to climb onto. */
+const BANK_REACH = 10;
 
 /** A cell a player could stand in: solid and dry underfoot, nothing solid, wet or burning at feet or head. */
 function standable(bot: Bot, cell: Vec3): boolean {
@@ -266,15 +268,72 @@ function standable(bot: Bot, cell: Vec3): boolean {
   return !!below && below.boundingBox === "block" && !WET.has(below.name) && open(cell) && open(cell.offset(0, 1, 0));
 }
 
+/** Rock (or anything solid) between the head and the water's surface: swimming straight up won't reach air. */
+function roofedOver(bot: Bot): boolean {
+  const head = bot.entity.position.offset(0, 1.62, 0).floored();
+  for (let dy = 1; dy <= 8; dy++) {
+    const block = bot.blockAt(head.offset(0, dy, 0));
+    if (!block) return false;
+    if (block.boundingBox === "block") return true;
+    if (!WET.has(block.name)) return false;
+  }
+  return false;
+}
+
+/** The nearest water with air right above it within 16 blocks: where the head can come out to breathe. */
+function nearestAir(bot: Bot): Vec3 | null {
+  const water = bot.registry.blocksByName["water"]?.id;
+  if (water === undefined) return null;
+  const here = bot.entity.position;
+  const surface = bot
+    .findBlocks({ matching: water, maxDistance: 16, count: 2048 })
+    .filter((p) => {
+      const above = bot.blockAt(p.offset(0, 1, 0));
+      return !!above && above.boundingBox === "empty" && !WET.has(above.name) && above.name !== "lava";
+    })
+    .sort((a, b) => a.distanceTo(here) - b.distanceTo(here));
+  return surface[0] ?? null;
+}
+
 /**
- * Out of water the way a player gets out: swim up, digging out any block over the head on the way (a
- * flooded pit has a roof), then climb onto the nearest bank a jump from the water reaches. Walking to
- * dry ground can find no path from water: in thaiku1 hc spent 116 of its 127 decisions by a lake's
- * cliff, told "could not reach dry ground". Returns null once on dry ground, or why it could not.
+ * Under rock in water, swim to the nearest air before anything else: digging up through rock under
+ * water is five times slower, and in thaiku2 an agent drowned three times doing it. The pathfinder
+ * swims round what's in the way; if it can't, a straight swim toward the air. True once the head is out.
+ */
+async function swimToAir(bot: Bot, air: Vec3): Promise<boolean> {
+  try {
+    await withTimeout(bot.pathfinder.goto(new goals.GoalNear(air.x, air.y + 1, air.z, 1)), 12_000, "swimming to air");
+  } catch {
+    bot.pathfinder.setGoal(null);
+  }
+  if (!headInWater(bot)) return true;
+  bot.setControlState("forward", true);
+  bot.setControlState("jump", true);
+  try {
+    for (let tick = 0; tick < 120 && headInWater(bot); tick++) {
+      await bot.lookAt(air.offset(0.5, 1, 0.5), true);
+      await bot.waitForTicks(1);
+    }
+  } finally {
+    bot.clearControlStates();
+  }
+  return !headInWater(bot);
+}
+
+/**
+ * Out of water the way a player gets out: under rock, swim to the nearest air first; then swim up,
+ * digging out any block over the head on the way (a flooded pit has a roof), and climb onto the nearest
+ * bank a jump from the water reaches. Walking to dry ground can find no path from water: in thaiku1 hc
+ * spent 116 of its 127 decisions by a lake's cliff, told "could not reach dry ground". Returns null
+ * once on dry ground, or why it could not.
  */
 async function swimOut(bot: Bot): Promise<string | null> {
   bot.pathfinder.setGoal(null);
   try {
+    if (headInWater(bot) && roofedOver(bot)) {
+      const air = nearestAir(bot);
+      if (air) await swimToAir(bot, air);
+    }
     bot.setControlState("jump", true);
     let highest = bot.entity.position.y;
     let still = 0;
@@ -299,9 +358,11 @@ async function swimOut(bot: Bot): Promise<string | null> {
     }
     if (headInWater(bot)) return "could not swim up to the surface";
     const at = bot.entity.position.floored();
+    // The nearest bank within BANK_REACH, swum to along the surface (out from under a roof, the nearest
+    // was 5 blocks off in the check that set this).
     const banks: Vec3[] = [];
-    for (let dx = -4; dx <= 4; dx++)
-      for (let dz = -4; dz <= 4; dz++)
+    for (let dx = -BANK_REACH; dx <= BANK_REACH; dx++)
+      for (let dz = -BANK_REACH; dz <= BANK_REACH; dz++)
         for (let dy = 0; dy <= 2; dy++) {
           const cell = at.offset(dx, dy, dz);
           if ((dx || dz) && standable(bot, cell)) banks.push(cell);
@@ -310,7 +371,7 @@ async function swimOut(bot: Bot): Promise<string | null> {
     for (const bank of banks.slice(0, 6)) {
       // Swimming at the surface with jump held, forward climbs a ledge up to a block and a half high.
       bot.setControlState("forward", true);
-      for (let tick = 0; tick < 80; tick++) {
+      for (let tick = 0; tick < 160; tick++) {
         if (bot.entity.onGround && !inWater(bot)) return null;
         await bot.lookAt(bank.offset(0.5, 0.5, 0.5), true);
         await bot.waitForTicks(1);
@@ -318,7 +379,7 @@ async function swimOut(bot: Bot): Promise<string | null> {
       bot.setControlState("forward", false);
     }
     if (bot.entity.onGround && !inWater(bot)) return null;
-    return banks.length ? "swam up, but could not climb onto the bank" : "swam up, but there is no bank within 4 blocks to climb onto";
+    return banks.length ? "swam up, but could not climb onto the bank" : `swam up, but there is no bank within ${BANK_REACH} blocks to climb onto`;
   } catch (error) {
     return plainError((error as Error).message);
   } finally {
@@ -543,8 +604,8 @@ export const climbOut: Skill = {
     "Dig a staircase up until there is open sky above you: the way back to the surface from a cave or a mine. Uses your " +
     "cheapest pickaxe, sparing an iron one as descend does, or your hands when you have none (much slower through stone). " +
     "Checks every block before breaking it and turns away from lava and water, and steps out from under gravel or sand " +
-    "that would fall on your head; if you are in water it first swims up, digging through anything over your " +
-    "head, and climbs onto the nearest bank, or walks to dry ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
+    "that would fall on your head; if you are in water it first swims out (under rock, to the nearest air first), " +
+    "digging through anything over your head, and climbs onto the nearest bank, or walks to dry ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
     "from your inventory (dirt or cobblestone first, logs last). Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
     "it again to continue.",
   args: {},
