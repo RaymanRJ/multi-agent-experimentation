@@ -23,6 +23,18 @@ test("climb_out - won't dig out from under gravel, which would fall on the head 
   assert.ok(!calls.includes("dig stone"), "the ceiling under the gravel stays");
 });
 
+test("climb_out - at the bottom of a lake, open sky above the water is not out (thaiku1)", async () => {
+  const blocks: Record<string, string> = {};
+  for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
+    blocks[`${x},59,${z}`] = "stone";
+    for (let y = 60; y <= 63; y++) blocks[`${x},${y},${z}`] = "water";
+  }
+  const { bot } = fakeBot({ position: { x: 0.5, y: 60, z: 0.5 }, blocks, inventory: { stone_pickaxe: 1 } });
+  const result = await climbOut.run(context(bot), {});
+  assert.notEqual(result.reason, "already under open sky");
+  assert.equal(result.status, "failed", "the fake bot can't swim, so it can't get out; the real one swims up and onto the bank");
+});
+
 test("plainError - library errors in words the agent can act on (bpoc11)", () => {
   assert.equal(plainError("invalid operation"), "the inventory was busy moving an item");
   assert.equal(plainError("The goal was changed before it could be completed!"), "interrupted before getting there");

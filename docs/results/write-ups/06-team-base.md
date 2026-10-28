@@ -1229,7 +1229,9 @@ closer"), and `build_shelter` 37 times for the water; it was told 13 times it wa
 Changed after it: a `respawn` skill (die on purpose and come back at the respawn point, losing
 everything carried), which the owner asked for; checked live from that cave (back at the world spawn
 in 2 seconds, items left where it was) and with a set spawn point, and in the real agent, where the
-report counts it apart from deaths.
+report counts it apart from deaths. And `climb_out` now swims up and climbs onto the nearest bank:
+from the bottom of that lake it said "already under open sky" and did nothing; now it is out in 9
+seconds (checked from three spots), and in water filled to its roof it says so plainly.
 
 | Model | Cost (USD) | Deaths |
 |---|---|---|

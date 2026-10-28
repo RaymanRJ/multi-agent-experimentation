@@ -163,7 +163,7 @@ test("climb_out - done under open sky; won't dig beside water, or start from it 
   assert.equal(wet.status, "failed");
   assert.match(wet.reason!, /under 14 blocks of ground: every way up is unsafe \((\w+: water behind the stone; ){4}straight up: above: water behind the stone\) — tunnel or walk somewhere else/);
   const swimming = await run("climb_out", { blocks: { ...roof, "0,64,0": "water" } });
-  assert.match(swimming.reason!, /in water, and could not reach dry ground within 8 blocks/);
+  assert.match(swimming.reason!, /in water \(.+\), and could not reach dry ground within 8 blocks/);
 });
 
 test("hunt and shear - say what's missing before they move", async () => {

@@ -37,7 +37,7 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    Anthropic US$3.30, OpenAI US$2.55.
    **thaiku1** (US$0.20): 0 of 4 parts, no deaths; the agents mostly waited and talked status, built a
    one-storey "large" home, and one was stuck all run in the flooded cave, which led to the `respawn`
-   skill. Reps 2 and 3 next (about US$0.40), now that a trapped agent has a way out. Write-up 06.
+   skill and to `climb_out` swimming up onto a bank. Reps 2 and 3 next (about US$0.40). Write-up 06.
 5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:

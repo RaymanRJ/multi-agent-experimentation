@@ -133,7 +133,9 @@ building on it.
   - Some agents start on top of dark oak trees and lose time getting down.
   - A flooded cave lies under the spawn area. In thaiku1 an agent was in it from its 12th decision to
     the end: walking, climbing out and tunnelling all refused for the water. The way out now is
-    `respawn`, at the cost of everything carried; no skill swims out of it.
+    `climb_out` swims up and onto a bank (checked live from three lake bottoms: out in 7-9 seconds),
+    and `respawn` is there for what it can't leave, at the cost of everything carried. One gap left:
+    water that fills a space up to its roof, where a player would build up against a wall.
   - The skills now stop before digging into water, and
     `climb_out` gets an agent back to the surface, but agents near it still mine slowly. In bpoc11
     an agent in an open cave found no way up and stayed there for the rest of the run: it stood at a
