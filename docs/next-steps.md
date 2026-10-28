@@ -1,7 +1,42 @@
 # Where things stand, and what's next
 
 Read this at the start of a session; update it when something finishes or a new ask comes in.
-*Last updated 27 October 2026.*
+*Last updated 28 October 2026.*
+
+## The road ahead (agreed with the owner, 28 October)
+
+One change at a time, so each result says what caused it. team-base is now a solid baseline: the
+mixed team met the whole goal in 2 of 6 reps (tbase5 and tbase6, rep 1 both times), Luna-only teams
+never did, and what stops teams now is mostly their own behaviour, not our bugs.
+
+1. **Now: tbase7** (running): the mixed team with the progress list on, against tbase6 as the
+   comparison. Rep by rep: evaluate after rep 1, carry on if nothing major; rep 3 only if the
+   Anthropic credit allows (about $2.50 a rep). Then close the team-base chapter with one short
+   summary of what all its runs showed.
+2. **Next: new bots on the same goal.** Keep team-base fixed and change only the team, so a difference
+   is the model, not the task.
+   - New models: Gemini, Grok and OpenRouter backends exist already (each needs its key in `.env` and
+     its price in `src/agents/src/backends/pricing.ts`). A Luna-priced proof run first for each, to
+     learn its cost.
+   - A bigger team: a fourth or fifth agent, to see whether coordination holds as the team grows.
+     Memory allows it (about 0.25GB a bot).
+3. **Then: a harder goal**, run with the team that does best on team-base. Options:
+   - **Longer:** five days, with a farm for food that renews, so the store has to be kept, not just
+     filled once.
+   - **Deeper:** a diamond pickaxe each: iron tools first, deep mining, and real pressure on the
+     cheapest-tool rule and the safety reflexes.
+   - **Competitive:** two teams in one world with scarce resources (the stances support it already).
+4. **Small, any time:**
+   - Why tbase6 rep 3 found no sheep: the world places a 12-sheep herd near spawn, yet hunts kept
+     finding "no sheep within 32 blocks", which meant no beds and the spawn trap (Opus died 18 times).
+     Check where the herd stood against the home; it may be a setting of ours.
+   - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
+   - A `/stats` page on the site: decisions, cost and runs played per model (being built).
+   - Older: the tbase3 `give` timeout into a closed home; the second drowning gap; the merged branch
+     `worktree-goals-section` on GitHub can be deleted.
+
+Costs to plan with: a 3-rep mixed team run is about $8 (tbase6: $7.80); a Luna team run about
+$0.25-0.40. Ask before any paid run, and no Claude run without the owner's OK.
 
 **21 October: the experiment moved to `src/agents/`.** Everything that runs (code, scripts, Docker,
 `package.json`) is there, and every command runs from there; the root keeps the docs, README,
