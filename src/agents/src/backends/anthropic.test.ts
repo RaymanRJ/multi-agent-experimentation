@@ -143,13 +143,19 @@ test("AnthropicBackend - counts cached input in the total and reports reads and 
   assert.strictEqual(result.cacheWriteTokens, 200);
 });
 
-test("Claude pricing - cache reads at a tenth of input, writes at 1.25x", () => {
+test("Claude pricing - cache writes at 1.25x input; reads at a tenth, or the model's own rate (Anthropic's page, 28 October)", () => {
   const base = { backend: "claude", model: "claude-sonnet-5-5", outputTokens: 0, ms: 1, text: "" };
-  // Sonnet 5.5 input is $2/M: 1M plain = $2; 1M read = $0.20; 1M written = $2.50.
+  // Sonnet 5.5 input is $2/M: 1M plain = $2; 1M read = $0.10 (0.05x); 1M written = $2.50.
   assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000 }) - 2) < 1e-9);
-  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheReadTokens: 1_000_000 }) - 0.2) < 1e-9);
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheReadTokens: 1_000_000 }) - 0.1) < 1e-9);
   assert.ok(Math.abs(costUSD({ ...base, inputTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 2.5) < 1e-9);
-  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 3_000_000, cacheReadTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 4.7) < 1e-9);
+  assert.ok(Math.abs(costUSD({ ...base, inputTokens: 3_000_000, cacheReadTokens: 1_000_000, cacheWriteTokens: 1_000_000 }) - 4.6) < 1e-9);
+  // Opus 5.5: $4/M input, reads $0.20/M. Haiku 4.5: $1/M input, reads $0.10/M. Fable 5.1: $10/M, reads $0.25/M.
+  const read = (model: string) => costUSD({ ...base, model, inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
+  assert.ok(Math.abs(read("claude-opus-5-5") - 0.2) < 1e-9);
+  assert.ok(Math.abs(read("claude-haiku-4-5") - 0.1) < 1e-9);
+  assert.ok(Math.abs(read("claude-fable-5-1") - 0.25) < 1e-9);
+  assert.ok(Math.abs(read("claude-haiku-5-5") - 0.01) < 1e-9);
 });
 
 test("AnthropicBackend - offers the decision tool without forcing it, and returns its input apart from the text", async () => {

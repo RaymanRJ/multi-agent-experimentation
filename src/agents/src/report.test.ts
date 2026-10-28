@@ -897,8 +897,8 @@ test("summarizeRun - prompt-cache reads are counted, and priced at the cached ra
   const s = summarizeRun([makeStep({ step: 1, calls: [call] }), makeStep({ step: 2, calls: [call] })], "runs/x-a.jsonl");
   assert.equal(s.tokensIn, 2_000_000);
   assert.equal(s.tokensCached, 1_800_000);
-  // Per call: 100k plain at $2/M + 900k cached at $0.20/M = $0.38.
-  assert.ok(typeof s.costUSD === "number" && Math.abs(s.costUSD - 0.76) < 1e-9, String(s.costUSD));
+  // Per call: 100k plain at $2/M + 900k cached at $0.10/M (Sonnet 5.5 reads at 0.05x) = $0.29.
+  assert.ok(typeof s.costUSD === "number" && Math.abs(s.costUSD - 0.58) < 1e-9, String(s.costUSD));
 });
 
 test("survivedNight: a 'goal met' outpost log whose last night had a death in it is not credited", () => {

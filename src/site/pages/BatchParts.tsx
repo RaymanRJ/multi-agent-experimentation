@@ -16,7 +16,8 @@ export function gameTime(ticks: number): string {
   return h ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
-export const dollars = (usd: number) => (usd === 0 ? 'free' : usd < 0.01 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`);
+/** Every cost on the site is in US dollars, as the providers bill it; written US$ so no reader takes it for CAD. */
+export const dollars = (usd: number) => (usd === 0 ? 'free' : usd < 0.01 ? `US$${usd.toFixed(4)}` : `US$${usd.toFixed(2)}`);
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 

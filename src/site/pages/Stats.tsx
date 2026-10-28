@@ -62,7 +62,7 @@ const saved = costed.reduce((s, m) => s + m.uncachedUSD - m.costUSD, 0);
 const paidFor = costed.reduce((s, m) => s + m.costUSD, 0);
 const n = (x: number) => x.toLocaleString('en-GB');
 const one = (x: number) => (x >= 10 ? Math.round(x).toString() : x.toFixed(1));
-const cents = (usd: number) => `${(usd * 100).toFixed(2)}¢`;
+const cents = (usd: number) => `${(usd * 100).toFixed(2)} US¢`;
 const perDecision = (t: ModelTotals) => t.cost / t.decisions;
 
 export function Stats() {
@@ -230,15 +230,22 @@ export function Stats() {
       <p className="muted small">
         From every model call logged on the machine that runs the experiment, {usage.from} to {usage.to}, all goals,
         proof runs included (published reports carry only tokens in and out, and logs from earlier machines are gone).
-        Costs cover input and output; "uncached" prices every input token in full. On Claude a cache read costs a tenth
-        of the input price and a write a quarter more. OpenAI caches by itself and doesn't report its cache writes, so
-        GPT-6 Luna's cached input is billed here at the full price and its saving isn't counted.
+        Costs cover input and output; "uncached" prices every input token in full. On Claude a cache write costs a
+        quarter more than input and a read a twentieth of it on Opus 5.5 and Sonnet 5.5 (a tenth on older models).
+        OpenAI caches by itself and doesn't report its cache writes, so GPT-6 Luna's cached input is billed here at the
+        full price and its saving isn't counted.
       </p>
 
       <p className="muted small">
         Counted from the published reports on the <a href={HASH.results}>Results</a> page: every agent in every run they
         cover. Proof runs (one rep, to check a fix) are not published, so they are not here. A team agent's run counts as
         met when its team met the goal. The local model and the scripted baseline cost nothing.
+      </p>
+      <p className="muted small">
+        <strong>Every cost is in US dollars (USD)</strong>, as Anthropic and OpenAI bill it, at their list prices
+        (checked against both providers' pricing pages on 28 October 2026). Reports published before then priced Opus 5.5
+        and Sonnet 5.5 cache reads at a tenth of the input price instead of a twentieth, so their costs are a few percent
+        high.
       </p>
     </main>
   );

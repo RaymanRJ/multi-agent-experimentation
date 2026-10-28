@@ -4,35 +4,35 @@
   "models": [
     {
       "model": "GPT-6 Luna",
-      "calls": 5784,
-      "inputTokens": 30496631,
-      "outputTokens": 1966544,
-      "cacheReadTokens": 23128336,
+      "calls": 5793,
+      "inputTokens": 30549240,
+      "outputTokens": 1970243,
+      "cacheReadTokens": 23166892,
       "cacheWriteTokens": 0,
-      "costUSD": 4.03,
-      "uncachedUSD": 4.03,
+      "costUSD": 4.04,
+      "uncachedUSD": 4.04,
       "savingCosted": false
     },
     {
       "model": "Claude Sonnet 5.5",
-      "calls": 680,
-      "inputTokens": 5873202,
-      "outputTokens": 263925,
-      "cacheReadTokens": 4397682,
+      "calls": 706,
+      "inputTokens": 6101641,
+      "outputTokens": 275117,
+      "cacheReadTokens": 4571466,
       "cacheWriteTokens": 45253,
-      "costUSD": 6.49,
-      "uncachedUSD": 14.39,
+      "costUSD": 6.29,
+      "uncachedUSD": 14.95,
       "savingCosted": true
     },
     {
       "model": "Claude Opus 5.5",
-      "calls": 485,
-      "inputTokens": 4058496,
-      "outputTokens": 212236,
-      "cacheReadTokens": 3112714,
+      "calls": 496,
+      "inputTokens": 4154922,
+      "outputTokens": 218497,
+      "cacheReadTokens": 3186216,
       "cacheWriteTokens": 45825,
-      "costUSD": 9.32,
-      "uncachedUSD": 20.48,
+      "costUSD": 8.93,
+      "uncachedUSD": 20.99,
       "savingCosted": true
     }
   ]

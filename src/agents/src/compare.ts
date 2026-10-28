@@ -490,7 +490,7 @@ export function renderComparison(runs: Run[], title: string): string {
   add("- **Worked**: decisions whose skill succeeded. **Changed course**: after a failure, the next decision was different.");
   add("- **Longest loop**: the same decision failing the same way, back to back. **Unusable answers**: replies that had to be asked again.");
   add("- **Tokens in / out**: everything sent to the model (prompts, cached or not, and re-asks) and everything it wrote. The local model's tokens are counted too, though it costs nothing.");
-  add("- Game time: a whole day is 20:00. Costs are from token counts and list prices (`src/agents/src/backends/pricing.ts`).");
+  add("- Game time: a whole day is 20:00. Costs are in US dollars (USD), from token counts and the providers' list prices (`src/agents/src/backends/pricing.ts`).");
   add("- Each agent's full report is beside its log: `<log>.summary.md`.", "");
   add("Logs:", "", ...runs.map((run) => `- \`${run.file}\``), "", "</details>");
   return lines.join("\n") + "\n";
