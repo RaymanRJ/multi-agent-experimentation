@@ -432,6 +432,17 @@ export function renderComparison(runs: Run[], title: string): string {
   const tokensOut = runs.reduce((a, run) => a + run.s.tokensOut, 0);
   add(`${plural(runs.length, "run")} · ${dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`} · ${inOut(tokensIn, tokensOut)} tokens in / out · total cost ${money(total as number | "unknown")}`, "");
 
+  // Each team episode's rep: its own number ("team-tbase6-2" is rep 2), unless reps run one at a time
+  // and listed together share a number (tbase7a-1, tbase7b-1), when they are numbered in order under
+  // this report's name.
+  const teamEpisodes = [...new Set(runs.filter((run) => run.steps[0]!.config?.team?.length).map((run) => run.steps[0]!.config?.episode ?? run.file))];
+  const ownNumber = (episode: string) => /-(\d+)$/.exec(episode)?.[1];
+  const renumber = new Set(teamEpisodes.map(ownNumber)).size < teamEpisodes.length;
+  const reportName = title.replace(/^Team run /, "");
+  const repNumber = (episode: string) => (renumber ? String(teamEpisodes.indexOf(episode) + 1) : ownNumber(episode));
+  const teamName = (episode: string) =>
+    renumber ? `${reportName}, rep ${repNumber(episode)}` : episode.replace(/^team-/, "").replace(/-(\d+)$/, ", rep $1");
+
   const goals = new Map<string, Run[]>();
   for (const run of runs) goals.set(run.s.goal, [...(goals.get(run.s.goal) ?? []), run]);
   for (const [goal, group] of goals) {
@@ -445,7 +456,7 @@ export function renderComparison(runs: Run[], title: string): string {
     if (teams.length) {
       const works = teams.map(([episode, members]) => {
         const m = membersOf(members);
-        return { label: episode.replace(/^team-/, "").replace(/^.*-(\d+)$/, "Rep $1"), w: goalWork(m, group[0]!.s.goalName), end: goalAtEnd(m, group[0]!.s.goalName) };
+        return { label: `Rep ${repNumber(episode) ?? episode}`, w: goalWork(m, group[0]!.s.goalName), end: goalAtEnd(m, group[0]!.s.goalName) };
       });
       const known = works.filter((x): x is { label: string; w: GoalWork; end: PartAtEnd[] | null } => x.w !== null);
       if (known.length > 1) add(...acrossReps(known));
@@ -454,7 +465,7 @@ export function renderComparison(runs: Run[], title: string): string {
         const cost = members.reduce((a, run) => a + (run.s.costUSD === "unknown" ? 0 : run.s.costUSD), 0);
         const teamTokens = inOut(members.reduce((a, run) => a + run.s.tokensIn, 0), members.reduce((a, run) => a + run.s.tokensOut, 0));
         const longest = Math.max(...members.map((run) => run.s.ticksToGoal ?? run.steps.at(-1)?.ticks ?? 0));
-        const teamLabel = episode.replace(/^team-/, "").replace(/-(\d+)$/, ", rep $1");
+        const teamLabel = teamName(episode);
         add(`### Team ${teamLabel}: ${met ? `goal met in ${gameTime(longest)} of game time` : "goal not met"} · ${teamTokens} tokens in / out · ${money(cost)}`, "");
         const w = works[index]!.w;
         if (w) {
@@ -472,7 +483,7 @@ export function renderComparison(runs: Run[], title: string): string {
   const anyTeam = runs.some((run) => run.steps[0]!.config?.team?.length);
   add(anyTeam ? "<details><summary>Each agent in a sentence or two</summary>" : "## In a sentence or two each", "");
   // Reps reuse agent names, so say which rep each line is from.
-  const repOf = (run: Run) => run.steps[0]!.config?.team?.length ? /-(\d+)$/.exec(run.steps[0]!.config?.episode ?? "")?.[1] : undefined;
+  const repOf = (run: Run) => (run.steps[0]!.config?.team?.length ? repNumber(run.steps[0]!.config?.episode ?? run.file) : undefined);
   const severalReps = new Set(runs.map(repOf)).size > 1;
   for (const run of runs) {
     const verdict = verdictLines(run.steps, run.file).slice(0, 3).join(" ");

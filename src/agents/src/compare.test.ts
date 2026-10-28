@@ -62,6 +62,22 @@ test("renderComparison - a team episode reads as who did what, with handovers on
   assert.match(text, /300 \/ 30 tokens in \/ out/, "and in total");
 });
 
+test("renderComparison - reps run one at a time and listed together are numbered in order under the report's name", () => {
+  const run = (file: string, episode: string): Run => {
+    const steps = [step(1, "wait", { seconds: 5 }, {}, {}, { config: { ...config, episode } })];
+    return { file, steps, s: summarizeRun(steps, file), b: behaviour(steps), r: requests(steps), model: modelName(steps) };
+  };
+  // tbase7: each rep its own team.sh run (tbase7a, tbase7b), so both episodes end in -1.
+  const text = renderComparison(
+    [run("runs/2026-10-18T10-00-00-000Z-a.jsonl", "team-t9a-1"), run("runs/2026-10-18T10-00-01-000Z-b.jsonl", "team-t9a-1"),
+      run("runs/2026-10-18T11-00-00-000Z-a.jsonl", "team-t9b-1"), run("runs/2026-10-18T11-00-01-000Z-b.jsonl", "team-t9b-1")],
+    "Team run t9",
+  );
+  assert.match(text, /### Team t9, rep 1:/);
+  assert.match(text, /### Team t9, rep 2:/);
+  assert.doesNotMatch(text, /t9a|t9b/);
+});
+
 test("tokens - short and readable", async () => {
   const { tokens } = await import("./compare.js");
   assert.equal(tokens(640), "640");
