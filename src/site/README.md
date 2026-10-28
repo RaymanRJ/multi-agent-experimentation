@@ -31,9 +31,12 @@ totals the same summaries: how often runs met their goal, by goal and by model, 
 met theirs. Below it, the goals (`pages/ResultsGoals.tsx`): each goal's text is read from the agents'
 own `src/agents/src/goals.ts` and its tallies from the reports, so both are automatic; the one-line note
 on why each goal exists is hand-written in `content/goals.ts`. The Stats page (`#/stats`, `pages/Stats.tsx`)
-adds up every report's per-agent tables (one row per agent per run): runs, decisions, cost, deaths
-and goals met, in all and by model; it is automatic too. If `publish-reports.sh` changes the layout of a report, change
-`lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
+adds up every report's per-agent tables (one row per agent per run): runs, decisions, tokens, cost,
+deaths and goals met, by model, one goal at a time (the latest first) or all goals together; it is
+automatic too. Its prompt-caching table is not: reports don't carry cache counts, so it reads
+`docs/results/token-usage.json`, made from the run logs on the machine that runs the experiment by
+`cd src/agents && npx tsx scripts/token-usage.ts`; run that again after a run and commit the file.
+If `publish-reports.sh` changes the layout of a report, change `lib/batches.ts` with it. How it's built draws the README's control-loop diagram (mermaid, loaded only
 on that page) from `README.md` itself, so the two can't drift.
 
 The front page's lesson cards and chart are in `content/lessons.ts`, hand-written from

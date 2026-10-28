@@ -1207,3 +1207,38 @@ h3 {
   white-space: normal;
   min-width: 120px;
 }
+
+.goal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.goal-chips button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.goal-chips button:hover {
+  border-color: var(--accent);
+}
+
+.goal-chips button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.goal-chip-note {
+  margin: 0 0 18px;
+  max-width: 760px;
+  font-size: 14px;
+}

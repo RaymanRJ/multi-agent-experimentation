@@ -1,0 +1,39 @@
+{
+  "from": "2026-10-23",
+  "to": "2026-10-28",
+  "models": [
+    {
+      "model": "GPT-6 Luna",
+      "calls": 5784,
+      "inputTokens": 30496631,
+      "outputTokens": 1966544,
+      "cacheReadTokens": 23128336,
+      "cacheWriteTokens": 0,
+      "costUSD": 4.03,
+      "uncachedUSD": 4.03,
+      "savingCosted": false
+    },
+    {
+      "model": "Claude Sonnet 5.5",
+      "calls": 680,
+      "inputTokens": 5873202,
+      "outputTokens": 263925,
+      "cacheReadTokens": 4397682,
+      "cacheWriteTokens": 45253,
+      "costUSD": 6.49,
+      "uncachedUSD": 14.39,
+      "savingCosted": true
+    },
+    {
+      "model": "Claude Opus 5.5",
+      "calls": 485,
+      "inputTokens": 4058496,
+      "outputTokens": 212236,
+      "cacheReadTokens": 3112714,
+      "cacheWriteTokens": 45825,
+      "costUSD": 9.32,
+      "uncachedUSD": 20.48,
+      "savingCosted": true
+    }
+  ]
+}

@@ -38,22 +38,42 @@ export interface AgentRun {
   cost: number;
   /** Whether its goal was met (for a team, the team's). */
   met: boolean;
+  /** The goal it played, from the report's "## Goal: …" heading above its table; "" if none. */
+  goal: string;
+  /** Tokens sent to the model and written by it, from "965k / 49.5k"; 0 when not given. */
+  tokensIn: number;
+  tokensOut: number;
+}
+
+/** "965k" or "1.2M" or "8,344" as a number. */
+function tokenCount(text: string): number {
+  const m = /^([\d.,]+)\s*([kM]?)$/.exec(text.trim());
+  if (!m) return 0;
+  const value = Number(m[1]!.replace(/,/g, ''));
+  return m[2] === 'M' ? value * 1_000_000 : m[2] === 'k' ? value * 1000 : value;
 }
 
 /** Every row of a report's per-agent tables ("| Agent | Model | Goal | Decisions | … | Deaths | Tokens | Cost |"). */
 export function parseAgentRuns(markdown: string): AgentRun[] {
   const runs: AgentRun[] = [];
+  let section = '';
   for (const line of markdown.split('\n')) {
+    const heading = /^## Goal: (.+)$/.exec(line);
+    if (heading) section = heading[1]!.trim();
     if (!line.startsWith('|')) continue;
     const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
     if (cells.length !== 12 || !/^\d+$/.test(cells[3] ?? '')) continue;
-    const [, model = '', goal = '', decisions = '0', , , , , , deaths = '', , cost = ''] = cells;
+    const [, model = '', goal = '', decisions = '0', , , , , , deaths = '', tokens = '', cost = ''] = cells;
+    const [tokensIn = '', tokensOut = ''] = tokens.split('/');
     runs.push({
       model,
       decisions: Number(decisions),
       deaths: /^\d+$/.test(deaths) ? Number(deaths) : 0,
       cost: cost.startsWith('$') ? Number(cost.slice(1)) : 0,
       met: goal.startsWith('met'),
+      goal: section,
+      tokensIn: tokenCount(tokensIn),
+      tokensOut: tokenCount(tokensOut),
     });
   }
   return runs;
