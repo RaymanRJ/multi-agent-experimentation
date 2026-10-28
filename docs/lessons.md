@@ -148,6 +148,14 @@ the same problems as state in any distributed system.
   view in 6-7% of observations and three beds were never made; shared for ten minutes, an agent walked
   to the sheep a teammate had seen, and everyone slept in the home.
   ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6))
+- **Share what changed, not only what was seen.** An agent acts on its last belief until something
+  tells it otherwise, and it rarely re-checks what it believes is done.
+  *Evidence:* one agent emptied the team's food chest to eat; the other two, whose last look was older,
+  spent most of a day sure the food was stored, and the run missed its goal by 3 seconds. With each
+  agent shown the chest as last seen by anyone, and told when a teammate found it changed, agents
+  cooked and stored on the news ("need 10 cooked meat in chest").
+  ([06](results/write-ups/06-team-base.md#what-they-last-heard-over-what-had-changed-bpoc10),
+  [tbase6](results/write-ups/06-team-base.md#the-mixed-team-with-the-shared-chest-tbase6))
 
 ## The control loop
 

@@ -215,4 +215,16 @@ export const chapters: Chapter[] = [
     ],
     lesson: { text: 'Cover the seconds the model can\'t act, and share what each agent sees: a capable team then finishes.', anchor: 'the-control-loop' },
   },
+  {
+    title: 'Does it repeat?',
+    question: 'The same mixed team, after digging in, remembered ore and a shared view of the team\'s chest. Does the full goal come again?',
+    runs: [
+      {
+        name: 'tbase6',
+        showed: 'Yes, in rep 1 again: every part by halfway through day 2, no deaths, $1.43. Rep 2 ended one pickaxe short, with Opus carrying Luna\'s. Rep 3 found no sheep, so no beds, so the dead came back at the world spawn among the monsters: one agent died there 18 times. The shared chest was read and acted on.',
+        then: 'An agent waits for its respawn before it observes (some decisions had been made from "health 0" at the death spot), and a chest that won\'t open says why.',
+      },
+    ],
+    lesson: { text: 'Share what changed, not only what was seen: agents act on their last belief until something tells them otherwise.', anchor: 'shared-state-between-agents' },
+  },
 ];

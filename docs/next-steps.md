@@ -168,6 +168,18 @@ Next, waiting on the owner:
    reports a dig-in only when the agent is really shut in alone, digs only with a 5-block lead, and stops
    when a monster reaches it. Whether digging in closes the night gap is still open: it ran too rarely
    here to say. Written up in 06.
+   **Proof run bpoc10 (27 October, Luna, $0.22):** 3 of 4 parts, all three with an iron pickaxe, 2
+   deaths; missed by 3 seconds when la took the stored meat to eat, and its teammates, whose last look
+   at the chest was older, believed the food was stored for most of day 3. After it: `chestsSeen` (each
+   chest the team knows, as last opened by anyone, and an event when a teammate finds one changed), and
+   a bed refusal passes on the game's reason.
+   **tbase6 (27 October, Opus, Sonnet and Luna, $7.80, $3 cap):** rep 1 met the whole goal again
+   (30:10 of game time, no deaths, $1.43); rep 2 one iron pickaxe short (Opus was carrying Luna's when
+   time ran out); rep 3 no beds (no sheep found), so a spawn trap: Opus died 18 times. The shared chest
+   was read and used. Fixed after it: the agent waits for the respawn before observing (90 decisions in
+   the logs were made at health 0, at the death spot), and chest calls say why a chest didn't open.
+   Report published; written up in 06. Credit left: about $7 Anthropic, $1 OpenAI. **No Claude run
+   without the owner's OK.**
 4. **Open, not urgent:** the tbase3 `give` timeout to a teammate inside the closed home (cause
    unknown); the second drowning gap (a skill started after a failed escape).
 5. **Not pushed:** the owner pushes `main` (which also deploys the site). The branch

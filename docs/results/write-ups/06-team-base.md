@@ -950,6 +950,107 @@ through the last of the night is safer than emerging beside hostiles at 5 health
 - Fleeing at night with two zombies 2-10 blocks off and a skeleton, old and new code alike dug in 8 of 9
   times; the new code adds honesty, not more dig-ins.
 
+## What they last heard, over what had changed (bpoc10)
+
+*Three GPT-6 Luna agents, one rep, 27 October, on 57b30b1: bpoc9's settings, with `flee` digging in
+only with a lead and reporting a dig-in only when it is real. $0.22 (capped at $0.50 an agent).*
+
+| Part | bpoc8 | bpoc9 | bpoc10 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** (day 1) |
+| Everyone slept there | 2 of 3 | **3 of 3** | **3 of 3** |
+| Everyone holds an iron pickaxe | 0 | 1 of 3 | **3 of 3** |
+| Food left in store | **10** | **20** | 8 |
+| Deaths | 22 | 10 | **2** |
+
+**Three parts, all three agents with an iron pickaxe for the first time in a Luna run, and 2 deaths.**
+`flee` dug in once, on the first night, and the agent came out of it alive.
+
+**The goal was missed by 3 seconds, through two of their own moves.** On day 2 la gave away both its
+iron pickaxes, each to a teammate who already had one; at tick 38,380 la, at low health, took all 10
+cooked meat out of the chest ("Recover health and hunger with the cooked meat stored nearby"); at
+38,440 lb gave la a pickaxe back. Had the meat stayed, the run would have ended "goal met" then.
+
+**Then all three believed the job was done.** Through the first half of day 3 each agent's decisions were `wait` and
+`sleep`, with the same reasoning: "The shelter, beds, cooked meat, and my iron pickaxe are ready. Wait
+until beds can be used." la said it too, while carrying the 8 porkchops it had taken. lb and lc had
+last looked at the chest before la emptied it, and the chest was 18 blocks from the home, out of
+anyone's sight. Only when sleeping a second time didn't end the run did they look again: "Verify the
+chest still contains at least 10 cooked meat; the other requirements appear complete" (lc). la put its
+8 back; nobody made the last 2 before time ran out.
+
+**Where our code, not the agents, decided the outcome:**
+- Nothing told lb and lc that la had found the chest empty, though la's look was in the team's tally.
+  Changed after it: every agent sees the chests the team knows, each as last opened by anyone
+  (`chestsSeen`), and a teammate finding one changed is said once as an event. Checked live with a
+  scripted agent and a teammate's tally.
+- A bed refusal said "the game did not let you sleep, and did not say why": the game's reason arrived
+  before the skill was listening. Fixed: its own words are passed on ("This bed is obstructed").
+- 3 of 10 `look_in_chest` calls said only "the chest did not open". Fixed after tbase6: it says how far
+  the chest is and why the walk to it failed.
+
+## The mixed team, with the shared chest (tbase6)
+
+*Team run tbase6, 27 October, on 2ee9c2f. Claude Opus 5.5, Claude Sonnet 5.5 and GPT-6 Luna,
+collaborative, chat on, plan memory, no progress list, three in-game days, three reps on fresh worlds,
+$3 cap per agent per rep, $7.80 in all. Since tbase5: digging stops only for a monster that can reach
+the agent, remembered ore, `climb_out` and its fixes, the cheapest tool for every dig, `flee` digging
+in, and `chestsSeen`. Comparable with tbase5 part by part.*
+Report: [tbase6](../batch-reports/2026-10-27-2131-tbase6.md).
+
+| Part | Rep 1 | Rep 2 | Rep 3 |
+|---|---|---|---|
+| Shared home built | **yes** (Luna, day 1) | **yes** (Luna, day 1) | **yes** (Luna, day 1) |
+| Everyone slept there | **3 of 3** | **3 of 3** | 0 of 3 |
+| Everyone holds an iron pickaxe | **3 of 3** | 2 of 3 (Opus held Luna's) | 1 of 3 |
+| Food left in store | **19** | **12** | 9 |
+| Deaths | **0** | 7 | 21 (Opus 18) |
+| Ended | **goal met at 30:10 of game time** | time | time |
+| Cost | $1.43 | $3.31 | $3.06 |
+
+**The whole goal again in rep 1, the second time running.** The same shape as tbase5's rep 1, for
+about the same money ($1.43 against $1.36): Luna built the home in the first five minutes, Sonnet took
+food and wool and made three beds by mid-day 1, and Opus took iron and had three iron pickaxes made
+early on day 2, then gave them out. No deaths. Opus never hit its cap this time: the most it spent in a
+rep was $1.92.
+
+**Rep 2: one pickaxe short, still in the bag.** Opus took iron for the team from the first decision
+("I'll handle iron pickaxes for all 3 of us"), lost everything in two early deaths, and made two iron
+pickaxes only late on day 3, "one for me and one for luna". The last game hour went to a creeper it dug
+in against, sheep already sheared, pigs for its own hunger, and waiting for another creeper to leave,
+telling Luna all the while "I have a spare iron pickaxe for you". The run ended with it still in the
+pack. Not hoarding: caution and its own needs first, with the clock running out.
+
+**Rep 3: no wool, so no beds, so a spawn trap.** Sonnet took food and wool, but hunts kept finding "no
+sheep within 32 blocks", and its one bed was lost when it died. With no bed slept in, everyone came back
+to life at the world spawn, where a zombie stood at night: Opus died there 18 times, six of them in a
+row. Sonnet ended holding three iron pickaxes, the other two agents none. 31% of the team's time came to nothing,
+against 6-8% in the other reps.
+
+**The shared chest was read and used.** "Found the chest changed" reached each agent 2-18 times a rep.
+In rep 1 Sonnet saw "luna found the chest … holding 3 cooked_mutton", cooked 15 mutton ("need 10 cooked
+meat in chest") and stored 10. In rep 2 Luna, hungry, ate its own food "without touching the 12 cooked
+meat reserved in the chest". In rep 3 Luna took from the chest three times at low health knowing it was
+short ("the chest currently has 8 cooked meat, so the team must add at least 3 more"): it knew, and
+chose to eat. The chest ended one short.
+
+**`flee` dug in 5 times,** each a real dig-in.
+
+**Where our code, not the agents, decided the outcome:**
+- After a death, an agent sometimes decided from an observation taken before it had come back to
+  life: health 0, at the spot where it died. 90 decisions in the logs since 23 October were made that
+  way; in rep 3 Opus decided six times running from "health 0" at the spawn point, beside the zombie
+  that killed it. Fixed: the agent waits for the respawn before observing (checked live: killed three
+  times, the old code made one decision at health 0, the new none).
+- `look_in_chest`, `take` and `store` said only "the chest did not open" when the walk to it had
+  failed (15 calls in the logs). Fixed: they say how far the chest is and why the walk failed.
+
+| Model | Cost, 3 reps | Deaths per rep |
+|---|---|---|
+| Opus 5.5 | $4.28 | 0, 3, 18 |
+| Sonnet 5.5 | $3.29 | 0, 3, 2 |
+| GPT-6 Luna | $0.23 | 0, 1, 1 |
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -973,6 +1074,8 @@ dying, and the next run showed the next one.
 | bpoc7 | 2 | Both from our new `climb_out`: gravel fell onto the head it had just dug under | No digging out from under gravel or sand; a reflex digs out any block that lands on the head |
 | bpoc8 | 22 | Mobs camped at the home's doorway every night; 18 of 124 night flees ended in a death, and 13 of the 20 killed in a flee held too few blocks to wall themselves in, 8 none | `flee` digs in: three blocks down and one over the head, which needs nothing carried |
 | bpoc9 | 10 | 2 at night (bpoc8: 19), but the agents spent far more of the night inside (35% of night decisions, against 13%). Of 3 dig-ins at night, one was false: knocked aside while digging, the agent was told it had dug in, and died. A zombie apparently got into another hole with an agent | The burrow lands before digging, says it is dug in only if it is (in the hole, closed round, alone), digs only with a lead of 5 blocks, and stops a dig a monster reaches |
+| bpoc10 | **2** | One drowning, one arrow. `flee` dug in once, for real, and the agent lived | (none for deaths) |
+| tbase6 | 0, 7, 21 | Rep 1 none. Rep 3: no beds, so everyone came back to life at the world spawn, where a zombie stood at night; Opus died there 18 times, deciding six times running from an observation that still showed it dead (health 0) | The agent waits for the respawn before it observes (90 such decisions in the logs) |
 
 **The burrow, checked live** (after bpoc8; at night on normal difficulty, the bot carrying nothing, three
 zombies 3-4 blocks away, then 30 seconds left standing as an agent does while its model decides):
