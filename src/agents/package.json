@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Several AI agents in one shared world, each driven by a different model.",
   "scripts": {
+    "postinstall": "node scripts/patch-viewer.mjs",
     "agent": "tsx src/agent.ts",
     "minds": "tsx src/minds.ts",
     "typecheck": "tsc --noEmit",
