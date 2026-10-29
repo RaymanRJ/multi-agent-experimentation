@@ -189,6 +189,14 @@ export interface ModelCall {
   cacheReadTokens?: number;
   /** Of inputTokens: written to the prompt cache this call (Anthropic bills these at a premium). */
   cacheWriteTokens?: number;
+  /** Of cacheWriteTokens: written to Anthropic's 1-hour cache, billed at twice the input price (5-minute writes at 1.25x). */
+  cacheWrite1hTokens?: number;
+  /** Of outputTokens: hidden reasoning the provider billed as output (OpenAI reports it). */
+  reasoningTokens?: number;
+  /** The model the provider says answered, when it differs from the one asked for (a dated snapshot, a silent update). */
+  servedModel?: string;
+  /** The provider's service tier for this call ("standard", "priority", "flex"...): it changes the price. */
+  serviceTier?: string;
   ms: number;
   /** Raw model output, kept so an episode can be replayed without re-calling. */
   text: string;

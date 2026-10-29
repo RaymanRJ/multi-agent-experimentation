@@ -102,6 +102,7 @@ export class AnthropicBackend implements Backend {
     // input_tokens counts only what came after the last cache breakpoint; the total is all three.
     const cacheRead = response.usage.cache_read_input_tokens ?? 0;
     const cacheWrite = response.usage.cache_creation_input_tokens ?? 0;
+    const cacheWrite1h = response.usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
     return {
       backend: this.name,
       model: this.model,
@@ -117,6 +118,9 @@ export class AnthropicBackend implements Backend {
       ...(thinking && { thinking }),
       ...(response.stop_reason && { stopReason: response.stop_reason }),
       ...(response.id && { requestId: response.id }),
+      ...(cacheWrite1h && { cacheWrite1hTokens: cacheWrite1h }),
+      ...(response.model && response.model !== this.model && { servedModel: response.model }),
+      ...(response.usage.service_tier && { serviceTier: response.usage.service_tier }),
     };
   }
 }

@@ -47,6 +47,8 @@ export const PRICED_MODELS = Object.keys(PRICING);
  */
 export const CLAUDE_CACHE_READ = 0.1;
 export const CLAUDE_CACHE_WRITE = 1.25;
+/** Anthropic's 1-hour cache writes, against 1.25x for the 5-minute ones. */
+export const CLAUDE_CACHE_WRITE_1H = 2;
 const CLAUDE_CACHE_READ_BY_MODEL: Record<string, number> = {
   "claude-opus-5-5": 0.05,
   "claude-sonnet-5-5": 0.05,
@@ -74,5 +76,8 @@ export function costUSD(call: ModelCall): number {
   const base = call.model.replace(/-\d{8}$/, "");
   const readPrice = claude ? inputPrice * (CLAUDE_CACHE_READ_BY_MODEL[base] ?? CLAUDE_CACHE_READ) : (listedCached ?? inputPrice);
   const writePrice = claude ? inputPrice * CLAUDE_CACHE_WRITE : inputPrice;
-  return (plain * inputPrice + read * readPrice + write * writePrice + call.outputTokens * outputPrice) / 1_000_000;
+  // Anthropic's 1-hour cache writes cost twice the input price, not 1.25x (the 5-minute default we ask for).
+  const write1h = claude ? Math.min(write, call.cacheWrite1hTokens ?? 0) : 0;
+  const write1hPrice = inputPrice * CLAUDE_CACHE_WRITE_1H;
+  return (plain * inputPrice + read * readPrice + (write - write1h) * writePrice + write1h * write1hPrice + call.outputTokens * outputPrice) / 1_000_000;
 }

@@ -3,6 +3,8 @@ import { BrainError, classify } from "./errors.js";
 
 interface OpenAIResponse {
   id?: string;
+  model?: string;
+  service_tier?: string | null;
   choices: Array<{
     message: { content: string | null; reasoning?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> };
     finish_reason?: string | null;
@@ -12,6 +14,8 @@ interface OpenAIResponse {
     completion_tokens: number;
     /** OpenAI caches long prompt prefixes by itself and reports the hits here. */
     prompt_tokens_details?: { cached_tokens?: number } | null;
+    /** Hidden reasoning, billed as output and counted in completion_tokens. */
+    completion_tokens_details?: { reasoning_tokens?: number } | null;
   };
 }
 
@@ -164,6 +168,9 @@ export class OpenAIBackend implements Backend {
         ...(message?.reasoning && { thinking: message.reasoning }),
         ...(choice?.finish_reason && { stopReason: choice.finish_reason }),
         ...(data.id && { requestId: data.id }),
+        ...(data.usage.completion_tokens_details?.reasoning_tokens && { reasoningTokens: data.usage.completion_tokens_details.reasoning_tokens }),
+        ...(data.model && data.model !== this.model && { servedModel: data.model }),
+        ...(data.service_tier && { serviceTier: data.service_tier }),
       };
     } finally {
       clearTimeout(timeoutId);

@@ -204,3 +204,28 @@ test("AnthropicBackend - a call to a skill's name as a tool is read as choosing 
   assert.strictEqual(call.toolInput, '{"skill":"gather_wood","args":{"count":12}}');
   assert.match(call.text, /called a tool named "gather_wood" instead of "decide"/);
 });
+
+test("AnthropicBackend - keeps 1-hour cache writes, the model that answered and the service tier", async () => {
+  const backend = new AnthropicBackend({
+    name: "claude",
+    model: "claude-sonnet-5-5",
+    apiKey: "unused",
+    client: fakeClient({
+      model: "claude-sonnet-5-5-20260901",
+      content: [{ type: "text", text: "ok" }],
+      usage: { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 300, cache_creation: { ephemeral_1h_input_tokens: 100, ephemeral_5m_input_tokens: 200 }, service_tier: "standard" },
+    }, []),
+  });
+  const result = await backend.complete("s", [{ role: "user", content: "Hi" }]);
+  assert.strictEqual(result.cacheWriteTokens, 300);
+  assert.strictEqual(result.cacheWrite1hTokens, 100);
+  assert.strictEqual(result.servedModel, "claude-sonnet-5-5-20260901");
+  assert.strictEqual(result.serviceTier, "standard");
+});
+
+test("Claude pricing - a 1-hour cache write costs twice the input price, a 5-minute one 1.25x", () => {
+  const call = { backend: "claude", model: "claude-sonnet-5-5", inputTokens: 1_000_000, outputTokens: 0, cacheWriteTokens: 1_000_000, ms: 1, text: "" };
+  const fiveMinute = costUSD(call);
+  const oneHour = costUSD({ ...call, cacheWrite1hTokens: 1_000_000 });
+  assert.ok(Math.abs(oneHour / fiveMinute - 2 / 1.25) < 1e-9);
+});

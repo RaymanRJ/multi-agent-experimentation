@@ -269,3 +269,24 @@ test("OpenAIBackend - offers the decision tool to hosted models only, and reads 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("OpenAIBackend - keeps reasoning tokens, the model that answered and the service tier", async () => {
+  const backend = new OpenAIBackend({ name: "gpt", model: "gpt-6-luna", apiKey: "k", baseURL: "http://localhost:8000" });
+  const originalFetch = globalThis.fetch;
+  (globalThis as any).fetch = async () =>
+    new Response(JSON.stringify({
+      model: "gpt-6-luna-2026-09-30",
+      service_tier: "default",
+      choices: [{ message: { content: "ok" }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 100, completion_tokens: 40, prompt_tokens_details: { cached_tokens: 80 }, completion_tokens_details: { reasoning_tokens: 25 } },
+    }), { status: 200 });
+  try {
+    const result = await backend.complete("s", [{ role: "user", content: "Hi" }]);
+    assert.strictEqual(result.reasoningTokens, 25);
+    assert.strictEqual(result.servedModel, "gpt-6-luna-2026-09-30");
+    assert.strictEqual(result.serviceTier, "default");
+    assert.strictEqual(result.outputTokens, 40, "reasoning stays inside the output count, as billed");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
