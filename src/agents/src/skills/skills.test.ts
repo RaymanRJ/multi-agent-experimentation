@@ -78,7 +78,7 @@ test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is"
     inventory: { stone_pickaxe: 1 },
     blocks: { "3,63,0": "iron_ore", "2,63,0": "water", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "stone", "3,63,1": "stone", "3,63,-1": "stone" },
   }, { ore: "iron" });
-  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is beside water or lava, which this won't mine — explore/);
+  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is beside lava, under water or below water, which this won't mine — explore/);
   const stopped = await run("mine_ore", { inventory: { stone_pickaxe: 1 } }, { ore: "iron" }, true);
   assert.equal(stopped.status, "aborted");
   const chased = await run("mine_ore", { inventory: { stone_pickaxe: 1 }, entities: [zombie(4)] }, { ore: "coal" });

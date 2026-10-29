@@ -264,6 +264,24 @@ export function groundAbove(bot: Bot): number {
 }
 
 /** Lava or water touching this block, if any: breaking it could flood or burn the bot. */
+/**
+ * Why ore at `point` is not safe to mine, or null if it is. Lava beside it, water right above it (which
+ * pours into the gap), or water all round with no face open to air (the agent would mine under water,
+ * as agents once drowned doing). Water only beside or below is fine: it flows into the gap, as a player
+ * sees all the time. Ore with any liquid beside it was refused until 28 October, which turned away 82 of
+ * 181 tries for iron in the team runs (45%).
+ */
+export function oreHazard(bot: Bot, point: { offset(dx: number, dy: number, dz: number): any }): "lava beside it" | "water above it" | "under water" | null {
+  let open = false;
+  for (const [dx, dy, dz] of FACES) {
+    const block = bot.blockAt(point.offset(dx, dy, dz));
+    if (block?.name === "lava") return "lava beside it";
+    if (dy === 1 && block?.name === "water") return "water above it";
+    if (block && block.boundingBox === "empty" && block.name !== "water") open = true;
+  }
+  return open ? null : "under water";
+}
+
 export function liquidBeside(bot: Bot, point: { offset(dx: number, dy: number, dz: number): any }): string | null {
   for (const [dx, dy, dz] of FACES) {
     const name = bot.blockAt(point.offset(dx, dy, dz))?.name;

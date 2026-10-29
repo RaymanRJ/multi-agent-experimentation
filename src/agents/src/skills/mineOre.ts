@@ -4,13 +4,16 @@ import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, nearestUncrowded, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { asNumber, headInWater, nearestUncrowded, isExposed, liquidBeside, oreHazard, threatened, withTimeout } from "./util.js";
+import { standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
 const SEARCH_RADII = [16, 32, 48];
 const TRAVEL_TIMEOUT_MS = 30_000;
 const DIG_TIMEOUT_MS = 20_000;
+/** In water and off the ground the game digs up to 25 times slower: a stone pickaxe took 30 s on iron ore. */
+const WET_DIG_TIMEOUT_MS = 45_000;
 const MAX_FAILED_BLOCKS = 5;
 const MAX_TOTAL_MS = 4 * 60_000;
 /** Ore further above or below than this is left alone: the pathfinder gives up on long climbs. */
@@ -55,6 +58,37 @@ async function digThrough(bot: Bot, ore: Block): Promise<boolean> {
   }
 }
 
+/** Standing in water, or floating in it. */
+function inWaterNow(bot: Bot): boolean {
+  const feet = bot.entity.position.floored();
+  return headInWater(bot) || bot.blockAt(feet)?.name === "water" || !bot.entity.onGround;
+}
+
+/**
+ * Ore by water is mined from dry footing where there is any: in water and off the ground digging is up to 25 times
+ * slower, and a dig by a pool timed out at 20 s in the check that added this. Steps to the nearest dry spot within
+ * reach of the ore; stays put if there is none.
+ */
+async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
+  if (!inWaterNow(bot)) return;
+  const spots: Vec3[] = [];
+  for (let dx = -3; dx <= 3; dx++)
+    for (let dz = -3; dz <= 3; dz++)
+      for (let dy = -2; dy <= 1; dy++) {
+        const cell = ore.offset(dx, dy, dz);
+        if (cell.offset(0.5, 1.6, 0.5).distanceTo(ore.offset(0.5, 0.5, 0.5)) <= REACH - 0.5 && standable(bot, cell)) spots.push(cell);
+      }
+  spots.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
+  for (const spot of spots.slice(0, 3)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 8000, "stepping out of the water to dig");
+      if (!inWaterNow(bot)) return;
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+  }
+}
+
 /** Pickaxes, weakest first. */
 const TIERS = ["wooden_pickaxe", "stone_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
 
@@ -89,7 +123,7 @@ export const mineOre: Skill = {
     "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
-    "Uses the cheapest pickaxe good enough. Skips ore touching lava or water. Returns how many were gained and the new total.",
+    "Uses the cheapest pickaxe good enough. Skips ore beside lava, ore with water right above it, and ore under water; ore with water only beside it is mined. Returns how many were gained and the new total.",
   args: { ore: "string", count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -137,7 +171,7 @@ export const mineOre: Skill = {
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point)) continue;
-          if (liquidBeside(bot, point)) {
+          if (oreHazard(bot, point)) {
             wet.add(key(point));
             continue;
           }
@@ -156,7 +190,7 @@ export const mineOre: Skill = {
           outOfReach === null
             ? ""
             : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
-        const wetNote = wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} beside water or lava, which this won't mine` : "";
+        const wetNote = wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} beside lava, under water or below water, which this won't mine` : "";
         const reason =
           gained() > 0
             ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}${wetNote}`
@@ -172,9 +206,10 @@ export const mineOre: Skill = {
         // Out of reach or behind a wall, the server ignores the dig and mineflayer waits forever.
         if (!(await digThrough(bot, fresh))) throw new Error("out of reach");
         // digThrough may have changed the tool in hand to dig dirt or stone; ore needs the pickaxe.
+        if (liquidBeside(bot, fresh.position)) await dryFooting(bot, fresh.position);
         const pick = bot.inventory.items().find((item) => item.name === pickaxe);
         if (pick) await bot.equip(pick, "hand");
-        await withTimeout(bot.dig(fresh), DIG_TIMEOUT_MS, "digging ore");
+        await withTimeout(bot.dig(fresh), inWaterNow(bot) ? WET_DIG_TIMEOUT_MS : DIG_TIMEOUT_MS, "digging ore");
       } catch (error) {
         ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
         bot.pathfinder.setGoal(null);

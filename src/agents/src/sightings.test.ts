@@ -9,8 +9,8 @@ function encase(blocks: Record<string, string>, x: number, y: number, z: number)
   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) blocks[`${x + dx},${y + dy},${z + dz}`] = "stone";
 }
 
-test("OreMemory - remembers exposed ore as veins, not buried ore; flags a vein touching water; forgets one found mined out", () => {
-  const blocks: Record<string, string> = { "10,64,0": "iron_ore", "11,64,0": "deepslate_iron_ore", "0,64,12": "coal_ore", "1,64,12": "water" };
+test("OreMemory - remembers exposed ore as veins, not buried ore; flags a vein with water above it, not one with water beside; forgets one found mined out", () => {
+  const blocks: Record<string, string> = { "10,64,0": "iron_ore", "11,64,0": "deepslate_iron_ore", "12,64,0": "water", "0,64,12": "coal_ore", "0,65,12": "water" };
   encase(blocks, 0, 64, -15);
   blocks["0,64,-15"] = "iron_ore"; // buried in stone: no player could see it
   const { bot, world } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks });
@@ -33,7 +33,7 @@ test("describeOreSightings - out of view only, with direction, height and who; f
     { name: "iron ore", count: 1, x: 30, y: 74, z: 0, at: now, by: "la", wet: true },
   ];
   assert.deepEqual(describeOreSightings(here, spots, "la", now), [
-    "1 iron ore at 30,74,0, 30 blocks east, seen by you just now (beside water or lava, which mine_ore won't mine)",
+    "1 iron ore at 30,74,0, 30 blocks east, seen by you just now (beside lava, under water or below water, which mine_ore won't mine)",
     "3 iron ore at -6,32,13, 14 blocks south-west and 42 below you, seen by sonnet 5 min ago",
   ]);
   assert.deepEqual(describeOreSightings(here, spots, "la", now + ORE_TTL_MS), []);

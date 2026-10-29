@@ -259,7 +259,7 @@ const WET = new Set(["water", "bubble_column"]);
 const BANK_REACH = 10;
 
 /** A cell a player could stand in: solid and dry underfoot, nothing solid, wet or burning at feet or head. */
-function standable(bot: Bot, cell: Vec3): boolean {
+export function standable(bot: Bot, cell: Vec3): boolean {
   const below = bot.blockAt(cell.offset(0, -1, 0));
   const open = (c: Vec3) => {
     const block = bot.blockAt(c);

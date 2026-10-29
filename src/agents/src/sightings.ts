@@ -1,7 +1,7 @@
 import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { ANIMAL_TYPES, isDying } from "./skills/creatures.js";
-import { isExposed } from "./skills/util.js";
+import { isExposed, oreHazard } from "./skills/util.js";
 
 /**
  * Where animals were seen: what a player remembers ("there were sheep down south") and what the
@@ -100,8 +100,6 @@ export interface OreSighting extends Sighting {
 export const ORE_TTL_MS = 30 * 60_000;
 /** Two ore blocks of a kind closer than this are one vein. */
 const SAME_VEIN = 8;
-const LIQUID_NAMES = new Set(["water", "lava"]);
-const FACES6 = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 
 /** "iron ore" for iron_ore and deepslate_iron_ore: one kind to the model, as to mine_ore. */
 const oreKind = (name: string) => name.replace(/^deepslate_/, "").replace(/_/g, " ");
@@ -118,7 +116,7 @@ export class OreMemory {
     for (const point of bot.findBlocks({ matching: ids, maxDistance: SIGHT_RANGE, count: 128 })) {
       const block = bot.blockAt(point);
       if (!block || !isExposed(bot, point)) continue;
-      const wet = FACES6.some((f) => LIQUID_NAMES.has(bot.blockAt(point.plus(f))?.name ?? ""));
+      const wet = oreHazard(bot, point) !== null;
       const kind = oreKind(block.name);
       seen.set(kind, [...(seen.get(kind) ?? []), { p: point, wet }]);
     }
@@ -167,6 +165,6 @@ export function describeOreSightings(here: Vec3, spots: OreSighting[], me: strin
       const height = Math.abs(dy) < 3 ? "" : ` and ${Math.abs(dy)} ${dy < 0 ? "below" : "above"} you`;
       const mins = Math.round((now - s.at) / 60_000);
       const ago = mins < 1 ? "just now" : `${mins} min ago`;
-      return `${s.count} ${s.name} at ${s.x},${s.y},${s.z}, ${across} blocks ${direction(here, s.x, s.z)}${height}, seen by ${s.by === me ? "you" : s.by} ${ago}${s.wet ? " (beside water or lava, which mine_ore won't mine)" : ""}`;
+      return `${s.count} ${s.name} at ${s.x},${s.y},${s.z}, ${across} blocks ${direction(here, s.x, s.z)}${height}, seen by ${s.by === me ? "you" : s.by} ${ago}${s.wet ? " (beside lava, under water or below water, which mine_ore won't mine)" : ""}`;
     });
 }

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { context, fakeBot } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, spareGoodTools, threatened } from "./util.js";
+import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
 
 test("threatened - for digging, a mob behind solid rock doesn't count; one in view or right beside does", () => {
   const creeper = (x: number) => ({ name: "creeper", type: "hostile", position: { x, y: 64, z: 0.5 } });
@@ -72,4 +72,16 @@ test("spareGoodTools - digs with the cheapest tool quick enough, an iron one onl
   assert.equal(pick({ iron_pickaxe: 1 }, "dirt"), "hand", "a hand digs dirt quickly enough");
   assert.equal(pick({ iron_pickaxe: 1, cobblestone: 4 }, "dirt"), "cobblestone", "held in place of the pickaxe, it digs as a hand does");
   assert.equal(pick({ iron_pickaxe: 1 }, "stone"), "fastest", "stone by hand takes 7.5 s: the iron one is used");
+});
+
+test("oreHazard - water beside is fine; lava beside, water above, or no face open to air is not", () => {
+  const ore = (extra: Record<string, string>) => fakeBot({ position: { x: 0.5, y: 70, z: 0.5 }, blocks: { "5,64,5": "iron_ore", ...extra } }).bot;
+  const at = new Vec3(5, 64, 5);
+  assert.equal(oreHazard(ore({ "6,64,5": "water" }), at), null, "water to one side, air on the others");
+  assert.equal(oreHazard(ore({ "5,63,5": "water" }), at), null, "water below");
+  assert.equal(oreHazard(ore({ "4,64,5": "lava" }), at), "lava beside it");
+  assert.equal(oreHazard(ore({ "5,65,5": "water" }), at), "water above it");
+  const sunk: Record<string, string> = {};
+  for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) sunk[`${5 + dx},${64 + dy},${5 + dz}`] = "stone";
+  assert.equal(oreHazard(ore({ ...sunk, "4,64,5": "water", "5,65,5": "stone" }), at), "under water", "its only open face is water");
 });
