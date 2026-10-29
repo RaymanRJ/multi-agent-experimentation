@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import type { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, nearestUncrowded, threatened, withTimeout } from "./util.js";
+import { asNumber, homeBlock, nearestUncrowded, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -100,6 +100,7 @@ async function digDown(ctx: SkillContext, wanted: number): Promise<string | null
     if (under && (under.name === "air" || under.name === "cave_air")) return "stopped digging down: a cave opens below";
     if (LIQUIDS.has(below.name)) return `stopped digging down: standing over ${below.name}`;
     if (!bot.canDigBlock(below)) return `cannot dig the ${below.name} below`;
+    if (homeBlock(bot, below.position)) return "stopped digging down: that is the floor of a home";
     try {
       if (!(await readyToDig(ctx))) return "your pickaxe broke";
       await withTimeout(bot.dig(below), DIG_TIMEOUT_MS, "digging down");
@@ -179,7 +180,7 @@ export const mineStone: Skill = {
       // Filtered inside the search, not after it: the nearest few hundred stone blocks are nearly all
       // buried, so a search for stone then a filter for open stone found none and dug down instead.
       const usable = (candidate: Block) =>
-        candidate.position.y >= startFeet - MAX_DROP_TO_STONE && !skipped.has(key(candidate.position)) && exposure(ctx, candidate.position) === "open";
+        candidate.position.y >= startFeet - MAX_DROP_TO_STONE && !skipped.has(key(candidate.position)) && !homeBlock(bot, candidate.position) && exposure(ctx, candidate.position) === "open";
       for (const radius of SEARCH_RADII) {
         // Nearest first keeps travel short (findBlocks is not distance-sorted for every case);
         // stone beside another agent last, so two agents don't dig the same pit.

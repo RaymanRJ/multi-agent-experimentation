@@ -1353,6 +1353,29 @@ of them with water merely beside them. The rest are under water or have water ab
 refused; the two in the spawn lake were behind most of the refusals. Checked live: ore by a pool mined
 from dry ground in one try, ore under water left alone. A small gain, not the unlock the 45% suggested.
 
+## A real door (bpoc13)
+
+*Three GPT-6 Luna agents, one rep, 29 October, on 4874dbd: tluna2-3's settings with a real wooden door in
+the home, opened and shut on every walk, the home's walls kept from the pathfinder, and a note when a skill
+walks out at night. US$0.15.*
+
+**The whole goal, with no deaths, by the end of day 2.** lc built the home by 5:19 of day 1 with a door in
+it; beds went down and all three slept, so both nights were skipped (only 10 observations fell at night);
+lb made the iron pickaxes and the food was stored. Inside the home at night it was closed every time, no
+monster was at its doorway or inside it, and nobody was hit at night.
+
+**What it says about the door: little.** With the nights slept through, the door had almost nothing to
+keep out. This rep shows a team that got its beds early, not the door's effect on night deaths.
+
+**Where our code, not the agents, decided something:** the door came out twice. lb ran `descend` from
+inside the home and the staircase went down through the floor and the doorway, carrying the door off;
+later a replacement door vanished while lb's `climb_out` dug its way up beside the doorway. The pathfinder
+was kept off the home, but skills that dig for themselves were not. Changed after it: `descend`, `tunnel`,
+`climb_out`, `mine_stone`, `mine_ore`'s dig-through, `flee`'s dig-in and clearing for a new home all leave a
+known home's floor, walls, roof and door alone. Checked live on a home built on stone: `descend` from inside
+refused ("every way down is unsafe (north: part of a home; …)"), `mine_stone` beside it took stone
+elsewhere, and `climb_out` from under the doorway came up without a gap.
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1381,6 +1404,7 @@ dying, and the next run showed the next one.
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 | bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
 | thaiku1-2 | 0, 4, 11 | Haiku agents mostly waited at night; three drownings digging up through rock under water | `climb_out` swims to the nearest air first |
+| bpoc13 | 0 | The whole goal by the end of day 2, the nights slept through | Skills that dig for themselves leave the home alone |
 | tluna3 | 1, 4, 19 | Rep 3: a besieged home again, 16 zombie deaths; 18 of 24 in all during a flee | (none) |
 | tluna2 | 14, 1, 4 | Rep 1: lc died 10 times in flees round a besieged home at night and dawn, as in bpoc8 | (none) |
 | bpoc12 | 8 | Skeletons' arrows killed 5; lb died 5 times (an enderman, a creeper, two skeletons, drowning); together they lost the wool four times, the meat and an iron pickaxe | (none yet) |

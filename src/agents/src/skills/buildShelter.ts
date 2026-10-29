@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
-import { asNumber, gotoWatched, liquidBeside, opensOnClick, protectCells, threatened, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, homeBlock, liquidBeside, opensOnClick, protectCells, threatened, withTimeout } from "./util.js";
 import { craft } from "./craft.js";
 
 const { goals } = pathfinderPkg;
@@ -390,7 +390,7 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
       const block = bot.blockAt(b.centre.plus(offset));
       if (!block || block.boundingBox !== "block" || FURNISHING.test(block.name)) continue;
       try {
-        if (!bot.canDigBlock(block)) throw new Error("cannot dig");
+        if (!bot.canDigBlock(block) || homeBlock(bot, block.position)) throw new Error("cannot dig");
         // Bare hands take 10 s on cobblestone, as long as the old limit (Haiku in p5 had a stone pickaxe).
         const tool = bot.pathfinder.bestHarvestTool(block);
         if (tool) await bot.equip(tool, "hand");

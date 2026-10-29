@@ -4,7 +4,7 @@ import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, gotoWatched, opensOnClick, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, homeBlock, opensOnClick, withTimeout } from "./util.js";
 import { describeShelter, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
 import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
@@ -160,6 +160,7 @@ export async function burrow(bot: Bot): Promise<string | null> {
   for (const cell of dig) {
     const block = bot.blockAt(cell);
     if (!block || block.boundingBox !== "block") continue;
+    if (homeBlock(bot, cell)) return "the ground here is a home's floor";
     const tool = bot.pathfinder.bestHarvestTool(block);
     if (tool) await bot.equip(tool, "hand");
     await landed();

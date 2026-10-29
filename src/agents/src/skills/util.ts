@@ -190,6 +190,17 @@ export function protectCells(bot: Bot, cells: () => Set<string>): void {
   protectedCells.set(bot, cells);
 }
 
+/**
+ * Part of a home, never to be dug by a skill either: a known home's floor, wall or roof cell, or any door.
+ * The pathfinder was kept off them, but skills that dig for themselves were not: in bpoc13 a descend started
+ * inside the home dug a staircase down through its floor and doorway and carried the door away.
+ */
+export function homeBlock(bot: Bot, at: { x: number; y: number; z: number }): boolean {
+  if (protectedCells.get(bot)?.().has(`${at.x},${at.y},${at.z}`)) return true;
+  const name = bot.blockAt(at as never)?.name ?? "";
+  return name.endsWith("_door");
+}
+
 /** Extra path cost per block of water, against 1 for a block of walking. */
 export const LIQUID_COST = 8;
 

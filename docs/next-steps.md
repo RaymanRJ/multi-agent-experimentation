@@ -51,8 +51,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    home, which was open 21% of the night (leaving dug the doorway and nothing closed it) or had a monster
    at its doorway. **Done:** a wooden door, opened and shut on every walk, shut by the body when left open,
    walls never dug, entry allowed with a monster beyond 3 blocks, and a skill that walks out at night says
-   so (checked live, two bots, zombies at the door; the night note not yet seen live). **Next:** a Luna
-   proof run to compare night deaths (about US$0.30, owner's OK). Was open: the deaths at night round the home, most of them during a
+   so (checked live, two bots, zombies at the door; the night note not yet seen live). **bpoc13** (Luna proof,
+   US$0.15): the whole goal by the end of day 2, no deaths, the nights slept through, so it says little
+   about the door; but lb's `descend` from inside the home dug through its floor and doorway. Fixed: skills
+   that dig for themselves leave a known home alone (checked live). Three Luna teams on recent code: 2
+   whole goals in 7 reps. **Next:** more reps with real night time at home to see the door's effect; and
+   per dig, skills take 0.9-1.4 s against the game's 0.6 s with a stone pickaxe (descend 85% digging), so
+   trimming waits could save 10-25%. Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -207,3 +212,4 @@ The write-up named on each line has the detail.
 **29 October**
 - tluna3: 0 of 3; six Luna reps, 1 win. `mine_ore` mines ore with water only beside it.
 - Night deaths reviewed; homes get a real door, kept shut, and walls the pathfinder never digs.
+- bpoc13: the whole goal, no deaths (nights slept through); skills that dig leave the home alone.

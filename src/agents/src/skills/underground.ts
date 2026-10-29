@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, groundAbove, headInWater, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -55,6 +55,7 @@ function unsafe(bot: Bot, cell: Vec3): string | null {
   if (block.name === "lava" || block.name === "water") return block.name;
   if (block.boundingBox === "empty") return null;
   if (block.name === "bedrock" || !bot.canDigBlock(block)) return `unbreakable ${block.name}`;
+  if (homeBlock(bot, cell)) return "part of a home";
   const liquid = liquidBeside(bot, cell);
   return liquid ? `${liquid} behind the ${block.name}` : null;
 }
@@ -348,7 +349,7 @@ async function swimOut(bot: Bot): Promise<string | null> {
       }
       const over = bot.blockAt(bot.entity.position.offset(0, 2.1, 0).floored());
       if (over && over.boundingBox === "block") {
-        if (over.name === "bedrock" || !bot.canDigBlock(over)) return `under water with ${over.name} overhead, which can't be dug`;
+        if (over.name === "bedrock" || !bot.canDigBlock(over) || homeBlock(bot, over.position)) return `under water with ${over.name} overhead, which can't be dug`;
         bot.setControlState("jump", false);
         await equipDigger(bot);
         await withTimeout(bot.dig(over), DIG_TIMEOUT_MS, `digging the ${over.name} overhead`);

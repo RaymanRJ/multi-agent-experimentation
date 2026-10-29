@@ -4,7 +4,7 @@ import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, headInWater, nearestUncrowded, isExposed, liquidBeside, oreHazard, threatened, withTimeout } from "./util.js";
+import { asNumber, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
 import { standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
@@ -51,7 +51,7 @@ async function digThrough(bot: Bot, ore: Block): Promise<boolean> {
     if (dug >= MAX_DIG_THROUGH) return false;
     const between = firstSolidBetween(bot, eye, centre, ore.position);
     if (!between) return false;
-    if (FURNITURE.test(between.name) || !bot.canDigBlock(between) || liquidBeside(bot, between.position)) return false;
+    if (FURNITURE.test(between.name) || !bot.canDigBlock(between) || liquidBeside(bot, between.position) || homeBlock(bot, between.position)) return false;
     const tool = bot.pathfinder.bestHarvestTool(between);
     if (tool) await bot.equip(tool, "hand");
     await withTimeout(bot.dig(between), DIG_TIMEOUT_MS, "digging toward the ore");
