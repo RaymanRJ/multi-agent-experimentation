@@ -253,6 +253,11 @@ export const chapters: Chapter[] = [
         name: 'tmix1',
         showed: 'Sonnet with two Haikus: home and food for $0.95. Sonnet made all three iron pickaxes and died with them two decisions later.',
       },
+      {
+        name: 'tluna3',
+        showed: 'Three more Luna reps: 2, 3 and 1 parts, no whole goal. Over six reps three Lunas won once (3-56%), the mixed team 3 times in 8 (14-69%): not yet told apart, but a win cost about $1.78 against $6.40.',
+        then: 'Ore with water only beside it is mined from dry footing; under water it is still left alone.',
+      },
     ],
     lesson: { text: 'A cheaper model\'s ceiling rises with the harness: fix the tools first, then compare prices.', anchor: 'evaluation' },
   },

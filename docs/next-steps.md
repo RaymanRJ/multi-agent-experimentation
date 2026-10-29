@@ -43,9 +43,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    to the nearest air first (checked live). **tluna2** (three Lunas, 3 reps, US$0.76): rep 2 met the whole
    goal for US$0.15, the first all-Luna win; reps 1 and 3 met 2 and 3 parts. **tmix1** (Sonnet with two
    Haiku 5.5, 1 rep, US$0.95): home and food; Sonnet died with all three iron pickaxes. So far the
-   cheapest team that can win is three Lunas. Next: more Luna reps to turn the hint into a rate (about
-   US$0.25 each), and the deaths that still decide most reps. Credit after these: Anthropic about
-   US$1.70, OpenAI about US$1.80.
+   cheapest team that can win is three Lunas. **tluna3** (three more Luna reps, US$1.02): 2, 3 and 1 parts;
+   over six reps three Lunas won 1 (95% 3-56%), against the mixed team's 3 in 8 (14-69%), at about
+   US$1.78 per win against US$6.40. Iron was missing in every tluna3 rep; rep 3 was a besieged home (19
+   deaths). Changed after: `mine_ore` mines ore with water only beside it (a small gain: 7 of the 70
+   iron ores by water around spawn). Open: the deaths at night round the home, most of them during a
+   flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
+   US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
@@ -194,3 +198,6 @@ The write-up named on each line has the detail.
 - thaiku1, three Haiku 5.5 agents (0 of 4, no deaths, US$0.20); a `respawn` skill for an agent no skill can move.
 - `climb_out` swims up onto a bank; thaiku2 (Haiku reps 2-3): 2 of 4 parts each.
 - `climb_out` swims to air under rock; tluna2: the first all-Luna win (1 of 3, US$0.15); tmix1 (Sonnet + 2 Haiku): 2 of 4.
+
+**29 October**
+- tluna3: 0 of 3; six Luna reps, 1 win. `mine_ore` mines ore with water only beside it.

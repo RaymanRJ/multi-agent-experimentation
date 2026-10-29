@@ -1321,6 +1321,38 @@ rough.
 | Claude Sonnet 5.5 (tmix1) | 0.79 | 3 |
 | Claude Haiku 5.5 (×2, tmix1) | 0.16 | 2, 3 |
 
+**Three more Luna reps (tluna3)** (29 October, on 1a1ff84, the same code as tluna2, US$1.02):
+[report](../batch-reports/2026-10-29-0103-tluna3.md).
+
+| Part | Rep 1 | Rep 2 | Rep 3 |
+|---|---|---|---|
+| Shared home built | **yes** (day 1) | **yes** (day 1) | **yes** (day 1) |
+| Everyone slept there | 2 of 3 | **3 of 3** | 1 of 3 |
+| Everyone holds an iron pickaxe | 0 of 3 | 1 of 3 | 1 of 3 |
+| Food left in store | **10** | **20** | 0 |
+| Deaths | 1 | 4 | 19 |
+| Cost (USD) | 0.24 | 0.30 | 0.48 |
+
+No whole goal this time. **Rep 2 came closest**: home, everyone asleep and 20 cooked meat, and lc
+gathered 9 raw iron, but between tick 63,000 and 68,000 of 72,000; the run ended before it was
+smelted. **Rep 3 was a besieged home again**: 19 deaths, 16 of them to zombies; across the three reps 18 of 24 came during a
+flee. Iron was the part missing in every rep.
+
+**Six Luna reps on one code base (tluna2 and tluna3): 1 whole goal in 6** (95% interval 3-56%), at
+US$1.78 in all, about US$0.30 a rep. The mixed team's 3 in 8 (14-69%) overlaps it: the rates can't
+be told apart yet, but a win cost about US$1.78 with three Lunas against about US$6.40 with the mixed
+team (US$19.23 for 8 reps).
+
+**Where our code, not the agents, decided the outcome:** nothing new. One raw library error reached an
+agent once ("Event windowOpen did not fire within timeout of 20000ms", from `smelt`).
+
+**Changed after it (overnight, between runs):** `mine_ore` mines ore with water only beside it, from dry
+footing. The rule had refused any ore touching water or lava, which turned away 82 of 181 tries for iron
+in recent team runs; but a survey of the 330 exposed iron ores around spawn found 70 by water and only 7
+of them with water merely beside them. The rest are under water or have water above, and are still
+refused; the two in the spawn lake were behind most of the refusals. Checked live: ore by a pool mined
+from dry ground in one try, ore under water left alone. A small gain, not the unlock the 45% suggested.
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1349,6 +1381,7 @@ dying, and the next run showed the next one.
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 | bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
 | thaiku1-2 | 0, 4, 11 | Haiku agents mostly waited at night; three drownings digging up through rock under water | `climb_out` swims to the nearest air first |
+| tluna3 | 1, 4, 19 | Rep 3: a besieged home again, 16 zombie deaths; 18 of 24 in all during a flee | (none) |
 | tluna2 | 14, 1, 4 | Rep 1: lc died 10 times in flees round a besieged home at night and dawn, as in bpoc8 | (none) |
 | bpoc12 | 8 | Skeletons' arrows killed 5; lb died 5 times (an enderman, a creeper, two skeletons, drowning); together they lost the wool four times, the meat and an iron pickaxe | (none yet) |
 

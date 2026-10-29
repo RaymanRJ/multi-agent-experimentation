@@ -1,16 +1,16 @@
 {
   "from": "2026-10-23",
-  "to": "2026-10-28",
+  "to": "2026-10-29",
   "models": [
     {
       "model": "GPT-6 Luna",
-      "calls": 7647,
-      "inputTokens": 41279501,
-      "outputTokens": 2625026,
-      "cacheReadTokens": 31170553,
+      "calls": 8950,
+      "inputTokens": 48962641,
+      "outputTokens": 3131247,
+      "cacheReadTokens": 36884053,
       "cacheWriteTokens": 0,
-      "costUSD": 5.44,
-      "uncachedUSD": 5.44,
+      "costUSD": 6.46,
+      "uncachedUSD": 6.46,
       "savingCosted": false
     },
     {
