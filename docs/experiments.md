@@ -13,6 +13,13 @@ stance toward other agents, or the goal. Everything else is held fixed:
 - **The same time budget:** in game ticks, so a slow model loses game time.
 - **The same skills and prompt.**
 
+What is **not** held fixed, on purpose: chance inside the world. Mobs spawn where the game puts them,
+and `explore` sets off in a random direction, so two reps of the same team meet different luck (in
+team-base, the first bed came anywhere from 5 to 50 game-minutes in, mostly on which way the first
+`explore` went to find the herd). A real system never sees the same conditions twice either, and an
+agent that only succeeds when the dice are kind isn't robust. The owner's call, 29 October: keep it.
+The cost is more reps to tell conditions apart: report intervals, not single runs.
+
 Each run writes one log file to `runs/`. The report reads those logs, so you can re-analyse old
 runs without spending anything again.
 
