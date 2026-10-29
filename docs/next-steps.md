@@ -47,7 +47,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    over six reps three Lunas won 1 (95% 3-56%), against the mixed team's 3 in 8 (14-69%), at about
    US$1.78 per win against US$6.40. Iron was missing in every tluna3 rep; rep 3 was a besieged home (19
    deaths). Changed after: `mine_ore` mines ore with water only beside it (a small gain: 7 of the 70
-   iron ores by water around spawn). Open: the deaths at night round the home, most of them during a
+   iron ores by water around spawn). Night deaths reviewed (29 October): 44 of 77 at night or dawn, 31 within 24 blocks of a
+   home, which was open 21% of the night (leaving dug the doorway and nothing closed it) or had a monster
+   at its doorway. **Done:** a wooden door, opened and shut on every walk, shut by the body when left open,
+   walls never dug, entry allowed with a monster beyond 3 blocks, and a skill that walks out at night says
+   so (checked live, two bots, zombies at the door; the night note not yet seen live). **Next:** a Luna
+   proof run to compare night deaths (about US$0.30, owner's OK). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -201,3 +206,4 @@ The write-up named on each line has the detail.
 
 **29 October**
 - tluna3: 0 of 3; six Luna reps, 1 win. `mine_ore` mines ore with water only beside it.
+- Night deaths reviewed; homes get a real door, kept shut, and walls the pathfinder never digs.

@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { enclosed } from "./skills/flee.js";
-import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, mobsAtDoorwayNote, mobsInsideNote, REUSE_RANGE, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -422,6 +422,10 @@ async function main(): Promise<void> {
   watchBreaks(bot, (name) => recentEvents.push(`your ${name} broke`));
   // A block landing on the agent's head suffocates it in seconds, so the body digs it out (reflexes.ts).
   const unbury = unburyHead(bot, (name) => recentEvents.push(`a ${name.replace(/_/g, " ")} fell onto your head and you dug it out`));
+  // Leaving never digs the home open (protectHomes); a door left open is shut once nobody is in it (keepDoorsShut).
+  protectHomes(bot, knownShelters);
+  walkThroughDoors(bot, knownShelters);
+  const doors = keepDoorsShut(bot, knownShelters, () => !respawning);
   let lastAttackLine = "";
   let stepHits: NonNullable<LoggedStep["hits"]> = [];
   watchAttacks(bot, {
@@ -679,7 +683,16 @@ async function main(): Promise<void> {
     const deathsBefore = stepDeaths.length;
     watch = choosingToDie ? null : createWatch(snapshot(bot, buffer, inShelter()), suppressedFor(skill.name, lastMessageInterruptMs, Date.now()), DAMAGE_FLOOR[skill.name], REACHABLE_ONLY.has(skill.name));
     const skillStartAge = bot.time.age;
+    // The home it was shut in, if any, at night: a skill that walks out (to a table, a chest) says so after.
+    const nightNow = (bot.time.timeOfDay ?? 0) >= 13000 && (bot.time.timeOfDay ?? 0) < 23000;
+    const homeAtStart = nightNow ? knownShelters().find((spot) => insideClosedShelter(bot, spot)) : undefined;
     let result = await runSkill(skill, ctx, decision.args);
+    if (homeAtStart && !insideSpot(bot, homeAtStart) && bot.health > 0 && skill.name !== respawn.name) {
+      const away = Math.round(bot.entity.position.distanceTo(new Vec3(homeAtStart.x + 0.5, homeAtStart.y, homeAtStart.z + 0.5)));
+      const note = `${skill.name} took you out of the shelter at ${spotKey(homeAtStart)} at night; you are ${away} blocks from it`;
+      recentEvents.push(note);
+      stepEvents.push(note);
+    }
     // A skill that refuses at once and a policy that answers at once would otherwise loop without
     // ever yielding, the bot stops reading its socket, and the server drops it.
     if (bot.time.age === skillStartAge) await bot.waitForTicks(20);
@@ -788,6 +801,7 @@ async function main(): Promise<void> {
   stopping = true;
   if (teamTimer) clearInterval(teamTimer);
   clearInterval(lookTimer);
+  doors.stop();
   unbury.stop();
   publish();
   console.log(`[${agentName}] done — log at ${runLog.file}`);

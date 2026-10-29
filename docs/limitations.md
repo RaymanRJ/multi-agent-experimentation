@@ -317,6 +317,8 @@ building on it.
 - **Run logs are not backed up.** `runs/` is gitignored: logs hold every full prompt and come to
   about 130 MB so far. The write-ups in `docs/results/` are the record (see its README for why, and
   what batch names like b12 or p5 mean). Copy `runs/` somewhere if the raw logs matter.
+- **Homes have a door only when there were planks for one.** A home built from cobblestone or dirt alone
+  keeps the old two-block doorway, which leaving digs and the next one in fills.
 - **Most iron by water is under water.** Of 330 exposed iron ores around spawn, 70 touch water; after
   28 October `mine_ore` mines the 7 with water only beside them (from dry footing, checked live), and
   still refuses the 63 under water or with water above them, where agents once drowned. The two ores in

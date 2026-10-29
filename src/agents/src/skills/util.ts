@@ -153,6 +153,9 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   for (const block of bot.registry.blocksArray) {
     if (FURNITURE.test(block.name)) movements.blocksCantBreak.add(block.id);
   }
+  // Doors are never dug and never opened by the library (its door handling stood the bot still in an open
+  // doorway, checked live): buildShelter's walkThroughDoors takes the agent through the door instead.
+  movements.exclusionAreasBreak.push((block) => (protectedCells.get(bot)?.().has(`${block.position.x},${block.position.y},${block.position.z}`) ? 1000 : 0));
   // Steer round anywhere the bot has got stuck this run (gotoWatched records them).
   movements.exclusionAreasStep.push((block) => (stuckSpots.get(bot)?.has(`${block.position.x},${block.position.y},${block.position.z}`) ? STUCK_SPOT_COST : 0));
   return movements;
@@ -175,7 +178,17 @@ export function avoidSpot(bot: Bot): void {
   stuckSpots.set(bot, spots);
 }
 
-const FURNITURE = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$/;
+const FURNITURE = /_bed$|^(trapped_)?chest$|^furnace$|^crafting_table$|_door$/;
+
+/**
+ * Cells the pathfinder must not dig, by bot: the floors, walls and roofs of the homes it knows (agent.ts keeps
+ * the set). Walking out used to dig through the doorway, or any wall, and leave the home open behind it; with
+ * a door in it the door is the way out, opened and shut, and the walls stay whole.
+ */
+const protectedCells = new WeakMap<Bot, () => Set<string>>();
+export function protectCells(bot: Bot, cells: () => Set<string>): void {
+  protectedCells.set(bot, cells);
+}
 
 /** Extra path cost per block of water, against 1 for a block of walking. */
 export const LIQUID_COST = 8;
