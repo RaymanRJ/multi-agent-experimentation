@@ -775,7 +775,10 @@ function goalPoint(goal: unknown, y: number): Vec3 | null {
 
 /** Opens the door, walks straight through it to `to`, and stops there; the door keeper shuts it behind. */
 async function stepThroughDoor(bot: Bot, cells: { door: Vec3 }, from: Vec3, to: Vec3): Promise<void> {
-  await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), 20_000);
+  // Up to 48 blocks to the door: 20 s flat ran out ("walking to the door timed out", tluna runs), so a
+  // second a block, at least 20.
+  const far = bot.entity.position.distanceTo(from.offset(0.5, 0, 0.5));
+  await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), Math.max(20_000, Math.round(far * 1000) + 10_000));
   doorBusy.add(bot);
   try {
     await walkThrough(bot, cells, to);
