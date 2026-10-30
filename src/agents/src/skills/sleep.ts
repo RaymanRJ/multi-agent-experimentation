@@ -38,6 +38,8 @@ async function placeBed(ctx: SkillContext): Promise<boolean> {
       await bot.waitForTicks(2);
       await bot.placeBlock(ground, new Vec3(0, 1, 0));
       await bot.waitForTicks(6); // both halves, before anyone tries to sleep in it
+      const at = origin.plus(offset);
+      ctx.log(`put a bed down at ${at.x},${at.y},${at.z}`);
       return true;
     } catch (error) {
       ctx.log(`bed placement at ${ground.position} failed: ${(error as Error).message}`);
@@ -127,7 +129,10 @@ async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<{ p
       }
       // Both halves arrive as separate block updates; sleeping before the second reads as "only half a bed".
       await bot.waitForTicks(6);
-      if (bot.blockAt(foot)?.name.endsWith("_bed")) return { placed: true, refused };
+      if (bot.blockAt(foot)?.name.endsWith("_bed")) {
+        ctx.log(`put a bed down at ${foot.x},${foot.y},${foot.z} to ${head.x},${head.y},${head.z}`);
+        return { placed: true, refused };
+      }
       refused++;
     }
   }

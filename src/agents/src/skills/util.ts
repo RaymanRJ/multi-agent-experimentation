@@ -475,6 +475,53 @@ async function dropThroughLeaves(bot: Bot): Promise<boolean> {
   return true;
 }
 
+const quick = new WeakSet<Bot>();
+
+/**
+ * Digs as a player does: facing the block at once, and with both feet down. The library turns the head
+ * smoothly unless told otherwise (0.3-0.5 s a block in mine_stone, measured live), and fixes a dig's
+ * time when it starts, five times longer in the air: descend began every third dig before landing from
+ * the step down, 2.9 s instead of 0.6 s. Wraps bot.dig once, for every skill and the pathfinder.
+ */
+export function quickDigs(bot: Bot): void {
+  if (quick.has(bot)) return;
+  quick.add(bot);
+  const inner = bot.dig.bind(bot);
+  bot.dig = (async (block: Parameters<typeof inner>[0], forceLook?: boolean | "ignore", digFace?: unknown) => {
+    // In water or on a ladder the bot never lands; there the wait would only add to the slower dig.
+    const climbing = /ladder|vine|scaffolding/.test(bot.blockAt(bot.entity.position.floored())?.name ?? "");
+    for (let tick = 0; tick < 10 && !bot.entity.onGround && !(bot.entity as { isInWater?: boolean }).isInWater && !climbing; tick++) await bot.waitForTicks(1);
+    return (inner as (...args: unknown[]) => Promise<void>)(block, forceLook ?? true, digFace);
+  }) as typeof inner;
+}
+
+const honest = new WeakSet<Bot>();
+
+/**
+ * Makes a walk that stopped short fail, saying how far short. The pathfinder's walk resolves as if it had
+ * arrived whenever its best path is empty, which is also what it does when the goal can't be reached and the
+ * bot already stands at the nearest point (seen live: a walk into a sealed box "arrived" 2 blocks short), so
+ * skills went on as if they were there. Wraps bot.pathfinder.goto once; goals that follow something moving
+ * are left as they are.
+ */
+export function honestWalks(bot: Bot): void {
+  if (honest.has(bot)) return;
+  honest.add(bot);
+  const inner = bot.pathfinder.goto.bind(bot.pathfinder);
+  bot.pathfinder.goto = (async (goal: Parameters<typeof inner>[0]) => {
+    await inner(goal);
+    const at = bot.entity.position.floored();
+    if (goal.constructor.name === "GoalFollow" || goal.isEnd(at as never)) return;
+    const g = goal as unknown as { x?: number; y?: number; z?: number };
+    const short = typeof g.x === "number" && typeof g.z === "number" ? Math.round(Math.hypot(g.x - at.x, (g.y ?? at.y) - at.y, g.z - at.z)) : null;
+    // A block off is within reach of whatever comes next, and callers built on it: only a real shortfall fails.
+    if (short !== null && short <= 1) return;
+    const error = new Error(`no way all the way there was found: stopped ${short === null ? "short" : `${short} blocks short`}`);
+    error.name = "NoPath";
+    throw error;
+  }) as typeof inner;
+}
+
 export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["goto"]>[0], timeoutMs: number, label: string): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (let nudge = 0; ; nudge++) {

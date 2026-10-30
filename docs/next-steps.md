@@ -69,10 +69,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    room stays walkable (two homes became traps, 5g and 5h). Each checked live. Left as the agents': an agent
    that made all three pickaxes died far from the team at health 7 with no food, another sat 80 decisions at
    health 3 fleeing a spider that couldn't reach it. Not found: what shut 5g's agents in (a workbench in the
-   doorway does it, and is guarded). Write-up 06. **Next:** reps on unchanged code (598654d) to see the rate:
-   five reps of three Lunas cost about US$1.70; and
-   per dig, skills take 0.9-1.4 s against the game's 0.6 s with a stone pickaxe (descend 85% digging), so
-   trimming waits could save 10-25%. Was open: the deaths at night round the home, most of them during a
+   doorway does it, and is guarded). Write-up 06. **Done after (the owner's asks):** digs now take the game's
+   own time (descend 16 blocks 74 s to 31 s, mine_stone 26 s to 19 s, tunnel 28 s to 24 s, measured live: a
+   third of descend's digs had started before landing, five times slower); a walk that stops more than a block
+   short fails, saying how far, instead of passing as arrived; placements of workbenches, chests, furnaces and
+   beds are logged with where. **Next:** reps on unchanged code to see the rate: five reps of three Lunas
+   cost about US$1.70. Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -232,3 +234,4 @@ The write-up named on each line has the detail.
 
 **30 October**
 - Overnight, tluna5a-i (nine Luna reps, a fix after each): the whole goal in the last only; fixes to eat, smelt, give, digging through wet ground, doorways and bed placement. Write-up 06.
+- Digs at the game's own speed (descend about 2.4 times faster); walks that stop short say so; placements logged with where.

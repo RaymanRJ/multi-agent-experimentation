@@ -453,6 +453,13 @@ async function tryPlaceAgainstWalls(ctx: SkillContext, name: string): Promise<Bl
 }
 
 export async function placeNearby(ctx: SkillContext, name: string): Promise<Block | null> {
+  const placed = await placeSomewhere(ctx, name);
+  // Where, in the log: in tluna5g two agents were shut in their home and nothing said what had been put down where.
+  if (placed) ctx.log(`put a ${name} down at ${placed.position.x},${placed.position.y},${placed.position.z}`);
+  return placed;
+}
+
+async function placeSomewhere(ctx: SkillContext, name: string): Promise<Block | null> {
   const bot = ctx.bot;
   const here = (await tryPlaceHere(ctx, name)) ?? (await tryPlaceAgainstWalls(ctx, name));
   if (here) return here;
@@ -465,10 +472,10 @@ export async function placeNearby(ctx: SkillContext, name: string): Promise<Bloc
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(target.x, target.y, target.z)), TRAVEL_TIMEOUT_MS, "walking to open ground");
     } catch (error) {
+      // Somewhere near is all a placement needs: try from wherever the walk got to.
       ctx.log(`could not walk to open ground at ${target.x},${target.y},${target.z}: ${(error as Error).message}`);
-      continue;
     }
-    const placed = await tryPlaceHere(ctx, name);
+    const placed = (await tryPlaceHere(ctx, name)) ?? (await tryPlaceAgainstWalls(ctx, name));
     if (placed) return placed;
   }
   return null;

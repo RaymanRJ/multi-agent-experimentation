@@ -15,7 +15,7 @@ import { env, loadEnv } from "./env.js";
 import { observe } from "./observe.js";
 import { fixOwnAir } from "./breathFix.js";
 import { findSkill, SKILLS } from "./skills/index.js";
-import { movementsFor } from "./skills/util.js";
+import { honestWalks, movementsFor, quickDigs } from "./skills/util.js";
 import type { SkillContext } from "./types.js";
 
 const { pathfinder } = pathfinderPkg;
@@ -46,6 +46,8 @@ bot.on("error", (error) => console.error(`error: ${error.message}`));
 
 bot.once("spawn", async () => {
   bot.pathfinder.setMovements(movementsFor(bot));
+  honestWalks(bot);
+  quickDigs(bot);
   await bot.waitForChunksToLoad();
 
   const events: string[] = [];

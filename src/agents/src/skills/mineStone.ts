@@ -242,7 +242,9 @@ export const mineStone: Skill = {
       } catch {
         // Best-effort; the loop re-checks the real inventory count.
       }
-      await bot.waitForTicks(10);
+      // A drop can't be picked up for 10 ticks after it falls; stop waiting once it has been.
+      const before = cobbleHeld(ctx);
+      for (let tick = 0; tick < 10 && cobbleHeld(ctx) === before; tick++) await bot.waitForTicks(1);
     }
 
     return {

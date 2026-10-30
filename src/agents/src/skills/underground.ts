@@ -216,7 +216,9 @@ async function clear(bot: Bot, cells: Vec3[], plug = false): Promise<void> {
       await withTimeout(bot.dig(block!), DIG_TIMEOUT_MS, `digging ${block!.name}`);
       if (plug) await plugWater(bot, block!.position, cells);
     }
-    await bot.waitForTicks(6);
+    // Long enough for gravel or sand to start falling, only where some could: every step waited 0.3 s.
+    const couldFall = cells.some((cell) => FALLS.test(bot.blockAt(cell.offset(0, 1, 0))?.name ?? ""));
+    await bot.waitForTicks(couldFall ? 6 : 1);
   }
   throw new Error("blocks kept falling into the gap");
 }

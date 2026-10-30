@@ -26,7 +26,7 @@ import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { canReach, getOutOfWater, headInWater, movementsFor, runSkill } from "./skills/util.js";
+import { canReach, getOutOfWater, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -425,6 +425,10 @@ async function main(): Promise<void> {
   // Leaving never digs the home open (protectHomes); a door left open is shut once nobody is in it (keepDoorsShut).
   protectHomes(bot, knownShelters);
   walkThroughDoors(bot, knownShelters);
+  // A walk that stopped short of where it was going says so, instead of passing as arrived.
+  honestWalks(bot);
+  // Digs face the block at once and start with both feet down, as a player digs.
+  quickDigs(bot);
   const doors = keepDoorsShut(bot, knownShelters, () => !respawning);
   let lastAttackLine = "";
   let stepHits: NonNullable<LoggedStep["hits"]> = [];
