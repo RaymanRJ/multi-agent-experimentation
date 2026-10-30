@@ -2,7 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { context, fakeBot } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
+import { doorwayLanes, groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
+
+test("doorwayLanes - the cells inside, in and outside a home's south doorway, at feet and head height (tluna5g)", () => {
+  const lane = doorwayLanes([{ x: 10, y: 73, z: 30, size: 5 }]);
+  assert.deepEqual([...lane].sort(), ["10,73,32", "10,73,33", "10,73,34", "10,74,32", "10,74,33", "10,74,34"]);
+  assert.ok(doorwayLanes([{ x: 0, y: 64, z: 0 }]).has("0,64,1"), "a small shelter's doorway is one block nearer");
+});
 
 test("threatened - for digging, a mob behind solid rock doesn't count; one in view or right beside does", () => {
   const creeper = (x: number) => ({ name: "creeper", type: "hostile", position: { x, y: 64, z: 0.5 } });

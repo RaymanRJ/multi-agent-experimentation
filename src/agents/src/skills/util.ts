@@ -201,6 +201,20 @@ export function homeBlock(bot: Bot, at: { x: number; y: number; z: number }): bo
   return name.endsWith("_door");
 }
 
+/**
+ * Each home's way in and out, as "x,y,z": the cell inside its doorway, the doorway and the cell outside,
+ * at feet and head height. In tluna5g two agents could not walk out of their home for the last third of
+ * the run; a crafting table on the cell inside the doorway shuts an agent in just so (reproduced live).
+ */
+export function doorwayLanes(homes: ReadonlyArray<{ x: number; y: number; z: number; size?: number }>): Set<string> {
+  const lane = new Set<string>();
+  for (const home of homes) {
+    const r = (home.size === 5 ? 2 : 1) + 1;
+    for (const dz of [r - 1, r, r + 1]) for (const dy of [0, 1]) lane.add(`${home.x},${home.y + dy},${home.z + dz}`);
+  }
+  return lane;
+}
+
 /** Extra path cost per block of water, against 1 for a block of walking. */
 export const LIQUID_COST = 8;
 

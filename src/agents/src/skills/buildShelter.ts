@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
-import { asNumber, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
+import { asNumber, doorwayLanes, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
 
 const { goals } = pathfinderPkg;
@@ -817,20 +817,42 @@ function gotoUnwrapped(bot: Bot, goal: InstanceType<typeof goals.GoalBlock>, ms:
  * the walk then carries on from there. The library can't walk through doors, and the home's walls and doors
  * are cells it may not dig (protectHomes), so without this an agent with a door would be shut in.
  */
+/** Workbenches that drop themselves when dug; chests and beds, holding things or sleepers, are left alone. */
+const CLEARABLE = /^(crafting_table|furnace|smoker|blast_furnace|smithing_table|stonecutter)$/;
+
+/**
+ * Digs a workbench out of a home's way in or out (doorwayLanes), in reach. The pathfinder never breaks
+ * furniture and may not dig a home's walls, so a crafting table inside the doorway shut an agent in (live).
+ */
+async function clearLane(bot: Bot, spot: ShelterSpot): Promise<void> {
+  const eye = bot.entity.position.offset(0, 1.6, 0);
+  for (const key of doorwayLanes([spot])) {
+    const [x, y, z] = key.split(",").map(Number) as [number, number, number];
+    const block = bot.blockAt(new Vec3(x, y, z));
+    if (!block || !CLEARABLE.test(block.name) || eye.distanceTo(block.position.offset(0.5, 0.5, 0.5)) > 5) continue;
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool) await bot.equip(tool, "hand").catch(() => {});
+    await withTimeout(bot.dig(block), 10_000, `clearing the ${block.name} from the doorway`).catch(() => {});
+  }
+}
+
 export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
   if (unwrappedGoto.has(bot)) return;
   const original = bot.pathfinder.goto.bind(bot.pathfinder);
   unwrappedGoto.set(bot, original);
   bot.pathfinder.goto = (async (goal: Parameters<typeof original>[0]) => {
     for (const spot of homes()) {
-      if (!doorOf(bot, spot)) continue;
       const point = goalPoint(goal, spot.y);
       const inside = insideSpot(bot, spot);
       const goalInside = point ? pointInside(point, spot) : false;
       const cells = doorwayCells(spot);
-      if (inside && point && !goalInside) await stepThroughDoor(bot, cells, cells.inner, cells.outer);
-      else if (!inside && goalInside && bot.entity.position.distanceTo(cells.outer) <= 48) await stepThroughDoor(bot, cells, cells.outer, cells.inner);
-      else continue;
+      const leaving = inside && point && !goalInside;
+      const entering = !inside && goalInside && bot.entity.position.distanceTo(cells.outer) <= 48;
+      if (!leaving && !entering) continue;
+      await clearLane(bot, spot);
+      if (!doorOf(bot, spot)) break;
+      if (leaving) await stepThroughDoor(bot, cells, cells.inner, cells.outer);
+      else await stepThroughDoor(bot, cells, cells.outer, cells.inner);
       break;
     }
     return original(goal);

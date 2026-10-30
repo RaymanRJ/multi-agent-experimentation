@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, closeStrayWindow, openOrWalk, opensOnClick, plainError, SMELTS, withTimeout } from "./util.js";
+import { asNumber, closeStrayWindow, doorwayLanes, openOrWalk, opensOnClick, plainError, SMELTS, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -339,7 +339,13 @@ function isOpen(block: Block | null): boolean {
 }
 
 /** Cells near the bot where a block could stand on solid ground, nearest first. */
-function placementSpots(bot: Bot): Vec3[] {
+/** Where nothing may be put down: every known home's way in and out. */
+function keepClear(ctx: SkillContext): (cell: Vec3) => boolean {
+  const lane = doorwayLanes(ctx.shelters?.() ?? []);
+  return (cell) => lane.has(`${cell.x},${cell.y},${cell.z}`);
+}
+
+function placementSpots(bot: Bot, blocked: (cell: Vec3) => boolean = () => false): Vec3[] {
   const feet = bot.entity.position.floored();
   const eye = bot.entity.position.offset(0, 1.6, 0);
   const spots: Array<{ cell: Vec3; distance: number }> = [];
@@ -350,7 +356,7 @@ function placementSpots(bot: Bot): Vec3[] {
         const cell = feet.offset(dx, dy, dz);
         const distance = eye.distanceTo(cell.offset(0.5, 0.5, 0.5));
         if (distance > PLACE_REACH) continue;
-        if (!isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
+        if (blocked(cell) || !isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
         const floor = bot.blockAt(cell.offset(0, -1, 0));
         if (floor?.boundingBox !== "block" || opensOnClick(floor.name)) continue;
         spots.push({ cell, distance });
@@ -362,7 +368,7 @@ function placementSpots(bot: Bot): Vec3[] {
 
 async function tryPlaceHere(ctx: SkillContext, name: string): Promise<Block | null> {
   const bot = ctx.bot;
-  for (const cell of placementSpots(bot)) {
+  for (const cell of placementSpots(bot, keepClear(ctx))) {
     const held = bot.inventory.items().find((item) => item.name === name);
     if (!held) return null;
     try {
@@ -379,7 +385,7 @@ async function tryPlaceHere(ctx: SkillContext, name: string): Promise<Block | nu
 }
 
 /** Spots to walk to when nothing next to the bot works: open ground 3-8 blocks away, nearest first. */
-function relocationTargets(bot: Bot): Vec3[] {
+function relocationTargets(bot: Bot, blocked: (cell: Vec3) => boolean): Vec3[] {
   const feet = bot.entity.position.floored();
   const found: Array<{ cell: Vec3; distance: number }> = [];
   for (let dx = -8; dx <= 8; dx++) {
@@ -388,7 +394,7 @@ function relocationTargets(bot: Bot): Vec3[] {
       if (distance < 3 || distance > 8) continue;
       for (const dy of [0, -1, 1, -2, 2]) {
         const cell = feet.offset(dx, dy, dz);
-        if (!isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
+        if (blocked(cell) || !isOpen(bot.blockAt(cell)) || !isOpen(bot.blockAt(cell.offset(0, 1, 0)))) continue;
         if (bot.blockAt(cell.offset(0, -1, 0))?.boundingBox !== "block") continue;
         found.push({ cell, distance });
         break;
@@ -413,6 +419,7 @@ async function tryPlaceAgainstWalls(ctx: SkillContext, name: string): Promise<Bl
   const bot = ctx.bot;
   const feet = bot.entity.position.floored();
   const eye = bot.entity.position.offset(0, 1.6, 0);
+  const blocked = keepClear(ctx);
   const cells: Array<{ cell: Vec3; distance: number }> = [];
   for (let dx = -3; dx <= 3; dx++) {
     for (let dy = -1; dy <= 2; dy++) {
@@ -420,7 +427,7 @@ async function tryPlaceAgainstWalls(ctx: SkillContext, name: string): Promise<Bl
         if (dx === 0 && dz === 0 && (dy === 0 || dy === 1)) continue; // the bot itself
         const cell = feet.offset(dx, dy, dz);
         const distance = eye.distanceTo(cell.offset(0.5, 0.5, 0.5));
-        if (distance <= PLACE_REACH && isOpen(bot.blockAt(cell))) cells.push({ cell, distance });
+        if (distance <= PLACE_REACH && isOpen(bot.blockAt(cell)) && !blocked(cell)) cells.push({ cell, distance });
       }
     }
   }
@@ -452,7 +459,7 @@ export async function placeNearby(ctx: SkillContext, name: string): Promise<Bloc
 
   const tried: Vec3[] = [];
   for (let attempt = 0; attempt < 3; attempt++) {
-    const target = relocationTargets(bot).find((cell) => tried.every((t) => t.distanceTo(cell) > 3));
+    const target = relocationTargets(bot, keepClear(ctx)).find((cell) => tried.every((t) => t.distanceTo(cell) > 3));
     if (!target) break;
     tried.push(target);
     try {
