@@ -87,51 +87,70 @@ export const give: Skill = {
     if (receiverHead?.name === "water") {
       return { status: "failed", reason: `${to} is under water, where dropped items float away; wait until they are out` };
     }
-    const collected = new Promise<boolean>((resolve) => {
-      const timer = setTimeout(() => done(false), PICKUP_WAIT_MS);
-      const onCollect = (collector: Entity) => {
-        if (collector.username?.toLowerCase() === to.toLowerCase()) done(true);
-      };
-      const done = (picked: boolean) => {
-        clearTimeout(timer);
-        bot.removeListener("playerCollect", onCollect);
-        resolve(picked);
-      };
-      bot.on("playerCollect", onCollect);
-    });
-    try {
-      // Face them (so stepping back moves away from them), look straight down, and let the server
-      // see the new heading before dropping: the drop goes the way it thinks you face.
-      if (throwAcross) {
-        // At their chest height: a toss flies two or three blocks, over a bed or a chest between them.
-        await bot.lookAt(target.position.offset(0, 1.2, 0), true);
-      } else {
-        await bot.lookAt(target.position, true);
-        await bot.look(bot.entity.yaw, -Math.PI / 2, true);
-      }
-      await bot.waitForTicks(2);
-      await bot.toss(def.id, null, count);
-    } catch (error) {
-      return { status: "failed", reason: `could not toss the ${item}: ${(error as Error).message}` };
-    }
-    ctx.log(`${throwAcross ? "threw" : "tossed"} ${count} ${item} to ${to} from ${target.position.distanceTo(bot.entity.position).toFixed(1)} blocks`);
-    // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up. Walking
-    // backwards blind failed against a wall (trio2: inside a shelter), so path away from the drop instead.
-    const dropped = bot.entity.position.clone();
-    bot.setControlState("back", true);
-    await bot.waitForTicks(STEP_BACK_TICKS);
-    bot.setControlState("back", false);
-    if (bot.entity.position.distanceTo(dropped) < STEP_AWAY) {
+    // Dropped at the giver's feet, or thrown across if it couldn't get beside them; aimed at the receiver's
+    // own feet if the giver swept its toss back up, so it lands out of the giver's reach: in tluna5e la,
+    // inside the home 1-1.5 blocks from lc, picked its own stone pickaxe back up 16 times.
+    let aim: "down" | "across" | "feet" = throwAcross ? "across" : "down";
+    let picked = false;
+    let gave = 0;
+    let dropped = bot.entity.position.clone();
+    for (;;) {
+      const collected = new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => done(false), PICKUP_WAIT_MS);
+        const onCollect = (collector: Entity) => {
+          if (collector.username?.toLowerCase() === to.toLowerCase()) done(true);
+        };
+        const done = (picked: boolean) => {
+          clearTimeout(timer);
+          bot.removeListener("playerCollect", onCollect);
+          resolve(picked);
+        };
+        bot.on("playerCollect", onCollect);
+      });
+      const receiver = findAgent(ctx, to) ?? target;
       try {
-        await withTimeout(bot.pathfinder.goto(new goals.GoalInvert(new goals.GoalNear(dropped.x, dropped.y, dropped.z, STEP_AWAY))), 1500, "stepping away");
-      } catch {
-        bot.pathfinder.setGoal(null);
+        // Face them (so stepping back moves away from them), look straight down, and let the server
+        // see the new heading before dropping: the drop goes the way it thinks you face.
+        if (aim === "across") {
+          // At their chest height: a toss flies two or three blocks, over a bed or a chest between them.
+          await bot.lookAt(receiver.position.offset(0, 1.2, 0), true);
+        } else if (aim === "feet") {
+          // A block past their feet: aimed at their feet it still landed in the giver's reach (4 of 5 live).
+          const away = receiver.position.minus(bot.entity.position);
+          away.y = 0;
+          await bot.lookAt(receiver.position.plus(away.normalize()), true);
+        } else {
+          await bot.lookAt(receiver.position, true);
+          await bot.look(bot.entity.yaw, -Math.PI / 2, true);
+        }
+        await bot.waitForTicks(2);
+        await bot.toss(def.id, null, count);
+      } catch (error) {
+        return { status: "failed", reason: `could not toss the ${item}: ${(error as Error).message}` };
       }
-    }
+      ctx.log(`${aim === "down" ? "tossed" : "threw"} ${count} ${item} to ${to} from ${receiver.position.distanceTo(bot.entity.position).toFixed(1)} blocks`);
+      // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up. Walking
+      // backwards blind failed against a wall (trio2: inside a shelter), so path away from the drop instead.
+      dropped = aim === "down" ? bot.entity.position.clone() : receiver.position.clone();
+      bot.setControlState("back", true);
+      await bot.waitForTicks(STEP_BACK_TICKS);
+      bot.setControlState("back", false);
+      if (bot.entity.position.distanceTo(dropped) < STEP_AWAY) {
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalInvert(new goals.GoalNear(dropped.x, dropped.y, dropped.z, STEP_AWAY))), 1500, "stepping away");
+        } catch {
+          bot.pathfinder.setGoal(null);
+        }
+      }
 
-    const picked = await collected;
-    await bot.waitForTicks(10);
-    const gave = held - bot.inventory.count(def.id, null);
+      picked = await collected;
+      await bot.waitForTicks(10);
+      gave = held - bot.inventory.count(def.id, null);
+      const still = findAgent(ctx, to);
+      if (gave > 0 || aim === "feet" || ctx.shouldStop() || !still || still.position.distanceTo(bot.entity.position) > THROW_RANGE) break;
+      ctx.log(`picked the ${item} back up; throwing it at ${to}'s feet instead`);
+      aim = "feet";
+    }
     if (gave <= 0) {
       return { status: "failed", reason: `you tossed the ${item} but picked it all back up yourself; try again from a step further away` };
     }
