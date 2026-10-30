@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { context, fakeBot } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { doorwayLanes, groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
+import { cutsOffRoom, doorwayLanes, groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
 
 test("doorwayLanes - the cells inside, in and outside a home's south doorway, at feet and head height (tluna5g)", () => {
   const lane = doorwayLanes([{ x: 10, y: 73, z: 30, size: 5 }]);
@@ -90,4 +90,15 @@ test("oreHazard - water beside is fine; lava beside, water above, or no face ope
   const sunk: Record<string, string> = {};
   for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) sunk[`${5 + dx},${64 + dy},${5 + dz}`] = "stone";
   assert.equal(oreHazard(ore({ ...sunk, "4,64,5": "water", "5,65,5": "stone" }), at), "under water", "its only open face is water");
+});
+
+test("cutsOffRoom - a furnace in the one gap the beds left is refused, in the floor or at head height (tluna6 rep 1)", () => {
+  const home = { x: -9, y: 76, z: 42, size: 5 };
+  // tluna6 rep 1's three beds, as lb put them down.
+  const beds = new Set(["-8,42", "-7,42", "-10,42", "-11,42", "-10,40", "-9,40"]);
+  const open = (cell: Vec3) => cell.y !== 76 || !beds.has(`${cell.x},${cell.z}`);
+  assert.equal(cutsOffRoom([home], new Vec3(-9, 76, 41), open), true, "la's furnace: the room's north side is cut off");
+  assert.equal(cutsOffRoom([home], new Vec3(-9, 77, 41), open), true, "a block at head height there blocks it just the same");
+  assert.equal(cutsOffRoom([home], new Vec3(-11, 76, 40), open), false, "a back corner leaves everything reachable");
+  assert.equal(cutsOffRoom([home], new Vec3(-9, 76, 50), open), false, "outside the home: no room to cut off");
 });

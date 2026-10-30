@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, closeStrayWindow, doorwayLanes, openOrWalk, opensOnClick, plainError, SMELTS, withTimeout } from "./util.js";
+import { asNumber, closeStrayWindow, cutsOffRoom, doorwayLanes, openOrWalk, opensOnClick, plainError, SMELTS, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -339,10 +339,12 @@ function isOpen(block: Block | null): boolean {
 }
 
 /** Cells near the bot where a block could stand on solid ground, nearest first. */
-/** Where nothing may be put down: every known home's way in and out. */
+/** Where nothing may be put down: every known home's way in and out, and anywhere that would cut its room off. */
 function keepClear(ctx: SkillContext): (cell: Vec3) => boolean {
-  const lane = doorwayLanes(ctx.shelters?.() ?? []);
-  return (cell) => lane.has(`${cell.x},${cell.y},${cell.z}`);
+  const homes = ctx.shelters?.() ?? [];
+  const lane = doorwayLanes(homes);
+  const open = (cell: Vec3) => ctx.bot.blockAt(cell)?.boundingBox === "empty";
+  return (cell) => lane.has(`${cell.x},${cell.y},${cell.z}`) || cutsOffRoom(homes, cell, open);
 }
 
 function placementSpots(bot: Bot, blocked: (cell: Vec3) => boolean = () => false): Vec3[] {

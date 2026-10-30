@@ -2,7 +2,8 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Block } from "prismarine-block";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { opensOnClick, threatened, withTimeout } from "./util.js";
+import { opensOnClick, roomStaysOpen, threatened, withTimeout } from "./util.js";
+export { roomStaysOpen };
 import { BEDS_FROM, BEDS_UNTIL, bedRefusal } from "../daytime.js";
 import { enterShelter, half, insideSpot, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
 
@@ -52,32 +53,6 @@ async function placeBed(ctx: SkillContext): Promise<boolean> {
 function inRoom(spot: ShelterSpot, point: Vec3): boolean {
   const h = half(spot.size ?? 3);
   return Math.abs(point.x - spot.x) <= h && Math.abs(point.z - spot.z) <= h && point.y === spot.y;
-}
-
-/**
- * True if, with a bed on `bed`'s cells, every open cell of the room can still be walked to from `entry`,
- * the cell inside the doorway, stepping square by square. A bed can't be stood on under a second storey
- * (two blocks of headroom), so it is a wall: in tluna5h three beds laid out from the centre cut off the
- * room's back corners, and an agent who slept there was shut in for the rest of the run. Pure, for testing.
- */
-export function roomStaysOpen(room: Vec3[], open: (cell: Vec3) => boolean, entry: Vec3, bed: Vec3[]): boolean {
-  const key = (cell: Vec3) => `${cell.x},${cell.z}`;
-  const taken = new Set(bed.map(key));
-  const walkable = new Set(room.filter((cell) => open(cell) && !taken.has(key(cell))).map(key));
-  if (!walkable.has(key(entry))) return false;
-  const reached = new Set([key(entry)]);
-  const queue = [entry];
-  while (queue.length > 0) {
-    const cell = queue.shift()!;
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const next = cell.offset(dx, 0, dz);
-      if (walkable.has(key(next)) && !reached.has(key(next))) {
-        reached.add(key(next));
-        queue.push(next);
-      }
-    }
-  }
-  return reached.size === walkable.size;
 }
 
 /**

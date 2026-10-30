@@ -215,6 +215,54 @@ export function doorwayLanes(homes: ReadonlyArray<{ x: number; y: number; z: num
   return lane;
 }
 
+/**
+ * True if, with something solid on `taken`'s cells (a bed, a workbench), every open cell of the room can still be walked to from `entry`,
+ * the cell inside the doorway, stepping square by square. A bed can't be stood on under a second storey
+ * (two blocks of headroom), so it is a wall: in tluna5h three beds laid out from the centre cut off the
+ * room's back corners, and an agent who slept there was shut in for the rest of the run. Pure, for testing.
+ */
+export function roomStaysOpen(room: Vec3[], open: (cell: Vec3) => boolean, entry: Vec3, put: Vec3[]): boolean {
+  const key = (cell: Vec3) => `${cell.x},${cell.z}`;
+  const taken = new Set(put.map(key));
+  const walkable = new Set(room.filter((cell) => open(cell) && !taken.has(key(cell))).map(key));
+  if (!walkable.has(key(entry))) return false;
+  const reached = new Set([key(entry)]);
+  const queue = [entry];
+  while (queue.length > 0) {
+    const cell = queue.shift()!;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const next = cell.offset(dx, 0, dz);
+      if (walkable.has(key(next)) && !reached.has(key(next))) {
+        reached.add(key(next));
+        queue.push(next);
+      }
+    }
+  }
+  return reached.size === walkable.size;
+}
+
+/**
+ * True if a block put at `cell` would leave part of a known home's room unreachable from its doorway: a
+ * cell of the room's floor, or above it at head height, where a block stands in the way just the same.
+ * In tluna6 rep 1 a furnace put down in the one gap the beds had left shut two agents in for most of the
+ * run. Beds were already checked (sleep.ts); this is the same check for anything else put down.
+ */
+export function cutsOffRoom(homes: ReadonlyArray<{ x: number; y: number; z: number; size?: number }>, cell: Vec3, open: (cell: Vec3) => boolean): boolean {
+  for (const home of homes) {
+    const h = home.size === 5 ? 2 : 1;
+    const dx = cell.x - home.x, dz = cell.z - home.z, dy = cell.y - home.y;
+    if (Math.abs(dx) > h || Math.abs(dz) > h || dy < 0 || dy > 1) continue;
+    const floor = cell.offset(0, -dy, 0);
+    const room: Vec3[] = [];
+    for (let x = -h; x <= h; x++) for (let z = -h; z <= h; z++) room.push(floor.offset(x - dx, 0, z - dz));
+    const entry = floor.offset(-dx, 0, h - dz);
+    // A floor cell is open only if both it and the cell over it are clear: a head-height block blocks it too.
+    const walkable = (c: Vec3) => open(c) && open(c.offset(0, 1, 0));
+    if (!roomStaysOpen(room, walkable, entry, [floor])) return true;
+  }
+  return false;
+}
+
 /** Extra path cost per block of water, against 1 for a block of walking. */
 export const LIQUID_COST = 8;
 
