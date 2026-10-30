@@ -24,6 +24,7 @@ services:
       VIEW_DISTANCE: "8"            # keep RAM down on a 16GB machine
       SIMULATION_DISTANCE: "6"
       SPAWN_PROTECTION: "0"
+      PVP: "false"                  # no harm between agents: a sword swing at a zombie killed a teammate beside it (tluna4)
       MAX_PLAYERS: "10"
 
       ENABLE_RCON: "TRUE"
