@@ -158,7 +158,31 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   movements.exclusionAreasBreak.push((block) => (protectedCells.get(bot)?.().has(`${block.position.x},${block.position.y},${block.position.z}`) ? 1000 : 0));
   // Steer round anywhere the bot has got stuck this run (gotoWatched records them).
   movements.exclusionAreasStep.push((block) => (stuckSpots.get(bot)?.has(`${block.position.x},${block.position.y},${block.position.z}`) ? STUCK_SPOT_COST : 0));
+  noCornerCutting(movements);
   return movements;
+}
+
+type Node = { x: number; y: number; z: number };
+type DiagonalMovements = {
+  getMoveDiagonal(node: Node, dir: { x: number; z: number }, neighbors: unknown[]): void;
+  getBlock(node: Node, dx: number, dy: number, dz: number): { physical: boolean };
+};
+
+/**
+ * No diagonal step past anything solid beside it. The library allows a diagonal step when either side is
+ * clear, but the body catches on the other side's corner, as a player's would: in tluna6c la stood still
+ * through a night 4 blocks from a free bed, the path's first step cutting past a bed's corner under a
+ * second floor (checked live in a copy of the room: never moved; with this, at the bed in under a second).
+ */
+function noCornerCutting(movements: InstanceType<typeof Movements>): void {
+  const m = movements as unknown as DiagonalMovements;
+  const diagonal = m.getMoveDiagonal.bind(m);
+  m.getMoveDiagonal = (node, dir, neighbors) => {
+    for (const dy of [0, 1]) {
+      if (m.getBlock(node, dir.x, dy, 0).physical || m.getBlock(node, 0, dy, dir.z).physical) return;
+    }
+    diagonal(node, dir, neighbors);
+  };
 }
 
 /**
