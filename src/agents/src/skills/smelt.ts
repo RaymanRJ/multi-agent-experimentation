@@ -143,6 +143,12 @@ export const smelt: Skill = {
         await bot.waitForTicks(20);
       }
       if (furnace.outputItem()) await furnace.takeOutput();
+      // Cut short: take back what was not smelted, and the fuel not yet burning. Left in the furnace, it was
+      // lost to the agent: in tluna5c la's 5 raw iron stayed in one when a teammate's message stopped it.
+      if (made() < count) {
+        if (furnace.inputItem()) await furnace.takeInput();
+        if (furnace.fuelItem()) await furnace.takeFuel();
+      }
     } catch (error) {
       return { status: "failed", reason: `smelting failed: ${(error as Error).message}` };
     } finally {
@@ -155,7 +161,7 @@ export const smelt: Skill = {
     if (madeNow < count) {
       return {
         status: ctx.shouldStop() ? "aborted" : "failed",
-        reason: `made ${madeNow} of ${count} ${product} before stopping; the rest is still in the furnace`,
+        reason: `made ${madeNow} of ${count} ${product} before stopping; the rest was taken back out of the furnace`,
         detail: { made: madeNow, total },
       };
     }

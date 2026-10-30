@@ -90,6 +90,10 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
   hunt: ["damage", "hostile"],
   ask_agent: ["message"],
+  // Standing at a furnace for a minute or two: a teammate's message or dusk can wait for it, and in tluna5c
+  // they cut it short again and again (once a message asking that very agent to smelt). Monsters and hits
+  // still stop it.
+  smelt: ["message", "dusk"],
 };
 
 /**
