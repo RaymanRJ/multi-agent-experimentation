@@ -124,6 +124,14 @@ runs that no write-up uses are not published.
 | [tmix1](batch-reports/2026-10-28-2051-tmix1.md) | 28 Oct | `team-base` | Claude Sonnet 5.5 with two Haiku 5.5 | 0 of 1 (home and food) | [team base](write-ups/06-team-base.md) |
 | [tluna3](batch-reports/2026-10-29-0103-tluna3.md) | 29 Oct | `team-base` | Three GPT-6 Luna, three more reps on the same code | 0 of 3 (2, 3 and 1 parts) | [team base](write-ups/06-team-base.md) |
 | [tluna4](batch-reports/2026-10-29-2246-tluna4.md) | 29 Oct | `team-base` | Three GPT-6 Luna with a real door, 3 reps of 5 | 0 of 3 (3, 3 and 1 parts; iron missing in all) | [team base](write-ups/06-team-base.md) |
+| [tluna5a](batch-reports/2026-10-30-0324-tluna5a.md) | 30 Oct | `team-base` | Three GPT-6 Luna, overnight rep 1, a fix after each rep | 1 of 4 parts (home) | [team base](write-ups/06-team-base.md) |
+| [tluna5b](batch-reports/2026-10-30-0428-tluna5b.md) | 30 Oct | `team-base` | Overnight rep 2 | 2 of 4 parts (iron 2 of 3, food 7) | [team base](write-ups/06-team-base.md) |
+| [tluna5c](batch-reports/2026-10-30-0531-tluna5c.md) | 30 Oct | `team-base` | Overnight rep 3: smelt fetches its stone | 2 of 4 parts | [team base](write-ups/06-team-base.md) |
+| [tluna5d](batch-reports/2026-10-30-0640-tluna5d.md) | 30 Oct | `team-base` | Overnight rep 4: give throws across | 2 of 4 parts (3 iron pickaxes made, lost in a death) | [team base](write-ups/06-team-base.md) |
+| [tluna5e](batch-reports/2026-10-30-0743-tluna5e.md) | 30 Oct | `team-base` | Overnight rep 5: smelt keeps its iron | 3 of 4 parts (no iron) | [team base](write-ups/06-team-base.md) |
+| [tluna5f](batch-reports/2026-10-30-0858-tluna5f.md) | 30 Oct | `team-base` | Overnight rep 6: give retries past the receiver | 2 of 4 parts | [team base](write-ups/06-team-base.md) |
+| [tluna5g](batch-reports/2026-10-30-1000-tluna5g.md) | 30 Oct | `team-base` | Overnight rep 7: digs plug water | 2 of 4 parts (two agents shut in the home) | [team base](write-ups/06-team-base.md) |
+| [tluna5h](batch-reports/2026-10-30-1112-tluna5h.md) | 30 Oct | `team-base` | Overnight rep 8: doorways kept clear | 2 of 4 parts (beds walled off the back of the home) | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 

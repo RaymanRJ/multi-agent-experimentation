@@ -1414,6 +1414,65 @@ left to close it", while it carried 52 planks and 59 logs.
 - A sword swing at a zombie inside the home killed the teammate beside it (la, "slain by lb"). Harm between
   players is now off in every server we start (checked live).
 
+## A fix after every rep (tluna5a to tluna5h)
+
+*Three GPT-6 Luna agents, eight one-rep runs overnight, 30 October, each on the code as it stood after the
+rep before: from e70b2a9 (tluna5a) to 1b06174 (tluna5h). US$2.94 in all (US$0.32-0.41 a rep). Comparable
+with tluna4 in setup; not with each other in code, by design.*
+Reports: [5a](../batch-reports/2026-10-30-0324-tluna5a.md), [5b](../batch-reports/2026-10-30-0428-tluna5b.md),
+[5c](../batch-reports/2026-10-30-0531-tluna5c.md), [5d](../batch-reports/2026-10-30-0640-tluna5d.md),
+[5e](../batch-reports/2026-10-30-0743-tluna5e.md), [5f](../batch-reports/2026-10-30-0858-tluna5f.md),
+[5g](../batch-reports/2026-10-30-1000-tluna5g.md), [5h](../batch-reports/2026-10-30-1112-tluna5h.md).
+
+The owner's ask: get three Lunas meeting this goal more than half the time, reviewing each rep for obvious
+improvements before the next.
+
+| Part | 5a | 5b | 5c | 5d | 5e | 5f | 5g | 5h |
+|---|---|---|---|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** |
+| Everyone slept there | 0 of 3 | **3 of 3** | 2 of 3 | 0 of 3 | **3 of 3** | 2 of 3 | 2 of 3 | **3 of 3** |
+| Everyone holds an iron pickaxe | 0 of 3 | 2 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 |
+| Food left in store | 0 | 7 | **10** | **13** | **10** | **10** | **10** | 6 |
+| Deaths | 8 | 5 | 3 | 8 | 3 | 7 | 8 | 4 |
+
+**The whole goal: 0 of 8.** Luna teams on recent code have now met it 2 times in 18 reps. The home was built
+in every rep, sleeping and food in about half; iron was the part missing, met by 2 of 3 agents once.
+
+**Iron was lost a different way almost every rep, and most of the ways were ours.** In order:
+- the furnace's cobblestone wasn't there (smelt now mines it);
+- iron left in a furnace when a teammate's message stopped the smelting (now taken back out);
+- water beside the stone stopped every dig down (now plugged);
+- two homes became traps, and with the agents inside, no one went for iron (below).
+
+The rest was the agents. In 5d, la smelted 9 iron and made all three pickaxes, "an iron pickaxe for each of
+the three teammates". Night and monsters cut it off 65 blocks from the others. It waited at health 7 with no
+food (10 cooked meat sat in the home's chest) and was shot by a skeleton mid-flee. Told where its things had
+dropped, it went to "regroup" instead. In 5f, lb held 4 raw iron for 80 decisions at health 3, dug in, food
+13 and none carried. It chose `flee` 50 times from a spider that stayed 7 blocks off and could not reach it,
+each time "before traveling to the shelter with my raw iron". The goal was in mind; getting there with it
+was not.
+
+**The home itself became a trap, twice.** In 5g two agents couldn't leave the home for the last third of the
+run; in 5h one was shut in from its 18th decision to the end, and the other two from about the 82nd. In 5h
+the cause was the beds: put down working out from the centre, three of them walled off the room's back
+corners, because a bed can't be stood on under a second floor. Reproduced on the old code at the same spot,
+the same three beds shut a bot in. In 5g the cause wasn't found in the logs; a workbench on the cell inside
+the doorway does the same (shown live), so that is guarded too.
+
+**Where our code, not the agents, decided the outcome** (each fixed after its rep and checked in the game):
+- `eat` said "no food" to an agent holding only rotten flesh (5a). It now eats it when hungry enough.
+- `smelt` couldn't make a furnace without cobblestone in hand (5a); it now mines the stone. Cut short, it
+  left the raw iron in the furnace (5c); it now takes it back, and messages don't cut it short.
+- `give` from 2 blocks away, both inside the home, failed 62 times as "could not catch up" (5c), and from beside the receiver
+  in a corner the giver swept its own toss back up 16 times (5e). It now throws across, and throws again
+  past the receiver when the toss comes back.
+- `descend` and `tunnel` refused any block with water behind it (5e: 11 of 19 digs). They now dig on and plug
+  the water; in a test field with three layers of water, 7 of 7 got down.
+- The pathfinder's "Took to long to decide path to goal!" reached the agents 197 times in 5d. It now reads
+  "no way there was found"; the cause in 5d wasn't found.
+- Placing beds and workbenches could shut agents inside the home (5g, 5h). Now a bed goes only where the
+  room stays reachable from the doorway, nothing is put in a doorway's way, and a workbench there is dug out.
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1514,6 +1573,10 @@ working on real systems, such as support desks, IT operations and business tools
 | Trapped in a cave with the team's three iron pickaxes for the rest of the run (bpoc11) | A tool judged where the agent stood by one point of it ("not on solid ground" at a block's edge), and took for granted that what it had put in hand was still there | It steps onto the block first, and checks the hand just before acting | A check made on a simplified model of the state (one field, a cached value) that disagrees with the real state, so a possible action is refused, or the wrong one taken |
 | Died at night beside the shared home, which teammates had left open (open 21% of the night, a monster inside it 27 times) | Leaving dug through the doorway and nothing closed it; skills walked agents out at night without saying so | A wooden door, opened and shut on every walk and shut again by the body once nobody stands in it; the home's walls are never dug; a skill that walks out at night says so | Shared state with no owner: each user opens it for their own errand and nobody restores it, so everyone else is exposed |
 | Smelt failed with "can't find planks" it had just checked for | A tool checked its inputs, then used them up in its own setup | Inputs are chosen after the setup | A check-then-act gap: a resource validated, then consumed by an earlier step of the same job |
+| Raw iron vanished into a furnace when a teammate's message cut the smelting short (tluna5c) | An interrupted action left the agent's resources where it couldn't see them | A smelt cut short takes back what it didn't smelt, and a message no longer cuts it short | A cancelled job that leaves its inputs locked in an intermediate store, like a reservation never released |
+| Picked its own hand-over back up 16 times, inside the home beside the receiver (tluna5e) | A hand-off protocol with one way of working and no fallback | A toss that comes back is thrown again, a block past the receiver | A handshake with no retry path: when the normal route fails, it fails the same way every time |
+| "Every way down is unsafe: water behind the stone": 43 of 54 digs refused in one run (tluna4, tluna5e) | A guard refused every input with a known hazard instead of handling it | Dig on and plug the water with a block, as a player does | A safety check so strict the agent can never do the job, where handling the risk was routine |
+| Shut in the shared home for the rest of the run by its own beds and workbenches (tluna5g, tluna5h) | Each placement was valid on its own; none checked that the room could still be walked through | A bed goes only where the room stays reachable from the doorway; nothing goes in a doorway's lane, and a workbench in it is dug out | A change valid on its own that cuts off the only route, like a firewall rule that locks out the admin; check reachability after each change |
 
 **What we left alone, and why** (besides the game itself, such as tbase4's spawn trap):
 - **The agents' own behaviour:**

@@ -266,4 +266,49 @@ export const chapters: Chapter[] = [
     ],
     lesson: { text: 'A cheaper model\'s ceiling rises with the harness: fix the tools first, then compare prices.', anchor: 'evaluation' },
   },
+  {
+    title: 'A fix after every rep',
+    question: 'Can three Lunas meet the goal more than half the time if each rep is reviewed and its obvious problems fixed before the next?',
+    runs: [
+      {
+        name: 'tluna5a',
+        showed: 'Home only. No wool, so no beds; an agent was told "no food" 27 times while holding rotten flesh.',
+        then: 'Rotten flesh is eaten when it is all there is; library errors in plain words. Smelt mines the stone its furnace needs.',
+      },
+      {
+        name: 'tluna5b',
+        showed: 'Home, everyone asleep, two of three iron pickaxes and 7 of 10 cooked meat: one pickaxe and three meat short.',
+      },
+      {
+        name: 'tluna5c',
+        showed: 'Home and food. One agent tried 62 times to hand over the wool for the third bed from two blocks away, and was told it "could not catch up".',
+        then: 'A hand-over throws the item across when it can\'t get beside the receiver; the walk to a home\'s door gets more time.',
+      },
+      {
+        name: 'tluna5d',
+        showed: 'Home and food. One agent made all three iron pickaxes for the team, was cut off by the night, and died with them at health 7 and no food.',
+        then: 'A smelt cut short takes back the iron it didn\'t smelt; a teammate\'s message no longer cuts it short.',
+      },
+      {
+        name: 'tluna5e',
+        showed: 'Home, sleep and food: three of four. No iron: water behind the stone stopped 11 of 19 digs, and a giver swept its own hand-over back up 16 times.',
+        then: 'Digs plug the water with a block instead of turning back; a hand-over that comes back is thrown past the receiver.',
+      },
+      {
+        name: 'tluna5f',
+        showed: 'Home and food. An agent with the iron sat 80 decisions at health 3, fleeing a spider that couldn\'t reach it.',
+      },
+      {
+        name: 'tluna5g',
+        showed: 'Home and food. Two agents couldn\'t leave the home for the last third of the run; the cause wasn\'t found in the logs.',
+        then: 'Nothing is put down in a doorway\'s way, and a workbench in it is dug out (a table there shuts an agent in, shown live).',
+      },
+      {
+        name: 'tluna5h',
+        showed: 'Home and everyone asleep. Three beds laid out from the centre walled off the back of the home, and an agent was shut in for the rest of the run.',
+        then: 'A bed goes down only where the room can still be walked through from its door.',
+      },
+    ],
+    lesson: { text: 'One run finds the next failure, not the rate: a fix after each of eight reps, and the whole goal in none of them.', anchor: 'the-improvement-loop' },
+  },
 ];
