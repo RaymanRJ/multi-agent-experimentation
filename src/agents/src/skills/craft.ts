@@ -488,7 +488,10 @@ async function ensureTable(
     const { x, y, z } = far.position;
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to crafting table");
-      return { table: far };
+      // A walk can end short of the table (in tluna4 an agent 18 blocks away was then told it "did not open",
+      // 70 times); only one in reach is used, else one is placed here.
+      if (bot.entity.position.offset(0, 1.6, 0).distanceTo(far.position.offset(0.5, 0.5, 0.5)) <= REACH) return { table: far };
+      ctx.log(`could not get within reach of the crafting table at ${x},${y},${z}`);
     } catch (error) {
       ctx.log(`could not reach the crafting table at ${x},${y},${z}: ${(error as Error).message}`);
     }

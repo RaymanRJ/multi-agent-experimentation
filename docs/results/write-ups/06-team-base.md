@@ -1376,6 +1376,44 @@ known home's floor, walls, roof and door alone. Checked live on a home built on 
 refused ("every way down is unsafe (north: part of a home; …)"), `mine_stone` beside it took stone
 elsewhere, and `climb_out` from under the doorway came up without a gap.
 
+## The door at night (tluna4)
+
+*Three GPT-6 Luna agents, three reps of five (stopped by the owner), 29-30 October, on 7820fc0: the door, homes
+the skills can't dig, and the night note. US$1.38.*
+Report: [tluna4](../batch-reports/2026-10-29-2246-tluna4.md).
+
+| Part | Rep 1 | Rep 2 | Rep 3 |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** |
+| Everyone slept there | **3 of 3** | **3 of 3** | 0 of 3 |
+| Everyone holds an iron pickaxe | 0 of 3 | 0 of 3 | 0 of 3 |
+| Food left in store | **10** | **12** | 0 |
+| Deaths | 11 | 3 | 0 |
+
+**The door did its job.** These reps spent real time at home at night (457 night observations). Inside a
+home at night it was open 10% of the time (32 of 317), against 21% before the door; a monster was inside it 5
+times in three reps, against 27 in the seven runs before; deaths at night or dawn were 7 in three reps, about
+2 a rep against about 6 a run before. Monsters still waited at the doorway (274 observations): that is the
+game. The night note showed live: "craft took you out of the shelter at -4,73,19 at night; you are 24 blocks
+from it".
+
+**Iron was missing in every rep, each for a different reason.** Rep 1: la chose `descend` 32 times from
+inside the home, refused every time as "every way down is unsafe (north: part of a home; …)", and never
+walked out first. Rep 2: la gathered 9 iron and died in lava with it. Rep 3: lc chose `build_shelter` 125
+times and `craft` 108 times without moving, told every time that the doorway was open with "no building block
+left to close it", while it carried 52 planks and 59 logs.
+
+**Where our code, not the agents, decided the outcome:**
+- `descend` from inside a home called the home "unsafe" ground. Now it says "you are standing in a home …
+  walk outside first".
+- Hanging a door crafted one at a table 18 blocks away that the agent never reached, so the doorway stayed
+  open and the message blamed a lack of blocks. Now a door is made only at a table in reach or one the agent
+  puts down, otherwise the doorway gets planks; `craft` checks it really reached a table; the message says
+  what happened. Checked live on lc's case: door hung in 3.8 s; with no table, the doorway sealed with planks
+  in 0.3 s.
+- A sword swing at a zombie inside the home killed the teammate beside it (la, "slain by lb"). Harm between
+  players is now off in every server we start (checked live).
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each
@@ -1404,6 +1442,7 @@ dying, and the next run showed the next one.
 | tbase7 | 1, 6 | No fault of ours: the respawn wait held and both dig-ins were real. Rep 2's deaths, early on, cost the food part | (none) |
 | bpoc11 | 3 | All lc's, during flees; each cost its wool, which the morning restock let it gather again. What stopped the run was not a death but an agent trapped underground | `climb_out` steps onto the block it stands at the edge of, and checks the hand before building up |
 | thaiku1-2 | 0, 4, 11 | Haiku agents mostly waited at night; three drownings digging up through rock under water | `climb_out` swims to the nearest air first |
+| tluna4 | 11, 3, 0 | Night and dawn deaths about 2 a rep with the door, against about 6 before; one teammate killed by a sword swing at a zombie | No harm between players |
 | bpoc13 | 0 | The whole goal by the end of day 2, the nights slept through | Skills that dig for themselves leave the home alone |
 | tluna3 | 1, 4, 19 | Rep 3: a besieged home again, 16 zombie deaths; 18 of 24 in all during a flee | (none) |
 | tluna2 | 14, 1, 4 | Rep 1: lc died 10 times in flees round a besieged home at night and dawn, as in bpoc8 | (none) |

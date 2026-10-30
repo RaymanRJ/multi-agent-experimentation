@@ -4,7 +4,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, gotoWatched, homeBlock, liquidBeside, opensOnClick, protectCells, threatened, withTimeout } from "./util.js";
-import { craft } from "./craft.js";
+import { craft, placeNearby } from "./craft.js";
 
 const { goals } = pathfinderPkg;
 
@@ -284,6 +284,14 @@ async function hangDoor(ctx: SkillContext, lower: Vec3, inside: Vec3): Promise<b
   if (!door) {
     const planks = Object.entries(countInventory(bot)).find(([name, count]) => name.endsWith("_planks") && count >= 6);
     if (!planks) return false;
+    // Made here or not at all: a craft that walks off to a far table left the doorway open (tluna4: lc, 123
+    // times). A table in reach is used; a carried one is put down; otherwise the doorway gets blocks for now.
+    const tableId = bot.registry.blocksByName["crafting_table"]?.id;
+    const inReach = tableId !== undefined && bot.findBlock({ matching: tableId, maxDistance: 4 });
+    if (!inReach) {
+      if (!bot.inventory.items().some((item) => item.name === "crafting_table")) return false;
+      if (!(await placeNearby(ctx, "crafting_table"))) return false;
+    }
     const made = await craft.run(ctx, { item: planks[0].replace(/_planks$/, "_door"), count: 1 });
     if (made.status !== "success") return false;
     door = bot.inventory.items().find((item) => isDoor(item.name));
@@ -321,6 +329,13 @@ async function closeDoorway(ctx: SkillContext, cells: Vec3[], inside?: Vec3): Pr
   if (there && isDoor(there.name)) return shutDoor(bot, there);
   const empty = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "empty";
   if (inside && cells.every(empty) && (await hangDoor(ctx, cells[0]!, inside))) return true;
+  if (inside && bot.entity.position.distanceTo(inside.offset(0.5, 0, 0.5)) > 2.5) {
+    try {
+      await gotoWatched(bot, new goals.GoalBlock(inside.x, inside.y, inside.z), 15_000, "back inside to close the doorway");
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+  }
   const open = (cell: Vec3) => bot.blockAt(cell)?.boundingBox !== "block";
   for (const cell of cells) {
     for (let attempt = 0; attempt < PLACE_ATTEMPTS && open(cell); attempt++) {
@@ -671,7 +686,11 @@ export const buildShelter: Skill = {
         : "closed behind you (walking out digs through it)"
       : built.gaps > 2
         ? `${built.gaps} gaps in its walls open: you have no building blocks to fill them, so mobs can get in`
-        : hasDoor ? "open: its door would not shut, so mobs can walk in" : "open: no building block left to close it, so mobs can walk in";
+        : hasDoor
+          ? "open: its door would not shut, so mobs can walk in"
+          : Object.keys(materials(ctx)).length
+            ? "open: the doorway could not be filled from where you stand, so mobs can walk in"
+            : "open: no building block left to close it, so mobs can walk in";
     const owner = spot?.by ? ` (${spot.by}'s)` : "";
     const company = mobsInsideNote(bot, { ...position, ...use });
     const reason = spot && spot.complete !== false

@@ -485,7 +485,9 @@ export const descend: Skill = {
         lastHeading.set(bot.username, (heading + 1) % 4);
         return {
           status: "failed",
-          reason: `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
+          reason: refusals.every((r) => r.includes("part of a home"))
+            ? `you are standing in a home: descend digs down from where you stand and won't dig through a home's floor or walls — walk outside first`
+            : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
           detail: report(),
         };
       }
