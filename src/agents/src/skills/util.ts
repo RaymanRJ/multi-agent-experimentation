@@ -502,5 +502,7 @@ export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["
 export function plainError(message: string): string {
   if (message === "invalid operation") return "the inventory was busy moving an item";
   if (/goal was changed/i.test(message)) return "interrupted before getting there";
+  // The pathfinder searched its 5 s and found no way: walled off, or round something it may not dig.
+  if (/took to long to decide path/i.test(message)) return "no way there was found (walled off, or a long way round)";
   return message;
 }

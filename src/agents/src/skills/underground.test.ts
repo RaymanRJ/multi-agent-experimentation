@@ -38,6 +38,7 @@ test("climb_out - at the bottom of a lake, open sky above the water is not out (
 test("plainError - library errors in words the agent can act on (bpoc11)", () => {
   assert.equal(plainError("invalid operation"), "the inventory was busy moving an item");
   assert.equal(plainError("The goal was changed before it could be completed!"), "interrupted before getting there");
+  assert.equal(plainError("Took to long to decide path to goal!"), "no way there was found (walled off, or a long way round)");
   assert.equal(plainError("water behind the stone"), "water behind the stone");
 });
 

@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
-import { asNumber, gotoWatched, homeBlock, liquidBeside, opensOnClick, protectCells, threatened, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
 
 const { goals } = pathfinderPkg;
@@ -613,13 +613,13 @@ export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promis
     } catch (doorError) {
       bot.pathfinder.setGoal(null);
       if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
-      ctx.log(`could not go in by the doorway (${(doorError as Error).message}); going in another way`);
+      ctx.log(`could not go in by the doorway (${plainError((doorError as Error).message)}); going in another way`);
       try {
         await gotoWatched(bot, new goals.GoalBlock(spot.x, spot.y, spot.z), timeout, "walking into the shelter");
       } catch (error) {
         bot.pathfinder.setGoal(null);
         if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
-        return { ok: false, result: { status: "failed", reason: `could not get into ${describeShelter(spot)} at ${spotKey(spot)}: ${(error as Error).message}` } };
+        return { ok: false, result: { status: "failed", reason: `could not get into ${describeShelter(spot)} at ${spotKey(spot)}: ${plainError((error as Error).message)}` } };
       }
     }
     await bot.waitForTicks(10); // the doorway's blocks, dropped as it was dug, are picked up on the way in
