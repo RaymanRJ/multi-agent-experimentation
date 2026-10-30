@@ -4,6 +4,7 @@ import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, smeltProduct, SMELTS, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
+import { mineStone } from "./mineStone.js";
 
 const { goals } = pathfinderPkg;
 
@@ -57,13 +58,24 @@ async function ensureFurnace(ctx: SkillContext): Promise<Block | string> {
     const { x, y, z } = near.position;
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to furnace");
-      return near;
+      // Only a furnace really in reach is used; a walk can end short of it (as craft's table walks did).
+      if (bot.entity.position.offset(0, 1.6, 0).distanceTo(near.position.offset(0.5, 0.5, 0.5)) <= 4.5) return near;
+      ctx.log(`could not get within reach of the furnace at ${x},${y},${z}`);
     } catch (error) {
       ctx.log(`could not reach the furnace at ${x},${y},${z}: ${(error as Error).message}`);
     }
   }
   if ((countInventory(bot)["furnace"] ?? 0) === 0) {
-    const made = await craft.run(ctx, { item: "furnace", count: 1 });
+    let made = await craft.run(ctx, { item: "furnace", count: 1 });
+    // Short of cobblestone for it: mine the rest, as a player beside rock would. Agents holding raw iron were
+    // told "need N more cobblestone" 26 times in the Luna team runs, and iron was the part most often missing.
+    const short = made.status !== "success" ? /need (\d+) more cobblestone/.exec(made.reason ?? "") : null;
+    if (short) {
+      const mined = await mineStone.run(ctx, { count: Number(short[1]) });
+      if (mined.status !== "success") return `no furnace nearby, and could not mine the ${short[1]} cobblestone to make one: ${mined.reason ?? mined.status}`;
+      ctx.log(`mined ${short[1]} cobblestone for a furnace`);
+      made = await craft.run(ctx, { item: "furnace", count: 1 });
+    }
     if (made.status !== "success") return `no furnace nearby and could not craft one: ${made.reason ?? made.status}`;
   }
   const placed = await placeNearby(ctx, "furnace");
@@ -76,7 +88,7 @@ export const smelt: Skill = {
     "Smelt items in a furnace. Takes `item` — what you want to make (iron_ingot from raw_iron, gold_ingot, copper_ingot, " +
     "or the raw item itself, e.g. raw_iron for iron_ingot; " +
     "stone from cobblestone, glass from sand, cooked meat) — and `count`. Uses a furnace within 32 blocks, or places " +
-    "one from your inventory, or crafts one from 8 cobblestone. Burns fuel you carry: coal or charcoal (8 items each), " +
+    "one from your inventory, or crafts one from 8 cobblestone (mining the cobblestone it lacks, with a pickaxe). Burns fuel you carry: coal or charcoal (8 items each), " +
     "planks or logs (1.5 each), sticks. Waits about 10 seconds per item. Fails, naming what is missing, without the " +
     "raw items or enough fuel. Returns how many were made and your new total.",
   args: { item: "string", count: "number" },
