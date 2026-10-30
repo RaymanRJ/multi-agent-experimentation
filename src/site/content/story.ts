@@ -258,6 +258,11 @@ export const chapters: Chapter[] = [
         showed: 'Three more Luna reps: 2, 3 and 1 parts, no whole goal. Over six reps three Lunas won once (3-56%), the mixed team 3 times in 8 (14-69%): not yet told apart, but a win cost about $1.78 against $6.40.',
         then: 'Ore with water only beside it is mined from dry footing; under water it is still left alone.',
       },
+      {
+        name: 'tluna4',
+        showed: 'Three Lunas with a real door: a home was open 10% of the night instead of 21%, and night deaths fell to about 2 a rep from about 6. Iron was missing in every rep. Over ten recent reps three Lunas won twice.',
+        then: 'Descend inside a home says to walk out first; a door is never made at a far table; harm between players is off.',
+      },
     ],
     lesson: { text: 'A cheaper model\'s ceiling rises with the harness: fix the tools first, then compare prices.', anchor: 'evaluation' },
   },
