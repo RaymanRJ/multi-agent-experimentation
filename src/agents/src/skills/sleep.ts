@@ -53,6 +53,32 @@ function inRoom(spot: ShelterSpot, point: Vec3): boolean {
 }
 
 /**
+ * True if, with a bed on `bed`'s cells, every open cell of the room can still be walked to from `entry`,
+ * the cell inside the doorway, stepping square by square. A bed can't be stood on under a second storey
+ * (two blocks of headroom), so it is a wall: in tluna5h three beds laid out from the centre cut off the
+ * room's back corners, and an agent who slept there was shut in for the rest of the run. Pure, for testing.
+ */
+export function roomStaysOpen(room: Vec3[], open: (cell: Vec3) => boolean, entry: Vec3, bed: Vec3[]): boolean {
+  const key = (cell: Vec3) => `${cell.x},${cell.z}`;
+  const taken = new Set(bed.map(key));
+  const walkable = new Set(room.filter((cell) => open(cell) && !taken.has(key(cell))).map(key));
+  if (!walkable.has(key(entry))) return false;
+  const reached = new Set([key(entry)]);
+  const queue = [entry];
+  while (queue.length > 0) {
+    const cell = queue.shift()!;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const next = cell.offset(dx, 0, dz);
+      if (walkable.has(key(next)) && !reached.has(key(next))) {
+        reached.add(key(next));
+        queue.push(next);
+      }
+    }
+  }
+  return reached.size === walkable.size;
+}
+
+/**
  * Puts a bed down inside the shelter the bot is in, with both halves in the room and the cell inside
  * the doorway left free: the agent stands on one cell, the bed's foot goes on the next and its head
  * (which points the way the agent faces) beyond it. A large shelter has room for four; a small one, one.
@@ -76,12 +102,15 @@ async function placeBedInside(ctx: SkillContext, spot: ShelterSpot): Promise<{ p
   let refused = 0;
   const stands: Vec3[] = [centre];
   for (let dx = -h; dx <= h; dx++) for (let dz = -h; dz <= h; dz++) if (dx || dz) stands.push(centre.offset(dx, 0, dz));
+  const room = stands;
+  const open = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "empty";
   const directions = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, -1), new Vec3(0, 0, 1)];
   for (const stand of stands) {
     if (bot.blockAt(stand)?.name !== "air") continue;
     for (const d of directions) {
       const foot = stand.plus(d), head = stand.plus(d.scaled(2));
       if (!free(foot) || !free(head)) continue;
+      if (!roomStaysOpen(room, open, doorway, [foot, head])) continue;
       const bed = bot.inventory.items().find((item) => item.name.endsWith("_bed"));
       if (!bed) return { placed: false, refused };
       try {
