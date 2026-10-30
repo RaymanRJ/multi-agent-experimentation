@@ -4,6 +4,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { half, insideSpot, spotKey } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
 
@@ -429,6 +430,39 @@ export function oreInSight(bot: Bot, radius = 16): Record<string, number> {
   return seen;
 }
 
+/**
+ * Out of a home before digging. descend and tunnel dig from where the agent stands, and a home's floor and
+ * walls are never dug, so from inside one they could only refuse: in tluna4 la chose descend 32 times from
+ * inside the shared home. The model chose to dig; walking out to do it is the code's job. Walks through the
+ * door (or the doorway) to the nearest open ground in front of it. Null when not in a home.
+ */
+async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error: string } | null> {
+  const bot = ctx.bot;
+  const home = (ctx.shelters?.() ?? []).find((spot) => insideSpot(bot, spot));
+  if (!home) return null;
+  const r = half(home.size ?? 3) + 1;
+  let target: Vec3 | null = null;
+  for (const ahead of [3, 4, 5, 6, 2]) {
+    for (const dy of [0, -1, 1, -2, 2]) {
+      const cell = new Vec3(home.x, home.y + dy, home.z + r + ahead);
+      if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) {
+        target = cell;
+        break;
+      }
+    }
+    if (target) break;
+  }
+  if (!target) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to dig from` };
+  try {
+    await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(target.x, target.y, target.z)), 30_000, "walking out of the home");
+  } catch (error) {
+    bot.pathfinder.setGoal(null);
+    return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig: ${plainError((error as Error).message)}` };
+  }
+  if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig` };
+  return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to dig from there` };
+}
+
 function headingIndex(name: unknown): number | null {
   const index = HEADINGS.findIndex((h) => h.name === String(name ?? "").trim().toLowerCase());
   return index >= 0 ? index : null;
@@ -440,7 +474,7 @@ export const descend: Skill = {
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
     "turns away from lava, water and drops into caves; stops if every way down is unsafe. A staircase can be walked " +
-    "back up. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
+    "back up. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
   args: { y: "number" },
@@ -454,6 +488,9 @@ export const descend: Skill = {
     if (noDigger) return { status: "failed", reason: noDigger };
     const grounded = await toGround(bot);
     if (grounded) return { status: "failed", reason: grounded };
+    const out = await leaveHome(ctx);
+    if (out && "error" in out) return { status: "failed", reason: out.error };
+    const walkedOut = out ? `${out.note}. ` : "";
 
     const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...extra });
     const startedAt = Date.now();
@@ -494,7 +531,8 @@ export const descend: Skill = {
     }
     lastHeading.set(bot.username, heading);
     const broke = brokenSince(bot, tools);
-    return { status: "success", ...(broke && { reason: broke.trim() }), detail: report() };
+    const said = `${walkedOut}${broke.trim()}`.trim();
+    return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };
 
@@ -515,6 +553,9 @@ export const tunnel: Skill = {
     if (noDigger) return { status: "failed", reason: noDigger };
     const grounded = await toGround(bot);
     if (grounded) return { status: "failed", reason: grounded };
+    const out = await leaveHome(ctx);
+    if (out && "error" in out) return { status: "failed", reason: out.error };
+    const walkedOut = out ? `${out.note}. ` : "";
     const index = headingIndex(rawArgs["direction"]) ?? lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
     const heading = HEADINGS[index]!;
     lastHeading.set(bot.username, index);
@@ -538,7 +579,8 @@ export const tunnel: Skill = {
       }
     }
     const broke = brokenSince(bot, tools);
-    return { status: "success", ...(broke && { reason: broke.trim() }), detail: report() };
+    const said = `${walkedOut}${broke.trim()}`.trim();
+    return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };
 

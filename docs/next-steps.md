@@ -57,7 +57,7 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    that dig for themselves leave a known home alone (checked live). Three Luna teams on recent code: 2
    whole goals in 7 reps. **tluna4** (3 of 5 reps, stopped, US$1.38): 3, 3 and 1 parts, iron missing
    in all; with the door, a home was open 10% of the night against 21%, monsters inside it 5 times against 27,
-   night deaths about 2 a rep against 6. Fixed after: descend inside a home says walk out first; a door is never
+   night deaths about 2 a rep against 6. Fixed after: descend and tunnel inside a home walk out by themselves; a door is never
    made at a far table (lc looped 125 times on a false "no building block"); harm between players off. Luna on
    recent code: 2 whole goals in 10 reps. **Next:** more reps to firm up the rate; and
    per dig, skills take 0.9-1.4 s against the game's 0.6 s with a stone pickaxe (descend 85% digging), so
