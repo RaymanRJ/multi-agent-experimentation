@@ -11,6 +11,11 @@ const { goals } = pathfinderPkg;
  * dropped straight down instead: at the giver's feet, which is within the receiver's pickup reach.
  */
 const HAND_OVER = 1;
+/**
+ * Close but not reachable (furniture between them, a teammate on the far side of a bed): thrown across
+ * instead. In tluna5c la tried 62 times to hand lb one wool from 2 blocks away, told it "could not catch up".
+ */
+const THROW_RANGE = 3.5;
 const LEGS = 3;
 const LEG_TIMEOUT_MS = 20_000;
 /** Tossed items can't be picked up for 2 s; then the receiver has to be standing on them. */
@@ -54,12 +59,18 @@ export const give: Skill = {
     // Addressed by name, so it pauses their current skill: they stop walking off, and their model hears why.
     bot.chat(formatSpeech(seen.username ?? to, autoText(`bringing you ${count} ${item}, stay where you are`)));
 
+    let throwAcross = false;
     for (let leg = 0; ; leg++) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
       const target = findAgent(ctx, to);
       if (!target) return { status: "failed", reason: `${to} is not in sight; ask where they are, or go to them first` };
       const distance = target.position.distanceTo(bot.entity.position);
       if (distance <= HAND_OVER + 0.6) break;
+      // Tried to get beside them and couldn't: close enough to throw.
+      if (leg > 0 && distance <= THROW_RANGE) {
+        throwAcross = true;
+        break;
+      }
       if (leg === LEGS) return { status: "failed", reason: `could not catch up with ${to}: still ${Math.round(distance)} blocks away; ask them to wait` };
       try {
         const { x, y, z } = target.position;
@@ -91,14 +102,19 @@ export const give: Skill = {
     try {
       // Face them (so stepping back moves away from them), look straight down, and let the server
       // see the new heading before dropping: the drop goes the way it thinks you face.
-      await bot.lookAt(target.position, true);
-      await bot.look(bot.entity.yaw, -Math.PI / 2, true);
+      if (throwAcross) {
+        // At their chest height: a toss flies two or three blocks, over a bed or a chest between them.
+        await bot.lookAt(target.position.offset(0, 1.2, 0), true);
+      } else {
+        await bot.lookAt(target.position, true);
+        await bot.look(bot.entity.yaw, -Math.PI / 2, true);
+      }
       await bot.waitForTicks(2);
       await bot.toss(def.id, null, count);
     } catch (error) {
       return { status: "failed", reason: `could not toss the ${item}: ${(error as Error).message}` };
     }
-    ctx.log(`tossed ${count} ${item} to ${to}`);
+    ctx.log(`${throwAcross ? "threw" : "tossed"} ${count} ${item} to ${to} from ${target.position.distanceTo(bot.entity.position).toFixed(1)} blocks`);
     // Back off before the 2 s pickup delay ends, or the giver sweeps its own toss back up. Walking
     // backwards blind failed against a wall (trio2: inside a shelter), so path away from the drop instead.
     const dropped = bot.entity.position.clone();
