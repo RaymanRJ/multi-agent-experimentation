@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, plainError, threatened, withTimeout } from "./util.js";
+import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
 export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
 
@@ -155,11 +155,55 @@ function falling(bot: Bot, cells: Vec3[]): boolean {
   );
 }
 
+/** Blocks to stop water with, as a player plugs a leak: cheap ones that don't fall. */
+const PLUG_BLOCKS = ["cobblestone", "dirt", "cobbled_deepslate", "stone", "andesite", "diorite", "granite", "netherrack", "tuff"];
+const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
+
+function plugBlock(bot: Bot): string | undefined {
+  const held = countInventory(bot);
+  return PLUG_BLOCKS.find((name) => (held[name] ?? 0) > 0);
+}
+
+/** Water only, behind a block to dig: something a block in the gap stops (lava is never dug towards). */
+function leak(problem: string | null): boolean {
+  return problem !== null && problem.startsWith("water behind the ");
+}
+
+/**
+ * Fills the water touching a just-dug cell with a block, before it floods the stair, leaving the stair's
+ * own cells open. Refusing every block with water behind it stopped 43 of 54 descends and tunnels in
+ * tluna4, and 11 of 19 in tluna5e, in this world's wet ground; a player digs on and plugs the leak.
+ */
+async function plugWater(bot: Bot, dug: Vec3, path: Vec3[]): Promise<void> {
+  let placed = false;
+  // Not where the bot stands either: no block goes there, and what flowed in drains once its source is stopped.
+  const feet = bot.entity.position.floored();
+  const keep = [...path, feet, feet.offset(0, 1, 0)];
+  for (const side of SIDES) {
+    const wet = dug.plus(side);
+    if (keep.some((cell) => cell.equals(wet)) || bot.blockAt(wet)?.name !== "water") continue;
+    await fillWater(bot, wet);
+    placed = true;
+  }
+  if (placed) await equipDigger(bot);
+}
+
+/** A block put into a cell of water. Throws why not. */
+async function fillWater(bot: Bot, wet: Vec3): Promise<void> {
+  const name = plugBlock(bot);
+  if (!name) throw new Error("water came in and there was no block left to plug it with");
+  const against = SIDES.map((s) => bot.blockAt(wet.plus(s))).find((b) => b && b.boundingBox === "block" && !opensOnClick(b.name));
+  if (!against) throw new Error("water came in with nothing solid beside it to put a block against");
+  if (!(await hold(bot, name))) throw new Error(`could not hold the ${name} to plug the water`);
+  await withTimeout(bot.placeBlock(against, wet.minus(against.position)), 3000, "plugging the water");
+}
+
 /**
  * Digs the cells top-down. Gravel and sand fall into a cleared space, so it goes round a few times,
- * and waits for any still falling: one landing after the bot steps in buries its head (bpoc7).
+ * and waits for any still falling: one landing after the bot steps in buries its head (bpoc7). With
+ * `plug`, water touching a dug cell is stopped with a block.
  */
-async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
+async function clear(bot: Bot, cells: Vec3[], plug = false): Promise<void> {
   for (let round = 0; round < 6; round++) {
     const solid = cells.map((cell) => bot.blockAt(cell)).filter((block) => block && block.boundingBox !== "empty");
     if (solid.length === 0 && !falling(bot, cells)) return;
@@ -170,6 +214,7 @@ async function clear(bot: Bot, cells: Vec3[]): Promise<void> {
         if (better) await hold(bot, better.name);
       }
       await withTimeout(bot.dig(block!), DIG_TIMEOUT_MS, `digging ${block!.name}`);
+      if (plug) await plugWater(bot, block!.position, cells);
     }
     await bot.waitForTicks(6);
   }
@@ -190,10 +235,23 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     dy < 0 ? [next.offset(0, 2, 0), next.offset(0, 1, 0), next]
     : dy > 0 ? [feet.offset(0, 2, 0), next.offset(0, 1, 0), next]
     : [next.offset(0, 1, 0), next];
-  for (const cell of cells) {
-    const problem = unsafe(bot, cell);
-    if (problem) return problem;
+  // Head in water that ran in after the last step: whatever feeds it is filled first, the cells ahead left alone.
+  if (headInWater(bot) && plugBlock(bot)) {
+    for (const own of [feet, feet.offset(0, 1, 0)]) {
+      for (const side of SIDES) {
+        const wet = own.plus(side);
+        if (cells.some((cell) => cell.equals(wet)) || wet.equals(feet) || wet.equals(feet.offset(0, 1, 0))) continue;
+        if (bot.blockAt(wet)?.name === "water") await fillWater(bot, wet).catch(() => {});
+      }
+    }
+    await equipDigger(bot);
+    for (let tick = 0; tick < 30 && headInWater(bot); tick += 5) await bot.waitForTicks(5);
   }
+  // Water behind a block is plugged as it is dug, given a block to plug it with.
+  const problems = cells.map((cell) => unsafe(bot, cell));
+  const plug = problems.some(leak) && plugBlock(bot) !== undefined;
+  const problem = problems.find((p) => p && !(plug && leak(p)));
+  if (problem) return problem;
   const overhead = dy > 0 && fallsOnHead(bot, feet);
   if (overhead) return overhead;
   let landing = next;
@@ -206,13 +264,24 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
   const floor = badFloor(bot, landing);
   // Going up, the "floor" is the block to step onto; none there is open space, not a drop.
   if (floor) return dy > 0 && floor === "a drop into a cave" ? "no rock to step up onto" : floor;
-  await clear(bot, cells);
+  await clear(bot, cells, plug);
+  // What ran in before the plug drains away once nothing feeds it.
+  for (let tick = 0; plug && tick < 30 && cells.some((cell) => bot.blockAt(cell)?.name === "water"); tick += 5) await bot.waitForTicks(5);
   await bot.waitForTicks(2);
   try {
     await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(landing.x, landing.y, landing.z)), STEP_TIMEOUT_MS, "stepping");
   } catch (error) {
     bot.pathfinder.setGoal(null);
     return `could not step in: ${plainError((error as Error).message)}`;
+  }
+  // The cells just left were skipped while the bot stood in them, and water ran down the stair onto its
+  // head, where digging is five times slower (checked live: its air ran out). Water in them now is filled,
+  // closing the stair behind as a player would; climbing out digs it open again.
+  const left = [feet.offset(0, 1, 0), feet].filter((cell) => bot.blockAt(cell)?.name === "water");
+  if (left.length > 0 && plugBlock(bot)) {
+    // The step is made either way; a plug that failed here is tried again after the next step.
+    for (const cell of left) await fillWater(bot, cell).catch(() => {});
+    await equipDigger(bot);
   }
   return null;
 }
