@@ -308,7 +308,11 @@ export const chapters: Chapter[] = [
         showed: 'Home and everyone asleep. Three beds laid out from the centre walled off the back of the home, and an agent was shut in for the rest of the run.',
         then: 'A bed goes down only where the room can still be walked through from its door.',
       },
+      {
+        name: 'tluna5i',
+        showed: 'The whole goal, for $0.28: one agent made all three iron pickaxes by its 43rd decision and handed them out; everyone slept at home, with 14 cooked meat in the chest. One rep shows a win is possible on this code, not how often.',
+      },
     ],
-    lesson: { text: 'One run finds the next failure, not the rate: a fix after each of eight reps, and the whole goal in none of them.', anchor: 'the-improvement-loop' },
+    lesson: { text: 'One run finds the next failure, not the rate: a fix after each of nine reps, and the whole goal only in the last.', anchor: 'the-improvement-loop' },
   },
 ];

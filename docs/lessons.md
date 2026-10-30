@@ -65,7 +65,7 @@ the model.
   still break something everyone relies on, such as a way out.
   *Evidence:* three beds, each put down in free space, walled off the back of a shared home, and an
   agent was shut in for the rest of the run. Now a bed goes only where the room can still be walked
-  through from its door. ([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5h))
+  through from its door. ([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i))
 - **Fixing tools moves results more than changing models.**
   *Evidence:* the same small model went from 3 of 9 runs to 8 of 9 on fixes to tool code alone
   ([01](results/write-ups/01-local-model-memory.md)); four paid models went from 4 of 12 to 12 of 12
@@ -282,10 +282,11 @@ failed decisions fell from about 93 a rep to 52–58, on fixes to tools and info
 systems that use agents, is in [06's table](results/write-ups/06-team-base.md#how-this-testbed-gets-better-from-where-the-agents-get-stuck).
 
 **One run finds the next failure, not the rate.** With a fix after each run, almost every run turned
-up a different failure; the success rate didn't move while they were being found.
-*Evidence:* eight overnight reps of three Lunas, each on the fixes from the one before: a new failure
-in almost every rep, about half of them in our code, and the whole goal met in none
-([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5h)).
+up a different failure, and the goal stayed out of reach while they were being found.
+*Evidence:* nine overnight reps of three Lunas, each on the fixes from the one before: a new failure
+in almost every rep, about half of them in our code; the whole goal was met only in the last, which
+says the fixes allow a win, not how often
+([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)).
 
 **What is left alone.** Answering requests but not needs, one agent carrying everything, status
 chatter: these are the agents' own behaviour. In organisations they are handled by how work is

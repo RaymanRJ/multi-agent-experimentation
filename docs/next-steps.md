@@ -60,16 +60,17 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    night deaths about 2 a rep against 6. Fixed after: descend and tunnel inside a home walk out by themselves; a door is never
    made at a far table (lc looped 125 times on a false "no building block"); harm between players off. Luna on
    recent code: 2 whole goals in 10 reps. **Overnight 30 October (the owner's ask: Luna more than half the
-   time; a review and fix after each rep):** eight one-rep runs, tluna5a-h (US$2.94): 1, 2, 2, 2, 3, 2, 2, 2
-   parts, the whole goal in none, so 2 in 18 on recent code. Home every rep; iron the missing part (2 of 3 once).
+   time; a review and fix after each rep):** nine one-rep runs, tluna5a-i (US$3.22): 1, 2, 2, 2, 3, 2, 2, 2
+   parts, then the whole goal in the last (tluna5i, US$0.28, one agent made all three iron pickaxes), so 3 in
+   19 on recent code. Home every rep; iron the part missing until the last.
    Fixed after each: rotten flesh eaten when it is all there is; smelt mines its furnace's stone and takes back
    what it didn't smelt; give throws across and retries past the receiver; descend and tunnel plug water instead
    of refusing it; the pathfinder's timeout in plain words; nothing put in a doorway's way; beds only where the
    room stays walkable (two homes became traps, 5g and 5h). Each checked live. Left as the agents': an agent
    that made all three pickaxes died far from the team at health 7 with no food, another sat 80 decisions at
    health 3 fleeing a spider that couldn't reach it. Not found: what shut 5g's agents in (a workbench in the
-   doorway does it, and is guarded). Write-up 06. **Next:** reps on the code with all of these, to see the
-   rate; and
+   doorway does it, and is guarded). Write-up 06. **Next:** reps on unchanged code (598654d) to see the rate:
+   five reps of three Lunas cost about US$1.70; and
    per dig, skills take 0.9-1.4 s against the game's 0.6 s with a stone pickaxe (descend 85% digging), so
    trimming waits could save 10-25%. Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
@@ -230,4 +231,4 @@ The write-up named on each line has the detail.
 - tluna4 (3 reps): the door halves open-home nights; fixes for descend-in-home, far-table doors, and harm between players; richer call logs.
 
 **30 October**
-- Overnight, tluna5a-h (eight Luna reps, a fix after each): 0 whole goals; fixes to eat, smelt, give, digging through wet ground, doorways and bed placement. Write-up 06.
+- Overnight, tluna5a-i (nine Luna reps, a fix after each): the whole goal in the last only; fixes to eat, smelt, give, digging through wet ground, doorways and bed placement. Write-up 06.

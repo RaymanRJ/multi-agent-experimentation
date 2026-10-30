@@ -1414,29 +1414,37 @@ left to close it", while it carried 52 planks and 59 logs.
 - A sword swing at a zombie inside the home killed the teammate beside it (la, "slain by lb"). Harm between
   players is now off in every server we start (checked live).
 
-## A fix after every rep (tluna5a to tluna5h)
+## A fix after every rep (tluna5a to tluna5i)
 
-*Three GPT-6 Luna agents, eight one-rep runs overnight, 30 October, each on the code as it stood after the
-rep before: from e70b2a9 (tluna5a) to 1b06174 (tluna5h). US$2.94 in all (US$0.32-0.41 a rep). Comparable
+*Three GPT-6 Luna agents, nine one-rep runs overnight, 30 October, each on the code as it stood after the
+rep before: from e70b2a9 (tluna5a) to 598654d (tluna5i). US$3.22 in all (US$0.28-0.41 a rep). Comparable
 with tluna4 in setup; not with each other in code, by design.*
 Reports: [5a](../batch-reports/2026-10-30-0324-tluna5a.md), [5b](../batch-reports/2026-10-30-0428-tluna5b.md),
 [5c](../batch-reports/2026-10-30-0531-tluna5c.md), [5d](../batch-reports/2026-10-30-0640-tluna5d.md),
 [5e](../batch-reports/2026-10-30-0743-tluna5e.md), [5f](../batch-reports/2026-10-30-0858-tluna5f.md),
-[5g](../batch-reports/2026-10-30-1000-tluna5g.md), [5h](../batch-reports/2026-10-30-1112-tluna5h.md).
+[5g](../batch-reports/2026-10-30-1000-tluna5g.md), [5h](../batch-reports/2026-10-30-1112-tluna5h.md),
+[5i](../batch-reports/2026-10-30-1221-tluna5i.md).
 
 The owner's ask: get three Lunas meeting this goal more than half the time, reviewing each rep for obvious
 improvements before the next.
 
-| Part | 5a | 5b | 5c | 5d | 5e | 5f | 5g | 5h |
-|---|---|---|---|---|---|---|---|---|
-| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** |
-| Everyone slept there | 0 of 3 | **3 of 3** | 2 of 3 | 0 of 3 | **3 of 3** | 2 of 3 | 2 of 3 | **3 of 3** |
-| Everyone holds an iron pickaxe | 0 of 3 | 2 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 |
-| Food left in store | 0 | 7 | **10** | **13** | **10** | **10** | **10** | 6 |
-| Deaths | 8 | 5 | 3 | 8 | 3 | 7 | 8 | 4 |
+| Part | 5a | 5b | 5c | 5d | 5e | 5f | 5g | 5h | 5i |
+|---|---|---|---|---|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** | **yes** |
+| Everyone slept there | 0 of 3 | **3 of 3** | 2 of 3 | 0 of 3 | **3 of 3** | 2 of 3 | 2 of 3 | **3 of 3** | **3 of 3** |
+| Everyone holds an iron pickaxe | 0 of 3 | 2 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | 0 of 3 | **3 of 3** |
+| Food left in store | 0 | 7 | **10** | **13** | **10** | **10** | **10** | 6 | **14** |
+| Deaths | 8 | 5 | 3 | 8 | 3 | 7 | 8 | 4 | 3 |
 
-**The whole goal: 0 of 8.** Luna teams on recent code have now met it 2 times in 18 reps. The home was built
-in every rep, sleeping and food in about half; iron was the part missing, met by 2 of 3 agents once.
+**The whole goal: 1 of 9, in the last rep.** Luna teams on recent code have now met it 3 times in 19 reps.
+The home was built in every rep, sleeping and food in about half; iron was the part missing until 5i. One
+rep says the fixes allow a win, not how often: that needs reps on unchanged code.
+
+**How 5i won.** lc made all three iron pickaxes by its 43rd decision: 9 raw iron mined and one ingot from a
+zombie it killed, smelted and crafted in a row. It handed them out. Two of tonight's fixes show in the logs:
+lb's `smelt`, cooking, mined the stone for its own furnace, and a pickaxe lc couldn't hand over from beside
+was thrown across. The pickaxes then went back and forth between the three for a while (lc looked for one on
+the ground 23 times) before everyone held one, during the third night.
 
 **Iron was lost a different way almost every rep, and most of the ways were ours.** In order:
 - the furnace's cobblestone wasn't there (smelt now mines it);
@@ -1446,7 +1454,7 @@ in every rep, sleeping and food in about half; iron was the part missing, met by
 
 The rest was the agents. In 5d, la smelted 9 iron and made all three pickaxes, "an iron pickaxe for each of
 the three teammates". Night and monsters cut it off 65 blocks from the others. It waited at health 7 with no
-food (10 cooked meat sat in the home's chest) and was shot by a skeleton mid-flee. Told where its things had
+food (13 cooked meat sat in the home's chest) and was shot by a skeleton mid-flee. Told where its things had
 dropped, it went to "regroup" instead. In 5f, lb held 4 raw iron for 80 decisions at health 3, dug in, food
 13 and none carried. It chose `flee` 50 times from a spider that stayed 7 blocks off and could not reach it,
 each time "before traveling to the shelter with my raw iron". The goal was in mind; getting there with it

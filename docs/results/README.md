@@ -132,6 +132,7 @@ runs that no write-up uses are not published.
 | [tluna5f](batch-reports/2026-10-30-0858-tluna5f.md) | 30 Oct | `team-base` | Overnight rep 6: give retries past the receiver | 2 of 4 parts | [team base](write-ups/06-team-base.md) |
 | [tluna5g](batch-reports/2026-10-30-1000-tluna5g.md) | 30 Oct | `team-base` | Overnight rep 7: digs plug water | 2 of 4 parts (two agents shut in the home) | [team base](write-ups/06-team-base.md) |
 | [tluna5h](batch-reports/2026-10-30-1112-tluna5h.md) | 30 Oct | `team-base` | Overnight rep 8: doorways kept clear | 2 of 4 parts (beds walled off the back of the home) | [team base](write-ups/06-team-base.md) |
+| [tluna5i](batch-reports/2026-10-30-1221-tluna5i.md) | 30 Oct | `team-base` | Overnight rep 9: beds keep the room walkable | **The whole goal** (US$0.28) | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 
