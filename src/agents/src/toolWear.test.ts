@@ -4,16 +4,25 @@ import { EventEmitter } from "node:events";
 import type { Bot } from "mineflayer";
 import { observe } from "./observe.js";
 import { fakeBot } from "./testing/fakeBot.js";
-import { watchBreaks, wearingOut } from "./toolWear.js";
+import { toolUses, toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 
 const base = { step: 1, scenario: "survival" as const, goal: "", recentEvents: [] as string[] };
 
-test("wearingOut - lists tools in their last quarter, with uses left; fresh tools and blocks are left out", () => {
-  // stone_pickaxe lasts 131: 120 used leaves 11. wooden_axe lasts 59: 10 used leaves 49 (fresh enough).
+test("toolUses - every tool held, fresh or worn, with its uses left; blocks are left out (tluna6 rep 2)", () => {
+  // stone_pickaxe lasts 131: 120 used leaves 11. wooden_axe lasts 59: 10 used leaves 49.
   const { bot } = fakeBot({ inventory: { stone_pickaxe: 1, wooden_axe: 1, cobblestone: 5 }, worn: { stone_pickaxe: 120, wooden_axe: 10 } });
-  assert.deepEqual(wearingOut(bot), { stone_pickaxe: 11 });
-  assert.deepEqual(observe(bot, base).wearingOut, { stone_pickaxe: 11 });
-  assert.equal("wearingOut" in observe(fakeBot({ inventory: { stone_pickaxe: 1 } }).bot, base), false, "omitted when nothing is worn");
+  assert.deepEqual(toolUses(bot), { stone_pickaxe: "11 of 131 uses left", wooden_axe: "49 of 59 uses left" });
+  assert.deepEqual(observe(bot, base).tools, { stone_pickaxe: "11 of 131 uses left", wooden_axe: "49 of 59 uses left" });
+  assert.deepEqual(observe(fakeBot({ inventory: { iron_pickaxe: 1 } }).bot, base).tools, { iron_pickaxe: "250 of 250 uses left" }, "a fresh tool is shown too");
+  assert.equal("tools" in observe(fakeBot({ inventory: { cobblestone: 3 } }).bot, base), false, "omitted when no tool is held");
+});
+
+test("wearSpent - says what a skill cost each tool still held, and nothing for one untouched", () => {
+  const before = { iron_pickaxe: { left: [120], max: 250 }, stone_pickaxe: { left: [40], max: 131 } };
+  const after = { iron_pickaxe: { left: [84], max: 250 }, stone_pickaxe: { left: [40], max: 131 } };
+  assert.deepEqual(wearSpent("descend", before, after), ["descend spent 36 uses of your iron_pickaxe: 84 of 250 left"]);
+  assert.deepEqual(wearSpent("descend", before, { iron_pickaxe: { left: [84], max: 250 } }), ["descend spent 36 uses of your iron_pickaxe: 84 of 250 left"], "a broken tool is left to the break event");
+  assert.equal(toolWear(fakeBot({ inventory: { cobblestone: 3 } }).bot).cobblestone, undefined);
 });
 
 /** Just enough bot for watchBreaks: an inventory that emits updateSlot, and health. */

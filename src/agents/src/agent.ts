@@ -16,7 +16,7 @@ import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
-import { watchBreaks } from "./toolWear.js";
+import { toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
@@ -690,7 +690,13 @@ async function main(): Promise<void> {
     // The home it was shut in, if any, at night: a skill that walks out (to a table, a chest) says so after.
     const nightNow = (bot.time.timeOfDay ?? 0) >= 13000 && (bot.time.timeOfDay ?? 0) < 23000;
     const homeAtStart = nightNow ? knownShelters().find((spot) => insideClosedShelter(bot, spot)) : undefined;
+    const wearBefore = toolWear(bot);
     let result = await runSkill(skill, ctx, decision.args);
+    // What it cost the tools, as a player sees the bars go down: before, the agent heard only of a break.
+    for (const line of wearSpent(skill.name, wearBefore, toolWear(bot))) {
+      recentEvents.push(line);
+      stepEvents.push(line);
+    }
     if (homeAtStart && !insideSpot(bot, homeAtStart) && bot.health > 0 && skill.name !== respawn.name) {
       const away = Math.round(bot.entity.position.distanceTo(new Vec3(homeAtStart.x + 0.5, homeAtStart.y, homeAtStart.z + 0.5)));
       const note = `${skill.name} took you out of the shelter at ${spotKey(homeAtStart)} at night; you are ${away} blocks from it`;
