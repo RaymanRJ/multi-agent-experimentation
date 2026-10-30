@@ -537,7 +537,7 @@ export const descend: Skill = {
   description:
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
-    "turns away from lava, water and drops into caves; stops if every way down is unsafe. A staircase can be walked " +
+    "turns away from lava, open water and drops into caves, and plugs water behind a block with a block you carry; stops if every way down is unsafe. A staircase can be walked " +
     "back up. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
@@ -606,7 +606,7 @@ export const tunnel: Skill = {
     "Dig a straight tunnel, 2 blocks high, `length` blocks long (up to 32), at your current height: the way to uncover " +
     "ore hidden inside rock, since mine_ore only finds ore you can see. Takes an optional `direction` (north, east, " +
     "south or west); by default it keeps going the way you last dug. Digs with your cheapest pickaxe, sparing an iron one " +
-    "as descend does. Stops before lava, water or a drop. Returns how far it got and the ore now in sight, for mine_ore.",
+    "as descend does. Stops before lava, open water or a drop, and plugs water behind a block as descend does. Returns how far it got and the ore now in sight, for mine_ore.",
   args: { length: "number", direction: "string?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
