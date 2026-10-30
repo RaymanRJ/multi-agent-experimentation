@@ -3,7 +3,8 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, threatened, withTimeout } from "./util.js";
+import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, plainError, threatened, withTimeout } from "./util.js";
+export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
@@ -114,12 +115,6 @@ async function hold(bot: Bot, name: string): Promise<boolean> {
   return bot.heldItem?.name === name;
 }
 
-/** A library error in words the agent can act on; anything else unchanged. */
-export function plainError(message: string): string {
-  if (message === "invalid operation") return "the inventory was busy moving an item";
-  if (/goal was changed/i.test(message)) return "interrupted before getting there";
-  return message;
-}
 
 function usesLeft(item: { maxDurability?: number; durabilityUsed?: number }): number {
   return item.maxDurability ? item.maxDurability - (item.durabilityUsed ?? 0) : Infinity;

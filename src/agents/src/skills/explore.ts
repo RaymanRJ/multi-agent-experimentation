@@ -1,6 +1,6 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, threatened, withTimeout } from "./util.js";
+import { asNumber, plainError, threatened, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -116,7 +116,7 @@ export const explore: Skill = {
         );
       } catch (error) {
         ctx.bot.pathfinder.setGoal(null);
-        ctx.log(`explore leg toward ${target.x},${target.z} failed: ${(error as Error).message}`);
+        ctx.log(`explore leg toward ${target.x},${target.z} failed: ${plainError((error as Error).message)}`);
         failedLegs++;
       }
       remember(name, { x: ctx.bot.entity.position.x, z: ctx.bot.entity.position.z });

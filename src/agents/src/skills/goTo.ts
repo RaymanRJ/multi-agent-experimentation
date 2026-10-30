@@ -1,6 +1,6 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, gotoWatched, threatened } from "./util.js";
+import { asNumber, gotoWatched, plainError, threatened } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -81,7 +81,7 @@ export const goTo: Skill = {
         await gotoWatched(bot, goal, LEG_TIMEOUT_MS, "walking");
       } catch (error) {
         bot.pathfinder.setGoal(null);
-        ctx.log(`go_to leg toward ${Math.round(leg.x)},${Math.round(leg.z)} failed: ${(error as Error).message}`);
+        ctx.log(`go_to leg toward ${Math.round(leg.x)},${Math.round(leg.z)} failed: ${plainError((error as Error).message)}`);
         failedLegs++;
       }
     }

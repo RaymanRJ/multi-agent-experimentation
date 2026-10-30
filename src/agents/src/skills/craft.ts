@@ -3,7 +3,7 @@ import type { Block } from "prismarine-block";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, closeStrayWindow, openOrWalk, opensOnClick, SMELTS, withTimeout } from "./util.js";
+import { asNumber, closeStrayWindow, openOrWalk, opensOnClick, plainError, SMELTS, withTimeout } from "./util.js";
 
 const { goals } = pathfinderPkg;
 
@@ -493,7 +493,7 @@ async function ensureTable(
       if (bot.entity.position.offset(0, 1.6, 0).distanceTo(far.position.offset(0.5, 0.5, 0.5)) <= REACH) return { table: far };
       ctx.log(`could not get within reach of the crafting table at ${x},${y},${z}`);
     } catch (error) {
-      ctx.log(`could not reach the crafting table at ${x},${y},${z}: ${(error as Error).message}`);
+      ctx.log(`could not reach the crafting table at ${x},${y},${z}: ${plainError((error as Error).message)}`);
     }
   }
 

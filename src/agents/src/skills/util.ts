@@ -498,3 +498,9 @@ export async function gotoWatched(bot: Bot, goal: Parameters<Bot["pathfinder"]["
   }
 }
 
+/** A library error in words the agent can act on; anything else unchanged. */
+export function plainError(message: string): string {
+  if (message === "invalid operation") return "the inventory was busy moving an item";
+  if (/goal was changed/i.test(message)) return "interrupted before getting there";
+  return message;
+}

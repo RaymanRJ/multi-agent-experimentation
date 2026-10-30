@@ -35,8 +35,12 @@ test("eat - not hungry, no food, and the most filling safe food first", async ()
   assert.equal((await run("eat", { food: 20 })).status, "success");
   const none = await run("eat", { food: 10, inventory: { cobblestone: 5 } });
   assert.deepEqual([none.status, none.reason], ["failed", "no food in inventory"]);
-  const onlyBad = await run("eat", { food: 10, inventory: { rotten_flesh: 3 } });
-  assert.equal(onlyBad.status, "failed", "rotten flesh is never eaten");
+  const lastResort = await run("eat", { food: 10, inventory: { rotten_flesh: 3 } });
+  assert.equal(lastResort.detail?.["ate"], "rotten_flesh", "hungry with nothing else: rotten flesh, as a player would (tluna5a)");
+  assert.match(lastResort.reason ?? "", /rotten flesh, the only food you carry/);
+  const notThatHungry = await run("eat", { food: 18, inventory: { rotten_flesh: 3 } });
+  assert.equal(notThatHungry.status, "failed");
+  assert.match(notThatHungry.reason ?? "", /nothing safe to eat: you carry only rotten_flesh/);
   const ate = await run("eat", { food: 10, inventory: { apple: 1, cooked_beef: 1, rotten_flesh: 1 } });
   assert.equal(ate.status, "success");
   assert.equal(ate.detail?.["ate"], "cooked_beef");
