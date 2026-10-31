@@ -285,6 +285,8 @@ export interface LoggedStep {
   ticks?: number;
   /** Hits between this agent and other agents during the step, either way, by username. */
   hits?: Array<{ by: string; on: string }>;
+  /** The blocks round the agent when a walk or dig failed, once per spot. For reading logs; the model never sees it. */
+  surroundings?: import("./surroundings.js").Surroundings;
   /**
    * The agent's deaths during the step: where, what the game said killed it ("was slain by Zombie";
    * null if no death message came), and when (ticks since the run began, and the time of day).

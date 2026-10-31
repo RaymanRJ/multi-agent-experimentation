@@ -17,6 +17,7 @@ import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type 
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { toolWear, watchBreaks, wearSpent } from "./toolWear.js";
+import { looksStuck, surroundings, type Surroundings } from "./surroundings.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
 import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
@@ -433,6 +434,8 @@ async function main(): Promise<void> {
   const doors = keepDoorsShut(bot, knownShelters, () => !respawning);
   let lastAttackLine = "";
   let stepHits: NonNullable<LoggedStep["hits"]> = [];
+  let stepSurroundings: Surroundings | null = null;
+  const snappedAt = new Set<string>();
   watchAttacks(bot, {
     report: (line, replaceLast) => {
       // Fold a repeat into the line it repeats, only if nothing else has been said since.
@@ -563,7 +566,8 @@ async function main(): Promise<void> {
       if (!ended && timeUp) ended = "time budget";
       if (!ended && spentUSD >= budgetUSD) ended = "cost budget";
       if (!ended && step >= maxSteps) ended = "step limit";
-      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), ...(stepHits.length ? { hits: stepHits } : {}), ...(stepDeaths.length ? { deaths: stepDeaths } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      runLog.write({ step, at: new Date().toISOString(), observation, ...fields, ...(responses ? { responses } : {}), ...(stepHits.length ? { hits: stepHits } : {}), ...(stepSurroundings ? { surroundings: stepSurroundings } : {}), ...(stepDeaths.length ? { deaths: stepDeaths } : {}), config, ticks: elapsedTicks(), inventoryAfter: countInventory(bot), ...(ended ? { ended } : {}) });
+      stepSurroundings = null;
       stepHits = [];
       stepDeaths = [];
     };
@@ -733,6 +737,14 @@ async function main(): Promise<void> {
       stepEvents.push(interruptReason);
     }
     console.log(`[${agentName}]   -> ${result.status}${result.reason ? `: ${result.reason}` : ""} ${JSON.stringify(result.detail ?? {})}`);
+    // What is round it, for whoever reads the log: once per spot, so a long stay costs one entry.
+    if (bot.health > 0 && looksStuck(skill.name, result.status, `${result.reason ?? ""} ${stepEvents.join(" ")}`)) {
+      const spot = bot.entity.position.floored().toString();
+      if (!snappedAt.has(spot)) {
+        snappedAt.add(spot);
+        stepSurroundings = surroundings(bot);
+      }
+    }
 
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
     const outcome = `${decision.skill} ${JSON.stringify(decision.args)} ${result.status} ${result.reason ?? ""}`;
