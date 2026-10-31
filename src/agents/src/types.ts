@@ -74,7 +74,7 @@ export interface Observation {
   air?: number;
   /** True when inside a shelter whose walls, roof and doorway are all closed. Omitted otherwise. */
   inShelter?: boolean;
-  /** Shelters within sight: "a large two-storey shelter (luna's) at 4,70,-12, 9 blocks away". Omitted when there are none. */
+  /** Shelters within sight: "a large shelter (luna's) at 4,70,-12, 9 blocks away". Omitted when there are none. */
   shelters?: string[];
   /** Blocks of solid ground between the agent's head and the open sky, when it is under the ground. Omitted otherwise. */
   underground?: number;

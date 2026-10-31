@@ -30,8 +30,12 @@ descriptions and failure messages, not the goal text.
 
 ### `team-base` (20 October): `team-homestead` with one home
 
-The same as `team-homestead`, except the shelter must be one large two-storey shelter (5×5 inside)
-that every member has slept in a bed inside. The owner's call after thome1. That run's agents built
+The same as `team-homestead`, except the shelter must be one large shelter (5×5 inside) that every
+member has slept in a bed inside. Until 30 October it had to be two storeys, each 2 high. No agent ever
+went up to the upper room, nor had trouble building it, and under a 2-high ceiling a bed can't be stood
+on: beds and a furnace walled off a room's back corners (tluna5h, tluna6 rep 1) and an agent snagged on a
+bed's corner all night (tluna6c). The owner's call: one room, 3 high, about 105 blocks instead of 170.
+Runs before and after this change are not directly comparable on the home part. The owner's call after thome1. That run's agents built
 36 huts between them, and the night never passed: it skips only when every player is asleep.
 Beds together also move each agent's respawn point home, away from the mobs at world spawn. Made
 possible by `build_shelter` going into a nearby shelter, a large size built in parts, `sleep` putting

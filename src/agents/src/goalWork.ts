@@ -71,7 +71,7 @@ const homeParts = (base: (step: LoggedStep) => boolean, baseName: string): GoalP
 
 /** The parts of each preset team goal. A goal not listed here gets no goal-work section. */
 export const GOAL_PARTS: Record<string, GoalPart[]> = {
-  "team-base": homeParts((step) => storeys(step) >= 2 && large(step), "the large two-storey base"),
+  "team-base": homeParts((step) => large(step), "the large base"),
   "team-homestead": homeParts((step) => storeys(step) >= 2, "a two-storey shelter"),
   "team-camp": [
     { name: "a two-storey shelter", items: () => false, aims: (skill) => skill === "build_shelter", did: (step) => builtOrMended(step) && storeys(step) >= 2 },

@@ -186,7 +186,7 @@ test("team-homestead - every member sleeps and carries an iron pickaxe, a two-st
   assert.deepEqual(gaps({ skill: "", status: "", inventory: { iron_pickaxe: 1 }, shelterBuilt: true, nightSurvivedSinceShelter: false, shelterStoreys: 2, sleptInBed: true, chests }), []);
 });
 
-test("team-base - one large two-storey shelter that every member slept inside, iron pickaxes and meat as team-homestead", () => {
+test("team-base - one large shelter that every member slept inside, iron pickaxes and meat as team-homestead", () => {
   const gaps = GOAL_GAPS["team-base"]!, check = GOAL_CHECKS["team-base"]!;
   const chests = { "1,64,1": { holds: { cooked_mutton: 10 }, seenAt: 1 } };
   const base = { x: 0, y: 64, z: 0, storeys: 2, size: 5 as const, complete: true };
@@ -201,8 +201,10 @@ test("team-base - one large two-storey shelter that every member slept inside, i
   // Slept, but in a different shelter: not the shared one.
   assert.deepEqual(gaps({ ...done, membersSleptIn: { qa: ["0,64,0"], qb: ["40,64,0"] } }), ["qb has not slept in a bed inside the large shelter at 0,64,0"]);
   // Only small huts, or a large one left unfinished.
-  assert.deepEqual(gaps({ ...done, shelters: [hut, { ...base, complete: false }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
-  assert.deepEqual(gaps({ ...done, shelters: [{ ...base, storeys: 1 }] }).slice(0, 1), ["nobody on the team has finished a large two-storey shelter yet"]);
+  assert.deepEqual(gaps({ ...done, shelters: [hut, { ...base, complete: false }] }).slice(0, 1), ["nobody on the team has finished a large shelter yet"]);
+  // One storey is enough since 30 October: no agent ever used the upper room, nor struggled to build it, and a
+  // taller single room leaves space to step over the beds.
+  assert.equal(check({ ...done, shelters: [hut, { ...base, storeys: 1 }] }), true);
   // Two bases and nobody slept yet: every teammate is told of the first finished, whatever its list's order.
   const first = { ...base, finishedAt: 100 };
   const second = { ...base, x: -38, finishedAt: 200 };
@@ -211,5 +213,5 @@ test("team-base - one large two-storey shelter that every member slept inside, i
     assert.deepEqual(gaps({ ...nobody, shelters }).slice(0, 1), ["qa has not slept in a bed inside the large shelter at 0,64,0"]);
   }
   assert.ok(TEAM_GOALS.has("team-base"));
-  assert.match(GOALS["team-base"]!, /one large two-storey shelter/);
+  assert.match(GOALS["team-base"]!, /one large shelter/);
 });

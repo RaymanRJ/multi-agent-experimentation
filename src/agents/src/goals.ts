@@ -35,7 +35,7 @@ export const GOALS: Record<string, string> = {
   // team-homestead with one home: in thome1 three agents built 36 huts between them and the night never
   // passed, since the night skips only when every player is asleep.
   "team-base":
-    "Over the next three days, your team must build one large two-storey shelter that is home to all of you, " +
+    "Over the next three days, your team must build one large shelter that is home to all of you, " +
     "every one of you must sleep in a bed inside it, every one of you must end up carrying an iron pickaxe, " +
     "and you must leave at least 10 cooked meat in a chest. It does not matter who does what. " +
     "The episode ends by itself once the team has all of that.",

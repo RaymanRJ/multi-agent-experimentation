@@ -43,7 +43,7 @@ test("classify - walking into the base is staying alive; replacing more than the
   const into = base("b", "you are inside a large two-storey shelter (b's) at 0,64,0, 2 missing blocks filled, with the doorway closed");
   assert.equal(classify(into, parts).kind, "safety");
   const mended = base("b", "you are inside a large two-storey shelter (b's) at 0,64,0, 5 missing blocks filled, with the doorway closed");
-  assert.deepEqual(classify(mended, parts).parts, ["the large two-storey base"]);
+  assert.deepEqual(classify(mended, parts).parts, ["the large base"]);
 });
 
 test("classify - the first sleep is the goal, later ones get through the night", () => {
@@ -65,7 +65,7 @@ test("classify - setbacks: dying with goal items, a tool worn out, meat taken fr
 test("aimsOf - build_shelter aims at the base only until it stands; wood and stone are preparing", () => {
   const m: Member = { name: "a", offset: 0, steps: [step("build_shelter", { size: "large" }, {}, {}), step("gather_wood", {}, {}, {}), step("build_shelter", { size: "large" }, {}, {})] };
   const doneAt = (m.steps[0]!.ticks ?? 0) + 1;
-  assert.deepEqual(aimsOf(m, parts, doneAt), [["the large two-storey base"], ["preparing"], []]);
+  assert.deepEqual(aimsOf(m, parts, doneAt), [["the large base"], ["preparing"], []]);
 });
 
 test("disruptions - what cut the work off, what came next, and when it was back at work", () => {
@@ -108,7 +108,7 @@ test("goalWork - help and hindrance between teammates, and the goal at the end",
   assert.ok(w.help.includes("b gave iron pickaxe to a"));
   assert.ok(w.help.includes("b used a's shelter 1 time"));
   assert.match(w.hindrance.join(), /b took 10 cooked mutton that a had stored/);
-  assert.equal(w.toward["the large two-storey base"]!["a"], 1);
+  assert.equal(w.toward["the large base"]!["a"], 1);
   assert.deepEqual(w.events["beds"]!.map((e) => e.text), ["a slept in a bed for the first time"]);
   const end = goalAtEnd([a, b], "team-base")!;
   assert.deepEqual(end.map((p) => p.met), [true, false, false, false]);

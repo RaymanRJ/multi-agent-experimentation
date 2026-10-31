@@ -73,8 +73,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    own time (descend 16 blocks 74 s to 31 s, mine_stone 26 s to 19 s, tunnel 28 s to 24 s, measured live: a
    third of descend's digs had started before landing, five times slower); a walk that stops more than a block
    short fails, saying how far, instead of passing as arrived; placements of workbenches, chests, furnaces and
-   beds are logged with where. **Next:** reps on unchanged code to see the rate: five reps of three Lunas
-   cost about US$1.70. Was open: the deaths at night round the home, most of them during a
+   beds are logged with where. **Afternoon 30 October, one rep at a time, gaps reported before any fix (the
+   owner's rule):** tluna6 (2 of 4), tluna6b (3 of 4), tluna6c (2 of 4), US$1.01. Fixed after, each checked
+   live: anything put down in a home goes only where the room stays walkable (a furnace had sealed its back
+   half); every tool shows its uses left, and each skill says what it spent; no diagonal step past a solid
+   corner (an agent snagged on a bed all night). **Then the home itself (the owner's call):** the large
+   home is one room, 5×5 and 3 high, not two storeys of 2 high; no agent ever used the upper room, and beds
+   under a 2-high ceiling were the cause of most home traps. team-base runs from here on are not directly
+   comparable with earlier ones on the home part. Open: "This bed is obstructed" (a block found on top of
+   a bed, placed by something unknown); two dropped iron pickaxes nobody could pick up (tluna6c, cause
+   unknown). **Next:** reps on unchanged code to see the rate. Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -235,3 +243,5 @@ The write-up named on each line has the detail.
 **30 October**
 - Overnight, tluna5a-i (nine Luna reps, a fix after each): the whole goal in the last only; fixes to eat, smelt, give, digging through wet ground, doorways and bed placement. Write-up 06.
 - Digs at the game's own speed (descend about 2.4 times faster); walks that stop short say so; placements logged with where.
+- tluna6, 6b, 6c (one rep at a time): room check for every placement in a home, tool uses shown, no corner-cutting past a bed.
+- The large home is one room, 5×5 and 3 high, instead of two 2-high storeys; the team-base goal asks for "one large shelter".

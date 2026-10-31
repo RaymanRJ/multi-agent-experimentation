@@ -173,8 +173,8 @@ export const GOAL_GAPS: Record<string, (state: GoalState) => string[]> = {
   },
 };
 
-/** The shelter `team-base` asks for: large, two storeys, finished. */
-const isBase = (spot: ShelterSpot) => (spot.size ?? 3) === 5 && spot.storeys >= 2 && spot.complete !== false;
+/** The shelter `team-base` asks for: large and finished (one tall room since 30 October; two storeys before). */
+const isBase = (spot: ShelterSpot) => (spot.size ?? 3) === 5 && spot.complete !== false;
 
 GOAL_GAPS["team-base"] = ({ shelters, members, membersSleptIn, sleptIn, chests, inventory }) => {
   const held = members ?? { you: inventory };
@@ -189,7 +189,7 @@ GOAL_GAPS["team-base"] = ({ shelters, members, membersSleptIn, sleptIn, chests, 
     .sort((a, b) => b.sleepers - a.sleepers || finished(a.spot) - finished(b.spot) || spotKey(a.spot).localeCompare(spotKey(b.spot)))[0];
   const meat = COOKED_MEAT.reduce((n, item) => n + (inChests(chests)[item] ?? 0), 0);
   return [
-    ...(best ? [] : ["nobody on the team has finished a large two-storey shelter yet"]),
+    ...(best ? [] : ["nobody on the team has finished a large shelter yet"]),
     ...(best
       ? Object.entries(sleptBy).filter(([, keys]) => !keys.includes(spotKey(best.spot))).map(([name]) => `${name} has not slept in a bed inside the large shelter at ${spotKey(best.spot)}`)
       : []),

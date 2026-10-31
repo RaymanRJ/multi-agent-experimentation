@@ -113,6 +113,19 @@ export type ShelterSize = 3 | 5;
 /** How far the interior reaches from its centre. */
 export const half = (size: ShelterSize) => (size === 5 ? 2 : 1);
 
+/**
+ * Heights above the floor: the room's ceiling (or the upper floor, over a hut's lower room), and the roof.
+ * A large shelter is one room 3 high; a hut's rooms are 2 high. The large one was two storeys of 2-high
+ * rooms until 30 October. No agent ever went up to the upper room, nor had trouble building it, while a bed
+ * can't be stood on under a 2-high ceiling: three beds and a furnace walled off a room's back corners
+ * (tluna5h, tluna6 rep 1) and an agent snagged on a bed's corner all night (tluna6c). A player on a bed
+ * needs about 2.4 blocks; 3 gives it room. The owner's call.
+ */
+export function heights(storeys: number, size: ShelterSize): { ground: number; top: number } {
+  if (size === 5) return { ground: 3, top: 3 };
+  return { ground: 2, top: storeys === 2 ? 5 : 2 };
+}
+
 export function layout(storeys = 1, size: ShelterSize = 3): { walls: Vec3[]; roof: Vec3[]; door: Vec3[] } {
   const h = half(size), r = h + 1;
   const ring: Array<[number, number]> = [];
@@ -127,7 +140,7 @@ export function layout(storeys = 1, size: ShelterSize = 3): { walls: Vec3[]; roo
   const isDoor = (v: Vec3) => door.some((d) => d.equals(v));
 
   const walls: Vec3[] = [];
-  const top = storeys === 2 ? 5 : 2;
+  const { ground, top } = heights(storeys, size);
   for (let dy = 0; dy < top; dy++) {
     for (const [dx, dz] of ring) {
       const cell = new Vec3(dx, dy, dz);
@@ -136,8 +149,8 @@ export function layout(storeys = 1, size: ShelterSize = 3): { walls: Vec3[]; roo
   }
   const roof: Vec3[] = ring.map(([dx, dz]) => new Vec3(dx, top, dz));
   for (let dx = -h; dx <= h; dx++) for (let dz = -h; dz <= h; dz++) roof.push(new Vec3(dx, top, dz));
-  if (storeys === 2) {
-    for (let dx = -h; dx <= h; dx++) for (let dz = -h; dz <= h; dz++) if (!(dx === -h && dz === -h)) roof.push(new Vec3(dx, 2, dz));
+  if (top > ground) {
+    for (let dx = -h; dx <= h; dx++) for (let dz = -h; dz <= h; dz++) if (!(dx === -h && dz === -h)) roof.push(new Vec3(dx, ground, dz));
   }
   return { walls, roof, door };
 }
@@ -164,7 +177,7 @@ function pointInside(point: Vec3, shelter: ShelterSpot): boolean {
   const feet = point.floored();
   const h = half(shelter.size ?? 3);
   const dx = feet.x - shelter.x, dy = feet.y - shelter.y, dz = feet.z - shelter.z;
-  return Math.abs(dx) <= h && Math.abs(dz) <= h && dy >= 0 && dy <= (shelter.storeys === 2 ? 4 : 1);
+  return Math.abs(dx) <= h && Math.abs(dz) <= h && dy >= 0 && dy < heights(shelter.storeys, shelter.size ?? 3).top;
 }
 
 /**
@@ -183,9 +196,10 @@ export function standing(bot: Bot, shelter: ShelterSpot): boolean {
   return false;
 }
 
-/** "a large two-storey shelter", "an unfinished large shelter", "a shelter". */
+/** "a large shelter", "an unfinished large shelter", "a two-storey shelter", "a shelter". */
 export function describeShelter(shelter: ShelterSpot): string {
-  const kind = `${(shelter.size ?? 3) === 5 ? "large " : ""}${shelter.storeys === 2 ? "two-storey " : ""}shelter`;
+  const large = (shelter.size ?? 3) === 5;
+  const kind = `${large ? "large " : ""}${!large && shelter.storeys === 2 ? "two-storey " : ""}shelter`;
   return shelter.complete === false ? `an unfinished ${kind}` : /^[aeiou]/.test(kind) ? `an ${kind}` : `a ${kind}`;
 }
 
@@ -386,12 +400,13 @@ async function construct(ctx: SkillContext, b: Build): Promise<Built> {
     // Interior must be clear: clear what we can dig, fail on the rest. Two storeys also need the
     // upper room and the hatch between them clear, and any shelter its doorway.
     const clear: Vec3[] = [...door];
+    const { ground, top } = heights(b.storeys, b.size);
     for (let dx = -h; dx <= h; dx++) {
       for (let dz = -h; dz <= h; dz++) {
-        for (const dy of b.storeys === 2 ? [0, 1, 3, 4] : [0, 1]) clear.push(new Vec3(dx, dy, dz));
+        for (let dy = 0; dy < top; dy++) if (dy !== ground) clear.push(new Vec3(dx, dy, dz));
       }
     }
-    if (b.storeys === 2) clear.push(new Vec3(-h, 2, -h));
+    if (top > ground) clear.push(new Vec3(-h, ground, -h));
     // Look before digging anything: a cleared block with lava behind it lets the lava in on the builder.
     for (const offset of clear) {
       const point = b.centre.plus(offset);
@@ -641,17 +656,18 @@ export const buildShelter: Skill = {
     "and it is shut after you), otherwise with two blocks (walking out digs through them). Uses planks, cobblestone, stone, dirt or similar blocks from " +
     "inventory; logs in your inventory are turned into planks automatically (1 log = 4 planks). " +
     "A small shelter (the default) has a 3x3 interior, 2 high, and needs about 45 blocks (12 logs). " +
-    "Optional `storeys`: 1 (default) or 2 — a second room on top, with a hatch in the floor between them; about 89 blocks (23 logs). " +
-    "Optional `size`: \"large\" for a 5x5 interior with room for several beds, a chest and a furnace: about 85 blocks one storey, " +
-    "about 170 with two (43 logs). A large one can be built a part at a time: with too few blocks it places what you have and " +
+    "Optional `storeys`: 1 (default) or 2 — for a small one, a second room on top, with a hatch in the floor between them; about 89 blocks (23 logs). " +
+    "Optional `size`: \"large\" for one room with a 5x5 interior, 3 high, with room for several beds, a chest and a furnace, " +
+    "and room to step over a bed: about 105 blocks (27 logs). A large one can be built a part at a time: with too few blocks it places what you have and " +
     "says what is left, and anyone calling build_shelter near it later carries on with it. " +
     "Stand on reasonably flat open ground to build a new one. You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
   args: { storeys: "number?", size: "string?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown> = {}): Promise<SkillResult> {
     const bot = ctx.bot;
-    const storeys = asNumber(args["storeys"], 1) >= 2 ? 2 : 1;
     const size: ShelterSize = /^(large|big|team|5)/i.test(String(args["size"] ?? "").trim()) ? 5 : 3;
+    // A large shelter is one tall room; a second storey is for huts only.
+    const storeys = size === 5 ? 1 : asNumber(args["storeys"], 1) >= 2 ? 2 : 1;
     const fits = (spot: ShelterSpot) => (spot.size ?? 3) >= size && spot.storeys >= storeys;
     const known = (ctx.shelters?.() ?? []).filter((spot) => fits(spot) && standing(bot, spot));
 

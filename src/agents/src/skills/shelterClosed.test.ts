@@ -32,12 +32,17 @@ test("observe - inShelter only when the agent says so", () => {
   assert.equal("inShelter" in observe(bot, base), false);
 });
 
-test("layout - a large shelter has a 5x5 interior: about 85 blocks one storey, 170 two, the doorway one further out", async () => {
+test("layout - a large shelter is one 5x5 room, 3 high: about 105 blocks, the doorway one further out and 2 high", async () => {
   const count = (storeys: number) => { const l = layout(storeys, 5); return l.walls.length + l.roof.length; };
-  assert.equal(count(1), 38 + 45);
-  assert.equal(count(2), 98 + 45 + 24);
+  // a ring of 20 wall cells a layer (corners left out), 3 layers, less the doorway; the roof over ring and room
+  assert.equal(count(1), 3 * 20 - 2 + (20 + 25));
+  assert.equal(count(2), count(1), "no second storey on a large one");
   assert.deepEqual(layout(1, 5).door.map((v) => v.z), [3, 3]);
+  assert.deepEqual(layout(1, 5).door.map((v) => v.y), [0, 1]);
   assert.equal(floorCells(5).length, 26);
+  // a hut keeps its option of a second room
+  const hut = (storeys: number) => { const l = layout(storeys, 3); return l.walls.length + l.roof.length; };
+  assert.ok(hut(2) > hut(1));
   const big = { x: 0, y: 64, z: 0, storeys: 1, size: 5 as const };
   const blocks: Record<string, string> = {};
   const { walls, roof, door } = layout(1, 5);
@@ -51,7 +56,8 @@ test("standing - a shelter whose walls are gone is not offered; describeShelter 
   assert.equal(standing(fakeBot({ blocks: hut() }).bot, spot), true);
   // fakeBot has air everywhere it has no block, so an empty world has no walls.
   assert.equal(standing(fakeBot({ blocks: floor(64) }).bot, spot), false);
-  assert.equal(describeShelter({ ...spot, storeys: 2, size: 5 }), "a large two-storey shelter");
+  assert.equal(describeShelter({ ...spot, storeys: 2, size: 5 }), "a large shelter", "a large one is one tall room, whatever an old spot says");
+  assert.equal(describeShelter({ ...spot, storeys: 2 }), "a two-storey shelter");
   assert.equal(describeShelter({ ...spot, size: 5, complete: false }), "an unfinished large shelter");
   assert.equal(describeShelter(spot), "a shelter");
 });
@@ -84,7 +90,7 @@ test("build_shelter - a large one goes back to the agent's own large shelter far
   const mine = far();
   mine.username = "qa";
   const own = await buildShelter.run({ ...context(mine), shelters: () => [{ ...base, by: "qa" }] }, { size: "large", storeys: 2 });
-  assert.match(own.reason ?? "", /could not get into a large two-storey shelter at 0,64,0/, "set off home, 80 blocks");
+  assert.match(own.reason ?? "", /could not get into a large shelter at 0,64,0/, "set off home, 80 blocks");
   const other = far();
   other.username = "qa";
   const theirs = await buildShelter.run({ ...context(other), shelters: () => [{ ...base, by: "qb" }] }, { size: "large", storeys: 2 });
