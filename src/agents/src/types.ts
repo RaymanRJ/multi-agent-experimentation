@@ -82,6 +82,10 @@ export interface Observation {
   isDay: boolean;
   /** By day, ticks until night (20 ticks = 1 second). Omitted at night. */
   ticksUntilNight?: number;
+  /** Which day of the run it is, of how many ("2 of 3"). Omitted when the run has no time budget. */
+  day?: string;
+  /** On the run's last day: ticks until it ends, goal met or not. */
+  ticksUntilRunEnds?: number;
   inventory: Record<string, number>;
   /** Every tool held, with the uses it has left ("84 of 250 uses left"). Omitted when none. */
   tools?: Record<string, string>;

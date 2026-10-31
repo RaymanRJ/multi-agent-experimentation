@@ -31,6 +31,22 @@ export function countInventory(bot: Bot): Record<string, number> {
   return counts;
 }
 
+/** A Minecraft day: 24000 ticks. */
+const DAY_TICKS = 24000;
+
+/**
+ * Which day of the run it is, of how many, and on the last day how long is left: a player knows it is the
+ * last night. Agents knew only the time of day: on tluna7b's last night the owner watched all three hide as
+ * if another day were coming. Pure, for testing.
+ */
+export function runClock(clock?: { elapsed: number; budget: number }): { day?: string; ticksUntilRunEnds?: number } {
+  if (!clock || !Number.isFinite(clock.budget) || clock.budget <= 0) return {};
+  const days = Math.max(1, Math.ceil(clock.budget / DAY_TICKS));
+  const day = Math.min(days, Math.floor(clock.elapsed / DAY_TICKS) + 1);
+  const left = Math.max(0, clock.budget - clock.elapsed);
+  return { day: `${day} of ${days}`, ...(day === days ? { ticksUntilRunEnds: left } : {}) };
+}
+
 /**
  * Compresses world state into something a model can read cheaply.
  *
@@ -62,6 +78,8 @@ export function observe(
     chestsSeen?: string[];
     /** What other agents last announced doing (see trackActivity); shown only within sight. */
     activities?: Map<string, string>;
+    /** Ticks since the run began, and its time budget: which day of the run it is. */
+    clock?: { elapsed: number; budget: number };
   },
 ): Observation {
   const position = bot.entity.position;
@@ -151,6 +169,7 @@ export function observe(
     timeOfDay,
     isDay: !isNight(timeOfDay),
     ...(isNight(timeOfDay) ? {} : { ticksUntilNight: ticksUntilNight(timeOfDay) }),
+    ...runClock(opts.clock),
     inventory: countInventory(bot),
     nearbyBlocks,
     ...(beds.total ? { beds } : {}),

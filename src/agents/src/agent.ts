@@ -546,6 +546,7 @@ async function main(): Promise<void> {
       animalsSeen: animalsSeen(),
       oreSeen: oreSeen(),
       chestsSeen: describeChests(bot.entity.position, teamChests(), agentName),
+      clock: { elapsed: elapsedTicks(), budget: maxTicks },
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
       ...(progress && goalGaps

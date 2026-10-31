@@ -249,7 +249,8 @@ export function buildSystemPrompt(
     '"underground" appears only when you are under the ground: how many blocks of solid ground lie between your head and the open sky.',
     '"recentEvents" lists what happened lately, newest last: how your last decisions went, interruptions, and a note when you have made the same decision several times in a row.',
     '"timeOfDay" runs from 0 to 24000 ticks each day (20 ticks = 1 second); night, when hostile mobs come out, is 13000 to 23000, ' +
-      'and "isDay" is false only then. "ticksUntilNight" is how long until the next night.',
+      'and "isDay" is false only then. "ticksUntilNight" is how long until the next night. ' +
+      '"day" says which day of the run it is, of how many; on the last day "ticksUntilRunEnds" is how long until the run ends, whether or not the goal is met.',
     ...(options.progress ? ['"stillNeeded" lists what your goal still lacks.'] : []),
     'Skills (args spec: name -> type; a type ending in "?" is optional, so leave it out to use the default):',
     ...lines,

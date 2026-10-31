@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { observe, shownHealth } from "./observe.js";
+import { observe, runClock, shownHealth } from "./observe.js";
 import { fakeBot } from "./testing/fakeBot.js";
 
 const base = { step: 3, scenario: "survival" as const, goal: "Craft a stone pickaxe.", recentEvents: [] as string[] };
@@ -114,4 +114,14 @@ test("observe - furniture is never crowded out by stone, and beds count once eac
   assert.equal("white_bed" in o.nearbyBlocks, false);
   assert.deepEqual(o.beds, { total: 2, inUse: 1 });
   assert.equal("beds" in observe(fakeBot().bot, base), false);
+});
+
+test("runClock - which day of the run it is, and on the last day how long is left (tluna7b's last night)", () => {
+  const budget = 72000;
+  assert.deepEqual(runClock({ elapsed: 0, budget }), { day: "1 of 3" });
+  assert.deepEqual(runClock({ elapsed: 30000, budget }), { day: "2 of 3" });
+  assert.deepEqual(runClock({ elapsed: 60000, budget }), { day: "3 of 3", ticksUntilRunEnds: 12000 });
+  assert.deepEqual(runClock({ elapsed: 72500, budget }), { day: "3 of 3", ticksUntilRunEnds: 0 }, "never past the last day");
+  assert.deepEqual(runClock({ elapsed: 1000, budget: 12000 }), { day: "1 of 1", ticksUntilRunEnds: 11000 }, "a half-day run is all last day");
+  assert.deepEqual(runClock(undefined), {}, "no budget, no clock");
 });
