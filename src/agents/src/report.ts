@@ -17,6 +17,7 @@ export interface MilestoneData {
 }
 
 export type MilestoneName = "logs" | "wooden_pickaxe" | "stone" | "stone_pickaxe" | "shelter" | "survived_night";
+export const MILESTONES: MilestoneName[] = ["logs", "wooden_pickaxe", "stone", "stone_pickaxe", "shelter", "survived_night"];
 
 export interface RunSummary {
   file: string;

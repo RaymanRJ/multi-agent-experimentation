@@ -10,14 +10,14 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { LoggedStep, ModelCall } from "./types.js";
 import { costUSD } from "./backends/pricing.js";
-import { isDeath, newEventsPerStep, summarizeRun, type MilestoneName } from "./report.js";
+import { isDeath, newEventsPerStep, summarizeRun } from "./report.js";
+import { goalTrackers, type Tracker } from "./goalTrackers.js";
 import { SCENARIOS, presetName } from "./scenario.js";
 
 /** Runs older than this are not listed. */
 export const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 /** A run with no end recorded and no new line for this long has stopped (crashed, killed). */
 export const STALLED_MS = 10 * 60 * 1000;
-export const MILESTONES: MilestoneName[] = ["logs", "wooden_pickaxe", "stone", "stone_pickaxe", "shelter", "survived_night"];
 
 const RUN_FILE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-(.+)\.jsonl$/;
 
@@ -150,7 +150,7 @@ export function startingRow(file: string, start: RunStart, mtimeMs: number, now:
     // Its first decision is made but nothing is logged until that skill ends.
     doing: status === "starting" ? (live?.skill ?? null) : null,
     live: status === "starting" ? live : null,
-    milestones: Object.fromEntries(MILESTONES.map((name) => [name, null])),
+    trackers: goalTrackers(start.goal, []),
     goalMet: "n/a",
     ticks: 0,
     tokens: 0,
@@ -186,7 +186,8 @@ export interface RunRow {
   doing: string | null;
   /** The decision being carried out, when it is newer than the last logged step. */
   live?: LiveStep | null;
-  milestones: Record<string, number | null>;
+  /** The parts of this run's goal so far (goalTrackers.ts); empty for a goal in free text. */
+  trackers: Tracker[];
   goalMet: boolean | "n/a";
   ticks: number;
   tokens: number;
@@ -206,8 +207,6 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
   const calls = steps.flatMap((s) => s.calls ?? []);
   const brain = brainLabel(steps);
   const status = runStatus(steps, mtimeMs, now);
-  const milestones: Record<string, number | null> = {};
-  for (const name of MILESTONES) milestones[name] = summary.milestones[name]?.step ?? null;
   const lastAt = Date.parse(last.at);
   return {
     file,
@@ -226,7 +225,7 @@ export function runRow(file: string, steps: LoggedStep[], mtimeMs: number, now: 
     step: last.step,
     doing: status === "running" ? (live?.skill ?? null) : null,
     live: status === "running" ? live : null,
-    milestones,
+    trackers: goalTrackers(first.observation.goal, steps),
     goalMet: summary.goalMet,
     ticks: last.ticks ?? 0,
     tokens: summary.tokensIn + summary.tokensOut,

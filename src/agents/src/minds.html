@@ -185,7 +185,6 @@ pre { margin: 0; font: 12.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; ba
 </div>
 <script>
 "use strict";
-const MILESTONES = [["logs", "Logs"], ["wooden_pickaxe", "Wooden pickaxe"], ["stone", "Stone"], ["stone_pickaxe", "Stone pickaxe"], ["shelter", "Shelter"], ["survived_night", "Survived night"]];
 const $ = (id) => document.getElementById(id);
 let runs = [], selected = null, detail = null, serverOffset = 0;
 const expanded = new Set(), calls = new Map();
@@ -243,7 +242,7 @@ function statusBadge(r) {
   if (r.status === "stopped") return h("span", { class: "badge stopped" }, "Stopped — no end recorded");
   return h("span", { class: "badge " + (isMet(r) ? "met" : "ended") }, isMet(r) ? "✓ Goal met" : "Ended: " + r.ended);
 }
-function pips(r) { return h("div", { class: "pips", title: MILESTONES.map(([k, l]) => (r.milestones[k] ? "✓ " : "· ") + l).join("\n") }, MILESTONES.map(([k]) => h("span", { class: "pip" + (r.milestones[k] ? " on" : "") }))); }
+function pips(r) { return h("div", { class: "pips", title: r.trackers.map((t) => (t.on ? "✓ " : "· ") + t.label).join("\n") }, r.trackers.map((t) => h("span", { class: "pip" + (t.on ? " on" : "") }))); }
 
 // The viewer is served by the agent on the same machine as this panel.
 const viewUrl = (port) => location.protocol + "//" + (location.hostname || "localhost") + ":" + port;
@@ -420,8 +419,10 @@ function renderDetail() {
       stat("Typical think time", r.medianMs ? dur(r.medianMs) : "instant", "median per decision"),
       stat("Tokens", num(r.tokens)),
       stat("Cost", r.cost)),
-    h("div", { class: "card" }, h("h3", {}, "Progress"),
-      h("div", { class: "ladder" }, MILESTONES.map(([k, label]) => h("div", { class: "rung" + (r.milestones[k] ? " on" : "") }, h("div", { class: "ball" }, "✓"), h("div", {}, label), h("div", { class: "at" }, r.milestones[k] ? "step " + r.milestones[k] : "—"))))),
+    h("div", { class: "card" }, h("h3", {}, "Progress toward the goal"),
+      r.trackers.length
+        ? h("div", { class: "ladder" }, r.trackers.map((t) => h("div", { class: "rung" + (t.on ? " on" : "") }, h("div", { class: "ball" }, "✓"), h("div", {}, t.label), h("div", { class: "at" }, t.step ? (t.on ? "step " + t.step : "had it at step " + t.step + ", not now") : "—"))))
+        : h("div", { class: "at" }, "This goal is free text, so it has no parts to track.")),
     deathsCard(detail.deaths),
     h("div", { class: "card now" },
       h("div", {},

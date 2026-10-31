@@ -16,8 +16,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import minimist from "minimist";
 import type { LoggedStep } from "./types.js";
-import { hitList, hitPair, isDeath, newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
-import { brainLabel, MILESTONES, parseSteps } from "./minds.js";
+import { hitList, hitPair, isDeath, MILESTONES, newEventsPerStep, summarizeRun, type RunSummary } from "./report.js";
+import { brainLabel, parseSteps } from "./minds.js";
 import { GOAL_GAPS, TEAM_GOALS, goalTask } from "./scenario.js";
 
 const MILESTONE_LABELS: Record<string, string> = {

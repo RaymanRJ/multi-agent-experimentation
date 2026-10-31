@@ -67,17 +67,21 @@ test("timeline shows only messages new on each step", () => {
 });
 
 test("runRow summarises progress and the run's end", () => {
+  const goal = "Craft a stone pickaxe. Once you have it, end the episode.";
   const steps = [
-    step(1, { inventoryAfter: { oak_log: 3 }, ticks: 100 }),
+    step(1, { observation: obs({ goal }), inventoryAfter: { oak_log: 3 }, ticks: 100 }),
     step(2, { decision: { skill: "craft", args: { item: "wooden_pickaxe" } }, inventoryAfter: { wooden_pickaxe: 1 }, ticks: 200, ended: "model ended" }),
   ];
   const row = runRow("2026-10-17T00-00-00-000Z-qnone_tools_1.jsonl", steps, 0, 0)!;
   assert.equal(row.agent, "qnone_tools_1");
   assert.equal(row.status, "ended");
   assert.equal(row.ended, "model ended");
-  assert.equal(row.milestones["logs"], 1);
-  assert.equal(row.milestones["wooden_pickaxe"], 2);
-  assert.equal(row.milestones["stone"], null);
+  assert.deepEqual(row.trackers.map((t) => [t.label, t.on, t.step]), [
+    ["Logs", false, 1], // held at step 1, not at the end: it went into the pickaxe
+    ["Wooden pickaxe", true, 2],
+    ["Cobblestone", false, null],
+    ["Stone pickaxe", false, null],
+  ]);
   assert.equal(row.ticks, 200);
 });
 
