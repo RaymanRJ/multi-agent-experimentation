@@ -70,3 +70,36 @@ test("flee - paths that fail after a run report the run, not being cornered", as
   assert.match(result.reason ?? "", /^ran 20 blocks but 1 hostile/);
   assert.doesNotMatch(result.reason ?? "", /could not find a path away/);
 });
+
+/** Solid stone from y 55 to 75 round 0,0, with a tunnel 2 high along x at y 64 from x = `from` to `to`. */
+function rock(from: number, to: number): Record<string, string> {
+  const blocks: Record<string, string> = {};
+  for (let x = -14; x <= 14; x++) for (let z = -3; z <= 3; z++) for (let y = 55; y <= 75; y++) blocks[`${x},${y},${z}`] = "stone";
+  for (let x = from; x <= to; x++) for (const y of [64, 65]) delete blocks[`${x},${y},0`];
+  return blocks;
+}
+
+test("flee - underground, runs along a tunnel at its own height; boxed in, walls in and never digs down", async () => {
+  const zombie = () => ({ name: "zombie", type: "hostile", position: { x: -2.5, y: 64, z: 0.5 } });
+  const open = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 14), entities: [zombie()], inventory: { cobblestone: 16 } });
+  const legs: Array<{ x: number; y: number; z: number }> = [];
+  open.bot.pathfinder.goto = (async (goal: { x: number; y: number; z: number }) => {
+    legs.push(goal);
+    open.bot.entity.position = new Vec3(goal.x + 0.5, goal.y, goal.z + 0.5);
+  }) as never;
+  const ran = await flee.run(context(open.bot), { distance: 10 });
+  assert.equal(ran.status, "success");
+  assert.equal(legs[0]?.y, 64, "aimed at the tunnel floor, not at x and z alone");
+  assert.ok((legs[0]?.x ?? 0) > 0, "away from the zombie");
+
+  // A dead end: no floor along or up within reach. Walled in where it stands, told the monsters stay.
+  const shut = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie()], inventory: { cobblestone: 16 } });
+  shut.bot.placeBlock = (async (reference: { position: Vec3 }, face: Vec3) => {
+    shut.world.set(`${reference.position.x + face.x},${reference.position.y + face.y},${reference.position.z + face.z}`, "cobblestone");
+  }) as never;
+  const walled = await flee.run(context(shut.bot), { distance: 10 });
+  assert.equal(walled.status, "success");
+  assert.match(walled.reason ?? "", /walled yourself in .* the monsters will not leave/);
+  assert.ok(!shut.calls.some((c) => c.startsWith("dig")), "never dug down into the rock");
+  assert.ok(!shut.calls.includes("goto"), "never ran into the rock");
+});

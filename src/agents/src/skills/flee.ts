@@ -4,7 +4,7 @@ import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
-import { asNumber, gotoWatched, homeBlock, opensOnClick, withTimeout } from "./util.js";
+import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
 import { describeShelter, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
 import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
@@ -32,6 +32,15 @@ const HUNTED_RADIUS = 32;
  * 21 more of the flees that ran into the open had a finished shelter 41-64 blocks off.
  */
 export const REFUGE_RANGE = 64;
+/**
+ * Underground, home is the way out, on whichever side the monsters are, and from further off: in a cave
+ * they never burn off or wander away, and in the one-room-home reps 17 healthy agents were killed running
+ * through tunnels, 25 deaths in 252 flees underground by day (10%) against 10 in 224 on the surface (4.5%).
+ * Climbing from a mine into the home worked: 53 times, 2 deaths.
+ */
+export const UNDERGROUND_REFUGE_RANGE = 96;
+/** A home this far below is no refuge: in tluna7b two agents fled from the surface toward one 57 blocks down, through caves, and were shot there. */
+const FAR_BELOW = 8;
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 const FACES = [...SIDES, new Vec3(0, 1, 0), new Vec3(0, -1, 0)];
 
@@ -203,20 +212,20 @@ export async function burrow(bot: Bot): Promise<string | null> {
  * `anySide`: with an archer in sight, a shelter on any side will do, since running in the open keeps
  * the agent in bow range (bpoc4: five flee deaths to arrows).
  */
-export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[], anySide = false): ShelterSpot | null {
+export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[], anySide = false, range = REFUGE_RANGE): ShelterSpot | null {
   if (threats.length === 0) return null;
   const here = bot.entity.position;
   const cx = threats.reduce((sum, e) => sum + e.position.x, 0) / threats.length;
   const cz = threats.reduce((sum, e) => sum + e.position.z, 0) / threats.length;
   const [ax, az] = [here.x - cx, here.z - cz];
   const options = shelters
-    .filter((spot) => spot.complete !== false && !insideSpot(bot, spot) && standing(bot, spot) && hostilesAtDoorway(bot, spot).length === 0)
+    .filter((spot) => spot.complete !== false && spot.y >= here.y - FAR_BELOW && !insideSpot(bot, spot) && standing(bot, spot) && hostilesAtDoorway(bot, spot).length === 0)
     .map((spot) => {
       const front = new Vec3(spot.x + 0.5, spot.y, spot.z + half(spot.size ?? 3) + 1.5);
       const [fx, fz] = [front.x - here.x, front.z - here.z];
       return { spot, d: here.distanceTo(front), away: ax * fx + az * fz > 0 };
     })
-    .filter(({ d, away }) => d <= REFUGE_RANGE && (away || anySide))
+    .filter(({ d, away }) => d <= range && (away || anySide))
     .sort((a, b) => a.d - b.d);
   return options[0]?.spot ?? null;
 }
@@ -233,8 +242,9 @@ export const flee: Skill = {
     "Get away from nearby hostile mobs (those within 16 blocks). Inside a closed shelter with nothing in it, you stay put: " +
     "nothing outside can reach you there. If a finished shelter you know (yours or another agent's) stands within " +
     `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton can see you), with no hostile at its doorway, ` +
-    "you run into it and its doorway is closed behind you. " +
-    "Otherwise you run directly away from them, turning aside rather than into water or off a drop, and if a skeleton can still " +
+    "you run into it by its doorway and the doorway is closed behind you; a shelter far below you does not count. " +
+    `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off. ` +
+    "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton can still " +
     "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, only at what it can see). " +
     "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
     `within ${BOW_RANGE} can see you, or the distance is covered; ` +
@@ -242,6 +252,7 @@ export const flee: Skill = {
     "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
     "without a pickaxe, nor beside water or lava). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
+    "Under the ground it only walls you in, and that only buys time: the monsters stay, so climb out or go home after. " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
     "Fails only if it can't run, dig in or wall you in. Fleeing does not fight; follow up with shelter or sleep.",
   args: { distance: "number" },
@@ -271,10 +282,11 @@ export const flee: Skill = {
       };
     }
 
-    // Somewhere safe to run to beats running into the open; with an archer in sight, on any side.
-    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), archersWithSight(ctx.bot).length > 0);
+    // Somewhere safe to run to beats running into the open; with an archer in sight, or underground, on any side.
+    const underground = groundAbove(ctx.bot) >= UNDERGROUND_MIN;
+    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE);
     if (home) {
-      const entered = await enterShelter(ctx, home);
+      const entered = await enterShelter(ctx, home, { byDoorOnly: true });
       const owner = home.by && home.by !== ctx.bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
       if (entered.ok) {
         const here = ctx.bot.entity.position;
@@ -310,6 +322,7 @@ export const flee: Skill = {
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";
     const digIn = async (why: string): Promise<SkillResult | null> => {
+      if (underground) return wallIn(why);
       const problem = await burrow(ctx.bot).catch((error: Error) => error.message);
       if (problem === null) {
         return {
@@ -323,9 +336,30 @@ export const flee: Skill = {
       return null;
     };
 
+    /**
+     * Underground: a wall of blocks for now, never a hole further down. Monsters in a cave don't leave or burn
+     * in daylight, so the result says it only buys time and names the ways up.
+     */
+    const wallIn = async (why: string): Promise<SkillResult | null> => {
+      const sealed = await sealIn(ctx.bot);
+      if (sealed.open > 0) {
+        refused = `${sealed.open} gaps left${sealed.noBlocks ? ": no dirt, cobblestone or planks to place" : ""}`;
+        ctx.log(`could not wall in: ${refused}`);
+        return null;
+      }
+      return {
+        status: "success",
+        reason: `${why}, so you walled yourself in (${sealed.placed} blocks placed). Underground the monsters will not leave or burn off in daylight: this only buys time. climb_out digs you up to the surface from here; build_shelter takes you home if one is near`,
+        detail: { ...report(), sealedIn: true },
+      };
+    };
+
     const cornered = async (): Promise<SkillResult> => {
       const dug = await digIn("no path away");
       if (dug) return dug;
+      if (underground) {
+        return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})`, detail: report() };
+      }
       const sealed = await sealIn(ctx.bot);
       if (sealed.open === 0) {
         return {
@@ -354,15 +388,21 @@ export const flee: Skill = {
       const here = ctx.bot.entity.position;
       const centroid = threats.reduce((c, e) => ({ x: c.x + e.position.x / threats.length, z: c.z + e.position.z / threats.length }), { x: 0, z: 0 });
       const length = Math.hypot(here.x - centroid.x, here.z - centroid.z) || 1;
-      const { x: tx, z: tz } = retreatPoint(ctx.bot, threats, step) ?? {
-        x: Math.round(here.x + ((here.x - centroid.x) / length) * step),
-        z: Math.round(here.z + ((here.z - centroid.z) / length) * step),
-      };
+      // Kept to the spot's height. With no such spot underground, straight away is into rock or down a
+      // cave: stop running (the checks below wall the agent in). On the surface, straight away anyway.
+      const point = retreatPoint(ctx.bot, threats, step);
+      if (!point && underground) {
+        if (covered() < 4) return cornered();
+        break;
+      }
+      const tx = point?.x ?? Math.round(here.x + ((here.x - centroid.x) / length) * step);
+      const tz = point?.z ?? Math.round(here.z + ((here.z - centroid.z) / length) * step);
+      const goal = point ? new goals.GoalNear(point.x, point.y, point.z, 1) : new goals.GoalXZ(tx, tz);
 
       const before = ctx.bot.entity.position.clone();
       let stuck = false;
       try {
-        await gotoWatched(ctx.bot, new goals.GoalXZ(tx, tz), LEG_TIMEOUT_MS, "fleeing");
+        await gotoWatched(ctx.bot, goal, LEG_TIMEOUT_MS, "fleeing");
       } catch (error) {
         ctx.bot.pathfinder.setGoal(null);
         ctx.log(`flee leg toward ${tx},${tz} failed: ${plainError((error as Error).message)}`);

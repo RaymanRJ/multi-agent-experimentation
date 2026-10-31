@@ -36,9 +36,11 @@ const EYE = 1.62;
 const LIQUID = /^(water|lava|bubble_column)$|seagrass|kelp/;
 
 /**
- * Where the agent would stand at x, z near `y`: on the first block found going down from a few above,
- * if it is dry and solid with room to stand. Null if unloaded, liquid, or a drop of more than a few
- * blocks (a cliff or a cave).
+ * Where the agent would stand at x, z near `y`: on the first dry, solid block found going down from a
+ * few above that has room to stand on it. A ceiling with no room under it is passed over for the floor
+ * below: stopping at it found no floor in a tunnel or a low cave, so underground a flee ran straight
+ * away at any height, into the rock or down a cave. Null if unloaded, liquid, solid all the way, or a
+ * drop of more than a few blocks (a cliff or a cave).
  */
 export function standY(bot: Bot, x: number, z: number, y: number): number | null {
   let headroom = 0;
@@ -46,7 +48,11 @@ export function standY(bot: Bot, x: number, z: number, y: number): number | null
     const block = bot.blockAt(new Vec3(x, gy, z));
     if (!block) return null;
     if (LIQUID.test(block.name)) return null;
-    if (block.boundingBox === "block") return headroom >= 2 ? gy + 1 : null;
+    if (block.boundingBox === "block") {
+      if (headroom >= 2) return gy + 1;
+      headroom = 0;
+      continue;
+    }
     headroom++;
   }
   return null;
@@ -73,10 +79,12 @@ function wet(bot: Bot, x: number, z: number, y: number): boolean {
  * spot is water, a drop or unloaded, or the way there crosses water, the nearest turn off it (30°,
  * then 60°, then 90°, either way) that does neither. In bpoc3, three agents fled straight into a lake
  * and were killed there by drowned; checked live, a dry spot past a lake still drew the path across
- * it. Trees and walls on the way don't count: the pathfinder goes round them. Null when every
- * direction away is unsafe.
+ * it. Trees and walls on the way don't count: the pathfinder goes round them. Never a spot lower
+ * than a step below the agent, and `y` is where to stand there, so the walk keeps to that height: aimed only at
+ * x and z, 58 flees in the one-room-home reps ended 6 or more blocks down, dropping into caves on the
+ * way, and 13 of those agents died within two decisions. Null when every direction away is unsafe.
  */
-export function retreatPoint(bot: Bot, threats: Entity[], step: number): { x: number; z: number } | null {
+export function retreatPoint(bot: Bot, threats: Entity[], step: number): { x: number; y: number; z: number } | null {
   if (threats.length === 0) return null;
   const here = bot.entity.position;
   const cx = threats.reduce((s, e) => s + e.position.x, 0) / threats.length;
@@ -84,12 +92,15 @@ export function retreatPoint(bot: Bot, threats: Entity[], step: number): { x: nu
   const angle = Math.atan2(here.z - cz, here.x - cx);
   for (const turn of [0, 30, -30, 60, -60, 90, -90]) {
     const a = angle + (turn * Math.PI) / 180;
-    const x = Math.round(here.x + Math.cos(a) * step);
-    const z = Math.round(here.z + Math.sin(a) * step);
-    if (!safeGround(bot, x, z, here.y)) continue;
+    // The block the point falls in: rounding put an agent in the middle of a block one block sideways,
+    // into the rock beside a tunnel one block wide.
+    const x = Math.floor(here.x + Math.cos(a) * step);
+    const z = Math.floor(here.z + Math.sin(a) * step);
+    const y = standY(bot, x, z, here.y);
+    if (y === null || y < Math.floor(here.y) - 1) continue; // a step down is level ground; more is a way down
     let dry = true;
-    for (let d = 1; d < step && dry; d++) dry = !wet(bot, Math.round(here.x + Math.cos(a) * d), Math.round(here.z + Math.sin(a) * d), here.y);
-    if (dry) return { x, z };
+    for (let d = 1; d < step && dry; d++) dry = !wet(bot, Math.floor(here.x + Math.cos(a) * d), Math.floor(here.z + Math.sin(a) * d), here.y);
+    if (dry) return { x, y, z };
   }
   return null;
 }
@@ -179,7 +190,7 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
       for (const t of threats) steppedFrom.add(named(t));
       backedOff++;
       movingSince = Date.now();
-      bot.pathfinder.setGoal(new goals.GoalXZ(target.x, target.z));
+      bot.pathfinder.setGoal(new goals.GoalNear(target.x, target.y, target.z, 1));
       return;
     }
     const archers = archersWithSight(bot);

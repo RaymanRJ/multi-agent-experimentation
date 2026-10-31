@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { archersWithSight, buriedHead, coverPoint, guardWhileDeciding, inSight, retreatPoint, safeGround, unburyHead } from "./reflexes.js";
+import { archersWithSight, buriedHead, coverPoint, guardWhileDeciding, inSight, retreatPoint, safeGround, standY, unburyHead } from "./reflexes.js";
 import { refuge } from "./skills/flee.js";
 import { floorCells, layout } from "./skills/buildShelter.js";
 import { fakeBot, floor } from "./testing/fakeBot.js";
@@ -34,7 +34,7 @@ test("safeGround - dry floor yes; water, or a drop with nothing below, no", () =
 
 test("retreatPoint - straight away on dry ground, turning aside from a lake, null when every way is wet", () => {
   const dry = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: ground(() => false), entities: [zombie(-2.5, 0.5)] }).bot;
-  assert.deepEqual(retreatPoint(dry, Object.values(dry.entities), 6), { x: 7, z: 1 });
+  assert.deepEqual(retreatPoint(dry, Object.values(dry.entities), 6), { x: 6, y: 64, z: 0 });
 
   // bpoc3: agents fled straight into a lake and drowned there. A strip of water lies dead ahead.
   const lake = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: ground((x, z) => x >= 4 && Math.abs(z) <= 2), entities: [zombie(-2.5, 0.5)] }).bot;
@@ -47,8 +47,34 @@ test("retreatPoint - straight away on dry ground, turning aside from a lake, nul
   const along = retreatPoint(river, Object.values(river.entities), 6)!;
   assert.ok(along.x < 3, `stays this side of the river (went to ${along.x},${along.z})`);
 
-  const sea = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: ground((x) => x >= 1), entities: [zombie(-2.5, 0.5)] }).bot;
+  // Dry only where it stands: every way away is wet.
+  const sea = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: ground((x, z) => x !== 0 || z !== 0), entities: [zombie(-2.5, 0.5)] }).bot;
   assert.equal(retreatPoint(sea, Object.values(sea.entities), 6), null);
+});
+
+test("retreatPoint - never down a drop: turns aside to ground at its own height, and says where to stand", () => {
+  // Level ground west of x 3, ground 3 blocks lower east of it; the zombie is west.
+  const blocks = ground(() => false);
+  for (const cell of Object.keys(blocks)) {
+    const [x, , z] = cell.split(",").map(Number) as [number, number, number];
+    if (x > 3) {
+      delete blocks[cell];
+      blocks[`${x},60,${z}`] = "stone";
+    }
+  }
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks, entities: [zombie(-2.5, 0.5)] });
+  const point = retreatPoint(bot, Object.values(bot.entities), 6)!;
+  assert.ok(point.x <= 3, `stayed on the high ground (went to ${point.x},${point.z})`);
+  assert.equal(point.y, 64);
+});
+
+test("standY - finds a tunnel's floor under its ceiling; none in solid rock", () => {
+  const blocks: Record<string, string> = {};
+  for (let x = 0; x <= 4; x++) for (let y = 60; y <= 70; y++) blocks[`${x},${y},0`] = "stone";
+  for (const y of [64, 65]) delete blocks[`2,${y},0`];
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks });
+  assert.equal(standY(bot, 2, 0, 64), 64);
+  assert.equal(standY(bot, 4, 0, 64), null);
 });
 
 test("guardWhileDeciding - steps back from a mob in reach and says so; nothing inside a closed shelter or with none near", () => {
@@ -80,6 +106,12 @@ test("refuge - a finished shelter on the far side from the mobs, with its doorwa
   assert.equal(at(20.5, [zombie(28.5, 0.5), zombie(0.5, 6.5)]), null, "a mob at the doorway");
   assert.deepEqual(at(60.5, [zombie(68.5, 0.5)]), spot, "60 blocks: within reach since bpoc4");
   assert.equal(at(80.5, [zombie(88.5, 0.5)]), null, "too far to run to");
+  // Underground the flee passes a longer reach (UNDERGROUND_REFUGE_RANGE), and any side.
+  const deep = fakeBot({ position: { x: 80.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(72.5, 0.5)] }).bot;
+  assert.deepEqual(refuge(deep, [spot], Object.values(deep.entities), true, 96), spot, "underground: home 80 blocks off, past the zombie");
+  // A home far below is no refuge (tluna7b: two agents ran from the surface to one 57 blocks down and were shot on the way).
+  const above = fakeBot({ position: { x: 20.5, y: 80, z: 0.5 }, blocks: hut, entities: [{ ...zombie(28.5, 0.5), position: { x: 28.5, y: 80, z: 0.5 } }] }).bot;
+  assert.equal(refuge(above, [spot], Object.values(above.entities)), null, "16 blocks below");
   const site = fakeBot({ position: { x: 20.5, y: 64, z: 0.5 }, blocks: hut, entities: [zombie(28.5, 0.5)] }).bot;
   assert.equal(refuge(site, [{ ...spot, complete: false }], Object.values(site.entities)), null, "unfinished: no building with monsters behind you");
   // With an archer in sight, a shelter on any side will do: open ground keeps the agent in bow range.

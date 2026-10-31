@@ -643,7 +643,11 @@ async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: nu
   await gotoWatched(bot, new goals.GoalBlock(centre.x, centre.y, centre.z), 15_000, "stepping inside");
 }
 
-export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
+/**
+ * `byDoorOnly`: give up if the way in by the doorway fails, rather than dig in another way. Fleeing uses it:
+ * the other way took 40-86 s in the one-room-home reps, and three agents were killed in it.
+ */
+export async function enterShelter(ctx: SkillContext, spot: ShelterSpot, { byDoorOnly = false } = {}): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
   const bot = ctx.bot;
   if (!insideSpot(bot, spot)) {
     // Stop short of a crowded doorway: opening it takes seconds beside the mobs (tlunap1, hostilesAtDoorway).
@@ -668,6 +672,7 @@ export async function enterShelter(ctx: SkillContext, spot: ShelterSpot): Promis
     } catch (doorError) {
       bot.pathfinder.setGoal(null);
       if (ctx.shouldStop()) return { ok: false, result: { status: "aborted", reason: "interrupted on the way to the shelter" } };
+      if (byDoorOnly) return { ok: false, result: { status: "failed", reason: `could not get into ${describeShelter(spot)} at ${spotKey(spot)} by its doorway: ${plainError((doorError as Error).message)}` } };
       ctx.log(`could not go in by the doorway (${plainError((doorError as Error).message)}); going in another way`);
       try {
         await gotoWatched(bot, new goals.GoalBlock(spot.x, spot.y, spot.z), timeout, "walking into the shelter");
