@@ -14,9 +14,15 @@ export const REUSE_RANGE = 32;
 /**
  * How far an agent goes back to a large shelter it built itself, which it remembers as a player
  * remembers their base. In bpoc, Luna explored 45 blocks away and built a second, then a third.
- * Teammates' shelters count only within sight (REUSE_RANGE).
+ * Teammates' shelters count within sight (REUSE_RANGE), or if large within TEAM_HOME_RANGE.
  */
 export const HOME_RANGE = 128;
+/**
+ * How far a teammate's large shelter is gone back to, rather than building another: at 32 blocks a second
+ * large home went up in 4 of 8 reps (tluna7b, tluna8 reps 3, 4, 5), each reported as "the large shelter is
+ * finished". In rep 3 all the beds were in one and everyone sheltered in the other, and nobody slept.
+ */
+export const TEAM_HOME_RANGE = 80;
 const ENTER_TIMEOUT_MS = 40_000;
 /** Walking back from up to HOME_RANGE away takes longer than stepping into one in sight. */
 const HOME_TIMEOUT_MS = 120_000;
@@ -684,7 +690,7 @@ export const buildShelter: Skill = {
   description:
     "Get into a shelter, building one if there is none near. If a shelter (yours or another agent's) stands within " +
     `${REUSE_RANGE} blocks, you walk into it, any gaps in it are filled and its doorway is closed behind you (asking for a large one also ` +
-    `takes you back to a large one you built, up to ${HOME_RANGE} blocks away); otherwise a new one ` +
+    `takes you to a teammate's large one up to ${TEAM_HOME_RANGE} blocks away, or back to one you built up to ${HOME_RANGE} blocks away); otherwise a new one ` +
     "is built around where you are standing, with a roof and a 2-high doorway on the south side that is closed behind you " +
     "once you are inside: with a wooden door when you carry one or the wood for one (6 planks or 2 logs of one kind, and 1 more log " +
     "for a crafting table if none is near), made on the spot (you go in and out through it, " +
@@ -712,7 +718,7 @@ export const buildShelter: Skill = {
     // In sight, anyone's; for a large one, also the agent's own base further off, which it remembers.
     const spot = known.find((s) => insideSpot(bot, s))
       ?? byDistance.find(({ d }) => d <= REUSE_RANGE)?.s
-      ?? (size === 5 ? byDistance.find(({ s, d }) => d <= HOME_RANGE && (s.size ?? 3) === 5 && s.by === bot.username)?.s : undefined);
+      ?? (size === 5 ? byDistance.find(({ s, d }) => (s.size ?? 3) === 5 && (d <= TEAM_HOME_RANGE || (d <= HOME_RANGE && s.by === bot.username)))?.s : undefined);
 
     const centre = spot ? new Vec3(spot.x, spot.y, spot.z) : bot.entity.position.floored();
     const use = spot ? { size: spot.size ?? 3, storeys: spot.storeys } : { size, storeys };

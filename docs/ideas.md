@@ -41,6 +41,16 @@ Beds together also move each agent's respawn point home, away from the mobs at w
 possible by `build_shelter` going into a nearby shelter, a large size built in parts, `sleep` putting
 beds inside, and a sleep failure naming who was awake.
 
+### Showing what teammates hold (31 October, for later)
+
+Agents see a teammate's name, distance and what it is doing when close, not what it carries; they fill the gap
+by talking (125-277 mentions of iron a rep in tluna8, and about half their questions unanswered). A player can
+see the item in another player's hand, so showing the held item would fit the rule that the agents get facts a
+teammate could tell them. Measured in tluna8 it would help least where it matters most: iron was lost mainly
+to deaths carrying it, and in rep 1 the agent holding spare pickaxes knew the others had none. It might cut
+chatter and over-mining (17 raw iron by one agent in rep 3, 22 by two in rep 5, 9 needed). Set aside for now,
+the owner's call. `--progress on` is the existing condition that lists gaps such as "lb carries no iron_pickaxe".
+
 ### `team-homestead` (built and first run 20 October, thome1: 0 of 3; see `docs/results/write-ups/05-team-homestead.md`)
 
 > Over three days, keep everyone fed, build a two-storey shelter with a bed for each of you, make an

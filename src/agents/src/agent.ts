@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { enclosed } from "./skills/flee.js";
-import { describeShelter, HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -259,8 +259,9 @@ async function main(): Promise<void> {
     const here = bot.entity.position;
     return knownShelters()
       .map((spot) => ({ spot, d: Math.round(here.distanceTo(new Vec3(spot.x + 0.5, spot.y, spot.z + 0.5))) }))
-      // In sight; and the agent's own large shelters further off, which it remembers (bpoc: Luna built three).
-      .filter(({ spot, d }) => (d <= REUSE_RANGE && standing(bot, spot)) || (d <= HOME_RANGE && spot.by === agentName && (spot.size ?? 3) === 5))
+      // In sight; the agent's own large shelters further off, which it remembers (bpoc: Luna built three); and
+      // a teammate's large one within the range build_shelter goes to, so what it says matches what it does.
+      .filter(({ spot, d }) => (d <= REUSE_RANGE && standing(bot, spot)) || ((spot.size ?? 3) === 5 && (d <= TEAM_HOME_RANGE || (d <= HOME_RANGE && spot.by === agentName))))
       .sort((a, b) => a.d - b.d)
       .slice(0, 3)
       .map(({ spot, d }) => {
