@@ -288,6 +288,23 @@ in almost every rep, about half of them in our code; the whole goal was met only
 says the fixes allow a win, not how often
 ([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)).
 
+**Then pool the failures across runs, and sort each by what could still have been done.** One run's
+failure tells a story; the same kind of failure gathered from every run tells which story is common.
+Put every instance side by side with what the agent knew, what state it was in and what the tool did,
+then ask of each: was it already lost when the agent decided, did our tool decide it, or was it the
+agent's own choice? Only the middle group is a fix for the harness; the first is about acting sooner,
+and the last is behaviour to report. Hunches about the runs get the same test before anything is built on them.
+*Evidence:* across 25 reps, 48 of 60 deaths came while the agent was running away, which read as one
+problem. Sorted, 26 of those agents were near death before the escape began (13 died while the model was
+still choosing it); 17 had most of their health and were killed by how the escape tool behaved underground,
+where it died in 10% of uses against 4.5% in the open, because a helper could not find a floor under a
+low ceiling and sent them straight away at any height, into rock and down caves. The tool was changed;
+the late decisions were left alone. The same pooling showed the agents never once stored their most
+valuable material where a death could not take it (0 of 850 decisions considered it): their own
+choice, reported, not coached. And a hunch that early runs in a series won more (3 of 7 against 1 of 8)
+turned out to be about a one-in-four chance, with every world checked as reset the same
+([06](results/write-ups/06-team-base.md)).
+
 **What is left alone.** Answering requests but not needs, one agent carrying everything, status
 chatter: these are the agents' own behaviour. In organisations they are handled by how work is
 routed (tickets, a shared view of what's open), and here they can be tested as separate conditions,
