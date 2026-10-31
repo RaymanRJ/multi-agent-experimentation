@@ -117,6 +117,16 @@ test("goalWork - help and hindrance between teammates, and the goal at the end",
   assert.equal(goalWork([a], "explore"), null, "a goal without parts gets no section");
 });
 
+test("goalAtEnd - the one-room base counts its sleepers (tluna7a: the report said 0 of 3 when all three slept in it)", () => {
+  const built = step("build_shelter", { size: "large" }, {}, {}, { status: "success", reason: "the large shelter is finished", detail: { size: 5, storeys: 1, position: { x: 0, y: 64, z: 0 }, by: "a" } });
+  const sleep = () => step("sleep", {}, {}, {}, { status: "success", detail: { slept: true, skipped: true } });
+  const a: Member = { name: "a", offset: 0, steps: [built, sleep()] };
+  const b: Member = { name: "b", offset: 0, steps: [sleep()] };
+  const end = goalAtEnd([a, b], "team-base")!;
+  assert.equal(end[0]!.met, true, "the base is built");
+  assert.equal(end[1]!.how, "2 of 2", "both slept inside it");
+});
+
 test("needs - handovers asked for or not, and a spare bed kept while a teammate had none", () => {
   const made = step("craft", { item: "white_bed", count: 2 }, {}, { white_bed: 2 });
   const ask = { ...step("wait", {}, {}, {}), decision: { skill: "wait", args: {}, say: { to: "b", text: "b, please bring the beds here" } } };

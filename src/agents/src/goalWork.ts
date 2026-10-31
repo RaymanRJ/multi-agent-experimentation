@@ -444,9 +444,10 @@ export function goalAtEnd(members: Member[], goalName: string): PartAtEnd[] | nu
   const base = parts[0]!;
   const builds = members.flatMap((m) => m.steps.filter((step) => builtOrMended(step) && !entered(step) && base.did!(step)).map((step) => ({ m, step })));
   const first = builds.sort((a, b) => (a.step.ticks ?? 0) + a.m.offset - ((b.step.ticks ?? 0) + b.m.offset))[0];
-  // Where the base stands: every spot a base was built or walked into.
+  // Where the base stands: every spot a base was built or walked into. A team-base home is large, one room
+  // since 30 October (two storeys before); a team-homestead home has two storeys.
   const needsBase = goalName === "team-base";
-  const spots = members.flatMap((m) => m.steps.filter((step) => step.decision?.skill === "build_shelter" && step.result?.status === "success" && storeys(step) >= 2 && (!needsBase || large(step))))
+  const spots = members.flatMap((m) => m.steps.filter((step) => step.decision?.skill === "build_shelter" && step.result?.status === "success" && (needsBase ? large(step) : storeys(step) >= 2)))
     .map((step) => step.result?.detail?.["position"] as { x: number; y: number; z: number } | undefined).filter((p): p is { x: number; y: number; z: number } => !!p);
   const inside = (p: { x: number; y: number; z: number }) => spots.some((s) => Math.max(Math.abs(s.x - p.x), Math.abs(s.z - p.z)) <= 3 && Math.abs(s.y - p.y) <= 5);
   const sleepers = members.filter((m) => m.steps.some((step) => slept(step) && (!needsBase || inside(step.observation.position)))).map((m) => m.name);
