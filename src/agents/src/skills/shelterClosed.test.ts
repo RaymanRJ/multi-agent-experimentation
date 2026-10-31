@@ -124,3 +124,12 @@ test("build_shelter - stops short of a shelter with mobs at its doorway, and say
   assert.match(result.reason ?? "", /did not go to a shelter \(qb's\) at 0,64,0: a zombie is within 8 blocks of its doorway/);
   assert.equal(bot.entity.position.x, 20.5, "it stayed where it was");
 });
+
+test("doorWood - a wood with 6 planks, counting a log as 4, the one with most first (tluna7a: logs only)", async () => {
+  const { doorWood } = await import("./buildShelter.js");
+  assert.equal(doorWood({ dark_oak_log: 8, dark_oak_planks: 2 }), "dark_oak", "logs count: tluna7a's lc had 8 logs and 2 planks");
+  assert.equal(doorWood({ oak_planks: 6 }), "oak");
+  assert.equal(doorWood({ oak_planks: 5 }), null, "5 planks and no logs make no door");
+  assert.equal(doorWood({ oak_planks: 4, birch_log: 3 }), "birch", "the wood with most");
+  assert.equal(doorWood({ cobblestone: 64 }), null);
+});

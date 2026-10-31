@@ -288,25 +288,59 @@ export async function shutDoor(bot: Bot, door: NonNullable<ReturnType<Bot["block
   }
 }
 
+/** Woods a door can be made of: planks and logs of these names. */
+const DOOR_WOODS = ["oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry"];
+
 /**
- * A door in the empty doorway: one carried, or one made from 6 planks of a kind (a recipe makes 3). True once
- * it stands there. Crafting may step out to a table; the agent comes back to `inside` after.
+ * The wood a door can be made from with what is held: 6 planks of one kind, counting each log as 4 planks.
+ * The one with most first. Pure, for testing.
+ */
+export function doorWood(held: Record<string, number>): string | null {
+  const enough = DOOR_WOODS.map((wood) => ({ wood, planks: (held[`${wood}_planks`] ?? 0) + 4 * (held[`${wood}_log`] ?? 0) }))
+    .filter(({ planks }) => planks >= 6)
+    .sort((a, b) => b.planks - a.planks);
+  return enough[0]?.wood ?? null;
+}
+
+/** Planks of `wood` up to `count`, made from its logs as needed. True once held. */
+async function planksFor(ctx: SkillContext, wood: string, count: number): Promise<boolean> {
+  const have = () => countInventory(ctx.bot)[`${wood}_planks`] ?? 0;
+  // Asked again for what is still short, checking what came: one call for 8 planks once made only 4 (live).
+  for (let attempt = 0; attempt < 3 && have() < count; attempt++) {
+    if ((countInventory(ctx.bot)[`${wood}_log`] ?? 0) === 0) return false;
+    const before = have();
+    await craft.run(ctx, { item: `${wood}_planks`, count: count - before });
+    if (have() <= before) return false;
+  }
+  return have() >= count;
+}
+
+/**
+ * A door in the empty doorway: one carried, or one made from 6 planks of a kind (a recipe makes 3), turning
+ * logs into planks and making a table first if need be. True once it stands there. The agent comes back to
+ * `inside` after crafting.
  */
 async function hangDoor(ctx: SkillContext, lower: Vec3, inside: Vec3): Promise<boolean> {
   const bot = ctx.bot;
   let door = bot.inventory.items().find((item) => isDoor(item.name));
   if (!door) {
-    const planks = Object.entries(countInventory(bot)).find(([name, count]) => name.endsWith("_planks") && count >= 6);
-    if (!planks) return false;
+    const wood = doorWood(countInventory(bot));
+    if (!wood) return false;
     // Made here or not at all: a craft that walks off to a far table left the doorway open (tluna4: lc, 123
-    // times). A table in reach is used; a carried one is put down; otherwise the doorway gets blocks for now.
+    // times). A table in reach is used, a carried one put down, and otherwise one is made from the wood held,
+    // as a player would: only 6 of 13 runs had a door at all while agents had to be holding planks and a
+    // table already, the first never before step 38 (tluna7a built its home at step 2 from logs alone).
     const tableId = bot.registry.blocksByName["crafting_table"]?.id;
     const inReach = tableId !== undefined && bot.findBlock({ matching: tableId, maxDistance: 4 });
     if (!inReach) {
-      if (!bot.inventory.items().some((item) => item.name === "crafting_table")) return false;
+      if (!bot.inventory.items().some((item) => item.name === "crafting_table")) {
+        if (!(await planksFor(ctx, wood, 6 + 4))) return false;
+        if ((await craft.run(ctx, { item: "crafting_table", count: 1 })).status !== "success") return false;
+      }
       if (!(await placeNearby(ctx, "crafting_table"))) return false;
     }
-    const made = await craft.run(ctx, { item: planks[0].replace(/_planks$/, "_door"), count: 1 });
+    if (!(await planksFor(ctx, wood, 6))) return false;
+    const made = await craft.run(ctx, { item: `${wood}_door`, count: 1 });
     if (made.status !== "success") return false;
     door = bot.inventory.items().find((item) => isDoor(item.name));
     if (!door) return false;
@@ -652,7 +686,8 @@ export const buildShelter: Skill = {
     `${REUSE_RANGE} blocks, you walk into it, any gaps in it are filled and its doorway is closed behind you (asking for a large one also ` +
     `takes you back to a large one you built, up to ${HOME_RANGE} blocks away); otherwise a new one ` +
     "is built around where you are standing, with a roof and a 2-high doorway on the south side that is closed behind you " +
-    "once you are inside: with a wooden door when you carry one or 6 planks of one wood to make one (you go in and out through it, " +
+    "once you are inside: with a wooden door when you carry one or the wood for one (6 planks or 2 logs of one kind, and 1 more log " +
+    "for a crafting table if none is near), made on the spot (you go in and out through it, " +
     "and it is shut after you), otherwise with two blocks (walking out digs through them). Uses planks, cobblestone, stone, dirt or similar blocks from " +
     "inventory; logs in your inventory are turned into planks automatically (1 log = 4 planks). " +
     "A small shelter (the default) has a 3x3 interior, 2 high, and needs about 45 blocks (12 logs). " +
