@@ -93,8 +93,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    a second large home held all the beds, 58 blocks from where everyone sheltered; a second home went up in 4 of 8
    reps. Fixed: asked for a large shelter, `build_shelter` goes to a teammate's large one up to 80 blocks away
    (was 32). Set aside: showing the item a teammate holds (`docs/ideas.md`). Rep 4's win: roles set in the first
-   decisions and kept, one agent straight through to 9 iron, one question about iron all run. **Next:** reps on
-   this code. Was open: the deaths at night round the home, most of them during a
+   decisions and kept, one agent straight through to 9 iron, one question about iron all run. tluna9a 2 parts (two
+   agents stuck underground by a lake, cost sleep; the log now records the blocks round a failed walk), tluna9b the
+   whole goal. **tluna10** (5 reps, frozen 124f45b, US$1.96): 1 whole goal; 4, 3, 3, 3 and 2 parts. **On the one-room
+   home: 4 whole goals in 15 reps, 27%; home and food in all 15.** Iron is what stands between that and more than
+   half: lost in deaths carrying it. The minds panel's Progress card now shows each goal's own parts. **Next:** the
+   owner's call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -260,3 +264,5 @@ The write-up named on each line has the detail.
 
 **31 October**
 - tluna7a-c, then tluna8 (5 reps on frozen code): 1 of 5 whole goals; doors on the spot; the day of the run shown. Write-up 06.
+- A teammate's large home counts within 80 blocks; failed walks log the blocks round the agent; tluna9a-b and tluna10 (1 of 5). On the one-room home: 4 of 15.
+- The minds panel's Progress card shows each goal's own parts.

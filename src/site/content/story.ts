@@ -322,6 +322,11 @@ export const chapters: Chapter[] = [
       {
         name: 'tluna8',
         showed: 'Five reps on frozen code: the whole goal once, on the first night for $0.06; the home and the food in every rep, and 7 deaths in all. Iron was what was left: lost in deaths carrying it, and once in a last-minute swap of pickaxes.',
+        then: 'A large shelter asked for goes to a teammate\'s within 80 blocks: a second home had split the team in 4 of 8 reps, once with all the beds in the home nobody stayed in.',
+      },
+      {
+        name: 'tluna10',
+        showed: 'Five more reps: the whole goal once more, the home and the food again in every rep, and 32 deaths. On the one-room home, 4 whole goals in 15 reps. Iron is still what is missing.',
       },
     ],
     lesson: { text: 'Change the design that keeps causing failures, not each failure: one taller room removed the cause behind most of the home traps that had been fixed one at a time.', anchor: 'the-improvement-loop' },

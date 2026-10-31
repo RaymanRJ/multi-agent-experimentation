@@ -1519,13 +1519,43 @@ it went:
 **The clock was read.** On day 3 agents planned "before the run ends"; whether it changes what they do on
 the last night needs more reps than one round to say.
 
-**Deaths fell.** 7 in five reps, against 3-11 a rep in the reps of the two days before. Why is not yet
-measured; in this round the agents slept at home in four reps of five.
+**Deaths: 7 in five reps,** against 3-11 a rep in the reps of the two days before. It did not last: the next
+round, on nearly the same code, had 32 (below), so this was mostly chance.
 
 **Where our code, not the agents, decided the outcome:** nothing found in this round. In the checks before
 it: a furnace placed in the one gap beds left (now every placement in a home keeps the room walkable); a
 diagonal step past a bed's corner (now no corner is cut); the report counting no sleepers in a one-room
 home (fixed); a door made only when an agent happened to hold planks and a table (now made on the spot).
+
+### One home, again five reps (tluna10)
+
+*Three GPT-6 Luna agents, five reps on frozen code, 31 October, on 124f45b: as tluna8, and a large shelter asked
+for goes to a teammate's within 80 blocks instead of building a second. US$1.96.*
+Report: [tluna10](../batch-reports/2026-10-31-1418-tluna10.md).
+
+| Part | Rep 1 | Rep 2 | Rep 3 | Rep 4 | Rep 5 |
+|---|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** |
+| Everyone slept there | **3 of 3** | **3 of 3** | **3 of 3** | **3 of 3** | 0 of 3 |
+| Everyone holds an iron pickaxe | **3 of 3** | 2 of 3 | 1 of 3 | 0 of 3 | 0 of 3 |
+| Food left in store | **10** | **10** | **10** | **10** | **10** |
+| Deaths | 5 | 4 | 7 | 10 | 6 |
+
+**The whole goal: 1 of 5** (rep 1, day 3). On the one-room home that makes 4 whole goals in 15 reps (tluna7a-c,
+tluna8, tluna9a-b, tluna10): 27%. Home and food held in all 15. Everyone slept in 4 of these 5 reps, against 3 of 5
+in tluna8; too few to tell apart.
+
+**One home held, with one exception.** A second large home went up only in rep 5, a race: lb and lc began within
+a few decisions of each other, 2 blocks apart, before either was finished. That rep's sleep was lost otherwise:
+no bed was within reach (18 refusals), and an enderman beside the home made the game refuse sleep some 30 times.
+
+**Iron remains the gap, lost the same way.** Agents died carrying it in all five reps. Rep 2: la died with 10 iron,
+remade two pickaxes later, and the team ended one short. Rep 3: lb died 4 times, 3 of them holding iron. Rep 4:
+only 2 raw iron was mined all run.
+
+**The stuck-underground trap did not come back:** the log's new snapshot of the blocks round a failed walk
+recorded no "in water" failure in five reps. Its cause in tluna6b and tluna9a stays open; tluna9b's snapshot
+showed a stair cut along a lake's edge, walled off by our own plugs, with water still getting in.
 
 ## The problem that kept coming back: staying alive
 
