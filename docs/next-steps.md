@@ -82,7 +82,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    under a 2-high ceiling were the cause of most home traps. team-base runs from here on are not directly
    comparable with earlier ones on the home part. Open: "This bed is obstructed" (a block found on top of
    a bed, placed by something unknown); two dropped iron pickaxes nobody could pick up (tluna6c, cause
-   unknown). **Next:** reps on unchanged code to see the rate. Was open: the deaths at night round the home, most of them during a
+   unknown). **Evening 30-31 October:** tluna7a (first rep on the one-room home) met the whole goal by day 2,
+   US$0.16; tluna7b 2 parts (lc made all three iron pickaxes 65 s before the end, after waiting out the last
+   night underground) and then each observation says which day of the run it is (the owner's call); tluna7c 3
+   parts. Doors are now made on the spot from logs, and the report counts sleepers in a one-room home.
+   **tluna8** (5 reps, frozen 2ae4987, US$1.58): 1 whole goal (rep 4, first night, US$0.06); 2, 3, 2, 4 and 3
+   parts; home and food every rep, deaths 7 in all. Iron is what is left: lost in deaths carrying it (reps 2,
+   3, 5; rep 3's la died with all 17 raw iron mined) and in a last-minute swap of pickaxes (rep 1). With
+   tluna7a, 2 whole goals in 8 reps on the one-room home. **Next:** the owner's call on iron; candidates are
+   the agents' own risk-taking with iron in hand (a model matter), or what they are told about what they
+   carry. Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -245,3 +254,6 @@ The write-up named on each line has the detail.
 - Digs at the game's own speed (descend about 2.4 times faster); walks that stop short say so; placements logged with where.
 - tluna6, 6b, 6c (one rep at a time): room check for every placement in a home, tool uses shown, no corner-cutting past a bed.
 - The large home is one room, 5×5 and 3 high, instead of two 2-high storeys; the team-base goal asks for "one large shelter".
+
+**31 October**
+- tluna7a-c, then tluna8 (5 reps on frozen code): 1 of 5 whole goals; doors on the spot; the day of the run shown. Write-up 06.

@@ -1481,6 +1481,52 @@ the doorway does the same (shown live), so that is guarded too.
 - Placing beds and workbenches could shut agents inside the home (5g, 5h). Now a bed goes only where the
   room stays reachable from the doorway, nothing is put in a doorway's way, and a workbench there is dug out.
 
+## One room, and a clock (tluna8)
+
+*Three GPT-6 Luna agents, five reps on frozen code, 31 October, on 2ae4987: the large home as one room, 5×5
+and 3 high, instead of two 2-high storeys; doors made on the spot; every observation saying which day of
+the run it is. US$1.58. Not directly comparable with earlier team-base runs on the home part (the goal now
+asks for "one large shelter").* Report: [tluna8](../batch-reports/2026-10-31-0452-tluna8.md).
+
+Before it, a day of one-rep checks, each stopped for review on any gap (the owner's rule): tluna6, 6b and 6c
+found a furnace sealing a home's back half, an agent wearing out the team's iron pickaxe unknowingly, and
+an agent snagged all night on a bed's corner under the 2-high ceiling. The owner's call was to stop fixing
+traps one by one and change the home: no agent had ever used the upper room, and beds can't be stood on
+under a 2-high ceiling. tluna7a, the first rep on the new home, met the whole goal by day 2 for US$0.16;
+tluna7b and 7c met 2 and 3 parts, iron missing.
+
+| Part | Rep 1 | Rep 2 | Rep 3 | Rep 4 | Rep 5 |
+|---|---|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** | **yes** | **yes** |
+| Everyone slept there | 2 of 3 | **3 of 3** | 0 of 3 | **3 of 3** | **3 of 3** |
+| Everyone holds an iron pickaxe | 2 of 3 | 1 of 3 | 0 of 3 | **3 of 3** | 2 of 3 |
+| Food left in store | **12** | **11** | **10** | **10** | **10** |
+| Deaths | 0 | 2 | 2 | 0 | 3 |
+
+**The whole goal: 1 of 5** (rep 4, on the first night, US$0.06). With tluna7a, 2 whole goals in 8 reps on
+the one-room home. The home and the food were met in every rep, the home on day 1 each time. In rep 3 nobody
+slept: between them the agents tried 4 times all run, at the wrong hours, though three beds stood in the
+home (not yet looked into).
+
+**Iron is what is left, and it is lost to the agents' own risks.** Raw iron was mined in every rep. Where
+it went:
+- rep 3: la mined 17 raw iron and was blown up by a creeper carrying all of it;
+- rep 5: la was shot carrying 9 raw iron on day 1; lc died twice carrying iron;
+- rep 2: lc drowned with a pickaxe;
+- rep 1: a muddle in the last minute. la gave its own pickaxe away, asked for one back, and lb, believing it
+  had been given an extra, handed back two: la ended with two, lb with none.
+
+**The clock was read.** On day 3 agents planned "before the run ends"; whether it changes what they do on
+the last night needs more reps than one round to say.
+
+**Deaths fell.** 7 in five reps, against 3-11 a rep in the reps of the two days before. Why is not yet
+measured; in this round the agents slept at home in four reps of five.
+
+**Where our code, not the agents, decided the outcome:** nothing found in this round. In the checks before
+it: a furnace placed in the one gap beds left (now every placement in a home keeps the room walkable); a
+diagonal step past a bed's corner (now no corner is cut); the report counting no sleepers in a one-room
+home (fixed); a door made only when an agent happened to hold planks and a table (now made on the spot).
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each

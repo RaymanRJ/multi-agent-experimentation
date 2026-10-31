@@ -315,4 +315,15 @@ export const chapters: Chapter[] = [
     ],
     lesson: { text: 'One run finds the next failure, not the rate: a fix after each of nine reps, and the whole goal only in the last.', anchor: 'the-improvement-loop' },
   },
+  {
+    title: 'One room, and a clock',
+    question: 'With the home changed to one tall room, so beds stop trapping agents, and each agent told which day of the run it is, how often do three Lunas meet the goal?',
+    runs: [
+      {
+        name: 'tluna8',
+        showed: 'Five reps on frozen code: the whole goal once, on the first night for $0.06; the home and the food in every rep, and 7 deaths in all. Iron was what was left: lost in deaths carrying it, and once in a last-minute swap of pickaxes.',
+      },
+    ],
+    lesson: { text: 'Change the design that keeps causing failures, not each failure: one taller room removed the cause behind most of the home traps that had been fixed one at a time.', anchor: 'the-improvement-loop' },
+  },
 ];
