@@ -655,6 +655,18 @@ async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: nu
  * `byDoorOnly`: give up if the way in by the doorway fails, rather than dig in another way. Fleeing uses it:
  * the other way took 40-86 s in the one-room-home reps, and three agents were killed in it.
  */
+/**
+ * Why a shelter the agent is in is not shut, by what it carries. "No building block left" was said to an agent
+ * holding 31 cobblestone that had come up through the floor and stood in the hole it made (live, 31 October).
+ */
+export function whyOpen(ctx: SkillContext, gaps: number, hasDoor: boolean): string {
+  const carrying = Object.keys(materials(ctx)).length > 0;
+  if (gaps > 0 && carrying) return `${gaps} ${gaps === 1 ? "gap" : "gaps"} in it could not be filled from where you stand (you may be standing in one), so mobs can get in`;
+  if (gaps > 2) return `${gaps} gaps in its walls open: you have no building blocks to fill them, so mobs can get in`;
+  if (hasDoor) return "open: its door would not shut, so mobs can walk in";
+  return carrying ? "open: the doorway could not be filled from where you stand, so mobs can walk in" : "open: no building block left to close it, so mobs can walk in";
+}
+
 export async function enterShelter(ctx: SkillContext, spot: ShelterSpot, { byDoorOnly = false } = {}): Promise<{ ok: true; placed: number; closed: boolean; gaps: number } | { ok: false; result: SkillResult }> {
   const bot = ctx.bot;
   if (!insideSpot(bot, spot)) {
@@ -754,13 +766,7 @@ export const buildShelter: Skill = {
       ? hasDoor
         ? "shut behind you: a wooden door, which you go in and out through and which is shut after you"
         : "closed behind you (walking out digs through it)"
-      : built.gaps > 2
-        ? `${built.gaps} gaps in its walls open: you have no building blocks to fill them, so mobs can get in`
-        : hasDoor
-          ? "open: its door would not shut, so mobs can walk in"
-          : Object.keys(materials(ctx)).length
-            ? "open: the doorway could not be filled from where you stand, so mobs can walk in"
-            : "open: no building block left to close it, so mobs can walk in";
+      : whyOpen(ctx, built.gaps, hasDoor);
     const owner = spot?.by ? ` (${spot.by}'s)` : "";
     const company = mobsInsideNote(bot, { ...position, ...use });
     const reason = spot && spot.complete !== false

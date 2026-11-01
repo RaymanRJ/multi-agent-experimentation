@@ -5,7 +5,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
-import { describeShelter, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, type ShelterSpot } from "./buildShelter.js";
+import { describeShelter, doorOf, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, whyOpen, type ShelterSpot } from "./buildShelter.js";
 import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
@@ -312,7 +312,7 @@ export const flee: Skill = {
           if (entered.ok) {
             return {
               status: "success",
-              reason: `you were under ${describeShelter(above)} at ${spotKey(above)}; you went up into it by its doorway, ${entered.closed ? "and it is closed behind you" : "but it is open: no building block left to close it"}`,
+              reason: `you were under ${describeShelter(above)} at ${spotKey(above)}; you went up into it by its doorway, ${entered.closed ? "and it is closed behind you" : `but it is ${whyOpen(ctx, entered.gaps, !!doorOf(ctx.bot, above))}`}`,
               detail: { shelter: spotKey(above), doorwayClosed: entered.closed },
             };
           }
@@ -332,7 +332,7 @@ export const flee: Skill = {
         const here = ctx.bot.entity.position;
         return {
           status: "success",
-          reason: `ran into ${describeShelter(home)}${owner} at ${spotKey(home)}, ${entered.closed ? "and its doorway is closed behind you" : "but its doorway is open: no building block left to close it"}`,
+          reason: `ran into ${describeShelter(home)}${owner} at ${spotKey(home)}, ${entered.closed ? "and its doorway is closed behind you" : `but it is ${whyOpen(ctx, entered.gaps, !!doorOf(ctx.bot, home))}`}`,
           detail: { position: { x: Math.round(here.x), y: Math.round(here.y), z: Math.round(here.z) }, shelter: spotKey(home), doorwayClosed: entered.closed },
         };
       }

@@ -1,7 +1,7 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, plainError, threatened } from "./util.js";
-import { aimsInside, describeShelter, enterShelter, insideSpot, spotKey } from "./buildShelter.js";
+import { aimsInside, describeShelter, doorOf, enterShelter, insideSpot, spotKey, whyOpen } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
 
@@ -52,7 +52,7 @@ export const goTo: Skill = {
       const owner = home.by && home.by !== bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
       return {
         status: "success",
-        reason: `went into ${describeShelter(home)}${owner} at ${spotKey(home)} by its doorway, ${entered.closed ? "and closed it behind you" : "but it is open: no building block left to close it"}`,
+        reason: `went into ${describeShelter(home)}${owner} at ${spotKey(home)} by its doorway, ${entered.closed ? "and closed it behind you" : `but it is ${whyOpen(ctx, entered.gaps, !!doorOf(bot, home))}`}`,
       };
     }
     const here = () => bot.entity.position;

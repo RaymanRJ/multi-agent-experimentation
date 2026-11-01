@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, hostilesAtDoorway, hostilesInside, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote } from "./buildShelter.js";
+import { floorCells, hostilesAtDoorway, hostilesInside, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, whyOpen } from "./buildShelter.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
 
@@ -136,4 +136,13 @@ test("doorWood - a wood with 6 planks, counting a log as 4, the one with most fi
   assert.equal(doorWood({ oak_planks: 5 }), null, "5 planks and no logs make no door");
   assert.equal(doorWood({ oak_planks: 4, birch_log: 3 }), "birch", "the wood with most");
   assert.equal(doorWood({ cobblestone: 64 }), null);
+});
+
+test("whyOpen - never says there are no blocks to an agent carrying some", () => {
+  const ctx = (inventory: Record<string, number>) => context(fakeBot({ inventory }).bot);
+  assert.match(whyOpen(ctx({ cobblestone: 31 }), 1, true), /^1 gap in it could not be filled from where you stand \(you may be standing in one\)/);
+  assert.match(whyOpen(ctx({ cobblestone: 31 }), 0, false), /could not be filled from where you stand/);
+  assert.match(whyOpen(ctx({}), 0, false), /no building block left/);
+  assert.match(whyOpen(ctx({}), 4, false), /4 gaps in its walls open: you have no building blocks/);
+  assert.match(whyOpen(ctx({}), 0, true), /its door would not shut/);
 });
