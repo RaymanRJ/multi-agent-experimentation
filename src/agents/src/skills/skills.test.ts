@@ -350,3 +350,18 @@ test("go_to - a spot inside a known shelter is reached through its doorway, not 
   const under = await findSkill("go_to")!.run(ctx, { x: 10, y: 50, z: 0 });
   assert.match(under.reason ?? "", /the way was blocked/);
 });
+
+test("go_to - a far home is walked to in legs, to the ground before its doorway, then gone into", async () => {
+  const home = { x: 60, y: 64, z: 0, size: 5 as const, storeys: 1, by: "lc" };
+  const { bot } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: floor(64, "stone", 70) });
+  const goals: Array<{ x: number; y: number; z: number }> = [];
+  bot.pathfinder.goto = (async (goal: { x: number; y: number; z: number }) => {
+    goals.push(goal);
+    if (goals.length > 2) throw new Error("no path"); // the walk in at the door, in this fake world
+    bot.entity.position = new Vec3(goal.x + 0.5, goal.y, goal.z + 0.5);
+  }) as never;
+  const result = await findSkill("go_to")!.run({ ...context(bot), shelters: () => [home] }, { x: 60, z: 0 });
+  assert.equal(Math.round(goals[0]?.x ?? 0), 32, "a first leg of 32 blocks, not one path all the way");
+  assert.equal(goals[1]?.z, 4, "then toward the ground before its doorway (south side)");
+  assert.match(result.reason ?? "", /could not get into a large shelter at 60,64,0/, "then in by the doorway");
+});

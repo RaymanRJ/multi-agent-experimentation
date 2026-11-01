@@ -155,9 +155,11 @@ export function movementsFor(bot: Bot): InstanceType<typeof Movements> {
   }
   // Doors are never dug and never opened by the library (its door handling stood the bot still in an open
   // doorway, checked live): buildShelter's walkThroughDoors takes the agent through the door instead.
-  movements.exclusionAreasBreak.push((block) => (protectedCells.get(bot)?.().has(`${block.position.x},${block.position.y},${block.position.z}`) ? 1000 : 0));
+  // A block in a chunk not loaded reaches these with no position (the library's stand-in): no cost, not a crash
+  // (tluna12a: an agent's process died on one, 74 blocks from home).
+  movements.exclusionAreasBreak.push((block) => (block.position && protectedCells.get(bot)?.().has(`${block.position.x},${block.position.y},${block.position.z}`) ? 1000 : 0));
   // Steer round anywhere the bot has got stuck this run (gotoWatched records them).
-  movements.exclusionAreasStep.push((block) => (stuckSpots.get(bot)?.has(`${block.position.x},${block.position.y},${block.position.z}`) ? STUCK_SPOT_COST : 0));
+  movements.exclusionAreasStep.push((block) => (block.position && stuckSpots.get(bot)?.has(`${block.position.x},${block.position.y},${block.position.z}`) ? STUCK_SPOT_COST : 0));
   noCornerCutting(movements);
   return movements;
 }

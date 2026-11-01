@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { context, fakeBot } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { cutsOffRoom, doorwayLanes, groundAbove, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
+import { cutsOffRoom, doorwayLanes, groundAbove, movementsFor, nearestUncrowded, onTreetops, opensOnClick, oreHazard, spareGoodTools, threatened } from "./util.js";
 
 test("doorwayLanes - the cells inside, in and outside a home's south doorway, at feet and head height (tluna5g)", () => {
   const lane = doorwayLanes([{ x: 10, y: 73, z: 30, size: 5 }]);
@@ -101,4 +101,12 @@ test("cutsOffRoom - a furnace in the one gap the beds left is refused, in the fl
   assert.equal(cutsOffRoom([home], new Vec3(-9, 77, 41), open), true, "a block at head height there blocks it just the same");
   assert.equal(cutsOffRoom([home], new Vec3(-11, 76, 40), open), false, "a back corner leaves everything reachable");
   assert.equal(cutsOffRoom([home], new Vec3(-9, 76, 50), open), false, "outside the home: no room to cut off");
+});
+
+test("movementsFor - a block from a chunk not loaded (no position) costs nothing and doesn't throw", () => {
+  // tluna12a: an agent's process died on one, 74 blocks from home.
+  const movements = movementsFor(fakeBot({}).bot) as unknown as { exclusionStep(b: object): number; exclusionBreak(b: object): number };
+  const standIn = { replaceable: false, canFall: false, safe: false, physical: false, liquid: false, climbable: false, height: 0, openable: false };
+  assert.equal(movements.exclusionStep(standIn), 0);
+  assert.equal(movements.exclusionBreak(standIn), 0);
 });
