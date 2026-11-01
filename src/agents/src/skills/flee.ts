@@ -39,6 +39,9 @@ export const REFUGE_RANGE = 64;
  * Climbing from a mine into the home worked: 53 times, 2 deaths.
  */
 export const UNDERGROUND_REFUGE_RANGE = 96;
+/** How far under a home's floor counts as under it, and how long the pathfinder may plan the dig up to its doorway. */
+const UNDER_HOME_DEPTH = 12;
+const UNDER_HOME_THINK_MS = 20_000;
 /** A home this far below is no refuge: in tluna7b two agents fled from the surface toward one 57 blocks down, through caves, and were shot there. */
 const FAR_BELOW = 8;
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
@@ -230,6 +233,19 @@ export function refuge(bot: Bot, shelters: ShelterSpot[], threats: Entity[], any
   return options[0]?.spot ?? null;
 }
 
+/**
+ * The finished home whose walls the agent stands under, in the ground beneath its floor. In tluna11 rep 2 lb was
+ * in a cave under the home: each flee walled it in there, and with walls round it the way up to the doorway
+ * needs a dig the pathfinder often gave up planning (live: the first try failed, the second got in after 28 s).
+ */
+export function homeAbove(bot: Bot, shelters: ShelterSpot[]): ShelterSpot | null {
+  const feet = bot.entity.position.floored();
+  return shelters.find((spot) => {
+    const h = half(spot.size ?? 3) + 1;
+    return spot.complete !== false && Math.abs(feet.x - spot.x) <= h && Math.abs(feet.z - spot.z) <= h && feet.y < spot.y && feet.y >= spot.y - UNDER_HOME_DEPTH;
+  }) ?? null;
+}
+
 function hostilesNear(ctx: SkillContext, radius: number): Entity[] {
   return Object.values(ctx.bot.entities).filter(
     (e): e is Entity => !!e && e.type === "hostile" && e.position.distanceTo(ctx.bot.entity.position) <= radius,
@@ -253,6 +269,7 @@ export const flee: Skill = {
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
     "without a pickaxe, nor beside water or lava). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
     "Under the ground it only walls you in, and that only buys time: the monsters stay, so climb out or go home after. " +
+    "Under a shelter you know, it goes up into it by its doorway and never walls you in. " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
     "Fails only if it can't run, dig in or wall you in. Fleeing does not fight; follow up with shelter or sleep.",
   args: { distance: "number" },
@@ -284,6 +301,29 @@ export const flee: Skill = {
 
     // Somewhere safe to run to beats running into the open; with an archer in sight, or underground, on any side.
     const underground = groundAbove(ctx.bot) >= UNDERGROUND_MIN;
+    // Under a home, up to its doorway: twice, with time to plan the dig. Never walled in here (below).
+    const above = underground ? homeAbove(ctx.bot, ctx.shelters?.() ?? []) : null;
+    if (above) {
+      const think = ctx.bot.pathfinder.thinkTimeout;
+      ctx.bot.pathfinder.thinkTimeout = UNDER_HOME_THINK_MS;
+      try {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const entered = await enterShelter(ctx, above, { byDoorOnly: true });
+          if (entered.ok) {
+            return {
+              status: "success",
+              reason: `you were under ${describeShelter(above)} at ${spotKey(above)}; you went up into it by its doorway, ${entered.closed ? "and it is closed behind you" : "but it is open: no building block left to close it"}`,
+              detail: { shelter: spotKey(above), doorwayClosed: entered.closed },
+            };
+          }
+          if (entered.result.status === "aborted") return entered.result;
+          ctx.log(`could not get up into the shelter above you at ${spotKey(above)} (${entered.result.reason})`);
+          if (hostilesAtDoorway(ctx.bot, above).length > 0) break;
+        }
+      } finally {
+        ctx.bot.pathfinder.thinkTimeout = think;
+      }
+    }
     const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE);
     if (home) {
       const entered = await enterShelter(ctx, home, { byDoorOnly: true });
@@ -322,6 +362,10 @@ export const flee: Skill = {
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";
     const digIn = async (why: string): Promise<SkillResult | null> => {
+      if (above) {
+        refused = `you are under ${describeShelter(above)} at ${spotKey(above)}, where walls would only make the way up to its doorway harder to find`;
+        return null;
+      }
       if (underground) return wallIn(why);
       const problem = await burrow(ctx.bot).catch((error: Error) => error.message);
       if (problem === null) {
@@ -357,6 +401,13 @@ export const flee: Skill = {
     const cornered = async (): Promise<SkillResult> => {
       const dug = await digIn("no path away");
       if (dug) return dug;
+      if (above) {
+        return {
+          status: "failed",
+          reason: `you are under ${describeShelter(above)} at ${spotKey(above)} and could not find the way up to its doorway or away from the hostiles; climb_out digs you up to open sky beside it`,
+          detail: report(),
+        };
+      }
       if (underground) {
         return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})`, detail: report() };
       }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { burrow, enclosed, enclosure, flee } from "./flee.js";
+import { burrow, enclosed, enclosure, flee, homeAbove } from "./flee.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 
 /** Solid ground from y 55 to 63 round 0,0, the agent standing on it at y 64. */
@@ -102,4 +102,22 @@ test("flee - underground, runs along a tunnel at its own height; boxed in, walls
   assert.match(walled.reason ?? "", /walled yourself in .* the monsters will not leave/);
   assert.ok(!shut.calls.some((c) => c.startsWith("dig")), "never dug down into the rock");
   assert.ok(!shut.calls.includes("goto"), "never ran into the rock");
+});
+
+test("flee - under a known home, tries its doorway and never walls in; says climb_out is the way up", async () => {
+  const home = { x: 0, y: 74, z: 0, size: 5 as const, storeys: 1, by: "lc" };
+  const zombie = { name: "zombie", type: "hostile", position: { x: -2.5, y: 64, z: 0.5 } };
+  const under = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie], inventory: { cobblestone: 16 } });
+  let placed = 0;
+  under.bot.placeBlock = (async () => { placed++; }) as never;
+  const ctx = { ...context(under.bot), shelters: () => [home] };
+  assert.deepEqual(homeAbove(under.bot, [home]), home);
+  const result = await flee.run(ctx, { distance: 10 });
+  assert.equal(result.status, "failed");
+  assert.match(result.reason ?? "", /under a large shelter at 0,74,0 .* climb_out digs you up/);
+  assert.equal(placed, 0, "no walls under a home");
+  assert.ok(ctx.logged.some((line) => /could not get up into the shelter above you/.test(line)), "tried its doorway first");
+  // Beside it, or far under it, is not under it.
+  assert.equal(homeAbove(fakeBot({ position: { x: 6.5, y: 64, z: 0.5 } }).bot, [home]), null);
+  assert.equal(homeAbove(fakeBot({ position: { x: 0.5, y: 60, z: 0.5 } }).bot, [home]), null);
 });
