@@ -179,6 +179,14 @@ export function insideSpot(bot: Bot, shelter: ShelterSpot): boolean {
   return pointInside(bot.entity.position, shelter);
 }
 
+/** A spot asked for (x and z, and a height if given) that lies within the shelter's walls. */
+export function aimsInside(shelter: ShelterSpot, x: number, y: number | undefined, z: number): boolean {
+  const h = half(shelter.size ?? 3);
+  const [dx, dz] = [Math.floor(x) - shelter.x, Math.floor(z) - shelter.z];
+  if (Math.abs(dx) > h || Math.abs(dz) > h) return false;
+  return y === undefined || (Math.floor(y) >= shelter.y - 1 && Math.floor(y) < shelter.y + heights(shelter.storeys, shelter.size ?? 3).top);
+}
+
 function pointInside(point: Vec3, shelter: ShelterSpot): boolean {
   const feet = point.floored();
   const h = half(shelter.size ?? 3);

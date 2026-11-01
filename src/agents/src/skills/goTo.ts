@@ -1,6 +1,7 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, plainError, threatened } from "./util.js";
+import { aimsInside, describeShelter, enterShelter, insideSpot, spotKey } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
 
@@ -19,7 +20,8 @@ export const goTo: Skill = {
     "`x` and `z` (coordinates, e.g. a position someone told you; your own is in your observation), and optionally `y`, " +
     "a height to reach; without it only x and z count. Walks in legs, " +
     `up to ${MAX_DISTANCE} blocks. Fails if the agent is out of sight (ask where they are, then use x and z), or ` +
-    "if the way is blocked repeatedly. Aborts if a hostile comes within 8 blocks.",
+    "if the way is blocked repeatedly. Aborts if a hostile comes within 8 blocks. A place inside a shelter you know is " +
+    "reached by going in through its doorway, which is closed behind you.",
   args: { to: "string?", x: "number?", y: "number?", z: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
@@ -40,6 +42,18 @@ export const goTo: Skill = {
       if (!Number.isFinite(x) || !Number.isFinite(z)) return { status: "failed", reason: "say where to go: `to` an agent's name, or `x` and `z`" };
       const y = asNumber(args["y"], NaN);
       target = { x, z, ...(Number.isFinite(y) ? { y } : {}) };
+    }
+    // A spot inside a known shelter: in by its doorway. Walked to as coordinates, "within 3 blocks" counted a cave
+    // under the floor as there: in tluna11 rep 2 lc arrived 3 blocks under the home, and lb was later trapped there.
+    const home = to ? undefined : (ctx.shelters?.() ?? []).find((spot) => spot.complete !== false && aimsInside(spot, target.x, target.y, target.z));
+    if (home && !insideSpot(bot, home)) {
+      const entered = await enterShelter(ctx, home);
+      if (!entered.ok) return entered.result;
+      const owner = home.by && home.by !== bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
+      return {
+        status: "success",
+        reason: `went into ${describeShelter(home)}${owner} at ${spotKey(home)} by its doorway, ${entered.closed ? "and closed it behind you" : "but it is open: no building block left to close it"}`,
+      };
     }
     const here = () => bot.entity.position;
     // With a height asked for, it counts towards the distance; otherwise only the ground plan does.

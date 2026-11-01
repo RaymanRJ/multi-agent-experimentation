@@ -329,3 +329,24 @@ test("place_bed - needs a bed to put down", async () => {
   assert.equal(none.status, "failed");
   assert.match(none.reason!, /^you carry no bed/);
 });
+
+test("go_to - a spot inside a known shelter is reached through its doorway, not walked to as coordinates", async () => {
+  const home = { x: 10, y: 64, z: 0, size: 5 as const, storeys: 1, by: "lc" };
+  const { bot, calls } = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: floor(64, "stone", 20) });
+  const legs: unknown[] = [];
+  bot.pathfinder.goto = (async (goal: unknown) => {
+    legs.push(goal);
+    calls.push("goto");
+    throw new Error("no path");
+  }) as never;
+  const ctx = { ...context(bot), shelters: () => [home] };
+  // tluna11: asked for the home's centre from a cave under it, "within 3 blocks" was 3 blocks under the floor.
+  const result = await findSkill("go_to")!.run(ctx, { x: 10, y: 64, z: 0 });
+  assert.match(result.reason ?? "", /could not get into a large shelter at 10,64,0/);
+  assert.doesNotMatch(result.reason ?? "", /the way was blocked/);
+  // A spot beside it, or one far under it, is just a place.
+  const beside = await findSkill("go_to")!.run(ctx, { x: 14, y: 64, z: 0 });
+  assert.match(beside.reason ?? "", /the way was blocked/);
+  const under = await findSkill("go_to")!.run(ctx, { x: 10, y: 50, z: 0 });
+  assert.match(under.reason ?? "", /the way was blocked/);
+});
