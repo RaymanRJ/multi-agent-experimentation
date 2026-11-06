@@ -148,6 +148,10 @@ the same problems as state in any distributed system.
   first few decisions, and nobody revisits the split when an owner stalls.
   *Evidence:* every team divided the goal over chat within two or three decisions; when the agent
   that owned a part stalled, no one took it over. ([06](results/write-ups/06-team-base.md#1-how-they-organised))
+  It holds even when a tool says the owner is gone: after the agent holding all the team's pickaxes left
+  the game, a teammate sent it 62 requests, each refused with "no other agent ... is in the world right
+  now", before mining for its own on day 2.
+  ([06](results/write-ups/06-team-base.md#running-away-underground-and-a-teammate-who-vanished-tluna11-tluna12a))
 - **State held in one place is lost with it.** What lives only in one agent goes when that agent
   fails.
   *Evidence:* twice an agent made every pickaxe the team needed, carried them all, and died with

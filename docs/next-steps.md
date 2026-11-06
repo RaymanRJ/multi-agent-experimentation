@@ -3,7 +3,7 @@
 Read this at the start of a session; update it when something finishes or a new ask comes in. The
 plan comes first; what's done is a dated list at the end, one line each, with the write-ups holding
 the detail.
-*Last updated 30 October 2026.*
+*Last updated 5 November 2026.*
 
 ## The road ahead (agreed with the owner, 28 October)
 
@@ -97,8 +97,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    agents stuck underground by a lake, cost sleep; the log now records the blocks round a failed walk), tluna9b the
    whole goal. **tluna10** (5 reps, frozen 124f45b, US$1.96): 1 whole goal; 4, 3, 3, 3 and 2 parts. **On the one-room
    home: 4 whole goals in 15 reps, 27%; home and food in all 15.** Iron is what stands between that and more than
-   half: lost in deaths carrying it. The minds panel's Progress card now shows each goal's own parts. **Next:** the
-   owner's call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   half: lost in deaths carrying it. The minds panel's Progress card now shows each goal's own parts.
+   **31 October-1 November:** `flee` keeps to its height underground (17 healthy agents had died fleeing through
+   tunnels); **tluna11** (2 reps, US$0.77): 1 whole goal, so **5 in 17 on the one-room home**; rep 2 ended with the
+   stored meat eaten down to 7 and the team's second pickaxe lost with an agent at health 1. **tluna12a** (US$0.29,
+   not comparable): la crashed on day 1 holding all three pickaxes; the others met every other part. Fixed after,
+   each checked live: under a home `flee` goes up into it by its doorway; walks into a home go by its door; a far
+   home is walked to in legs, and unloaded ground no longer crashes an agent. tluna12b stopped early by the owner
+   (an agent stuck), not looked into. Write-up 06. All pushed 5 November. **Next:** one Luna rep on this code
+   (tluna13, about US$0.35, approved 5 November) once the OpenAI key is renewed: it had expired, and the
+   first try stopped before any decision. Then the owner's call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -266,3 +274,7 @@ The write-up named on each line has the detail.
 - tluna7a-c, then tluna8 (5 reps on frozen code): 1 of 5 whole goals; doors on the spot; the day of the run shown. Write-up 06.
 - A teammate's large home counts within 80 blocks; failed walks log the blocks round the agent; tluna9a-b and tluna10 (1 of 5). On the one-room home: 4 of 15.
 - The minds panel's Progress card shows each goal's own parts.
+- `flee` keeps its height underground; tluna11 (1 of 2); under a home `flee` goes in by the doorway, walks into a home use its door.
+
+**1 November**
+- tluna12a (not comparable: an agent crashed); unloaded ground no longer crashes an agent, far homes walked to in legs. Write-up 06.

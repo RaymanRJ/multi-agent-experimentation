@@ -1557,6 +1557,55 @@ only 2 raw iron was mined all run.
 recorded no "in water" failure in five reps. Its cause in tluna6b and tluna9a stays open; tluna9b's snapshot
 showed a stair cut along a lake's edge, walled off by our own plugs, with water still getting in.
 
+### Running away underground, and a teammate who vanished (tluna11, tluna12a)
+
+*Three GPT-6 Luna agents, 31 October and 1 November. tluna11: two reps on cc216ee, the first code where `flee`
+keeps to its height underground and runs home only by the doorway (after 17 agents with most of their health died
+fleeing through tunnels), US$0.77. tluna12a: one rep on 7cdab71, US$0.29, not comparable: la's process crashed on
+day 1. tluna12b was stopped early by the owner (an agent stuck all run) and not looked into.* Reports:
+[tluna11](../batch-reports/2026-10-31-2112-tluna11.md), [tluna12a](../batch-reports/2026-11-01-0123-tluna12a.md).
+
+| Part | tluna11 rep 1 | tluna11 rep 2 | tluna12a |
+|---|---|---|---|
+| Shared home built | **yes** | **yes** | **yes** |
+| Everyone slept there | **3 of 3** | **3 of 3** | 2 of 3 |
+| Everyone holds an iron pickaxe | **3 of 3** | 1 of 3 | **3 of 3** |
+| Food left in store | **10** | 7 | **17** |
+| Deaths | 5 | 4 | 3 |
+
+**The whole goal: 1 of 2 in tluna11** (rep 1, with 45 seconds of game time to spare). On the one-room home that
+makes 5 whole goals in 17 reps. tluna12a met every part but one, la's sleep, and la was no longer in the game.
+
+**The win was pooled at the end.** In rep 1 no agent mined enough iron for itself. lc made the last pickaxe
+45 seconds of game time before the run would have ended, from 3 ingots la gave it and 4 raw iron from lb: the team put its
+iron in one place once it saw who still lacked it ("I still need an iron pickaxe", lc kept telling them).
+
+**They borrowed from the goal and didn't pay it back.** Rep 2 ended with 7 cooked meat in the chest after
+holding 10 from day 1. On day 3 the agents, low on food, took meat out of it six times between them, the
+reasons often saying it would be put back: "take one porkchop to eat, then restore the chest to at least 10 cooked
+meat before the goal is complete" (lb, at health 5); "the team can replenish the chest" (lb again, at
+health 1). Nobody did. The same rep's last iron pickaxe went with lb: at health 1 it left the home
+"before traveling for wool" for the missing third bed and was killed by a spider carrying it.
+
+**When the owner of a part vanished, the plan held anyway.** In tluna12a la made all three iron pickaxes on
+day 1, and then its process crashed 74 blocks from home (our bug, below).
+From then on every request to it was answered by the tool with "no other agent called "la" is in the world
+right now (it may have left, or never joined)". lb sent 62 such requests, the first at its 39th decision,
+reasoning "la has three iron pickaxes and is the only nearby source"; it went down for iron itself only at
+its 101st, on day 2, and lc only on day 3. Both made their own pickaxes in the last 4 minutes of game time. The
+tool said plainly that la was gone; the agents went on acting on what la had last told them.
+
+**Where our code, not the agents, decided the outcome:**
+- tluna11 rep 2: under the home, `flee` walled lb in five times where it could not find the way up, and a walk
+  to the home's centre counted a cave 3 blocks under its floor as arrived. Fixed: under a known home `flee`
+  goes up into it by the doorway (checked live, 3 of 3 in 12-26 s), and a walk into a known shelter goes in
+  by its door.
+- tluna12a: la's process died on a block from a chunk the server hadn't loaded, during a long walk home. Fixed:
+  such blocks no longer crash the pathfinder's checks, and a far home is walked to in legs (checked live from
+  78, 110 and 117 blocks).
+- A shelter left open told an agent holding 31 cobblestone it had "no building block left" (found in a live
+  check, fixed).
+
 ## The problem that kept coming back: staying alive
 
 Across every run of this goal, one thing undid more work than anything else: agents dying. Each

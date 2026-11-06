@@ -327,6 +327,17 @@ export const chapters: Chapter[] = [
       {
         name: 'tluna10',
         showed: 'Five more reps: the whole goal once more, the home and the food again in every rep, and 32 deaths. On the one-room home, 4 whole goals in 15 reps. Iron is still what is missing.',
+        then: 'Running away underground keeps to its height and goes home only by the doorway: 17 agents with most of their health had died fleeing through tunnels.',
+      },
+      {
+        name: 'tluna11',
+        showed: 'Two reps: the whole goal once, the last pickaxe made from iron two teammates pooled 45 seconds before the end; in the other the agents ate the stored meat down to 7, saying it would be put back, and nobody did. 5 whole goals in 17 reps on the one-room home.',
+        then: 'Under a home, running away goes up into it by its doorway instead of walling the agent in, and a walk into a home goes in by its door.',
+      },
+      {
+        name: 'tluna12a',
+        showed: 'Every part but one, though not comparable: the agent that made all three iron pickaxes on day 1 crashed out of the game, and a teammate sent it 62 requests the tool refused before mining for its own.',
+        then: 'Far walks no longer crash on ground the server hasn\'t loaded, and go home in legs.',
       },
     ],
     lesson: { text: 'Change the design that keeps causing failures, not each failure: one taller room removed the cause behind most of the home traps that had been fixed one at a time.', anchor: 'the-improvement-loop' },

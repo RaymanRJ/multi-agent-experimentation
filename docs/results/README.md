@@ -135,6 +135,8 @@ runs that no write-up uses are not published.
 | [tluna5i](batch-reports/2026-10-30-1221-tluna5i.md) | 30 Oct | `team-base` | Overnight rep 9: beds keep the room walkable | **The whole goal** (US$0.28) | [team base](write-ups/06-team-base.md) |
 | [tluna8](batch-reports/2026-10-31-0452-tluna8.md) | 31 Oct | `team-base` (one large room) | Three GPT-6 Luna, 5 reps on frozen code: the one-room home, doors on the spot, the day of the run shown | 1 of 5 (2, 3, 2, 4 and 3 parts; home and food every rep) | [team base](write-ups/06-team-base.md) |
 | [tluna10](batch-reports/2026-10-31-1418-tluna10.md) | 31 Oct | `team-base` (one large room) | Three GPT-6 Luna, 5 reps on frozen code: one home within 80 blocks | 1 of 5 (4, 3, 3, 3 and 2 parts; home and food every rep) | [team base](write-ups/06-team-base.md) |
+| [tluna11](batch-reports/2026-10-31-2112-tluna11.md) | 31 Oct | `team-base` (one large room) | Three GPT-6 Luna, 2 reps: `flee` keeps its height underground | 1 of 2 (rep 2: 2 parts, iron and food short) | [team base](write-ups/06-team-base.md) |
+| [tluna12a](batch-reports/2026-11-01-0123-tluna12a.md) | 1 Nov | `team-base` (one large room) | Three GPT-6 Luna, 1 rep: flee into a home by its doorway; not comparable (an agent's process crashed on day 1) | 0 of 1 (3 parts: all but the crashed agent's sleep) | [team base](write-ups/06-team-base.md) |
 
 ## Batch names
 

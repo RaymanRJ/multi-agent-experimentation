@@ -101,7 +101,9 @@ building on it.
   walled one agent in, and once, underground, failed with two gaps left that it could not fill
   (that baseline run later died). Without dirt, cobblestone or planks to place it gives up. Before this fix, being cornered ended at least one outpost run. Until 20 October
   it also reported being cornered after it had run 20–67 blocks and lost every hostile, whenever
-  two legs of the run failed (211 times in the logs); now it reports the run.
+  two legs of the run failed (211 times in the logs); now it reports the run. Under a known home it
+  no longer walls in: it goes up into the home by its doorway (after an agent was walled in five times
+  under its home in tluna11).
 - **How the outpost goal treats deaths (the owner's decision, 19 October).** A death doesn't end a
   run: the agent respawns with nothing and carries on, as a player would. Only a death at night
   counts against the goal, by losing that night; a death by day costs time and everything carried,
