@@ -507,24 +507,32 @@ async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error:
   const home = (ctx.shelters?.() ?? []).find((spot) => insideSpot(bot, spot));
   if (!home) return null;
   const r = half(home.size ?? 3) + 1;
-  let target: Vec3 | null = null;
-  for (const ahead of [3, 4, 5, 6, 2]) {
-    for (const dy of [0, -1, 1, -2, 2]) {
-      const cell = new Vec3(home.x, home.y + dy, home.z + r + ahead);
-      if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) {
-        target = cell;
-        break;
+  const outer = new Vec3(home.x, home.y, home.z + r + 1);
+  // Any open ground in front of the door, nearest the doorway first. Only the line straight out from it was looked
+  // at, and in tluna13 the agents' own staircases, dug from that line, left nothing standable on it: descend from
+  // inside was refused 5 times on day 3 with open ground a step to either side.
+  const targets: Vec3[] = [];
+  for (let ahead = 2; ahead <= 7; ahead++)
+    for (let dx = -3; dx <= 3; dx++)
+      for (const dy of [0, -1, 1, -2, 2, -3]) {
+        const cell = new Vec3(home.x + dx, home.y + dy, home.z + r + ahead);
+        if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) targets.push(cell);
       }
+  targets.sort((a, b) => a.distanceTo(outer) - b.distanceTo(outer));
+  if (targets.length === 0) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to dig from` };
+  let target: Vec3 | null = null;
+  let failure = "";
+  for (const cell of targets.slice(0, 3)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(cell.x, cell.y, cell.z)), 30_000, "walking out of the home");
+      target = cell;
+      break;
+    } catch (error) {
+      bot.pathfinder.setGoal(null);
+      failure = plainError((error as Error).message);
     }
-    if (target) break;
   }
-  if (!target) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to dig from` };
-  try {
-    await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(target.x, target.y, target.z)), 30_000, "walking out of the home");
-  } catch (error) {
-    bot.pathfinder.setGoal(null);
-    return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig: ${plainError((error as Error).message)}` };
-  }
+  if (!target) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig: ${failure}` };
   if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig` };
   return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to dig from there` };
 }
