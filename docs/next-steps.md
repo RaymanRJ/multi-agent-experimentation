@@ -104,9 +104,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    not comparable): la crashed on day 1 holding all three pickaxes; the others met every other part. Fixed after,
    each checked live: under a home `flee` goes up into it by its doorway; walks into a home go by its door; a far
    home is walked to in legs, and unloaded ground no longer crashes an agent. tluna12b stopped early by the owner
-   (an agent stuck), not looked into. Write-up 06. All pushed 5 November. **Next:** one Luna rep on this code
-   (tluna13, about US$0.35, approved 5 November) once the OpenAI key is renewed: it had expired, and the
-   first try stopped before any decision. Then the owner's call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   (an agent stuck), not looked into. Write-up 06. All pushed 5 November. **tluna13** (7 November, one rep on
+   828d025, US$0.38): 3 of 4 parts (home, all slept, 10 meat), no iron pickaxe at the end; 10 deaths. Gaps
+   reported to the owner, not fixed yet: one pickaxe made all run, lost twice to a witch throwing potions into a
+   home with 15 gaps blown in its walls and no blocks left to fill them (a witch isn't treated as a ranged
+   attacker); `mine_ore` refused 23 times (all iron within 48 blocks wet or by lava, "descend closer") while
+   `descend` refused for drops into caves and water; `descend` from inside the home refused 5 times for no open
+   ground before its door. Not written up yet. **Next:** the owner's call on these gaps; then the call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
