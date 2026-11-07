@@ -110,7 +110,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    home with 15 gaps blown in its walls and no blocks left to fill them (a witch isn't treated as a ranged
    attacker); `mine_ore` refused 23 times (all iron within 48 blocks wet or by lava, "descend closer") while
    `descend` refused for drops into caves and water; `descend` from inside the home refused 5 times for no open
-   ground before its door. Not written up yet. **Next:** the owner's call on these gaps; then the call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   ground before its door. Not written up yet. **Fixed after (the owner's calls, 7 November), each checked live:** a
+   witch is an archer with a 13-block throw (measured: potions hurt to 12.7 blocks, none at 14 or through a wall), so
+   the body takes cover from it while the model decides; `mine_ore` plugs water touching ore and mines it from a dry
+   place, dug out of the rock if need be, never swimming (tluna13's lake-wall iron: 2 raw iron in 26 s); `descend`
+   and `tunnel` from inside a home walk out to any open ground before the door (the agents' own stairs had left the
+   straight line out with none). Still open: dry iron 14-40 blocks down that `descend` can't reach past caves and
+   water. Asked by the owner, not started: torches (`docs/ideas.md` #5). **Next:** a Luna rep on these fixes (ask
+   first); write tluna13 up with them. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
