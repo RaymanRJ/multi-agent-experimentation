@@ -4,8 +4,8 @@ import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
-import { standable } from "./underground.js";
+import { asNumber, getOutOfWater, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
+import { fillWater, plugBlock, standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
@@ -69,17 +69,46 @@ function inWaterNow(bot: Bot): boolean {
  * slower, and a dig by a pool timed out at 20 s in the check that added this. Steps to the nearest dry spot within
  * reach of the ore; stays put if there is none.
  */
-async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
-  if (!inWaterNow(bot)) return;
-  const spots: Vec3[] = [];
+const WET = /^(water|lava|bubble_column)$/;
+
+/**
+ * A place to stand within reach of the ore, dry: open ground, or rock beside it that can be dug out into a
+ * pocket (as a player tunnels in beside ore at a lake's edge) with nothing wet at its feet, its head or above.
+ * Ore with water above it or all round is tried only from such a place: walking to it otherwise swims, and a
+ * live try left the agent under water at 3 air.
+ */
+export function standsFor(bot: Bot, cell: Vec3): "open" | "pocket" | null {
+  if (standable(bot, cell)) return "open";
+  const floor = bot.blockAt(cell.offset(0, -1, 0));
+  if (!floor || floor.boundingBox !== "block" || WET.test(floor.name)) return null;
+  for (const dy of [0, 1, 2]) {
+    const block = bot.blockAt(cell.offset(0, dy, 0));
+    if (!block || WET.test(block.name)) return null;
+    if (dy < 2 && block.boundingBox === "block" && (!bot.canDigBlock(block) || FURNITURE.test(block.name) || homeBlock(bot, block.position))) return null;
+  }
+  return "pocket";
+}
+
+/** Dry places to stand (or dig out) within reach of the ore, open ones first, then nearest to the agent. */
+function dryStands(bot: Bot, ore: Vec3, pockets = false): Vec3[] {
+  const spots: Array<{ cell: Vec3; open: boolean }> = [];
   for (let dx = -3; dx <= 3; dx++)
     for (let dz = -3; dz <= 3; dz++)
-      for (let dy = -2; dy <= 1; dy++) {
+      for (let dy = -2; dy <= 2; dy++) {
         const cell = ore.offset(dx, dy, dz);
-        if (cell.offset(0.5, 1.6, 0.5).distanceTo(ore.offset(0.5, 0.5, 0.5)) <= REACH - 0.5 && standable(bot, cell)) spots.push(cell);
+        if (cell.equals(ore) || cell.offset(0.5, 1.6, 0.5).distanceTo(ore.offset(0.5, 0.5, 0.5)) > REACH - 0.5) continue;
+        const kind = pockets ? standsFor(bot, cell) : standable(bot, cell) ? "open" : null;
+        if (kind) spots.push({ cell, open: kind === "open" });
       }
-  spots.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
-  for (const spot of spots.slice(0, 3)) {
+  const here = bot.entity.position;
+  return spots
+    .sort((a, b) => Number(b.open) - Number(a.open) || a.cell.distanceTo(here) - b.cell.distanceTo(here))
+    .map((s) => s.cell);
+}
+
+async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
+  if (!inWaterNow(bot)) return;
+  for (const spot of dryStands(bot, ore).slice(0, 3)) {
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 8000, "stepping out of the water to dig");
       if (!inWaterNow(bot)) return;
@@ -87,6 +116,30 @@ async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
       bot.pathfinder.setGoal(null);
     }
   }
+}
+
+const FACES: Array<[number, number, number]> = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+
+/** Cells of water touching the ore. */
+function waterAround(bot: Bot, ore: Vec3): Vec3[] {
+  return FACES.map(([dx, dy, dz]) => ore.offset(dx, dy, dz)).filter((cell) => bot.blockAt(cell)?.name === "water");
+}
+
+/**
+ * Fills the water touching the ore with blocks carried, as a player plugs it before mining, so digging
+ * the ore floods nothing and nobody digs in water. Ore with water above it or all round was refused, and
+ * in tluna13 that was all the iron near the home: 23 refusals, by agents carrying 36-319 cobblestone.
+ * Throws why not (no block left, nothing to put it against, out of reach).
+ */
+async function plugAround(bot: Bot, ore: Vec3): Promise<number> {
+  const feet = bot.entity.position.floored();
+  let filled = 0;
+  for (const cell of waterAround(bot, ore)) {
+    if (cell.equals(feet) || cell.equals(feet.offset(0, 1, 0))) continue;
+    await fillWater(bot, cell);
+    filled++;
+  }
+  return filled;
 }
 
 /** Pickaxes, weakest first. */
@@ -123,7 +176,9 @@ export const mineOre: Skill = {
     "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
-    "Uses the cheapest pickaxe good enough. Skips ore beside lava, ore with water right above it, and ore under water; ore with water only beside it is mined. Returns how many were gained and the new total.",
+    "Uses the cheapest pickaxe good enough. Water touching the ore (above, beside or all round it) is plugged first with a block you carry " +
+    "(cobblestone, dirt or stone), so the ore is mined from dry footing; without such a block, ore with water above it or under water is skipped. " +
+    "Ore beside lava is always skipped. Returns how many were gained and the new total.",
   args: { ore: "string", count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -166,12 +221,19 @@ export const mineOre: Skill = {
       let outOfReach: number | null = null;
       // Ore the agent can see but this won't dig toward: say so, or "none in reach" contradicts what it sees.
       const wet = new Set<string>();
+      const lava = new Set<string>();
       for (const radius of SEARCH_RADII) {
         const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point)) continue;
-          if (oreHazard(bot, point)) {
+          const hazard = oreHazard(bot, point);
+          if (hazard === "lava beside it") {
+            lava.add(key(point));
+            continue;
+          }
+          // Ore at a pool's floor is reached only by swimming: a live try left the agent under water at 3 air.
+          if (hazard && (!plugBlock(bot) || dryStands(bot, point, true).length === 0)) {
             wet.add(key(point));
             continue;
           }
@@ -190,7 +252,9 @@ export const mineOre: Skill = {
           outOfReach === null
             ? ""
             : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
-        const wetNote = wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} beside lava, under water or below water, which this won't mine` : "";
+        const wetNote =
+          (lava.size ? `; ${lava.size} ${kind} ore in sight ${lava.size === 1 ? "is" : "are"} beside lava, which this won't mine` : "") +
+          (wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} under or below water, which needs cobblestone, dirt or stone to plug the water and dry ground beside it to stand on` : "");
         const reason =
           gained() > 0
             ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}${wetNote}`
@@ -199,12 +263,37 @@ export const mineOre: Skill = {
       }
 
       const { x, y, z } = block.position;
+      const wetOre = oreHazard(bot, block.position) !== null;
       try {
-        await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
+        if (wetOre) {
+          // To a dry place beside it, dug out of the rock if need be, never by swimming to the ore.
+          const stand = dryStands(bot, block.position, true)[0];
+          if (!stand) throw new Error("no dry place beside it to stand");
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(stand.x, stand.y, stand.z)), TRAVEL_TIMEOUT_MS, "walking to a dry place beside the ore");
+          if (inWaterNow(bot)) {
+            await getOutOfWater(bot);
+            throw new Error("the way there was through water");
+          }
+        } else {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
+        }
         const fresh = bot.blockAt(block.position);
         if (!fresh || !oreIds.includes(fresh.type) || !bot.canDigBlock(fresh)) throw new Error("cannot dig it from here");
+        // Water touching the ore is plugged from dry footing before anything is dug.
+        let plugged = 0;
+        if (plugBlock(bot) && waterAround(bot, fresh.position).length > 0) {
+          await dryFooting(bot, fresh.position);
+          plugged = await plugAround(bot, fresh.position);
+          if (plugged) ctx.log(`plugged ${plugged} water beside the ${kind} ore at ${x},${y},${z}`);
+        }
         // Out of reach or behind a wall, the server ignores the dig and mineflayer waits forever.
-        if (!(await digThrough(bot, fresh))) throw new Error("out of reach");
+        if (!(await digThrough(bot, fresh))) {
+          // Plugged all round the ore shows no face, but from dry footing in reach the server breaks it (live: 2 of 2 in
+          // 24 s). Not from water: under a pool the dig never finished in 45 s, so the agent is told to find dry ground.
+          const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+          if (!plugged || eye.distanceTo(fresh.position.offset(0.5, 0.5, 0.5)) > REACH) throw new Error("out of reach");
+          if (inWaterNow(bot)) throw new Error("plugged, but there is no dry footing in reach of it to dig from");
+        }
         // digThrough may have changed the tool in hand to dig dirt or stone; ore needs the pickaxe.
         if (liquidBeside(bot, fresh.position)) await dryFooting(bot, fresh.position);
         const pick = bot.inventory.items().find((item) => item.name === pickaxe);

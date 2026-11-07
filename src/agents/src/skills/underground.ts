@@ -159,7 +159,7 @@ function falling(bot: Bot, cells: Vec3[]): boolean {
 const PLUG_BLOCKS = ["cobblestone", "dirt", "cobbled_deepslate", "stone", "andesite", "diorite", "granite", "netherrack", "tuff"];
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 
-function plugBlock(bot: Bot): string | undefined {
+export function plugBlock(bot: Bot): string | undefined {
   const held = countInventory(bot);
   return PLUG_BLOCKS.find((name) => (held[name] ?? 0) > 0);
 }
@@ -189,7 +189,7 @@ async function plugWater(bot: Bot, dug: Vec3, path: Vec3[]): Promise<void> {
 }
 
 /** A block put into a cell of water. Throws why not. */
-async function fillWater(bot: Bot, wet: Vec3): Promise<void> {
+export async function fillWater(bot: Bot, wet: Vec3): Promise<void> {
   const name = plugBlock(bot);
   if (!name) throw new Error("water came in and there was no block left to plug it with");
   const against = SIDES.map((s) => bot.blockAt(wet.plus(s))).find((b) => b && b.boundingBox === "block" && !opensOnClick(b.name));

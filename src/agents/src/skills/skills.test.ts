@@ -9,7 +9,7 @@ import { SKILLS, findSkill } from "./index.js";
 import { runSkill } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { firstSolidBetween } from "./mineOre.js";
+import { firstSolidBetween, standsFor } from "./mineOre.js";
 
 const run = (name: string, setup: Parameters<typeof fakeBot>[0], args: Record<string, unknown> = {}, stop = false) => {
   const { bot } = fakeBot(setup);
@@ -64,6 +64,14 @@ test("sleep - refuses outside the hours beds work, with monsters near, and with 
   assert.match(taken.reason!, /^every bed nearby is taken by someone sleeping in it, and you have none to put down/);
 });
 
+test("mine_ore - a dry place beside wet ore: open ground, or rock to dig a pocket in, never anything wet", () => {
+  const { bot } = fakeBot({ blocks: { ...floor(64), "0,64,0": "stone", "0,65,0": "stone", "1,64,0": "stone", "1,65,0": "water", "2,64,0": "stone", "2,65,0": "stone", "2,66,0": "water" } });
+  assert.equal(standsFor(bot, new Vec3(3, 64, 0)), "open");
+  assert.equal(standsFor(bot, new Vec3(0, 64, 0)), "pocket", "rock with rock overhead: dug out, as a player tunnels in beside ore");
+  assert.equal(standsFor(bot, new Vec3(1, 64, 0)), null, "water at the head");
+  assert.equal(standsFor(bot, new Vec3(2, 64, 0)), null, "rock with water right above it: the pocket would flood");
+});
+
 test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is", async () => {
   assert.match((await run("mine_ore", {}, { ore: "gravel" })).reason!, /not an ore — use one of coal, .*iron.*diamond/);
   assert.match((await run("mine_ore", { inventory: { wooden_pickaxe: 1 } }, { ore: "iron" })).reason!, /iron ore needs at least a stone_pickaxe/);
@@ -82,7 +90,12 @@ test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is"
     inventory: { stone_pickaxe: 1 },
     blocks: { "3,63,0": "iron_ore", "2,63,0": "water", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "stone", "3,63,1": "stone", "3,63,-1": "stone" },
   }, { ore: "iron" });
-  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is beside lava, under water or below water, which this won't mine — explore/);
+  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is under or below water, which needs cobblestone, dirt or stone to plug the water and dry ground beside it to stand on — explore/);
+  const hot = await run("mine_ore", {
+    inventory: { stone_pickaxe: 1, cobblestone: 10 },
+    blocks: { "3,63,0": "iron_ore", "2,63,0": "lava", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "air", "3,63,1": "stone", "3,63,-1": "stone" },
+  }, { ore: "iron" });
+  assert.match(hot.reason!, /1 iron ore in sight is beside lava, which this won't mine/, "lava is never plugged");
   const stopped = await run("mine_ore", { inventory: { stone_pickaxe: 1 } }, { ore: "iron" }, true);
   assert.equal(stopped.status, "aborted");
   const chased = await run("mine_ore", { inventory: { stone_pickaxe: 1 }, entities: [zombie(4)] }, { ore: "coal" });
