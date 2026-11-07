@@ -19,6 +19,7 @@ import { askAgent } from "./askAgent.js";
 import { hunt, shear } from "./creatures.js";
 import { lookInChest, store, take } from "./chest.js";
 import { respawn } from "./respawn.js";
+import { light } from "./light.js";
 
 /**
  * The complete vocabulary of goals an agent may pursue. Nothing an agent does
@@ -31,7 +32,7 @@ import { respawn } from "./respawn.js";
 export const SKILLS: Skill[] = [
   gatherWood, wait,
   explore, eat, flee, sleep, placeBedSkill,
-  craft, mineStone, buildShelter,
+  craft, mineStone, buildShelter, light,
   mineOre, smelt, descend, tunnel, climbOut,
   give, pickUp, goTo, store, take, lookInChest,
   hunt, shear,

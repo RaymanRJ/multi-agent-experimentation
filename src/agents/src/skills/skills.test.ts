@@ -378,3 +378,10 @@ test("go_to - a far home is walked to in legs, to the ground before its doorway,
   assert.equal(goals[1]?.z, 4, "then toward the ground before its doorway (south side)");
   assert.match(result.reason ?? "", /could not get into a large shelter at 60,64,0/, "then in by the doorway");
 });
+
+test("light - with nothing to make torches from, says what a torch needs (crafting them is checked live)", async () => {
+  const none = await run("light", { blocks: floor(64) }, {});
+  assert.equal(none.status, "failed");
+  assert.match(none.reason!, /a torch is 1 coal or charcoal and 1 stick \(they make 4\) — mine_ore coal, or smelt logs into charcoal/);
+  assert.ok(findSkill("light"), "light is in the skill list");
+});

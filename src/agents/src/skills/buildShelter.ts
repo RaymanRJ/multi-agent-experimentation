@@ -2,6 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
+import { lightHome } from "./light.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, doorwayLanes, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
@@ -726,6 +727,7 @@ export const buildShelter: Skill = {
     "Optional `size`: \"large\" for one room with a 5x5 interior, 3 high, with room for several beds, a chest and a furnace, " +
     "and room to step over a bed: about 105 blocks (27 logs). A large one can be built a part at a time: with too few blocks it places what you have and " +
     "says what is left, and anyone calling build_shelter near it later carries on with it. " +
+    "When you carry torches, coal or charcoal, the shelter you end up in is lit: torches on its walls and one beside its door. " +
     "Stand on reasonably flat open ground to build a new one. You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
   args: { storeys: "number?", size: "string?" },
 
@@ -769,9 +771,15 @@ export const buildShelter: Skill = {
       : whyOpen(ctx, built.gaps, hasDoor);
     const owner = spot?.by ? ` (${spot.by}'s)` : "";
     const company = mobsInsideNote(bot, { ...position, ...use });
+    // Lit with torches when the agent has them or the makings: dark inside by day too, and monsters waited at doors.
+    const home: ShelterSpot = { ...position, ...use, complete: true };
+    const lit = insideSpot(bot, home) ? await lightHome(ctx, home) : null;
+    const litNote = lit?.placed
+      ? `; ${lit.placed} torch${lit.placed === 1 ? "" : "es"} put up (${[lit.inside ? `${lit.inside} inside` : "", lit.door ? "1 beside the door" : ""].filter(Boolean).join(", ")}), so monsters can't spawn there`
+      : "";
     const reason = spot && spot.complete !== false
-      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another`
-      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again`;
+      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another${litNote}`
+      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again${litNote}`;
     return {
       status: "success",
       reason,
@@ -784,6 +792,7 @@ export const buildShelter: Skill = {
         blocksPlaced: built.placed,
         doorwayClosed: built.closed,
         complete: true,
+        ...(lit?.placed ? { torchesPlaced: lit.placed } : {}),
         ...(spot ? { entered: true, ...(spot.by ? { by: spot.by } : {}) } : {}),
       },
     };
