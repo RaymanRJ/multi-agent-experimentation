@@ -116,8 +116,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    place, dug out of the rock if need be, never swimming (tluna13's lake-wall iron: 2 raw iron in 26 s); `descend`
    and `tunnel` from inside a home walk out to any open ground before the door (the agents' own stairs had left the
    straight line out with none). Still open: dry iron 14-40 blocks down that `descend` can't reach past caves and
-   water. Asked by the owner, not started: torches (`docs/ideas.md` #5). **Next:** a Luna rep on these fixes (ask
-   first); write tluna13 up with them. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   water. **Then torches (the owner's ask):** a `light` skill, and `build_shelter` lights a home it finishes or
+   enters when the agent has torches, coal or charcoal (checked live: one torch took a sealed dark room from 121 of
+   121 cells dark to 0). **tluna14** (7 November, one rep on bf666b5, US$0.37): 3 of 4 parts again (home, all slept,
+   11 meat), 1 of 3 iron pickaxes; 2 deaths (tluna13: 10). The home was lit (3 torches, from coal lb carried); no
+   agent chose `light`. `mine_ore` 3 of 12 worked (tluna13: 0 of 27), one on plugged wet ore. No witch, no doorway
+   refusal. Gap reported, not fixed: `descend` stopped 5 times at "every way down is unsafe: water below" on all
+   sides (y=59 to 36), cut short 6 times by teammates' messages and twice by running out of air; la made a pickaxe
+   on day 1 and died with it that night. Not written up yet (tluna13 and tluna14 together). **Next:** the owner's
+   call on getting below water (descend plugging or bridging water below, as it plugs water behind). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
