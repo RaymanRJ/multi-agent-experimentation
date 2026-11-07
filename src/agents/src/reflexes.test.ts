@@ -8,6 +8,7 @@ import { fakeBot, floor } from "./testing/fakeBot.js";
 
 const zombie = (x: number, z: number) => ({ name: "zombie", type: "hostile", position: { x, y: 64, z } });
 const skeleton = (x: number, z: number) => ({ name: "skeleton", type: "hostile", position: { x, y: 64, z } });
+const witch = (x: number, z: number) => ({ name: "witch", type: "hostile", position: { x, y: 64, z } });
 
 /** A stone pillar 3 high at x, z on the floor at y 64. */
 function pillar(blocks: Record<string, string>, x: number, z: number): Record<string, string> {
@@ -132,6 +133,16 @@ test("archersWithSight - a skeleton in range with a clear line, not past 16 bloc
   const { bot } = fakeBot({ blocks: walled });
   assert.equal(inSight(bot, new Vec3(12.5, 65.7, 0.5), new Vec3(0.5, 65.6, 0.5)), false);
   assert.equal(inSight(bot, new Vec3(12.5, 65.7, 8.5), new Vec3(0.5, 65.6, 8.5)), true);
+});
+
+test("archersWithSight - a witch counts within 13 blocks with a clear line, not at 14, not through a wall", () => {
+  const at = (mobs: Array<ReturnType<typeof witch>>, blocks = ground(() => false, 30)) =>
+    archersWithSight(fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks, entities: mobs }).bot).map((e) => e.name);
+  assert.deepEqual(at([witch(12.5, 0.5)]), ["witch"], "measured: potions hurt at 12.7 blocks");
+  assert.deepEqual(at([witch(14.5, 0.5)]), [], "measured: none hurt at 14");
+  const walled = ground(() => false, 30);
+  for (let z = -2; z <= 2; z++) pillar(walled, 4, z);
+  assert.deepEqual(at([witch(8.5, 0.5)], walled), [], "measured: nothing thrown through a wall");
 });
 
 test("coverPoint - the nearest spot where the archer can't see the agent; none on bare ground", () => {

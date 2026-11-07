@@ -22,12 +22,16 @@ const GUARD_EVERY_MS = 250;
 const STEP_BACK_MS = 3_000;
 
 /**
- * Mobs that shoot, and how far. Measured live on 26 October: a skeleton with a bow, held in place,
- * fired at 15 and 16.7 blocks and not at 17 or beyond, and never through a wall. Strays and bogged
- * share its bow.
+ * Mobs that shoot or throw, and how far. Measured live on 26 October: a skeleton with a bow, held in
+ * place, fired at 15 and 16.7 blocks and not at 17 or beyond, and never through a wall. Strays and
+ * bogged share its bow. A witch's potions, measured on 7 November with the witch held in place, hurt
+ * out to 12.7 blocks and not at 14 or 16, and it threw nothing through a wall; in tluna13 one killed
+ * two agents through the gaps of a broken home, the team's only iron pickaxe with each.
  */
-export const ARCHERS = new Set(["skeleton", "stray", "bogged"]);
 export const BOW_RANGE = 16;
+export const THROW_RANGE = 13;
+export const ARCHER_RANGE: Record<string, number> = { skeleton: BOW_RANGE, stray: BOW_RANGE, bogged: BOW_RANGE, witch: THROW_RANGE };
+export const ARCHERS = new Set(Object.keys(ARCHER_RANGE));
 /** How far to look for cover from an archer: a few steps, not a journey. */
 export const COVER_RADIUS = 5;
 const EYE = 1.62;
@@ -115,11 +119,11 @@ export function hostilesWithin(bot: Bot, radius: number): Entity[] {
 // The sight test lives in util.ts, where the digging skills' danger check uses it too.
 export { inSight };
 
-/** Archers within bow range that can see a body standing at `feet` (the agent's own, by default). */
+/** Archers within their range that can see a body standing at `feet` (the agent's own, by default). */
 export function archersWithSight(bot: Bot, feet: Vec3 = bot.entity.position): Entity[] {
   const eye = feet.offset(0, EYE, 0);
   return hostilesWithin(bot, BOW_RANGE + 4).filter(
-    (e) => ARCHERS.has(e.name ?? "") && e.position.distanceTo(feet) <= BOW_RANGE && inSight(bot, eyeOf(e), eye),
+    (e) => ARCHERS.has(e.name ?? "") && e.position.distanceTo(feet) <= (ARCHER_RANGE[e.name ?? ""] ?? 0) && inSight(bot, eyeOf(e), eye),
   );
 }
 
@@ -154,8 +158,8 @@ export function coverPoint(bot: Bot, archers: Entity[]): { x: number; y: number;
  *   agent drowned underground while its model decided, carrying the team's three iron pickaxes;
  * - a monster within reach: step back from it. In bpoc3, 9 of 17 deaths came while the model was
  *   still deciding, most with a mob 0-2 blocks away;
- * - an archer that can see the agent: move to the nearest cover from it, since stepping back doesn't
- *   help against a bow (bpoc4: 12 of 24 deaths to skeletons).
+ * - an archer (a skeleton, or a witch throwing potions) that can see the agent: move to the nearest
+ *   cover from it, since stepping back doesn't help against a bow (bpoc4: 12 of 24 deaths to skeletons).
  * In that order. Nothing happens inside a closed shelter, where nothing can reach, or with no cover
  * close by. `stop` ends it when the decision arrives and returns what it did, for the next
  * observation, or null if it did nothing.

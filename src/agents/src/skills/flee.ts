@@ -6,7 +6,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
 import { describeShelter, doorOf, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, whyOpen, type ShelterSpot } from "./buildShelter.js";
-import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
+import { ARCHERS, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -257,13 +257,13 @@ export const flee: Skill = {
   description:
     "Get away from nearby hostile mobs (those within 16 blocks). Inside a closed shelter with nothing in it, you stay put: " +
     "nothing outside can reach you there. If a finished shelter you know (yours or another agent's) stands within " +
-    `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton can see you), with no hostile at its doorway, ` +
+    `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton or witch can see you), with no hostile at its doorway, ` +
     "you run into it by its doorway and the doorway is closed behind you; a shelter far below you does not count. " +
     `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off. ` +
-    "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton can still " +
-    "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, only at what it can see). " +
+    "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton or witch can still " +
+    "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, a witch throws up to 13, only at what they can see). " +
     "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
-    `within ${BOW_RANGE} can see you, or the distance is covered; ` +
+    `or witch in range can see you, or the distance is covered; ` +
     "succeeds immediately with `no threat` if no hostile is within 16. Returns new position, how many hostiles remain within 12 and how many archers can see you. " +
     "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
@@ -503,7 +503,7 @@ export const flee: Skill = {
       if (detail.hostilesWithin12) parts.push(`${detail.hostilesWithin12} hostile(s) are still within ${SAFE_RADIUS} blocks`);
       if (detail.archersInSight) {
         const names = [...new Set(archersWithSight(ctx.bot).map((e) => e.name ?? "skeleton"))].join(", ");
-        parts.push(`${detail.archersInSight === 1 ? `a ${names}` : `${detail.archersInSight} archers (${names})`} within ${BOW_RANGE} blocks can still see you`);
+        parts.push(`${detail.archersInSight === 1 ? `a ${names}` : `${detail.archersInSight} archers (${names})`} in range can still see you`);
       }
       return parts.join(" and ");
     };
