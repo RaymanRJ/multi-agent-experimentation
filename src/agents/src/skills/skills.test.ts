@@ -186,10 +186,10 @@ test("climb_out - done under open sky; won't dig beside water, or start from it 
 test("hunt and shear - say what's missing before they move", async () => {
   assert.match((await run("hunt", {})).reason!, /say what to hunt/);
   assert.match((await run("hunt", {}, { target: "tester" })).reason!, /cannot attack yourself/);
-  assert.match((await run("hunt", {}, { target: "cow" })).reason!, /^no cow within 32 blocks — explore to find one/);
-  assert.match((await run("hunt", { entities: [zombie(40)] }, { target: "zombie" })).reason!, /no zombie within 32 blocks/, "too far away");
+  assert.match((await run("hunt", {}, { target: "cow" })).reason!, /^no cow within 64 blocks — explore to find one/);
+  assert.match((await run("hunt", { entities: [zombie(70)] }, { target: "zombie" })).reason!, /no zombie within 64 blocks/, "too far away");
   assert.match((await run("shear", {})).reason!, /need shears — craft them from 2 iron_ingot/);
-  assert.match((await run("shear", { inventory: { shears: 1 } })).reason!, /^no sheep within 32 blocks — explore to find some/);
+  assert.match((await run("shear", { inventory: { shears: 1 } })).reason!, /^no sheep within 64 blocks — explore to find some/);
 });
 
 test("runSkill - an error a skill didn't catch becomes a failed result, and the pathfinder is stopped", async () => {

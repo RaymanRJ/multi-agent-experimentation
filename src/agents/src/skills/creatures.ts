@@ -9,7 +9,12 @@ import { asNumber, withTimeout } from "./util.js";
 const { goals } = pathfinderPkg;
 
 /** How far a creature can be and still be found, as far as observations list them. */
-export const CREATURE_RANGE = 32;
+/**
+ * How far hunt and shear look: 64, the world's simulation distance (the server tracks animals out to 96, but
+ * past 64 they stand still). 32 until 8 November: on the testbed world's open grass the herd scatters, and in
+ * tluna15 hunt found "no sheep within 32" 19 times while teammates had seen sheep 25-36 blocks off.
+ */
+export const CREATURE_RANGE = 64;
 /** The entity kinds observations list as animals: farm animals, wildlife and fish. */
 export const ANIMAL_TYPES = new Set(["animal", "water_creature"]);
 const REACH = 3;
@@ -109,7 +114,8 @@ export const hunt: Skill = {
         }
         // The chase gives up after CHASE_MS out of reach, counted from the last hit: each hit knocks the
         // target back, so a fixed limit from the start let a player "get away" mid-fight (5 hits, live).
-        let chaseEnds = Date.now() + CHASE_MS;
+        // The first walk to it takes a second a block on top: a sheep 64 blocks off is a 15-30 s walk.
+        let chaseEnds = Date.now() + CHASE_MS + Math.round(prey.position.distanceTo(bot.entity.position) * 1000);
         let lastHit = 0;
         while (!dead.has(prey.id)) {
           if (ctx.shouldStop() || bot.health <= RETREAT_HEALTH) break;
@@ -196,7 +202,7 @@ export const shear: Skill = {
           return { status: done ? "success" : "failed", reason, detail: report() };
         }
         tried.add(sheep.id);
-        if (!(await closeIn(bot, sheep, REACH, CHASE_MS))) continue;
+        if (!(await closeIn(bot, sheep, REACH, CHASE_MS + Math.round(sheep.position.distanceTo(bot.entity.position) * 1000)))) continue;
         bot.pathfinder.setGoal(null);
         await bot.lookAt(sheep.position.offset(0, sheep.height * 0.6, 0), true);
         await withTimeout(Promise.resolve(bot.activateEntity(sheep)), 3000, "shearing").catch(() => undefined);
