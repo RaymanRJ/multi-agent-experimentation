@@ -61,14 +61,20 @@ export function enclosure(feet: Vec3): Vec3[] {
  * Cornered with no path away: wall the bot in where it stands, as a player would. Mobs can't reach
  * through, and the pathfinder can dig back out later. Returns how many cells are still open.
  */
-async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlocks: boolean }> {
+export async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlocks: boolean }> {
   const feet = bot.entity.position.floored();
   const isOpen = (cell: Vec3) => bot.blockAt(cell)?.boundingBox !== "block";
   let placed = 0;
   let noBlocks = false;
   for (const cell of enclosure(feet)) {
     if (!isOpen(cell)) continue;
-    const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    let stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    // Under attack the server resends the inventory after a refused placement, and for a moment it reads empty:
+    // with 32 cobblestone held, walling in reported "no dirt, cobblestone or planks" in three live tries.
+    for (let wait = 0; !stack && wait < 3; wait++) {
+      await bot.waitForTicks(5);
+      stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    }
     if (!stack) {
       noBlocks = true;
       break;
@@ -90,6 +96,56 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
     }
   }
   return { placed, open: enclosure(feet).filter(isOpen).length, noBlocks };
+}
+
+/** A monster that strikes up close this near, under the ground, and the agent walls in rather than runs. */
+const WALL_FIRST_RADIUS = 10;
+
+/**
+ * Into the rock beside the agent: two blocks dug out of a cave wall (feet and head), stepped into, and the
+ * opening behind filled, as a player caught in a cave tucks into the wall. Running through a dark cave runs
+ * into more of what lives there: on the first world 13 of 22 deaths in three reps were healthy agents killed
+ * mid-flee underground, in daylight. Two digs and two blocks, where walling in out in the open takes up to nine.
+ * Null once shut in; otherwise why not.
+ */
+async function nookIn(bot: Bot): Promise<string | null> {
+  const feet = bot.entity.position.floored();
+  const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
+  const diggable = (cell: Vec3) => {
+    const block = bot.blockAt(cell);
+    return !!block && block.boundingBox === "block" && bot.canDigBlock(block) && !opensOnClick(block.name) && !homeBlock(bot, cell) &&
+      !/^(sand|red_sand|gravel|bedrock)$/.test(block.name) && !FACES.some((f) => /water|lava/.test(bot.blockAt(cell.plus(f))?.name ?? ""));
+  };
+  const near = (d: Vec3) => Object.values(bot.entities).filter((e) => e?.type === "hostile").reduce((m, e) => Math.min(m, e.position.distanceTo(feet.plus(d))), 99);
+  // A wall whose nook would be closed on its other three sides, over the head and under the feet; farthest from the monsters first.
+  const options = SIDES.filter((d) => {
+    const nook = feet.plus(d);
+    if (!diggable(nook) || !diggable(nook.offset(0, 1, 0)) || !solid(nook.offset(0, -1, 0)) || !solid(nook.offset(0, 2, 0))) return false;
+    return SIDES.filter((s) => !s.equals(d.scaled(-1))).every((s) => solid(nook.plus(s)) && solid(nook.plus(s).offset(0, 1, 0)));
+  }).sort((a, b) => near(b) - near(a));
+  const side = options[0];
+  if (!side) return "no rock wall beside you to dig a nook into";
+  if (!bot.inventory.items().some((item) => isBuildingBlock(item.name))) return "no block to close the nook behind you";
+  const nook = feet.plus(side);
+  for (const cell of [nook.offset(0, 1, 0), nook]) {
+    const block = bot.blockAt(cell)!;
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool) await bot.equip(tool, "hand");
+    await withTimeout(bot.dig(block), BURROW_DIG_TIMEOUT_MS, `digging into the ${block.name}`);
+  }
+  // Step in, then fill where the agent stood: the opening at the feet and the head.
+  for (let tick = 0; tick < 30; tick++) {
+    const at = bot.entity.position.floored();
+    if (at.equals(nook)) break;
+    await bot.lookAt(nook.offset(0.5, 1.6, 0.5), true);
+    bot.setControlState("forward", true);
+    await bot.waitForTicks(1);
+  }
+  bot.setControlState("forward", false);
+  if (!bot.entity.position.floored().equals(nook)) return "could not step into the nook";
+  const sealed = await sealIn(bot);
+  if (sealed.open > 0) return `${sealed.open} gaps left in the nook${sealed.noBlocks ? ": no blocks left to place" : ""}`;
+  return hostileInside(bot) ? "a monster followed you into the nook" : null;
 }
 
 /**
@@ -280,7 +336,8 @@ export const flee: Skill = {
     "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
     "without a pickaxe, nor beside water or lava, nor in sand or gravel with nothing carried to cover the hole). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
-    "Under the ground it only walls you in, and that only buys time: the monsters stay, so climb out or go home after. " +
+    "Under the ground, with a monster that strikes up close within 10 blocks, it shuts you in before any running: dug in where you stand, " +
+    "or into the rock beside you, or walled in; that only buys time, as the monsters stay, so climb out or go home after. " +
     "Under a shelter you know, it goes up into it by its doorway and never walls you in. " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
     "Fails only if it can't run, dig in or wall you in. Fleeing does not fight; follow up with shelter or sleep.",
@@ -350,6 +407,39 @@ export const flee: Skill = {
       }
       if (entered.result.status === "aborted") return entered.result;
       ctx.log(`could not get into the shelter at ${spotKey(home)} (${entered.result.reason}); running instead`);
+    }
+
+    // Under the ground with a monster close: into the rock, or walled in where it stands, before any running.
+    if (underground && !above && hostilesNear(ctx, WALL_FIRST_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""))) {
+      // Straight down first: it needs no wall in reach, and in an open cave there often is none. burrow checks for
+      // lava, water and a cave under the hole before digging.
+      const dug = await burrow(ctx.bot).catch((error: Error) => error.message);
+      if (dug === null) {
+        return {
+          status: "success",
+          reason: "monsters were close under the ground, so you dug in where you stood and covered the hole over your head: nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near",
+          detail: { position: ctx.bot.entity.position.floored(), dugIn: true },
+        };
+      }
+      ctx.log(`could not dig in: ${dug}`);
+      const why = await nookIn(ctx.bot).catch((error: Error) => error.message);
+      if (why === null) {
+        return {
+          status: "success",
+          reason: "monsters were close under the ground, so you dug into the rock beside you and closed the way in: nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near",
+          detail: { position: ctx.bot.entity.position.floored(), sealedIn: true, nook: true },
+        };
+      }
+      ctx.log(`could not dig into the rock: ${why}`);
+      const sealed = await sealIn(ctx.bot);
+      if (sealed.open === 0 && !hostileInside(ctx.bot)) {
+        return {
+          status: "success",
+          reason: `monsters were close under the ground, so you walled yourself in where you stood (${sealed.placed} blocks placed): nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near`,
+          detail: { position: ctx.bot.entity.position.floored(), sealedIn: true },
+        };
+      }
+      ctx.log(`could not wall in (${sealed.open} gaps left); running instead`);
     }
 
     const covered = () => Math.hypot(ctx.bot.entity.position.x - start.x, ctx.bot.entity.position.z - start.z);

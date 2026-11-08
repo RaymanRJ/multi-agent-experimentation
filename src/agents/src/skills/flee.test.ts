@@ -79,7 +79,7 @@ function rock(from: number, to: number): Record<string, string> {
   return blocks;
 }
 
-test("flee - underground, runs along a tunnel at its own height; boxed in, walls in and never digs down", async () => {
+test("flee - underground, runs along a tunnel at its own height; boxed in, digs in or walls in where it stands and points up", async () => {
   const zombie = () => ({ name: "zombie", type: "hostile", position: { x: -2.5, y: 64, z: 0.5 } });
   const open = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 14), entities: [zombie()], inventory: { cobblestone: 16 } });
   const legs: Array<{ x: number; y: number; z: number }> = [];
@@ -92,15 +92,15 @@ test("flee - underground, runs along a tunnel at its own height; boxed in, walls
   assert.equal(legs[0]?.y, 64, "aimed at the tunnel floor, not at x and z alone");
   assert.ok((legs[0]?.x ?? 0) > 0, "away from the zombie");
 
-  // A dead end: no floor along or up within reach. Walled in where it stands, told the monsters stay.
+  // A dead end: no floor along or up within reach. Shut in where it stands (dug in, since 8 November: in live caves
+  // walling in out in the open failed 3 of 3 and digging in saved 3 of 3), told the monsters stay and the way up.
   const shut = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie()], inventory: { cobblestone: 16 } });
   shut.bot.placeBlock = (async (reference: { position: Vec3 }, face: Vec3) => {
     shut.world.set(`${reference.position.x + face.x},${reference.position.y + face.y},${reference.position.z + face.z}`, "cobblestone");
   }) as never;
   const walled = await flee.run(context(shut.bot), { distance: 10 });
   assert.equal(walled.status, "success");
-  assert.match(walled.reason ?? "", /walled yourself in .* the monsters will not leave/);
-  assert.ok(!shut.calls.some((c) => c.startsWith("dig")), "never dug down into the rock");
+  assert.match(walled.reason ?? "", /(dug in|walled yourself in).*climb_out digs you up to the surface/);
   assert.ok(!shut.calls.includes("goto"), "never ran into the rock");
 });
 
