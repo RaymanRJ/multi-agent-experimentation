@@ -20,7 +20,7 @@ import { toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 import { looksStuck, surroundings, type Surroundings } from "./surroundings.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, SEED, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
 import { Vec3 } from "vec3";
@@ -184,12 +184,13 @@ async function main(): Promise<void> {
   const brain = brainLabel(probe ? [{ calls: [probe] } as unknown as LoggedStep] : []);
   const start: RunStart = {
     agent: agentName, brain: brain.label, brainDetail: brain.detail, goal, scenario: scenario.name,
-    memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(),
+    memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(), seed: SEED,
     ...(viewPort !== null ? { view: viewPort } : {}),
   };
   writeFileSync(startFileFor(runLog.file), JSON.stringify(start));
 
-  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
+  if (HERDS.length === 0) console.warn(`[${agentName}] no herd spots are surveyed for seed "${SEED}": no animals will be placed (HERDS_BY_SEED in scenario.ts)`);
+  console.log(`[${agentName}] seed=${SEED} scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {

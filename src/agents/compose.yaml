@@ -20,7 +20,7 @@ services:
 
       MODE: survival
       DIFFICULTY: peaceful          # scenario runner overrides this at runtime
-      SEED: "testbed"               # fixed seed so runs are comparable (itzg reads SEED, not LEVEL_SEED); "multiagent" until 7 November
+      SEED: "${SEED:-testbed}"      # fixed seed so runs are comparable (itzg reads SEED, not LEVEL_SEED); "multiagent" until 7 November; agents read the same SEED
       VIEW_DISTANCE: "8"            # keep RAM down on a 16GB machine
       SIMULATION_DISTANCE: "6"
       SPAWN_PROTECTION: "0"

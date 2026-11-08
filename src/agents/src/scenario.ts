@@ -15,18 +15,38 @@ export interface Scenario {
 }
 
 /**
- * Animals placed at the start, the same in both scenarios. On the first seed (multiagent, until 7 November)
- * spawn was in dark oak forest, too dark for farm animals, and food and wool were out of reach; on testbed
- * there are some, but a fixed herd keeps every run's food and wool the same. Each herd stands on open grass
- * 40-49 blocks from spawn (0, 2), surveyed on 7 November; the ground under it is found at summon time.
+ * The world's seed, one setting for the server and the agents: SEED, as compose.yaml and scripts/test-server.sh pass
+ * it to the server (itzg reads SEED). `testbed` since 7 November; `multiagent` before, whose iron lay under lakes
+ * and flooded caves. A run records it in its start file, so results on the two worlds are never mixed up.
  */
-export const HERDS = [
-  // 12, not 6: three beds take 9 wool, and killing a sheep gives 1 (bpoc3-bpoc5 got 6-10 wool a run, all by killing).
-  { animal: "sheep", count: 12, x: 28, z: 34 }, // south-east
-  { animal: "cow", count: 4, x: -32, z: 38 }, // south-west
-  { animal: "pig", count: 4, x: -40, z: 5 }, // west
-  { animal: "chicken", count: 4, x: -3, z: -38 }, // north
-] as const;
+export const SEED = process.env["SEED"] || "testbed";
+
+type Herd = { animal: string; count: number; x: number; z: number };
+
+/**
+ * Animals placed at the start, the same in both scenarios, on open grass surveyed for each seed; the ground under a
+ * herd is found at summon time. On `multiagent` spawn is in dark oak forest, too dark for farm animals (none within
+ * 64 blocks of spawn, 3 sheep within 128: survey, 20 October), so its herds stand 45-60 blocks out around spawn
+ * (8, 38); on `testbed` there are some, but a fixed herd keeps every run's food and wool the same, 40-49 blocks
+ * from spawn (0, 2), surveyed on 7 November. 12 sheep, not 6: three beds take 9 wool, and killing a sheep gives 1.
+ */
+export const HERDS_BY_SEED: Record<string, readonly Herd[]> = {
+  testbed: [
+    { animal: "sheep", count: 12, x: 28, z: 34 }, // south-east
+    { animal: "cow", count: 4, x: -32, z: 38 }, // south-west
+    { animal: "pig", count: 4, x: -40, z: 5 }, // west
+    { animal: "chicken", count: 4, x: -3, z: -38 }, // north
+  ],
+  multiagent: [
+    { animal: "sheep", count: 12, x: 8, z: 83 }, // south
+    { animal: "cow", count: 4, x: 40, z: 70 }, // south-east
+    { animal: "pig", count: 4, x: -23, z: 70 }, // south-west
+    { animal: "chicken", count: 4, x: -34, z: -4 }, // north-west
+  ],
+};
+
+/** This world's herds; a seed with none surveyed gets none, and the agent says so at start. */
+export const HERDS: readonly Herd[] = HERDS_BY_SEED[SEED] ?? [];
 
 /**
  * Commands that place the herds. The chunk is force-loaded for the summon (no player is near yet),

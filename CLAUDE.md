@@ -57,7 +57,9 @@ piece built against it simultaneously. This has already bitten this project's pl
   without re-burning API calls, and it is the source of the cost numbers.
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
   Reset the world (`src/agents/scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
-  not `LEVEL_SEED` — the world was unseeded until that was fixed.
+  not `LEVEL_SEED` — the world was unseeded until that was fixed. One `SEED` setting picks the world for the
+  server and the agents (`testbed` by default; `SEED=multiagent` for the first world, used until 7 November);
+  each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`), and each run records its seed.
 - **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
   says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
   paid models; `--steps` is only a safety cap. Tokens and wall-clock are recorded, never limits —

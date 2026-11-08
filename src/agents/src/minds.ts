@@ -98,6 +98,8 @@ export interface RunStart {
   stance: string | null;
   episode: string;
   startedAt: string;
+  /** The world's seed (SEED); absent in runs before 8 November, which were all on `multiagent` until 7 November. */
+  seed?: string;
   /** Its viewer's port, when it has one. */
   view?: number;
 }
