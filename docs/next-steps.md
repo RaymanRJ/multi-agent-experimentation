@@ -151,7 +151,20 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    fixes since) met 3 of 4. So on the latest code: 1 of 1 on each world. One SEED setting now picks the world for
    server and agents, with each seed's herds (`HERDS_BY_SEED`). Noticed, not fixed: the report credits items that
    arrive during a smelt to the smelt ("lb smelted 2 iron pickaxe": one given by la, one crafted). **Next:** more reps
-   on this code, on either world, to see the rate (ask first), then the write-up of tluna13-17. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   on this code, on either world, to see the rate (ask first), then the write-up of tluna13-17.
+   **Overnight 8 November (the owner's ask: 3 reps per world, US$2.90 credit; capped US$0.25 an agent, a driver
+   that stops before a rep could pass US$2.75):** all six ran on 15fca7f, US$1.88. Original world (tluna18a-c): 3, 3
+   and 2 parts, no whole goal; with tluna17, **1 of 4**. New world (tluna19a-c): 3 parts, **the whole goal**
+   (19b, 17:51 of game time, US$0.09, no deaths) and 2 parts; with tluna16, **2 of 4**. Home every rep, food every
+   rep; iron the part missing in 5 of the 6 losses. Where it went: on the original world, pickaxes made and lost in
+   deaths (18a: all three made, la died carrying two), `descend` stopped by water below (18b, 19 refusals), and 10
+   of 18c's 13 deaths healthy agents (13-20 health) killed while fleeing underground (y 31-53); on the new world one
+   pickaxe short twice (19a lost one in a death; 19c made two). Sleep: 19c nobody slept, mostly not tried (3
+   tries); 18c one never slept. The guards fired: intruders fought in 3 reps, doors kept shut 7 times, wet ore
+   plugged in all 3 original-world reps, torches up in 4; `light` never chosen. Open, not fixed: underground flee
+   deaths on the original world; descend past water below; 19c's "walking to the door timed out" from inside a
+   home (5); the report undercounts sleepers (19b: all three slept, it says 2) and credits items gained during a
+   smelt to the smelt. Not written up yet (tluna13-19). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
