@@ -164,7 +164,18 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    plugged in all 3 original-world reps, torches up in 4; `light` never chosen. Open, not fixed: underground flee
    deaths on the original world; descend past water below; 19c's "walking to the door timed out" from inside a
    home (5); the report undercounts sleepers (19b: all three slept, it says 2) and credits items gained during a
-   smelt to the smelt. Not written up yet (tluna13-19). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   smelt to the smelt. Not written up yet (tluna13-19).
+   **Fixed after (the owner's calls, 8 November), each checked live:** underground with a monster close, `flee`
+   shuts the agent in before running (dug in, into the rock, or walled in; carved caves, monsters 7 blocks off:
+   old died 3 of 3, new survived 3 of 3); inside a home with no monster in it, `flee` closes the home and stays, and
+   never digs or walls up inside one (19c's door timeouts: two dig-ins through the floor left blocks that, with the
+   table, furnace and chest, boxed the room's centre; old walled itself in the room 3 of 3, new closed up 3 of 3);
+   the report counts sleepers where they slept (19b and 18c were 3 of 3, so 18c met 3 of 4 parts, not 2) and credits
+   smelts and crafts only with what they made. Owner's questions (8 November): progress was off in every run (its
+   own condition); agents talk a lot (1,181 messages in 2,143 decisions, 120 questions, 65 answered) and see shared
+   sightings and chests in most observations; no agent ever stored iron (0 of 21 stores); 10 swords made, no armor
+   or shield, never chose to fight a monster (226 flees). The owner is unhappy switching worlds: the original world
+   is the one to beat. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
