@@ -141,7 +141,11 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    it or of the agent, and while the model decides the body hits a monster inside its home in reach (live: alone
    with a zombie inside, unguarded died, guarded killed it in 5 blows at full health, 3 of 3). How the zombies got
    in was not reproduced: on the old code 5 chases in and 4 walks out with a zombie at the door let none in; the
-   door was broken twice by creeper blasts in that run. **Next:** a Luna rep on these (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   door was broken twice by creeper blasts in that run. **tluna16** (8 November, one rep on 5908aaa, US$0.14): **the
+   whole goal**, by day 2 (31:50 of game time), the first on the testbed world; 1 death; 165 decisions in all. None
+   of the new guards fired (no door kept shut, no monster inside, no torch, no pit, no sleep refused for monsters),
+   so the win says the code allows it, not that the fixes caused it. Not written up yet (tluna13-16 together).
+   **Next:** more reps on this code to see the rate (ask first), then the write-up. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
