@@ -53,10 +53,10 @@ test("wait - clamps its seconds and stops when the run ends", async () => {
   assert.deepEqual([stopped.status, stopped.reason], ["aborted", "the run is ending"]);
 });
 
-test("sleep - refuses outside the hours beds work, with monsters near, and with no bed", async () => {
+test("sleep - refuses outside the hours beds work and with no bed; monsters by the bed are the game's to judge (checked live)", async () => {
   assert.match((await run("sleep", { timeOfDay: 12191 })).reason!, /too early to sleep: beds can be used from about 12541 \(18 seconds from now\)/);
   assert.match((await run("sleep", { timeOfDay: 23500 })).reason!, /it is morning, too late to sleep/);
-  assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /monsters nearby/);
+  assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /no bed nearby/, "no check of our own stricter than the game's");
   assert.match((await run("sleep", { timeOfDay: 12600 })).reason!, /no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep/);
   const { bot } = fakeBot({ timeOfDay: 18000, blocks: { ...floor(64), "2,64,0": "red_bed" } });
   (bot as unknown as { parseBedMetadata: () => { occupied: boolean } }).parseBedMetadata = () => ({ occupied: true });

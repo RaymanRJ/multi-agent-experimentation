@@ -2,6 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Block } from "prismarine-block";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
+import type { Bot } from "mineflayer";
 import { opensOnClick, roomStaysOpen, threatened, withTimeout } from "./util.js";
 export { roomStaysOpen };
 import { BEDS_FROM, BEDS_UNTIL, bedRefusal } from "../daytime.js";
@@ -17,7 +18,26 @@ const TRAVEL_TIMEOUT_MS = 30_000;
  * runs sleepers missed each other by as little as a second (tbase1, thome1).
  */
 const MAX_IN_BED_MS = 10 * 60_000;
-const MONSTER_RANGE = 10;
+/**
+ * The game's own rule, measured live on 7 November with a zombie held still outside a closed home: no sleep with a
+ * monster within about 7 blocks of the bed on either side (7 straight out refused, 8 allowed; 7 and 7 diagonally
+ * allowed) and 6 up or down, walls or not. Our own check refused anything within 10 blocks, which turned away
+ * 8 of tluna15's 23 refusals that the game would have allowed.
+ */
+const BED_BOX = { side: 7.5, below: 6.5, above: 5 };
+
+/** The nearest monster inside the game's box round `at`, named for the model. */
+function monsterAtBed(bot: Bot, at: Vec3): string | null {
+  let best: { name: string; d: number } | null = null;
+  for (const e of Object.values(bot.entities)) {
+    if (!e || e.type !== "hostile") continue;
+    const dx = Math.abs(e.position.x - at.x), dz = Math.abs(e.position.z - at.z), dy = e.position.y - at.y;
+    if (dx > BED_BOX.side || dz > BED_BOX.side || dy < -BED_BOX.below || dy > BED_BOX.above) continue;
+    const d = e.position.distanceTo(bot.entity.position);
+    if (!best || d < best.d) best = { name: e.name ?? "a hostile mob", d };
+  }
+  return best ? `${best.name} is ${Math.round(best.d)} blocks away` : null;
+}
 
 /** Tries to put a bed from inventory on flat ground next to the bot. */
 async function placeBed(ctx: SkillContext): Promise<boolean> {
@@ -141,7 +161,7 @@ export const sleep: Skill = {
   description:
     "Sleep through the night in a bed: finds a bed within 32 blocks (or places one from your inventory), walks to it and sleeps " +
     `until morning or until woken: by a hit, or by a teammate speaking to you by name. Takes no arguments. Beds can only be used from about ${BEDS_FROM} until ${BEDS_UNTIL} ` +
-    "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
+    "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (the game allows no sleep with a monster within about 7 blocks of the bed, even outside a closed home's walls). " +
     "The night is only skipped when every player is asleep; otherwise this fails and says who was not in bed. " +
     "Inside a shelter, a bed you carry is put down inside it; a bed in a shelter you are not in is reached by going into that shelter and closing it behind you.",
   args: {},
@@ -150,8 +170,7 @@ export const sleep: Skill = {
     const bot = ctx.bot;
     const refusal = bedRefusal(bot.time.timeOfDay);
     if (refusal) return { status: "failed", reason: refusal, detail: { timeOfDay: bot.time.timeOfDay } };
-    const danger = threatened(ctx, MONSTER_RANGE);
-    if (danger) return { status: "failed", reason: `monsters nearby: ${danger}` };
+    // Monsters by the bed are the game's to judge (see BED_BOX); one asleep inside a closed home is safe from them.
 
     const bedIds = Object.values(bot.registry.blocksByName)
       .filter((b) => b.name.endsWith("_bed"))
@@ -234,7 +253,7 @@ export const sleep: Skill = {
       bot.removeListener("message", hear);
       const message = told ? `${(error as Error).message} ${told}` : (error as Error).message;
       const reason = /monster/i.test(message)
-        ? "monsters nearby"
+        ? `monsters nearby${(() => { const m = monsterAtBed(bot, new Vec3(x + 0.5, y, z + 0.5)); return m ? `: ${m}` : ""; })()} — the game allows no sleep with a monster within about 7 blocks of the bed, walls or not`
         : /day/i.test(message)
           ? (bedRefusal(bot.time.timeOfDay) ?? "the game says it is not yet time to sleep")
           : /occupied/i.test(message)
