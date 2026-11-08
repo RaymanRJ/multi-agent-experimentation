@@ -93,8 +93,8 @@ piece built against it simultaneously. This has already bitten this project's pl
   `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log
   records whether its next decision complied (`responses`).
 - **Reflexes cover only the seconds the model can't act** (`src/agents/src/reflexes.ts`; swimming out in
-  `agent.ts`). While the model decides, the body swims out, steps back from melee and takes cover from
-  archers; it never chooses a goal, does nothing inside a closed shelter, and the next observation says
+  `agent.ts`). While the model decides, the body swims out, steps back from melee, takes cover from
+  archers and hits a monster that got inside its home; it never chooses a goal, does nothing else inside a closed shelter, and the next observation says
   what it did. A new reflex follows the same rules; anything that picks between goals is a skill.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.

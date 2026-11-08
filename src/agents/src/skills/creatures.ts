@@ -23,12 +23,12 @@ const MAX_SKILL_MS = 2 * 60_000;
 /** Hunting stops at this health or below: a fight the agent is losing is the model's to rethink. */
 const RETREAT_HEALTH = 6;
 /** Best first. A sword hits harder and recovers faster than an axe; bare hands last. */
-const WEAPONS = [
+export const WEAPONS = [
   "netherite_sword", "diamond_sword", "iron_sword", "stone_sword", "golden_sword", "wooden_sword",
   "netherite_axe", "diamond_axe", "iron_axe", "stone_axe", "golden_axe", "wooden_axe",
 ];
 /** Time for a full-strength blow again (the attack cooldown), by what is held. */
-function cooldownMs(weapon: string | undefined): number {
+export function cooldownMs(weapon: string | undefined): number {
   if (!weapon) return 300;
   return weapon.endsWith("_sword") ? 650 : 1250;
 }

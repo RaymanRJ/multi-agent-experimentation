@@ -3,6 +3,7 @@ import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
 import { eyeOf, getOutOfWater, headInWater, inSight } from "./skills/util.js";
+import { WEAPONS, cooldownMs } from "./skills/creatures.js";
 
 const { goals } = pathfinderPkg;
 
@@ -17,6 +18,8 @@ const { goals } = pathfinderPkg;
 export const GUARD_RADIUS = 3;
 /** How far to step back each time: out of reach, not out of the area. */
 export const BACK_OFF = 6;
+/** A monster inside the home this close is hit: the game lands a blow out to 3 blocks. */
+const FIGHT_REACH = 3;
 const GUARD_EVERY_MS = 250;
 /** A step back that hasn't arrived by now is abandoned, so a stuck path can't end the guard. */
 const STEP_BACK_MS = 3_000;
@@ -160,11 +163,16 @@ export function coverPoint(bot: Bot, archers: Entity[]): { x: number; y: number;
  *   still deciding, most with a mob 0-2 blocks away;
  * - an archer (a skeleton, or a witch throwing potions) that can see the agent: move to the nearest
  *   cover from it, since stepping back doesn't help against a bow (bpoc4: 12 of 24 deaths to skeletons).
- * In that order. Nothing happens inside a closed shelter, where nothing can reach, or with no cover
- * close by. `stop` ends it when the decision arrives and returns what it did, for the next
+ * In that order, after one more: a monster inside the agent's own home and in reach is fought where it stands,
+ * at the weapon's pace. There is nowhere to step back to in a room, and in tluna15 zombies that followed agents in
+ * killed three inside a shut home while the reflexes, counting it as safe, did nothing. Nothing else happens inside
+ * a closed shelter, where nothing can reach, or with no cover close by. `stop` ends it when the decision arrives and returns what it did, for the next
  * observation, or null if it did nothing.
  */
-export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: () => string | null } {
+export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders: () => Entity[] = () => []): { stop: () => string | null } {
+  const foughtOff = new Set<string>();
+  let blows = 0;
+  let lastBlow = 0;
   const steppedFrom = new Set<string>();
   const hidFrom = new Set<string>();
   let backedOff = 0;
@@ -182,6 +190,25 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
         .then((out) => { swam = out; })
         .catch(() => { swam = false; })
         .finally(() => { swimming = false; });
+      return;
+    }
+    const here = bot.entity.position;
+    const foe = intruders()
+      .filter((e) => e.position.distanceTo(here) <= FIGHT_REACH)
+      .sort((a, b) => a.position.distanceTo(here) - b.position.distanceTo(here))[0];
+    if (foe) {
+      bot.pathfinder.setGoal(null);
+      const weapon = WEAPONS.find((name) => bot.inventory.items().some((item) => item.name === name));
+      if (Date.now() - lastBlow < cooldownMs(weapon)) return;
+      lastBlow = Date.now();
+      const held = weapon ? bot.inventory.items().find((item) => item.name === weapon) : undefined;
+      void (async () => {
+        if (held && bot.heldItem?.name !== held.name) await bot.equip(held, "hand").catch(() => {});
+        await bot.lookAt(foe.position.offset(0, foe.height * 0.8, 0), true).catch(() => {});
+        bot.attack(foe);
+      })();
+      foughtOff.add(named(foe));
+      blows++;
       return;
     }
     if (movingSince && Date.now() - movingSince < STEP_BACK_MS) return;
@@ -230,12 +257,13 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
         bot.setControlState("jump", false);
         bot.pathfinder.setGoal(null);
       }
-      if (backedOff + tookCover === 0 && swam === null && !swimming) return null;
+      if (backedOff + tookCover + blows === 0 && swam === null && !swimming) return null;
       bot.pathfinder.setGoal(null);
       const did = [
         ...(swam === true ? ["were under water and swam out"] : swam === false || swimming ? ["were under water and tried to swim out"] : []),
         ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
         ...(tookCover ? [`took cover from ${who([...hidFrom])}${times(tookCover)}`] : []),
+        ...(blows ? [`fought ${who([...foughtOff])} inside your home (${blows} blow${blows === 1 ? "" : "s"})`] : []),
       ];
       return `while you were deciding, you ${did.join(" and ")}`;
     },

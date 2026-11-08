@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, hostilesAtDoorway, hostilesInside, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, whyOpen } from "./buildShelter.js";
+import { floorCells, followers, hostilesAtDoorway, hostilesInside, intrudersIn, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, whyOpen } from "./buildShelter.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
 
@@ -145,4 +145,16 @@ test("whyOpen - never says there are no blocks to an agent carrying some", () =>
   assert.match(whyOpen(ctx({}), 0, false), /no building block left/);
   assert.match(whyOpen(ctx({}), 4, false), /4 gaps in its walls open: you have no building blocks/);
   assert.match(whyOpen(ctx({}), 0, true), /its door would not shut/);
+});
+
+test("followers - a monster within 6 blocks of the door or of the agent would follow it through; far off or inside, not", () => {
+  const mob = (name: string, x: number, z: number) => ({ name, type: "hostile", position: { x, y: 64, z } });
+  const atDoor = { x: 0.5, y: 64, z: 3.5 };
+  assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [mob("zombie", 0.5, 8.5)] }).bot, spot), ["zombie"]);
+  assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [mob("zombie", 0.5, 12.5)] }).bot, spot), []);
+  assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [mob("zombie", 0.5, 0.5)] }).bot, spot), [], "already inside");
+  const chased = fakeBot({ blocks: hut(), position: { x: 10.5, y: 64, z: 3.5 }, entities: [mob("zombie", 14.5, 3.5)] }).bot;
+  assert.deepEqual(followers(chased, spot), ["zombie"], "on the agent's heels, far from the door");
+  const inside = fakeBot({ blocks: hut(), position: { x: 0.5, y: 64, z: 0.5 }, entities: [mob("zombie", 1.5, 0.5), mob("zombie", 0.5, 9.5)] }).bot;
+  assert.deepEqual(intrudersIn(inside, spot).map((e) => e.position.x), [1.5]);
 });

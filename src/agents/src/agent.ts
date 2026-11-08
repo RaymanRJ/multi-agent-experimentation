@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { enclosed } from "./skills/flee.js";
-import { describeShelter, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, intrudersIn, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -575,7 +575,7 @@ async function main(): Promise<void> {
     const startedAt = Date.now();
     let output;
     // The body keeps out of reach while the model thinks (reflexes.ts).
-    const guard = guardWhileDeciding(bot, inShelter);
+    const guard = guardWhileDeciding(bot, inShelter, () => knownShelters().filter((spot) => insideSpot(bot, spot)).flatMap((spot) => intrudersIn(bot, spot)));
     const guarded = () => {
       const did = guard.stop();
       if (did) {

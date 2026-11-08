@@ -44,7 +44,8 @@ to the iron again and again).
 next observation says what they did. Before each skill, an agent whose head is under water is moved
 to the nearest dry spot. While the model decides, the agent swims out if under water, steps back
 about 6 blocks from a monster within 3, and moves to the nearest cover from a skeleton (or stray,
-bogged) within 16 blocks or a witch within 13 that can see it (witches since 7 November); it does nothing inside a closed shelter. At any time, a
+bogged) within 16 blocks or a witch within 13 that can see it (witches since 7 November), and hits a monster inside
+its own home that is within reach (since 8 November); it does nothing inside a closed shelter. At any time, a
 block that lands on the agent's head (gravel, sand) is dug out at once: in bpoc7 one agent suffocated
 twice that way. A spot where the pathfinder got stuck is walked round for the rest of the run.
 

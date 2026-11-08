@@ -1,6 +1,7 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
+import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { lightHome } from "./light.js";
 import { countInventory, shownHealth } from "../observe.js";
@@ -223,6 +224,11 @@ export function describeShelter(shelter: ShelterSpot): string {
  * through a creeper's hole; the agents were told it was "closed" and 11 of them died to it, respawning at
  * the base's bed.
  */
+/** The monsters inside the shelter. */
+export function intrudersIn(bot: Bot, shelter: ShelterSpot): Entity[] {
+  return Object.values(bot.entities).filter((e): e is Entity => !!e && e.type === "hostile" && pointInside(e.position, shelter));
+}
+
 export function hostilesInside(bot: Bot, shelter: ShelterSpot): string[] {
   return Object.values(bot.entities)
     .filter((e) => e?.type === "hostile" && pointInside(e.position, shelter))
@@ -240,6 +246,22 @@ export function mobsInsideNote(bot: Bot, shelter: ShelterSpot): string {
 export const DOORWAY_RANGE = 8;
 /** The same through a door, which opens and shuts in about a second instead of being dug out and filled. */
 export const DOOR_RANGE = 3;
+/**
+ * A monster this close to the door, or to the agent at it, follows it through in the second the door is open: in
+ * tluna15 agents fled in with a zombie 4-5 blocks behind, the zombie came in, and the door shut with it inside,
+ * where it killed three. Checked again at the door itself, going in or out, since a chaser arrives with the agent.
+ */
+export const FOLLOW_RANGE = 6;
+
+/** Monsters outside the home close enough to the door, or to the agent, to get in while it is open. */
+export function followers(bot: Bot, spot: ShelterSpot): string[] {
+  const { door } = doorwayCells(spot);
+  const at = door.offset(0.5, 0, 0.5);
+  return Object.values(bot.entities)
+    .filter((e) => e?.type === "hostile" && !pointInside(e.position, spot))
+    .filter((e) => Math.min(e.position.distanceTo(at), e.position.distanceTo(bot.entity.position)) <= FOLLOW_RANGE)
+    .map((e) => (e.name ?? "hostile mob").replace(/_/g, " "));
+}
 
 /**
  * Hostile mobs outside the shelter within DOORWAY_RANGE of the cell in front of its doorway, nearest
@@ -631,6 +653,11 @@ async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: nu
   const centre = new Vec3(spot.x, spot.y, spot.z);
   const outside = centre.offset(0, 0, r + 1);
   await gotoWatched(bot, new goals.GoalBlock(outside.x, outside.y, outside.z), timeoutMs, "walking to the shelter's doorway");
+  // A monster on the agent's heels gets in while the doorway is open (tluna15: three killed inside a shut home).
+  const close = followers(bot, spot);
+  if (close.length > 0) {
+    throw new Error(`did not open the doorway: ${mobList(close)} ${close.length === 1 ? "is" : "are"} within ${FOLLOW_RANGE} blocks and would follow you in`);
+  }
   const door = doorOf(bot, spot);
   if (door) {
     // Open it, step in; construct shuts it behind.
@@ -859,11 +886,15 @@ function goalPoint(goal: unknown, y: number): Vec3 | null {
 }
 
 /** Opens the door, walks straight through it to `to`, and stops there; the door keeper shuts it behind. */
-async function stepThroughDoor(bot: Bot, cells: { door: Vec3 }, from: Vec3, to: Vec3): Promise<void> {
+async function stepThroughDoor(bot: Bot, spot: ShelterSpot, cells: { door: Vec3 }, from: Vec3, to: Vec3): Promise<void> {
   // Up to 48 blocks to the door: 20 s flat ran out ("walking to the door timed out", tluna runs), so a
   // second a block, at least 20.
   const far = bot.entity.position.distanceTo(from.offset(0.5, 0, 0.5));
   await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), Math.max(20_000, Math.round(far * 1000) + 10_000));
+  const close = followers(bot, spot);
+  if (close.length > 0) {
+    throw new Error(`did not open the door: ${mobList(close)} ${close.length === 1 ? "is" : "are"} within ${FOLLOW_RANGE} blocks and would follow you through it`);
+  }
   doorBusy.add(bot);
   try {
     await walkThrough(bot, cells, to);
@@ -936,8 +967,8 @@ export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
       if (!leaving && !entering) continue;
       await clearLane(bot, spot);
       if (!doorOf(bot, spot)) break;
-      if (leaving) await stepThroughDoor(bot, cells, cells.inner, cells.outer);
-      else await stepThroughDoor(bot, cells, cells.outer, cells.inner);
+      if (leaving) await stepThroughDoor(bot, spot, cells, cells.inner, cells.outer);
+      else await stepThroughDoor(bot, spot, cells, cells.outer, cells.inner);
       break;
     }
     return original(goal);
