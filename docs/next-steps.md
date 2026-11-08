@@ -131,7 +131,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    fixed: `flee` dug in 3 blocks down in sand with nothing to cover the hole, reported success, and left lc in the
    pit for 67 decisions (41 more flees, 17 pick_ups, never climb_out); sleep refused 23 times for monsters nearby;
    `hunt` found "no sheep within 32" 19 times: the herd scatters on open grass (never more than 4 seen at once,
-   14 killed). **Next:** the owner's call on these. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   14 killed). **Fixed after (the owner's calls, 8 November), each checked live:** `flee` digs in only when the
+   hole can be covered (never with sand or gravel), and `climb_out` gets out of an open pit, digging its walls for
+   blocks to build up on (6 of 6 pits walked away from); `sleep` leaves monsters to the game's own rule, measured
+   live (about 7 blocks a side, 6 up or down, walls or not), instead of our 10-block check, which caused 8 of the
+   23 refusals; the other 15 were monsters 2-7 blocks outside a closed home, which the game refuses; `hunt` and
+   `shear` look 64 blocks out (12 sheep at 49-59 blocks: 2 killed in 18 s). **Next:** a Luna rep on these (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
