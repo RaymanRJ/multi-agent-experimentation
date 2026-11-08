@@ -1,4 +1,4 @@
-import { plainError } from "./underground.js";
+import { inPit, plainError } from "./underground.js";
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
@@ -126,6 +126,11 @@ const BURROW_DIG_TIMEOUT_MS = 6_000;
  * tool, which matters most just after a death: in bpoc8, 13 of 20 agents killed during a flee held
  * fewer than the 10 blocks walling in takes, 8 of them none. Returns null when dug in, or why not.
  */
+/** Whether digging this block gives one that can cover a hole (falling sand and gravel can't). */
+function coverFrom(name: string): boolean {
+  return /^(grass_block|dirt|coarse_dirt|podzol|rooted_dirt|mycelium|dirt_path|stone|cobblestone|deepslate|cobbled_deepslate|andesite|diorite|granite|tuff)$/.test(name);
+}
+
 export async function burrow(bot: Bot): Promise<string | null> {
   // Land first: measured mid-jump, the hole is planned in the air, and a dig made off the ground takes
   // five times as long (bpoc9's lb: "digging the stone timed out" with a stone pickaxe, then killed).
@@ -162,6 +167,13 @@ export async function burrow(bot: Bot): Promise<string | null> {
   }
   const cap = dig[0]!;
   if (!SIDES.some((d) => solid(cap.plus(d)))) return "nothing to build the cover against";
+  // The cover comes from what is carried or what the digging gives. Sand and gravel give nothing that stays up over
+  // a head: in tluna15 lc dug 3 down in sand, had nothing to cover the hole with, and sat in it 67 decisions.
+  const carried = bot.inventory.items().some((item) => isBuildingBlock(item.name));
+  if (!carried && !dig.some((cell) => coverFrom(bot.blockAt(cell)?.name ?? ""))) {
+    const ground = bot.blockAt(dig[0]!)?.name.replace(/_/g, " ") ?? "ground";
+    return `nothing to cover a hole with: the ${ground} here gives no block that stays up, and you carry no dirt, cobblestone or planks`;
+  }
 
   // A hit knocks the body sideways: once off the hole's column it is digging a hole it isn't in
   // (bpoc9: lb went from 20 health to 5 while digging, ended beside its hole, and was told it had dug in).
@@ -267,7 +279,7 @@ export const flee: Skill = {
     "succeeds immediately with `no threat` if no hostile is within 16. Returns new position, how many hostiles remain within 12 and how many archers can see you. " +
     "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
-    "without a pickaxe, nor beside water or lava). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
+    "without a pickaxe, nor beside water or lava, nor in sand or gravel with nothing carried to cover the hole). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
     "Under the ground it only walls you in, and that only buys time: the monsters stay, so climb out or go home after. " +
     "Under a shelter you know, it goes up into it by its doorway and never walls you in. " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
@@ -398,6 +410,7 @@ export const flee: Skill = {
       };
     };
 
+    const pitNote = () => (inPit(ctx.bot) ? " — you are at the bottom of a narrow hole: climb_out gets you out of it" : "");
     const cornered = async (): Promise<SkillResult> => {
       const dug = await digIn("no path away");
       if (dug) return dug;
@@ -409,7 +422,7 @@ export const flee: Skill = {
         };
       }
       if (underground) {
-        return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})`, detail: report() };
+        return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})${pitNote()}`, detail: report() };
       }
       const sealed = await sealIn(ctx.bot);
       if (sealed.open === 0) {
@@ -421,7 +434,7 @@ export const flee: Skill = {
       }
       return {
         status: "failed",
-        reason: `could not find a path away from the hostiles, could not dig in (${refused}), and could not wall yourself in (${sealed.open} gaps left${sealed.noBlocks ? ": no dirt, cobblestone or planks to place" : ""})`,
+        reason: `could not find a path away from the hostiles, could not dig in (${refused}), and could not wall yourself in (${sealed.open} gaps left${sealed.noBlocks ? ": no dirt, cobblestone or planks to place" : ""})${pitNote()}`,
         detail: report(),
       };
     };
@@ -507,6 +520,10 @@ export const flee: Skill = {
       }
       return parts.join(" and ");
     };
+    // A dig-in that could not be covered leaves the agent in the hole it dug: not a safe place to call it done.
+    if (inPit(ctx.bot)) {
+      return { status: "failed", reason: `you are at the bottom of a narrow hole, open above${refused ? ` (${refused})` : ""}: climb_out gets you out of it`, detail };
+    }
     if (safe()) {
       return hid
         ? { status: "success", reason: `ran ${detail.distanceCovered} blocks and took cover where no archer can see you`, detail }

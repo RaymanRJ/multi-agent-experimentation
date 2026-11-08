@@ -717,6 +717,75 @@ async function pillar(bot: Bot): Promise<string | null> {
   return failure;
 }
 
+
+/**
+ * At the bottom of a narrow hole open to the sky: solid on all four sides at the feet and the head. "Under open
+ * sky" is true there, so climb_out used to stop at once; in tluna15 an agent sat 67 decisions in a 3-deep hole
+ * flee had dug in sand and could not cover. Exported for flee's messages.
+ */
+export function inPit(bot: Bot): boolean {
+  const feet = bot.entity.position.floored();
+  const SIDES4 = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
+  if (groundAbove(bot) > 0) return false; // covered over, or under rock: a dug-in hole or a tunnel, not a pit
+  return [0, 1].every((dy) => SIDES4.every((d) => bot.blockAt(feet.offset(d.x, dy, d.z))?.boundingBox === "block"));
+}
+
+/** Out of a pit: walked or dug out to open ground beside it, or failing that built up on any block held. */
+async function outOfPit(bot: Bot): Promise<boolean> {
+  const feet = bot.entity.position.floored();
+  const exits: Vec3[] = [];
+  for (let dx = -4; dx <= 4; dx++)
+    for (let dz = -4; dz <= 4; dz++)
+      for (let dy = 1; dy <= 5; dy++) {
+        const cell = feet.offset(dx, dy, dz);
+        if ((dx || dz) && standable(bot, cell)) exits.push(cell);
+      }
+  exits.sort((a, b) => a.distanceTo(feet) - b.distanceTo(feet));
+  for (const cell of exits.slice(0, 3)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(cell.x, cell.y, cell.z)), 20_000, "climbing out of the hole");
+      if (!inPit(bot)) return true;
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+  }
+  // Built up, a block under the feet at each jump: sand and gravel will do here, each resting on the one below.
+  // With none held, the walls give them: a dug wall block drops one, and sand above falls into the gap to dig again.
+  const held = () => bot.inventory.items().filter((item) => bot.registry.blocksByName[item.name]?.boundingBox === "block" && !opensOnClick(item.name)).reduce((n, item) => n + item.count, 0);
+  const SIDES4 = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
+  for (let dug = 0; dug < 12 && held() < 5; dug++) {
+    const feet = bot.entity.position.floored();
+    const wall = SIDES4.map((d) => bot.blockAt(feet.plus(d))).find((b) => b && b.boundingBox === "block" && bot.canDigBlock(b) && !homeBlock(bot, b.position) && !opensOnClick(b.name) && b.digTime(null, false, false, false, [], bot.entity.effects ?? {}) < 2000);
+    if (!wall) break;
+    try {
+      await withTimeout(bot.dig(wall), 4000, "digging a block out of the wall");
+    } catch {
+      break;
+    }
+    await bot.waitForTicks(12);
+  }
+  for (let step = 0; step < 6 && inPit(bot); step++) {
+    const block = bot.inventory.items().find((item) => bot.registry.blocksByName[item.name]?.boundingBox === "block" && !opensOnClick(item.name));
+    if (!block) return false;
+    const below = bot.blockAt(bot.entity.position.floored().offset(0, -1, 0));
+    if (!below || below.boundingBox !== "block") return false;
+    const y0 = bot.entity.position.y;
+    try {
+      await bot.equip(block, "hand");
+      await bot.look(bot.entity.yaw, -Math.PI / 2, true);
+      bot.setControlState("jump", true);
+      for (let t = 0; t < 10 && bot.entity.position.y < y0 + 1; t++) await bot.waitForTicks(1);
+      await withTimeout(bot.placeBlock(below, new Vec3(0, 1, 0)), 3000, "building up out of the hole");
+    } catch {
+      // The block itself says whether it went down.
+    } finally {
+      bot.setControlState("jump", false);
+    }
+    await bot.waitForTicks(8);
+    if (bot.entity.position.y < y0 + 0.5) return false;
+  }
+  return !inPit(bot);
+}
 export const climbOut: Skill = {
   name: "climb_out",
   description:
@@ -725,7 +794,8 @@ export const climbOut: Skill = {
     "Checks every block before breaking it and turns away from lava and water, and steps out from under gravel or sand " +
     "that would fall on your head; if you are in water it first swims out (under rock, to the nearest air first), " +
     "digging through anything over your head, and climbs onto the nearest bank, or walks to dry ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
-    "from your inventory (dirt or cobblestone first, logs last). Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
+    "from your inventory (dirt or cobblestone first, logs last). At the bottom of a narrow hole open to the sky it climbs out of it, " +
+    "digging blocks from its walls to stand on if you carry none. Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
     "it again to continue.",
   args: {},
 
@@ -734,6 +804,11 @@ export const climbOut: Skill = {
     const startY = Math.floor(bot.entity.position.y);
     const report = () => ({ y: Math.floor(bot.entity.position.y), climbed: Math.floor(bot.entity.position.y) - startY, groundAbove: groundAbove(bot) });
     // The bottom of a lake is under open sky too, but not out: water first (thaiku1).
+    if (!inWater(bot) && inPit(bot)) {
+      return (await outOfPit(bot))
+        ? { status: "success", reason: "climbed out of the hole you were in, onto open ground", detail: report() }
+        : { status: "failed", reason: "you are in a narrow hole and could not climb or dig out of it: carry a block to build up on, or a shovel for sand and dirt", detail: report() };
+    }
     if (groundAbove(bot) === 0 && !inWater(bot)) return { status: "success", reason: "already under open sky", detail: report() };
     const tools = countInventory(bot);
     // No pickaxe, or only one being saved for ore: dig by hand. Getting out matters more.
