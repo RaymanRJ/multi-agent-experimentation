@@ -197,6 +197,7 @@ export async function burrow(bot: Bot): Promise<string | null> {
   };
   await landed();
   const feet = bot.entity.position.floored();
+  if (homeBlock(bot, feet.offset(0, -1, 0)) || homeBlock(bot, feet.offset(0, 2, 0))) return "you are in a home: its floor is not dug";
   const dig = [1, 2, 3].slice(0, BURROW_DEPTH).map((d) => feet.offset(0, -d, 0));
   const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
   const effects = bot.entity.effects ?? {};
@@ -367,6 +368,20 @@ export const flee: Skill = {
         detail: { stayed: true },
       };
     }
+    // Inside a home that is not closed (just come in, the door in use): close it up and stay, never dig or wall in
+    // here. In tluna19c flee dug in through a home's floor twice, and the blocks left behind boxed its centre in
+    // with the table, furnace and chest: "walking to the door timed out" from the centre 5 times after.
+    const homeIn = (ctx.shelters?.() ?? []).find((spot) => insideSpot(ctx.bot, spot));
+    // With a monster inside it, run out as before; the checks below still never dig or wall in inside a home.
+    if (homeIn && hostilesInside(ctx.bot, homeIn).length === 0) {
+      const closed = await enterShelter(ctx, homeIn, { byDoorOnly: true });
+      if (!closed.ok) return closed.result;
+      return {
+        status: "success",
+        reason: `you are inside ${describeShelter(homeIn)} at ${spotKey(homeIn)}, so you stayed${closed.closed ? " and closed it up" : `; it is ${whyOpen(ctx, closed.gaps, !!doorOf(ctx.bot, homeIn))}`}`,
+        detail: { stayed: true, shelter: spotKey(homeIn), doorwayClosed: closed.closed },
+      };
+    }
 
     // Somewhere safe to run to beats running into the open; with an archer in sight, or underground, on any side.
     const underground = groundAbove(ctx.bot) >= UNDERGROUND_MIN;
@@ -463,7 +478,12 @@ export const flee: Skill = {
 
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";
+    const inAHome = () => (ctx.shelters?.() ?? []).some((spot) => insideSpot(ctx.bot, spot));
     const digIn = async (why: string): Promise<SkillResult | null> => {
+      if (inAHome()) {
+        refused = "you are in a home, whose floor is never dug and whose room is never walled up";
+        return null;
+      }
       if (above) {
         refused = `you are under ${describeShelter(above)} at ${spotKey(above)}, where walls would only make the way up to its doorway harder to find`;
         return null;
@@ -513,6 +533,9 @@ export const flee: Skill = {
       }
       if (underground) {
         return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})${pitNote()}`, detail: report() };
+      }
+      if (inAHome()) {
+        return { status: "failed", reason: `could not get out of the home past the monsters (${refused}); build_shelter closes it up around you, or fight with hunt`, detail: report() };
       }
       const sealed = await sealIn(ctx.bot);
       if (sealed.open === 0) {
