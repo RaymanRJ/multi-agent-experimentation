@@ -136,7 +136,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    blocks to build up on (6 of 6 pits walked away from); `sleep` leaves monsters to the game's own rule, measured
    live (about 7 blocks a side, 6 up or down, walls or not), instead of our 10-block check, which caused 8 of the
    23 refusals; the other 15 were monsters 2-7 blocks outside a closed home, which the game refuses; `hunt` and
-   `shear` look 64 blocks out (12 sheep at 49-59 blocks: 2 killed in 18 s). **Next:** a Luna rep on these (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   `shear` look 64 blocks out (12 sheep at 49-59 blocks: 2 killed in 18 s). Then the door (the owner's call): 3 of
+   tluna15's 7 deaths were zombies inside the shut home. A door is no longer opened with a monster within 6 blocks of
+   it or of the agent, and while the model decides the body hits a monster inside its home in reach (live: alone
+   with a zombie inside, unguarded died, guarded killed it in 5 blows at full health, 3 of 3). How the zombies got
+   in was not reproduced: on the old code 5 chases in and 4 walks out with a zombie at the door let none in; the
+   door was broken twice by creeper blasts in that run. **Next:** a Luna rep on these (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
