@@ -145,7 +145,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    whole goal**, by day 2 (31:50 of game time), the first on the testbed world; 1 death; 165 decisions in all. None
    of the new guards fired (no door kept shut, no monster inside, no torch, no pit, no sleep refused for monsters),
    so the win says the code allows it, not that the fixes caused it. Not written up yet (tluna13-16 together).
-   **Next:** more reps on this code to see the rate (ask first), then the write-up. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   **tluna17** (8 November, the owner's ask: the fixes on the first world; SEED=multiagent, 478ba33, US$0.21): **the
+   whole goal** again, by day 2 (30:25); 2 deaths (a skeleton, a witch); one door kept shut, one torch up; la's
+   `mine_ore` failed all 14 tries but the team mined 9 raw iron. On that world tluna13 and tluna14 (before the
+   fixes since) met 3 of 4. So on the latest code: 1 of 1 on each world. One SEED setting now picks the world for
+   server and agents, with each seed's herds (`HERDS_BY_SEED`). Noticed, not fixed: the report credits items that
+   arrive during a smelt to the smelt ("lb smelted 2 iron pickaxe": one given by la, one crafted). **Next:** more reps
+   on this code, on either world, to see the rate (ask first), then the write-up of tluna13-17. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
