@@ -125,8 +125,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    sides (y=59 to 36), cut short 6 times by teammates' messages and twice by running out of air; la made a pickaxe
    on day 1 and died with it that night. Not written up yet (tluna13 and tluna14 together). **Then a new world
    (the owner's call):** seed `testbed`, chosen by a survey of seven: water under 9% of the ground round spawn
-   against 42%, trees 39%, open grass 32%, flat (62-70); the herds moved to its grass. **Next:** a Luna rep on
-   the new world (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   against 42%, trees 39%, open grass 32%, flat (62-70); the herds moved to its grass. Main world reset to it and
+   both servers checked (seed -1422453073, the hash of "testbed"). **tluna15** (8 November, first rep on testbed,
+   3d0702b, US$0.54): 1 of 4 parts (home only; 2 of 3 slept, 1 pickaxe, 8 meat), 7 deaths. Gaps reported, not
+   fixed: `flee` dug in 3 blocks down in sand with nothing to cover the hole, reported success, and left lc in the
+   pit for 67 decisions (41 more flees, 17 pick_ups, never climb_out); sleep refused 23 times for monsters nearby;
+   `hunt` found "no sheep within 32" 19 times: the herd scatters on open grass (never more than 4 seen at once,
+   14 killed). **Next:** the owner's call on these. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
