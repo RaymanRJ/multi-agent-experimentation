@@ -81,11 +81,15 @@ building on it.
   some other way still counts until someone opens it again. `take` moves exactly the count asked for
   (since 20 October, after tbase1); before, it moved whole stacks, and taking one cooked mutton
   emptied rep 3's food chest of its 10.
-- **Animals near spawn are placed by us (since 20 October).** The start area is dark oak forest,
-  too dark for farm animals: a survey of a fresh world found none within 64 blocks of spawn and 3
-  sheep within 128. Both scenarios now summon four small herds 45–60 blocks out (12 sheep since
-  bpoc6, 4 cows, 4 pigs, 4 chickens; `HERDS` in `src/agents/src/scenario.ts`). Runs before then had almost no animals in reach,
-  so food and wool results from them are not comparable with later ones.
+- **Animals near spawn are placed by us (since 20 October).** On the first seed (`multiagent`) the start
+  area was dark oak forest, too dark for farm animals: a survey of a fresh world found none within 64 blocks
+  of spawn and 3 sheep within 128. Both scenarios summon four small herds (12 sheep since bpoc6, 4 cows,
+  4 pigs, 4 chickens; `HERDS` in `src/agents/src/scenario.ts`), 40–49 blocks out on the `testbed` seed
+  (since 7 November). Runs before 20 October had almost no animals in reach, so food and wool results from
+  them are not comparable with later ones.
+- **The world's seed changed on 7 November, from `multiagent` to `testbed`.** The first world's iron lay
+  under lakes and flooded caves (water under 42% of the ground round spawn, 9% on `testbed`), and the agents
+  could not dig down past it. Runs on either seed compare only loosely.
 - **The herds are restocked each morning (since 28 October, after tbase7).** The game barely brings
   animals back in that dark forest, so killed ones stayed gone and food and wool ran out mid-run
   (tbase6 rep 3: no sheep, no beds; tbase7 rep 2: no cows by day 2). Now at each dawn one agent per

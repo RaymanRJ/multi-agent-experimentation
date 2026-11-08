@@ -15,18 +15,17 @@ export interface Scenario {
 }
 
 /**
- * Animals placed at the start, the same in both scenarios. Spawn is in dark oak forest, whose canopy
- * keeps the ground too dark for farm animals: a fresh world has none within 64 blocks of spawn and
- * 3 sheep within 128 (survey, 20 October), and they only come back slowly. Agents explore 32 blocks
- * at a time, so food and wool were out of reach in practice. Each herd stands on open grass 45–60
- * blocks from spawn (8, 38); `y` is the ground there on this seed.
+ * Animals placed at the start, the same in both scenarios. On the first seed (multiagent, until 7 November)
+ * spawn was in dark oak forest, too dark for farm animals, and food and wool were out of reach; on testbed
+ * there are some, but a fixed herd keeps every run's food and wool the same. Each herd stands on open grass
+ * 40-49 blocks from spawn (0, 2), surveyed on 7 November; the ground under it is found at summon time.
  */
 export const HERDS = [
   // 12, not 6: three beds take 9 wool, and killing a sheep gives 1 (bpoc3-bpoc5 got 6-10 wool a run, all by killing).
-  { animal: "sheep", count: 12, x: 8, y: 76, z: 83 }, // south
-  { animal: "cow", count: 4, x: 40, y: 70, z: 70 }, // south-east
-  { animal: "pig", count: 4, x: -23, y: 76, z: 70 }, // south-west
-  { animal: "chicken", count: 4, x: -34, y: 69, z: -4 }, // north-west
+  { animal: "sheep", count: 12, x: 28, z: 34 }, // south-east
+  { animal: "cow", count: 4, x: -32, z: 38 }, // south-west
+  { animal: "pig", count: 4, x: -40, z: 5 }, // west
+  { animal: "chicken", count: 4, x: -3, z: -38 }, // north
 ] as const;
 
 /**
@@ -42,7 +41,10 @@ export function herdCommands(): string[] {
       const tag = `mae_herd_${herd.animal}_${n}`;
       // Spread over a 3x2 patch, dropped from 2 blocks up so uneven ground can't bury one.
       const x = herd.x + (n % 3) - 1, z = herd.z + Math.floor(n / 3);
-      commands.push(`execute unless entity @e[tag=${tag}] run summon ${herd.animal} ${x} ${herd.y + 2} ${z} {Tags:["mae_herd","${tag}"]}`);
+      // On the ground the server finds there (under any canopy), so a herd's spot needs no height measured per seed.
+      commands.push(
+        `execute unless entity @e[tag=${tag}] positioned ${x} 0 ${z} positioned over motion_blocking_no_leaves run summon ${herd.animal} ~ ~2 ~ {Tags:["mae_herd","${tag}"]}`,
+      );
     }
     commands.push(`forceload remove ${herd.x} ${herd.z}`);
   }

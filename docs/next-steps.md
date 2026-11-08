@@ -123,8 +123,10 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    agent chose `light`. `mine_ore` 3 of 12 worked (tluna13: 0 of 27), one on plugged wet ore. No witch, no doorway
    refusal. Gap reported, not fixed: `descend` stopped 5 times at "every way down is unsafe: water below" on all
    sides (y=59 to 36), cut short 6 times by teammates' messages and twice by running out of air; la made a pickaxe
-   on day 1 and died with it that night. Not written up yet (tluna13 and tluna14 together). **Next:** the owner's
-   call on getting below water (descend plugging or bridging water below, as it plugs water behind). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   on day 1 and died with it that night. Not written up yet (tluna13 and tluna14 together). **Then a new world
+   (the owner's call):** seed `testbed`, chosen by a survey of seven: water under 9% of the ground round spawn
+   against 42%, trees 39%, open grass 32%, flat (62-70); the herds moved to its grass. **Next:** a Luna rep on
+   the new world (ask first). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -201,6 +203,8 @@ Runs on either side of these lines compare only loosely.
 - **From tbase6:** the cap is $3 (tbase5: $2, which ended Opus early in reps 2 and 3).
 - **After tbase7 (28 October):** the herds are restocked each morning; food and bed results compare
   with earlier runs only loosely.
+- **From 7 November (after tluna14): a new world, seed `testbed`** instead of `multiagent`, with the herds
+  moved to its open grass. Nothing about the terrain, ore or distances compares across it.
 
 ## Done, in short
 
