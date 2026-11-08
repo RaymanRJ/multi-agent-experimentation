@@ -9,6 +9,7 @@
  * meat); what a decision aimed at is read from its skill and arguments, before knowing how it went.
  */
 import { CHOSE_TO_RESPAWN } from "./skills/respawn.js";
+import { SMELTS } from "./skills/util.js";
 import type { LoggedStep } from "./types.js";
 import { COOKED_MEAT } from "./scenario.js";
 import { gameTime } from "./summary.js";
@@ -422,7 +423,17 @@ function partEvent(step: LoggedStep, part: string, parts: GoalPart[], agent: str
   if (storedMeat(step) && p.did === storedMeat) return `${agent} stored ${itemList(step.result?.detail?.["stored"] as Record<string, number>)}`;
   const gained = Object.fromEntries(Object.entries(gains(step)).filter(([item]) => p.items(item)));
   if (!Object.keys(gained).length) return null;
-  return `${agent} ${d.skill === "craft" ? "made" : d.skill === "smelt" ? "smelted" : "got"} ${itemList(gained)}`;
+  // Only what the skill itself makes is "made" or "smelted"; anything else that arrived during it was given or
+  // picked up (tluna17: "lb smelted 2 iron pickaxe" was one given by la and one crafted).
+  const target = String(d.args?.["item"] ?? "").trim().toLowerCase().replace(/^minecraft:/, "");
+  const own = (item: string) => (d.skill === "smelt" ? item in SMELTS : d.skill === "craft" ? item === target : false);
+  const made = Object.fromEntries(Object.entries(gained).filter(([item]) => own(item)));
+  const got = Object.fromEntries(Object.entries(gained).filter(([item]) => !own(item)));
+  const verb = d.skill === "craft" ? "made" : "smelted";
+  return [
+    ...(Object.keys(made).length ? [`${agent} ${verb} ${itemList(made)}`] : []),
+    ...(Object.keys(got).length ? [`${Object.keys(made).length ? "and " : `${agent} `}got ${itemList(got)}`] : []),
+  ].join(", ");
 }
 
 /** Median of a list, or null. */
@@ -450,7 +461,12 @@ export function goalAtEnd(members: Member[], goalName: string): PartAtEnd[] | nu
   const spots = members.flatMap((m) => m.steps.filter((step) => step.decision?.skill === "build_shelter" && step.result?.status === "success" && (needsBase ? large(step) : storeys(step) >= 2)))
     .map((step) => step.result?.detail?.["position"] as { x: number; y: number; z: number } | undefined).filter((p): p is { x: number; y: number; z: number } => !!p);
   const inside = (p: { x: number; y: number; z: number }) => spots.some((s) => Math.max(Math.abs(s.x - p.x), Math.abs(s.z - p.z)) <= 3 && Math.abs(s.y - p.y) <= 5);
-  const sleepers = members.filter((m) => m.steps.some((step) => slept(step) && (!needsBase || inside(step.observation.position)))).map((m) => m.name);
+  // Where it slept, not where it stood deciding to: sleep walks to the bed, into the home, first. tluna19b's report
+  // said la never slept in the home, from where la decided, 9 blocks out. Logs before 8 November carry no bed
+  // position: the next decision's position stands in, as the agent wakes beside the bed.
+  const sleptAt = (m: Member, i: number) =>
+    (m.steps[i]!.result?.detail?.["at"] as { x: number; y: number; z: number } | undefined) ?? m.steps[i + 1]?.observation.position ?? m.steps[i]!.observation.position;
+  const sleepers = members.filter((m) => m.steps.some((step, i) => slept(step) && (!needsBase || inside(sleptAt(m, i))))).map((m) => m.name);
   const lastInv = (m: Member) => { const last = m.steps.at(-1); return last?.inventoryAfter ?? last?.observation.inventory ?? {}; };
   const iron = members.filter((m) => (lastInv(m)["iron_pickaxe"] ?? 0) > 0).map((m) => m.name);
   // The chests as last seen by anyone: each store and take reports the whole chest afterwards.

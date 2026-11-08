@@ -293,11 +293,11 @@ export const sleep: Skill = {
       } catch {
         // already awake
       }
-      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { slept: true, health: bot.health } };
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { slept: true, at: { x, y, z }, health: bot.health } };
       return {
         status: "failed",
         reason: `you slept for ${seconds}s and got up while it was still night — the night only passes when every player in the world is asleep${whoIsAwake(bot, count)}`,
-        detail: { slept: true, health: bot.health },
+        detail: { slept: true, at: { x, y, z }, health: bot.health },
       };
     }
     // The morning's time update can land a moment after the wake.
@@ -306,7 +306,7 @@ export const sleep: Skill = {
       return {
         status: "failed",
         reason: `woke before morning after ${seconds}s — the night only passes when every player in the world is asleep, or something woke you`,
-        detail: { slept: true, health: bot.health },
+        detail: { slept: true, at: { x, y, z }, health: bot.health },
       };
     }
     // Skipped (everyone asleep) or slept until it ended: the time of day leapt ahead of the world's age, or kept pace.
@@ -315,7 +315,7 @@ export const sleep: Skill = {
     return {
       status: "success",
       ...(skipped ? {} : { reason: `you slept until morning, but the night was not skipped — it only passes when every player in the world is asleep${whoIsAwake(bot, count)}` }),
-      detail: { slept: true, skipped, health: bot.health },
+      detail: { slept: true, at: { x, y, z }, skipped, health: bot.health },
     };
   },
 };
