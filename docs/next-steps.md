@@ -200,7 +200,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    That spiral began with lb walking out of the closed home at night to dig (its own choice, left alone).
    **Changed after (the owner's calls):** a bed put down, or found in a home walked into, is used by day, which makes
    it the agent's respawn point (live: both agents came back 3 blocks from the home's centre); `hunt` runs to its end
-   through teammates' messages, which wait for the next decision. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   through teammates' messages, which wait for the next decision. **tluna22a-b** (9 November, 90ff1ec, US$0.93
+   estimated): **0 of 2**, both 3 of 4 parts, iron short (2 and 1 of 3). The two changes worked: 3 deaths a rep (21a-c:
+   9), every agent asleep on night 1, every respawn inside the home, day-1 sheep hunts 12 of 17 worked. Iron is the
+   only part left: pickaxes made and then lost in deaths on day 3 (22a lc; 22b lb twice), and in 22a lb could not walk
+   out of the closed home 26 times ("No path to the goal") on days 2-3, with its doorway holding a block, not a door;
+   not reproduced live (two tries could not build a whole large home on this world's forest ground). The latest code
+   on the original world: 4 of 11. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
