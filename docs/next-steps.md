@@ -177,7 +177,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    or shield, never chose to fight a monster (226 flees). The owner is unhappy switching worlds: the original world
    is the one to beat. Then (the owner's calls): progress on by default (71f7942); `descend` and `tunnel` light their
    way, a torch every 8 steps from what is carried (checked live: 2 of 113 path cells left dark); fighting and
-   shields left for a later round. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   shields left for a later round. **tluna20a-e** (9 November, the original world, 086a57d, progress on, US$1.45
+   estimated, about US$0.75 billed): **3 of 5 whole goals** (20a 49:39, 20b 25:34, 20d 47:26 of game time); 20c and
+   20e met everything but iron (0 and 1 of 3 pickaxes). With tluna17, the latest code is 4 of 6 on the original world
+   (tluna18a-c, before the flee/home/torch fixes and with progress off, 0 of 3). Deaths 4.4 a rep against 7.3,
+   underground 2.4 against 5.0; but 13 healthy agents still died fleeing (10 underground). Underground flees: 37
+   reached home, 11 shut in, 8 tried home and failed, 24 ran with a monster within 10. Fatal ones mostly had home 29-46
+   blocks off: flee still runs for a home that far through the cave before the shut-in is reached. Not fixed (the
+   owner's call): shut in first underground and run home only when it is close. Torches along the way: 41 placed;
+   10 descents and tunnels had none to place. Our cost estimate is about double the bill (cached input priced in full). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
