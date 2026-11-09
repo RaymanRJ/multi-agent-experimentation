@@ -100,6 +100,8 @@ export async function sealIn(bot: Bot): Promise<{ placed: number; open: number; 
 
 /** A monster that strikes up close this near, under the ground, and the agent walls in rather than runs. */
 const WALL_FIRST_RADIUS = 10;
+/** With one that near, a home under the ground counts as a refuge only this close; further, it shuts in first. */
+const NEAR_HOME_UNDERGROUND = 12;
 
 /**
  * Into the rock beside the agent: two blocks dug out of a cave wall (feet and head), stepped into, and the
@@ -328,7 +330,8 @@ export const flee: Skill = {
     "nothing outside can reach you there. If a finished shelter you know (yours or another agent's) stands within " +
     `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton or witch can see you), with no hostile at its doorway, ` +
     "you run into it by its doorway and the doorway is closed behind you; a shelter far below you does not count. " +
-    `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off. ` +
+    `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off; ` +
+    `with a monster that strikes up close within ${WALL_FIRST_RADIUS} blocks, only one within ${NEAR_HOME_UNDERGROUND}, and otherwise you are shut in first. ` +
     "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton or witch can still " +
     "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, a witch throws up to 13, only at what they can see). " +
     "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
@@ -408,7 +411,12 @@ export const flee: Skill = {
         ctx.bot.pathfinder.thinkTimeout = think;
       }
     }
-    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE);
+    // Under the ground with a monster that strikes up close near, a home counts only if it is close: the run to a far
+    // one goes through the cave. In tluna20 13 healthy agents died fleeing, 10 underground, most with home 29-46 blocks
+    // off and the shut-in below never reached; 37 of 94 underground flees reached home, 11 shut in.
+    const closeUnderground = underground && !above && hostilesNear(ctx, WALL_FIRST_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""));
+    const range = closeUnderground ? NEAR_HOME_UNDERGROUND : underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE;
+    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, range);
     if (home) {
       const entered = await enterShelter(ctx, home, { byDoorOnly: true });
       const owner = home.by && home.by !== ctx.bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
@@ -425,7 +433,7 @@ export const flee: Skill = {
     }
 
     // Under the ground with a monster close: into the rock, or walled in where it stands, before any running.
-    if (underground && !above && hostilesNear(ctx, WALL_FIRST_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""))) {
+    if (closeUnderground) {
       // Straight down first: it needs no wall in reach, and in an open cave there often is none. burrow checks for
       // lava, water and a cave under the hole before digging.
       const dug = await burrow(ctx.bot).catch((error: Error) => error.message);
