@@ -189,8 +189,17 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    **tluna21a-c** (9 November, 35e2506: underground flee shuts in before running for a home more than 12 blocks off;
    stopped by the owner during 21d, whose partial logs are in runs/.killed): **0 of 3** (3, 3 and 2 parts; iron short
    in all, 21c also 9 of 10 meat). 27 deaths (9.0 a rep against 4.4 in tluna20): 15 during flee on the surface, 6
-   underground; 6 underground shut-ins, none followed by a death. Not yet looked into why the surface flee deaths
-   rose. On the original world the latest code stands at 4 of 9 (tluna17, 20a-e, 21a-c). US$1.09 estimated. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   underground; 6 underground shut-ins, none followed by a death. On the original world the latest code stands at
+   4 of 9 (tluna17, 20a-e, 21a-c). US$1.09 estimated. **Why it was worse (looked into, 9 November):** not the flee
+   change. In 21a and 21b nobody slept on night 1: no beds until day 2 (wool late: 21a's day-1 sheep hunts failed 9
+   of 12, 5 of them cut short by teammates' messages and 4 "the sheep got away"; in 21b sheep were in view in 15 of
+   142 day-1 observations against 64-99 elsewhere). With no bed there is no respawn point: 19 of 27 respawns were
+   outside the home (tluna20: 3 of 22), at night, empty-handed, and 18 deaths came before an agent's first sleep (tluna20:
+   3). Respawned with nothing, flee could not dig in ("stone too slow without a pickaxe" 12 times) or wall in (no
+   blocks, 8), and the home had monsters at its doorway, so it ran until it died: lb died 7 times on night 2 of 21a.
+   That spiral began with lb walking out of the closed home at night to dig (its own choice). Proposed, not done:
+   teammates' messages no longer cut a hunt short; clicking a bed by day sets the respawn point, as it does for a
+   player. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
