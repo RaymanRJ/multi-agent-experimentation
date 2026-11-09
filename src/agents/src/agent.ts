@@ -43,7 +43,7 @@ const argv = minimist(process.argv.slice(2), {
   string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress", "team"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
-  default: { scenario: "sandbox", brain: "scripted", ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
+  default: { scenario: "sandbox", brain: "scripted", ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "on" },
 });
 // The step cap scales with the time budget, 200 decisions per in-game day, so it stays a safety cap:
 // a flat 200 ended bpoc4's lc and tlunap1's lb with game time left on a three-day run.
@@ -75,7 +75,8 @@ if (!["on", "off"].includes(commsArg)) {
   process.exit(1);
 }
 const comms = commsArg === "on";
-const progressArg = String(argv["progress"] || "off");
+// On by default since 8 November (the owner's call); `--progress off` is the condition without it.
+const progressArg = String(argv["progress"] || "on");
 if (!["on", "off"].includes(progressArg)) {
   console.error(`unknown --progress "${progressArg}" — expected on or off`);
   process.exit(1);

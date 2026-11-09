@@ -252,6 +252,8 @@ Runs on either side of these lines compare only loosely.
 - **From tbase6:** the cap is $3 (tbase5: $2, which ended Opus early in reps 2 and 3).
 - **After tbase7 (28 October):** the herds are restocked each morning; food and bed results compare
   with earlier runs only loosely.
+- **From 8 November (after tluna19): progress is on by default** (each observation lists what the goal still
+  lacks); runs before had it off unless named (tlunap1). They compare only loosely.
 - **From 7 November (after tluna14): a new world, seed `testbed`** instead of `multiagent`, with the herds
   moved to its open grass. Nothing about the terrain, ore or distances compares across it.
 
