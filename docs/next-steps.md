@@ -185,7 +185,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    reached home, 11 shut in, 8 tried home and failed, 24 ran with a monster within 10. Fatal ones mostly had home 29-46
    blocks off: flee still runs for a home that far through the cave before the shut-in is reached. Not fixed (the
    owner's call): shut in first underground and run home only when it is close. Torches along the way: 41 placed;
-   10 descents and tunnels had none to place. Our cost estimate is about double the bill (cached input priced in full). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   10 descents and tunnels had none to place. Our cost estimate is about double the bill (cached input priced in full).
+   **tluna21a-c** (9 November, 35e2506: underground flee shuts in before running for a home more than 12 blocks off;
+   stopped by the owner during 21d, whose partial logs are in runs/.killed): **0 of 3** (3, 3 and 2 parts; iron short
+   in all, 21c also 9 of 10 meat). 27 deaths (9.0 a rep against 4.4 in tluna20): 15 during flee on the surface, 6
+   underground; 6 underground shut-ins, none followed by a death. Not yet looked into why the surface flee deaths
+   rose. On the original world the latest code stands at 4 of 9 (tluna17, 20a-e, 21a-c). US$1.09 estimated. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
