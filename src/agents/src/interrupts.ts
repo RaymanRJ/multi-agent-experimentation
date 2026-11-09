@@ -87,8 +87,10 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   // damage interrupts the way in only when health is low (DAMAGE_FLOOR). Message too: a teammate's message
   // stopped 3 entries in bpoc2; it waits for the next decision, made once inside.
   build_shelter: ["dusk", "night", "hostile", "message"],
-  // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
-  hunt: ["damage", "hostile"],
+  // A fight means taking hits with a mob close by; hunt stops by itself when health runs low. Message too (the
+  // owner's call, 9 November): a chase broken off loses the animal, and in tluna21a 5 of 12 day-1 sheep hunts were
+  // cut short by teammates' messages, so no beds were made by night 1. The message waits for the hunt to end.
+  hunt: ["damage", "hostile", "message"],
   ask_agent: ["message"],
   // Standing at a furnace for a minute or two: a teammate's message or dusk can wait for it, and in tluna5c
   // they cut it short again and again (once a message asking that very agent to smelt). Monsters and hits

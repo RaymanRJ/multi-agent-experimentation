@@ -197,9 +197,10 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    outside the home (tluna20: 3 of 22), at night, empty-handed, and 18 deaths came before an agent's first sleep (tluna20:
    3). Respawned with nothing, flee could not dig in ("stone too slow without a pickaxe" 12 times) or wall in (no
    blocks, 8), and the home had monsters at its doorway, so it ran until it died: lb died 7 times on night 2 of 21a.
-   That spiral began with lb walking out of the closed home at night to dig (its own choice). Proposed, not done:
-   teammates' messages no longer cut a hunt short; clicking a bed by day sets the respawn point, as it does for a
-   player. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   That spiral began with lb walking out of the closed home at night to dig (its own choice, left alone).
+   **Changed after (the owner's calls):** a bed put down, or found in a home walked into, is used by day, which makes
+   it the agent's respawn point (live: both agents came back 3 blocks from the home's centre); `hunt` runs to its end
+   through teammates' messages, which wait for the next decision. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**

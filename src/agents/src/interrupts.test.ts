@@ -122,6 +122,12 @@ test("flee and eat are not interrupted by messages; a sleeper is, so it can stil
   assert.match(asleep.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "can I have your spare bed?" } }) ?? "", /agent_b said to you/);
 });
 
+test("a hunt runs to its end through teammates' messages, which wait for the next decision", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED["hunt"]);
+  assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "lc", text: "Cooking 2 pork now" } }), null);
+});
+
 test("damage while out of air says the agent is drowning", () => {
   const w = createWatch(calm);
   assert.match(w.check({ ...calm, health: 18, oxygen: 0 })!, /out of air/);
