@@ -325,12 +325,49 @@ export const sleep: Skill = {
  * its carrier slept: in tbase3 Sonnet planned to "place beds" in the team's shelter, slept, and so put
  * down one of its two, while Luna, beside it, had none.
  */
+/** The bed each agent last made its respawn point, so it is not clicked again. */
+const claimed = new WeakMap<Bot, string>();
+
+/**
+ * Makes a bed in reach this agent's respawn point, by using it by day, as a player does: the game answers "Respawn
+ * point set" without sleeping. Without it an agent that dies before its first night in a bed comes back at the
+ * world's spawn, outside, with nothing: in tluna21 19 of 27 respawns were outside the home, and 18 deaths came before
+ * an agent's first sleep (tluna20: 3). At night it does nothing (using a bed is sleeping, which sets it anyway).
+ * Returns where, or null.
+ */
+export async function claimBed(bot: Bot): Promise<string | null> {
+  const t = bot.time.timeOfDay;
+  if (t >= BEDS_FROM - 200 && t <= BEDS_UNTIL + 100) return null;
+  const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
+  const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+  const beds = bot.findBlocks({ matching: bedIds, maxDistance: 5, count: 16 })
+    .map((p) => bot.blockAt(p)!)
+    .filter((b) => b && eye.distanceTo(b.position.offset(0.5, 0.3, 0.5)) <= 4.5 && b.getProperties()["occupied"] !== true)
+    .sort((a, b) => eye.distanceTo(a.position) - eye.distanceTo(b.position));
+  const bed = beds[0];
+  if (!bed) return null;
+  const key = `${bed.position.x},${bed.position.y},${bed.position.z}`;
+  if (claimed.get(bot) === key) return key;
+  let set = false;
+  const hear = (message: { toString(): string }) => { if (/respawn point set|spawn point set/i.test(message.toString())) set = true; };
+  bot.on("message", hear);
+  try {
+    await bot.activateBlock(bed).catch(() => {});
+    for (let tick = 0; tick < 20 && !set; tick++) await bot.waitForTicks(1);
+  } finally {
+    bot.removeListener("message", hear);
+  }
+  if (!set) return null;
+  claimed.set(bot, key);
+  return key;
+}
+
 export const placeBedSkill: Skill = {
   name: "place_bed",
   description:
     "Put a bed you carry down without sleeping in it, for you or anyone to sleep in. Inside a shelter, it goes in the shelter; " +
     `outside, with a shelter within ${BED_RANGE} blocks, it goes into the largest one near you; otherwise next to you. ` +
-    "Takes no arguments; puts down one bed.",
+    "By day you also use the bed, which makes it where you come back if you die (as sleeping in it does). Takes no arguments; puts down one bed.",
   args: {},
 
   async run(ctx: SkillContext): Promise<SkillResult> {
@@ -368,6 +405,11 @@ export const placeBedSkill: Skill = {
     const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
     const heads = bot.findBlocks({ matching: bedIds, maxDistance: 8, count: 16 }).filter((point) => bot.blockAt(point)?.getProperties()["part"] === "head");
     const where = inside ? `in the shelter at ${spotKey(inside)}` : "next to you";
-    return { status: "success", reason: `put a bed down ${where}; ${heads.length} ${heads.length === 1 ? "bed is" : "beds are"} down within 8 blocks`, detail: { beds: heads.length } };
+    const spawn = await claimBed(bot).catch(() => null);
+    return {
+      status: "success",
+      reason: `put a bed down ${where}; ${heads.length} ${heads.length === 1 ? "bed is" : "beds are"} down within 8 blocks${spawn ? `; you used it, so you come back here if you die` : ""}`,
+      detail: { beds: heads.length, ...(spawn ? { respawnAt: spawn } : {}) },
+    };
   },
 };

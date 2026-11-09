@@ -4,6 +4,7 @@ import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { lightHome } from "./light.js";
+import { claimBed } from "./sleep.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, doorwayLanes, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
@@ -801,12 +802,15 @@ export const buildShelter: Skill = {
     // Lit with torches when the agent has them or the makings: dark inside by day too, and monsters waited at doors.
     const home: ShelterSpot = { ...position, ...use, complete: true };
     const lit = insideSpot(bot, home) ? await lightHome(ctx, home) : null;
+    // A bed in the home, used by day, is where the agent comes back if it dies (sleep.ts, claimBed).
+    const spawnAt = insideSpot(bot, home) ? await claimBed(bot).catch(() => null) : null;
+    const spawnNote = spawnAt ? "; you used a bed here, so you come back here if you die" : "";
     const litNote = lit?.placed
       ? `; ${lit.placed} torch${lit.placed === 1 ? "" : "es"} put up (${[lit.inside ? `${lit.inside} inside` : "", lit.door ? "1 beside the door" : ""].filter(Boolean).join(", ")}), so monsters can't spawn there`
       : "";
     const reason = spot && spot.complete !== false
-      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another${litNote}`
-      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again${litNote}`;
+      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another${litNote}${spawnNote}`
+      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again${litNote}${spawnNote}`;
     return {
       status: "success",
       reason,
