@@ -6,6 +6,7 @@ import { countInventory } from "../observe.js";
 import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
 export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
+import { torchTrail } from "./light.js";
 
 const { goals } = pathfinderPkg;
 
@@ -548,7 +549,7 @@ export const descend: Skill = {
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
     "turns away from lava, open water and drops into caves, and plugs water behind a block with a block you carry; stops if every way down is unsafe. A staircase can be walked " +
-    "back up. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
+    "back up, and is lit as it goes: a torch every 8 steps when you carry torches, coal or charcoal (1 coal and a stick make 4), so no monster spawns on it. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
   args: { y: "number" },
@@ -566,7 +567,8 @@ export const descend: Skill = {
     if (out && "error" in out) return { status: "failed", reason: out.error };
     const walkedOut = out ? `${out.note}. ` : "";
 
-    const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...extra });
+    const trail = torchTrail(ctx);
+    const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...(trail.placed() ? { torches: trail.placed() } : {}), ...extra });
     const startedAt = Date.now();
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
     while (Math.floor(bot.entity.position.y) > target) {
@@ -588,6 +590,7 @@ export const descend: Skill = {
         if (problem === null) {
           heading = index;
           moved = true;
+          await trail.step(HEADINGS[index]!);
         } else {
           refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
         }
@@ -605,7 +608,7 @@ export const descend: Skill = {
     }
     lastHeading.set(bot.username, heading);
     const broke = brokenSince(bot, tools);
-    const said = `${walkedOut}${broke.trim()}`.trim();
+    const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
     return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };
@@ -616,7 +619,7 @@ export const tunnel: Skill = {
     "Dig a straight tunnel, 2 blocks high, `length` blocks long (up to 32), at your current height: the way to uncover " +
     "ore hidden inside rock, since mine_ore only finds ore you can see. Takes an optional `direction` (north, east, " +
     "south or west); by default it keeps going the way you last dug. Digs with your cheapest pickaxe, sparing an iron one " +
-    "as descend does. Stops before lava, open water or a drop, and plugs water behind a block as descend does. Returns how far it got and the ore now in sight, for mine_ore.",
+    "as descend does. Stops before lava, open water or a drop, and plugs water behind a block as descend does. Lit as it goes, as descend is. Returns how far it got and the ore now in sight, for mine_ore.",
   args: { length: "number", direction: "string?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -635,7 +638,8 @@ export const tunnel: Skill = {
     lastHeading.set(bot.username, index);
 
     let dug = 0;
-    const report = () => ({ dug, direction: heading.name, y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot) });
+    const trail = torchTrail(ctx);
+    const report = () => ({ dug, direction: heading.name, y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...(trail.placed() ? { torches: trail.placed() } : {}) });
     for (; dug < length; dug++) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
       const danger = threatened(ctx, 8, true);
@@ -649,11 +653,12 @@ export const tunnel: Skill = {
         // Next call should try another way rather than hit the same wall.
         lastHeading.set(bot.username, (index + 1) % 4);
         if (dug === 0) return { status: "failed", reason: `cannot tunnel ${heading.name}: ${problem} — try another direction`, detail: report() };
-        return { status: "success", reason: `stopped after ${dug} blocks: ${problem} ahead.${brokenSince(bot, tools)}`, detail: report() };
+        return { status: "success", reason: `stopped after ${dug} blocks: ${problem} ahead.${brokenSince(bot, tools)}${trail.note() ? ` ${trail.note()}.` : ""}`, detail: report() };
       }
+      await trail.step(heading);
     }
     const broke = brokenSince(bot, tools);
-    const said = `${walkedOut}${broke.trim()}`.trim();
+    const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
     return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };

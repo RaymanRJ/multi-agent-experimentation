@@ -175,7 +175,9 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    own condition); agents talk a lot (1,181 messages in 2,143 decisions, 120 questions, 65 answered) and see shared
    sightings and chests in most observations; no agent ever stored iron (0 of 21 stores); 10 swords made, no armor
    or shield, never chose to fight a monster (226 flees). The owner is unhappy switching worlds: the original world
-   is the one to beat. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   is the one to beat. Then (the owner's calls): progress on by default (71f7942); `descend` and `tunnel` light their
+   way, a torch every 8 steps from what is carried (checked live: 2 of 113 path cells left dark); fighting and
+   shields left for a later round. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**

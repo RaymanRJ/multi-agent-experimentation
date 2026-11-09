@@ -239,3 +239,44 @@ export const light: Skill = {
     };
   },
 };
+
+/** Steps of a stair or tunnel between torches: light 14 falls to 6 midway, so the passage stays lit end to end. */
+export const TRAIL_SPACING = 8;
+
+/**
+ * Torches along a stair or a tunnel as it is dug: one every TRAIL_SPACING steps, on a side wall at head height
+ * (a wall torch stands in no one's way), from torches carried or made on the spot from coal or charcoal. A lit
+ * passage spawns no monsters, so the way back up and the mine stay clear while the agent is away. With none and
+ * nothing to make them from it stops trying, and `note` says so. `step` is called after each step dug.
+ */
+export function torchTrail(ctx: SkillContext): { step: (heading: { dx: number; dz: number }) => Promise<void>; note: () => string; placed: () => number } {
+  let since = 0;
+  let placed = 0;
+  let out = false;
+  return {
+    async step(heading) {
+      if (out || ++since < TRAIL_SPACING) return;
+      const bot = ctx.bot;
+      if (torchesHeld(bot) === 0 && (await makeTorches(ctx, 4)) === 0) {
+        out = true;
+        return;
+      }
+      const feet = bot.entity.position.floored();
+      // Beside the head, then a step back: the walls either side of the way dug.
+      const sides = [new Vec3(heading.dz, 0, -heading.dx), new Vec3(-heading.dz, 0, heading.dx)];
+      const cells = [feet.offset(0, 1, 0), feet.offset(-heading.dx, 1, -heading.dz), feet.offset(-heading.dx, 2, -heading.dz)];
+      // On a wall if there is one; where the way opens into a cave, on the floor of the step behind (no collision).
+      const tries: Array<[Vec3, Vec3 | undefined]> = [...cells.flatMap((cell) => sides.map((side) => [cell, side.scaled(-1)] as [Vec3, Vec3])), [feet.offset(-heading.dx, 1, -heading.dz), undefined], [feet.offset(-2 * heading.dx, 2, -2 * heading.dz), undefined]];
+      for (const [cell, wall] of tries) {
+        if (await placeTorch(bot, cell, wall).catch(() => false)) {
+          placed++;
+          since = 0;
+          ctx.log(`put a torch up at ${cell.x},${cell.y},${cell.z} along the way`);
+          return;
+        }
+      }
+    },
+    note: () => (placed ? `${placed} torch${placed === 1 ? "" : "es"} put up along the way` : out ? "no torches to light the way: none carried, and no coal or charcoal to make them" : ""),
+    placed: () => placed,
+  };
+}
