@@ -250,6 +250,14 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     await equipDigger(bot);
     for (let tick = 0; tick < 30 && headInWater(bot); tick += 5) await bot.waitForTicks(5);
   }
+  // Open water in the step itself: each cell filled with a block first, which the dig below then cuts through,
+  // plugging what lies behind, as a player fills a flooded way down. On the first world descend stopped at
+  // "every way down is unsafe: water" 11 times in tluna23 alone, with the iron below it.
+  if (plugBlock(bot)) {
+    for (const cell of [...cells].reverse()) {
+      if (bot.blockAt(cell)?.name === "water") await fillWater(bot, cell).catch(() => {});
+    }
+  }
   // Water behind a block is plugged as it is dug, given a block to plug it with.
   const problems = cells.map((cell) => unsafe(bot, cell));
   const plug = problems.some(leak) && plugBlock(bot) !== undefined;
@@ -264,6 +272,8 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     if (bot.blockAt(below)?.boundingBox !== "empty" || unsafe(bot, below)) break;
     landing = below;
   }
+  // Water to stand on: filled with a block to make the step's floor.
+  if (badFloor(bot, landing) === "water below" && plugBlock(bot)) await fillWater(bot, landing.offset(0, -1, 0)).catch(() => {});
   const floor = badFloor(bot, landing);
   // Going up, the "floor" is the block to step onto; none there is open space, not a drop.
   if (floor) return dy > 0 && floor === "a drop into a cave" ? "no rock to step up onto" : floor;
@@ -548,7 +558,7 @@ export const descend: Skill = {
   description:
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
-    "turns away from lava, open water and drops into caves, and plugs water behind a block with a block you carry; stops if every way down is unsafe. A staircase can be walked " +
+    "turns away from lava and drops into caves; water in the way (in the step, under it, or behind a block) is filled with a block you carry (cobblestone, dirt or stone), so carry some; stops if every way down is unsafe. A staircase can be walked " +
     "back up, and is lit as it goes: a torch every 8 steps when you carry torches, coal or charcoal (1 coal and a stick make 4), so no monster spawns on it. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
@@ -619,7 +629,7 @@ export const tunnel: Skill = {
     "Dig a straight tunnel, 2 blocks high, `length` blocks long (up to 32), at your current height: the way to uncover " +
     "ore hidden inside rock, since mine_ore only finds ore you can see. Takes an optional `direction` (north, east, " +
     "south or west); by default it keeps going the way you last dug. Digs with your cheapest pickaxe, sparing an iron one " +
-    "as descend does. Stops before lava, open water or a drop, and plugs water behind a block as descend does. Lit as it goes, as descend is. Returns how far it got and the ore now in sight, for mine_ore.",
+    "as descend does. Stops before lava or a drop; water in the way is filled with a block you carry, as descend does. Lit as it goes, as descend is. Returns how far it got and the ore now in sight, for mine_ore.",
   args: { length: "number", direction: "string?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
