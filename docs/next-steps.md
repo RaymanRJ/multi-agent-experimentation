@@ -215,7 +215,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    before walking through (gravel two high had shut lb in for 100 decisions in 22a; reproduced at its spot, fixed);
    after the same skill fails the same way 3 times in a row, the failure says plain facts: where the agent is, the
    home's doorway, and what lies on the ground (no advice; smoke-run only, not seen live in a repeat). The owner
-   declined guidance or the code stepping in. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   declined guidance or the code stepping in.
+   **tluna23** (9 November, 00b5fb2, US$0.32 estimated, about US$0.12 billed): 3 of 4 parts, **no iron pickaxe**: 5
+   raw iron mined in three days, none made. Safety held (3 deaths, none at night, every respawn in the home, the
+   facts note fired once). What stopped iron is water: descend stopped at "every way down is unsafe: water below"
+   11 times, and mine_ore found iron only "under or below water" with no dry ground beside it 12 times. That is the gap
+   left open after tluna14 (descend plugs water behind a block, not below it), now the main one on this world. lb also
+   could not walk out of the home twice ("No path"), not looked into. Latest code on the original world: 4 of 12. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
