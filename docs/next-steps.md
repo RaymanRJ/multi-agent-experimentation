@@ -228,7 +228,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    is reached by digging, which descend now can). lb's walk-out in tluna23: no snapshot was taken at that spot and
    the wall had changed since the last one, so the cause is unknown. Cost: GPT-6 cached input is now priced at its
    listed rate (Luna $0.01) instead of in full; tluna20 re-priced is US$0.69 against US$0.53 billed (was US$1.45).
-   BUDGET_USD caps are on the estimate, so a $0.25 cap now allows about twice the real spend it did. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   BUDGET_USD caps are on the estimate, so a $0.25 cap now allows about twice the real spend it did.
+   **mine_ore and the loop (looked into, the owner's calls, 10 November):** of 188 mine_ore calls in 11 reps, 87
+   failed at once on ore in sight it would not mine; only 17 were retried within 3 decisions, half citing ore "in
+   sight". Only 8 of 71 ore failures were an ore that had failed before (lb 6 times on one), and 24 were interrupts
+   logged as the ore failing. Changed, each checked live: one rule (`unmineable`) for mine_ore and the shared
+   sightings, which now mark partly wet veins too; the refusal says why each can't be mined ("can't be mined from
+   here: under water with no dry ground or rock beside it"); failed ore is left alone for 10 minutes across calls; an
+   interrupted walk no longer marks the ore failed; the description states the dry-ground condition. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**

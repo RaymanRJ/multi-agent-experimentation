@@ -33,7 +33,7 @@ test("describeOreSightings - out of view only, with direction, height and who; f
     { name: "iron ore", count: 1, x: 30, y: 74, z: 0, at: now, by: "la", wet: true },
   ];
   assert.deepEqual(describeOreSightings(here, spots, "la", now), [
-    "1 iron ore at 30,74,0, 30 blocks east, seen by you just now (beside lava, under water or below water, which mine_ore won't mine)",
+    "1 iron ore at 30,74,0, 30 blocks east, seen by you just now (beside lava, or under water with nowhere dry beside it to stand: mine_ore can't mine it)",
     "3 iron ore at -6,32,13, 14 blocks south-west and 42 below you, seen by sonnet 5 min ago",
   ]);
   assert.deepEqual(describeOreSightings(here, spots, "la", now + ORE_TTL_MS), []);

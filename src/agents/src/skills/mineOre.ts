@@ -106,6 +106,22 @@ function dryStands(bot: Bot, ore: Vec3, pockets = false): Vec3[] {
     .map((s) => s.cell);
 }
 
+/**
+ * Why this ore can't be mined from where it lies, whoever tries (blocks to plug water with aside), or null: the one
+ * rule mine_ore and the shared ore sightings both use, so what agents are told matches what the skill does.
+ */
+export function unmineable(bot: Bot, ore: Vec3): string | null {
+  const hazard = oreHazard(bot, ore);
+  if (hazard === "lava beside it") return "beside lava";
+  if (hazard && dryStands(bot, ore, true).length === 0) return "under water with no dry ground or rock beside it to stand in";
+  return null;
+}
+
+/** Ore each agent failed to get, by place, and when (game ticks): left alone for a while in later calls too. */
+const failedOre = new WeakMap<Bot, Map<string, number>>();
+/** Ten minutes of game time. Before, a failed ore was forgotten when the call ended: in tluna23 lb went back to one 6 times. */
+const FORGET_FAILED_TICKS = 12_000;
+
 async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
   if (!inWaterNow(bot)) return;
   for (const spot of dryStands(bot, ore).slice(0, 3)) {
@@ -177,8 +193,8 @@ export const mineOre: Skill = {
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
     "Uses the cheapest pickaxe good enough. Water touching the ore (above, beside or all round it) is plugged first with a block you carry " +
-    "(cobblestone, dirt or stone), so the ore is mined from dry footing; without such a block, ore with water above it or under water is skipped. " +
-    "Ore beside lava is always skipped. Returns how many were gained and the new total.",
+    "(cobblestone, dirt or stone), and the ore is mined from dry ground or rock beside it; ore under water with neither beside it (on a pool's floor) " +
+    "can't be mined, nor can ore beside lava. Ore it failed to get is left alone for about 10 minutes. Returns how many were gained and the new total.",
   args: { ore: "string", count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -205,6 +221,13 @@ export const mineOre: Skill = {
       .filter((id): id is number => id !== undefined);
     const skipped = new Set<string>();
     const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
+    const age = () => Number(bot.time.age);
+    const failedBefore = failedOre.get(bot) ?? new Map<string, number>();
+    failedOre.set(bot, failedBefore);
+    const triedBefore = (p: Vec3) => {
+      const at = failedBefore.get(key(p));
+      return at !== undefined && age() - at < FORGET_FAILED_TICKS;
+    };
 
     while (dropsHeld() < wanted) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
@@ -220,21 +243,31 @@ export const mineOre: Skill = {
       let block: Block | null = null;
       let outOfReach: number | null = null;
       // Ore the agent can see but this won't dig toward: say so, or "none in reach" contradicts what it sees.
-      const wet = new Set<string>();
       const lava = new Set<string>();
+      const noStand = new Set<string>();
+      const noPlug = new Set<string>();
+      const leftAlone = new Set<string>();
       for (const radius of SEARCH_RADII) {
         const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point)) continue;
-          const hazard = oreHazard(bot, point);
-          if (hazard === "lava beside it") {
-            lava.add(key(point));
+          if (triedBefore(point)) {
+            leftAlone.add(key(point));
             continue;
           }
           // Ore at a pool's floor is reached only by swimming: a live try left the agent under water at 3 air.
-          if (hazard && (!plugBlock(bot) || dryStands(bot, point, true).length === 0)) {
-            wet.add(key(point));
+          const why = unmineable(bot, point);
+          if (why === "beside lava") {
+            lava.add(key(point));
+            continue;
+          }
+          if (why) {
+            noStand.add(key(point));
+            continue;
+          }
+          if (oreHazard(bot, point) && !plugBlock(bot)) {
+            noPlug.add(key(point));
             continue;
           }
           const gap = point.y - Math.floor(bot.entity.position.y);
@@ -252,9 +285,14 @@ export const mineOre: Skill = {
           outOfReach === null
             ? ""
             : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
+        // Said plainly: ore in sight that can't be mined from here is no reason to try again here.
+        const n = (set: Set<string>) => `${set.size} ${kind} ore in sight`;
+        const are = (set: Set<string>) => (set.size === 1 ? "is" : "are");
         const wetNote =
-          (lava.size ? `; ${lava.size} ${kind} ore in sight ${lava.size === 1 ? "is" : "are"} beside lava, which this won't mine` : "") +
-          (wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} under or below water, which needs cobblestone, dirt or stone to plug the water and dry ground beside it to stand on` : "");
+          (lava.size ? `; ${n(lava)} ${are(lava)} beside lava and can't be mined` : "") +
+          (noStand.size ? `; ${n(noStand)} can't be mined from here: ${noStand.size === 1 ? "it lies" : "they lie"} under water with no dry ground or rock beside ${noStand.size === 1 ? "it" : "them"} to stand in` : "") +
+          (noPlug.size ? `; ${n(noPlug)} ${are(noPlug)} under water, and you carry no cobblestone, dirt or stone to plug it` : "") +
+          (leftAlone.size ? `; ${leftAlone.size} you could not get to in the last 10 minutes ${leftAlone.size === 1 ? "was" : "were"} left alone` : "");
         const reason =
           gained() > 0
             ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}${wetNote}`
@@ -300,9 +338,13 @@ export const mineOre: Skill = {
         if (pick) await bot.equip(pick, "hand");
         await withTimeout(bot.dig(fresh), inWaterNow(bot) ? WET_DIG_TIMEOUT_MS : DIG_TIMEOUT_MS, "digging ore");
       } catch (error) {
-        ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
         bot.pathfinder.setGoal(null);
+        // Stopped from outside (an interrupt cancels the walk: "The goal was changed..."): not the ore's fault. 24 of 71
+        // ore failures in ten reps were this, logged as the ore failing.
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
+        ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
         skipped.add(key(block.position));
+        failedBefore.set(key(block.position), age());
         continue;
       }
       // A drop can't be picked up for its first 10 ticks; leaving after exactly 10 left raw iron on the floor.

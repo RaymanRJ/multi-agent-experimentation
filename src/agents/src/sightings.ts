@@ -1,7 +1,8 @@
 import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { ANIMAL_TYPES, isDying } from "./skills/creatures.js";
-import { isExposed, oreHazard } from "./skills/util.js";
+import { isExposed } from "./skills/util.js";
+import { unmineable } from "./skills/mineOre.js";
 
 /**
  * Where animals were seen: what a player remembers ("there were sheep down south") and what the
@@ -92,8 +93,10 @@ export function describeSightings(here: Vec3, spots: Sighting[], me: string, now
  * could see is recorded (an exposed face, as in the observation), and only within SIGHT_RANGE.
  */
 export interface OreSighting extends Sighting {
-  /** Every ore in the group touches water or lava, which `mine_ore` won't mine. */
+  /** Every ore in the group lies where `mine_ore` can't mine it (beside lava, or under water with nowhere dry to stand). */
   wet?: boolean;
+  /** How many of the group's ore lie so, when only some do. */
+  someWet?: number;
 }
 
 /** Ore stays put, so a sighting lasts longer than an animal's; one found mined out is dropped sooner. */
@@ -116,7 +119,9 @@ export class OreMemory {
     for (const point of bot.findBlocks({ matching: ids, maxDistance: SIGHT_RANGE, count: 128 })) {
       const block = bot.blockAt(point);
       if (!block || !isExposed(bot, point)) continue;
-      const wet = oreHazard(bot, point) !== null;
+      // The rule mine_ore itself uses, so a sighting never sends an agent to ore it will refuse (tluna20-23: 4 of 7
+      // sightings it went back for were marked; a vein only partly wet showed no mark at all).
+      const wet = unmineable(bot, point) !== null;
       const kind = oreKind(block.name);
       seen.set(kind, [...(seen.get(kind) ?? []), { p: point, wet }]);
     }
@@ -134,7 +139,7 @@ export class OreMemory {
       }
       for (const vein of veins) {
         const mid = vein.reduce((s, { p }) => s.plus(p), new Vec3(0, 0, 0)).scaled(1 / vein.length);
-        const spot: OreSighting = { name, count: vein.length, x: Math.round(mid.x), y: Math.round(mid.y), z: Math.round(mid.z), at: now, by: this.by, ...(vein.every((v) => v.wet) ? { wet: true } : {}) };
+        const spot: OreSighting = { name, count: vein.length, x: Math.round(mid.x), y: Math.round(mid.y), z: Math.round(mid.z), at: now, by: this.by, ...(vein.every((v) => v.wet) ? { wet: true } : vein.some((v) => v.wet) ? { someWet: vein.filter((v) => v.wet).length } : {}) };
         this.spots = this.spots.filter((s) => !(s.name === name && Math.hypot(s.x - spot.x, s.y - spot.y, s.z - spot.z) < SAME_VEIN));
         this.spots.push(spot);
       }
@@ -165,6 +170,6 @@ export function describeOreSightings(here: Vec3, spots: OreSighting[], me: strin
       const height = Math.abs(dy) < 3 ? "" : ` and ${Math.abs(dy)} ${dy < 0 ? "below" : "above"} you`;
       const mins = Math.round((now - s.at) / 60_000);
       const ago = mins < 1 ? "just now" : `${mins} min ago`;
-      return `${s.count} ${s.name} at ${s.x},${s.y},${s.z}, ${across} blocks ${direction(here, s.x, s.z)}${height}, seen by ${s.by === me ? "you" : s.by} ${ago}${s.wet ? " (beside lava, under water or below water, which mine_ore won't mine)" : ""}`;
+      return `${s.count} ${s.name} at ${s.x},${s.y},${s.z}, ${across} blocks ${direction(here, s.x, s.z)}${height}, seen by ${s.by === me ? "you" : s.by} ${ago}${s.wet ? " (beside lava, or under water with nowhere dry beside it to stand: mine_ore can't mine it)" : s.someWet ? ` (${s.someWet} of them beside lava or under water with nowhere dry to stand: mine_ore can't mine those)` : ""}`;
     });
 }

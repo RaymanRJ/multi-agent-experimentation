@@ -90,12 +90,18 @@ test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is"
     inventory: { stone_pickaxe: 1 },
     blocks: { "3,63,0": "iron_ore", "2,63,0": "water", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "stone", "3,63,1": "stone", "3,63,-1": "stone" },
   }, { ore: "iron" });
-  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is under or below water, which needs cobblestone, dirt or stone to plug the water and dry ground beside it to stand on — explore/);
+  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is under water, and you carry no cobblestone, dirt or stone to plug it — explore/);
+  // On a pool's floor: water above and round it, nothing dry beside it. Blocks in hand don't help.
+  const pool: Record<string, string> = { "3,62,0": "iron_ore" };
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = 63; dy <= 66; dy++) if (!(dx === 0 && dz === 0 && dy === 62)) pool[`${3 + dx},${dy},${dz}`] = "water";
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (dx || dz) pool[`${3 + dx},62,${dz}`] = "water";
+  const floor = await run("mine_ore", { inventory: { stone_pickaxe: 1, cobblestone: 32 }, position: { x: 12.5, y: 64, z: 0.5 }, blocks: { ...pool } }, { ore: "iron" });
+  assert.match(floor.reason ?? "", /can't be mined from here: it lies under water with no dry ground or rock beside it to stand in|no iron ore in reach/);
   const hot = await run("mine_ore", {
     inventory: { stone_pickaxe: 1, cobblestone: 10 },
     blocks: { "3,63,0": "iron_ore", "2,63,0": "lava", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "air", "3,63,1": "stone", "3,63,-1": "stone" },
   }, { ore: "iron" });
-  assert.match(hot.reason!, /1 iron ore in sight is beside lava, which this won't mine/, "lava is never plugged");
+  assert.match(hot.reason!, /1 iron ore in sight is beside lava and can't be mined/, "lava is never plugged");
   const stopped = await run("mine_ore", { inventory: { stone_pickaxe: 1 } }, { ore: "iron" }, true);
   assert.equal(stopped.status, "aborted");
   const chased = await run("mine_ore", { inventory: { stone_pickaxe: 1 }, entities: [zombie(4)] }, { ore: "coal" });
