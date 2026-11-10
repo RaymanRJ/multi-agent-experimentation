@@ -221,7 +221,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    facts note fired once). What stopped iron is water: descend stopped at "every way down is unsafe: water below"
    11 times, and mine_ore found iron only "under or below water" with no dry ground beside it 12 times. That is the gap
    left open after tluna14 (descend plugs water behind a block, not below it), now the main one on this world. lb also
-   could not walk out of the home twice ("No path"), not looked into. Latest code on the original world: 4 of 12. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   could not walk out of the home twice ("No path"), not looked into. Latest code on the original world: 4 of 12.
+   **Then (the owner's calls, 10 November):** descend and tunnel fill water in or under the next step with a block
+   carried (live at tluna23's spots: old reached y=30 from 1 of 3, new from 3 of 3, health 20). Wet ore: left alone
+   after a look (round tluna23's mines 502 iron ore within 48 blocks, 14 in sight, 1 wet, on a pool's floor; the rest
+   is reached by digging, which descend now can). lb's walk-out in tluna23: no snapshot was taken at that spot and
+   the wall had changed since the last one, so the cause is unknown. Cost: GPT-6 cached input is now priced at its
+   listed rate (Luna $0.01) instead of in full; tluna20 re-priced is US$0.69 against US$0.53 billed (was US$1.45).
+   BUDGET_USD caps are on the estimate, so a $0.25 cap now allows about twice the real spend it did. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -298,6 +305,8 @@ Runs on either side of these lines compare only loosely.
 - **From tbase6:** the cap is $3 (tbase5: $2, which ended Opus early in reps 2 and 3).
 - **After tbase7 (28 October):** the herds are restocked each morning; food and bed results compare
   with earlier runs only loosely.
+- **From 10 November:** costs of GPT-6 runs are priced with cached input at its listed rate; reports rebuilt
+  since then show about half the cost of the same run published before.
 - **From 8 November (after tluna19): progress is on by default** (each observation lists what the goal still
   lacks); runs before had it off unless named (tlunap1). They compare only loosely.
 - **From 7 November (after tluna14): a new world, seed `testbed`** instead of `multiagent`, with the herds
