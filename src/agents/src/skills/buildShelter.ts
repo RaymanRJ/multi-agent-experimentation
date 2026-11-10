@@ -883,6 +883,16 @@ function doorwayCells(spot: ShelterSpot): { inner: Vec3; door: Vec3; outer: Vec3
   return { inner: new Vec3(spot.x, spot.y, spot.z + r - 1), door: new Vec3(spot.x, spot.y, spot.z + r), outer: new Vec3(spot.x, spot.y, spot.z + r + 1) };
 }
 
+/** The doorway as a player would see it: "a door, shut", "a door, open", "open", or the blocks that fill it. */
+export function doorwayState(bot: Bot, spot: ShelterSpot): string {
+  const { door } = doorwayCells(spot);
+  const cells = [door, door.offset(0, 1, 0)].map((c) => bot.blockAt(c));
+  const d = cells.find((b) => b && isDoor(b.name));
+  if (d) return d.getProperties?.()["open"] === true ? "a door, open" : "a door, shut";
+  const solid = cells.filter((b) => b && b.boundingBox === "block").map((b) => b!.name.replace(/_/g, " "));
+  return solid.length ? `filled with ${solid.join(" and ")}` : "open";
+}
+
 /** Where a pathfinder goal points, if it says (GoalXZ has no height: the home's floor is assumed). */
 function goalPoint(goal: unknown, y: number): Vec3 | null {
   const g = goal as { x?: number; y?: number; z?: number };

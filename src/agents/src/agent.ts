@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { enclosed } from "./skills/flee.js";
-import { describeShelter, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, intrudersIn, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, doorwayState, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, intrudersIn, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -27,7 +27,7 @@ import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { canReach, getOutOfWater, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
+import { canReach, getOutOfWater, groundAbove, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -505,6 +505,36 @@ async function main(): Promise<void> {
     rcon: (command) => serverCommand(command, { host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") }),
   };
 
+  /**
+   * The same skill failing the same way three times in a row: the failure is followed by facts about where the agent
+   * is and what is round it, never by advice. Most stuck stretches were in the home (1,327 of 3,938 decisions in ten
+   * reps standing in one), some on a doorway full of gravel, some on a pickaxe that was no longer on the ground.
+   */
+  let failing = { key: "", count: 0 };
+  const STUCK_AFTER = 3;
+  const stuckFacts = (skillName: string): string => {
+    const facts: string[] = [];
+    const here = bot.entity.position;
+    const home = knownShelters().find((spot) => insideSpot(bot, spot));
+    if (home) facts.push(`you are inside the ${describeShelter(home).replace(/^an? /, "")} at ${spotKey(home)}, whose doorway is ${doorwayState(bot, home)}`);
+    else {
+      const below = groundAbove(bot);
+      if (below > 0) facts.push(`you are under ${below} blocks of ground`);
+      const nearest = knownShelters().map((s) => ({ s, d: Math.round(here.distanceTo(new Vec3(s.x + 0.5, s.y, s.z + 0.5))) })).sort((a, b) => a.d - b.d)[0];
+      if (nearest) facts.push(`the nearest shelter you know is ${nearest.d} blocks away, its doorway ${doorwayState(bot, nearest.s)}`);
+    }
+    if (/^(pick_up|take|give)$/.test(skillName)) {
+      const items = Object.values(bot.entities)
+        .filter((e) => e?.name === "item" && e.position.distanceTo(here) <= 16)
+        .map((e) => ({ name: (e as unknown as { getDroppedItem(): { name: string; count: number } | null }).getDroppedItem?.(), d: Math.round(e.position.distanceTo(here)) }))
+        .filter((x) => x.name)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 5);
+      facts.push(items.length ? `on the ground within 16 blocks: ${items.map((x) => `${x.name!.count} ${x.name!.name} ${x.d} blocks away`).join(", ")}` : "nothing lies on the ground within 16 blocks");
+    }
+    return facts.join("; ");
+  };
+
   let policyFailures = 0;
   // Identical decisions getting the identical result: reported as a fact (not advice) in
   // recentEvents, every 3 repeats, so a looping brain can see it is looping.
@@ -748,6 +778,12 @@ async function main(): Promise<void> {
       }
     }
 
+    const failKey = result.status === "failed" ? `${decision.skill}|${(result.reason ?? "").replace(/-?\d+(\.\d+)?/g, "N")}` : "";
+    failing = failKey && failKey === failing.key ? { key: failKey, count: failing.count + 1 } : { key: failKey, count: failKey ? 1 : 0 };
+    if (failing.count >= STUCK_AFTER) {
+      const facts = stuckFacts(decision.skill);
+      result.reason = `${result.reason ?? "failed"} (the ${failing.count}${failing.count === 3 ? "rd" : "th"} time in a row ${decision.skill} has failed this way${facts ? `; ${facts}` : ""})`;
+    }
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
     const outcome = `${decision.skill} ${JSON.stringify(decision.args)} ${result.status} ${result.reason ?? ""}`;
     repeats = outcome === lastOutcome ? repeats + 1 : 1;

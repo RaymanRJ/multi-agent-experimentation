@@ -206,7 +206,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    only part left: pickaxes made and then lost in deaths on day 3 (22a lc; 22b lb twice), and in 22a lb could not walk
    out of the closed home 26 times ("No path to the goal") on days 2-3, with its doorway holding a block, not a door;
    not reproduced live (two tries could not build a whole large home on this world's forest ground). The latest code
-   on the original world: 4 of 11. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   on the original world: 4 of 11.
+   **Where agents get stuck (looked into, 9 November; ten reps on the latest code, 3,938 decisions):** 23% of
+   decisions failed, but only 244 in runs of the same skill failing back-to-back (pick_up 62, sleep 41, flee 31,
+   ask_agent 22, go_to 22, give 20). Standing still is the bigger thing: 1,615 decisions in stretches of 8+ within 3
+   blocks, 1,327 of them in the home; some trapped by our code, more waiting and messaging about iron instead of
+   mining it (left as the agents' own behaviour). Fixed (the owner's calls): a doorway filled with blocks is dug out
+   before walking through (gravel two high had shut lb in for 100 decisions in 22a; reproduced at its spot, fixed);
+   after the same skill fails the same way 3 times in a row, the failure says plain facts: where the agent is, the
+   home's doorway, and what lies on the ground (no advice; smoke-run only, not seen live in a repeat). The owner
+   declined guidance or the code stepping in. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
