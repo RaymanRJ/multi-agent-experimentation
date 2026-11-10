@@ -956,6 +956,24 @@ async function clearLane(bot: Bot, spot: ShelterSpot): Promise<void> {
   }
 }
 
+/**
+ * A doorway filled with blocks instead of a door is dug out before walking through it, bottom first and again as
+ * gravel or sand falls into the gap. The pathfinder will not dig under a block that falls, so gravel two high in a
+ * doorway shut an agent in for 100 decisions in tluna22a ("No path to the goal"); reproduced live there.
+ */
+async function openDoorway(bot: Bot, spot: ShelterSpot): Promise<void> {
+  const { door } = doorwayCells(spot);
+  for (let dug = 0; dug < 8; dug++) {
+    const block = [door, door.offset(0, 1, 0)].map((c) => bot.blockAt(c)).find((b) => b && b.boundingBox === "block");
+    if (!block || isDoor(block.name) || opensOnClick(block.name)) return;
+    if (bot.entity.position.offset(0, 1.6, 0).distanceTo(block.position.offset(0.5, 0.5, 0.5)) > 4.5) return;
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool) await bot.equip(tool, "hand").catch(() => {});
+    await withTimeout(bot.dig(block), 10_000, `digging the ${block.name} out of the doorway`).catch(() => {});
+    await bot.waitForTicks(6); // a falling block lands in the gap
+  }
+}
+
 export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
   if (unwrappedGoto.has(bot)) return;
   const original = bot.pathfinder.goto.bind(bot.pathfinder);
@@ -970,7 +988,14 @@ export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
       const entering = !inside && goalInside && bot.entity.position.distanceTo(cells.outer) <= 48;
       if (!leaving && !entering) continue;
       await clearLane(bot, spot);
-      if (!doorOf(bot, spot)) break;
+      if (!doorOf(bot, spot)) {
+        // No door: walk to the inside (or outside) of the doorway and dig out whatever fills it, then on as usual.
+        const { inner, outer } = doorwayCells(spot);
+        const from = leaving ? inner : outer;
+        await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), 20_000).catch(() => bot.pathfinder.setGoal(null));
+        await openDoorway(bot, spot);
+        break;
+      }
       if (leaving) await stepThroughDoor(bot, spot, cells, cells.inner, cells.outer);
       else await stepThroughDoor(bot, spot, cells, cells.outer, cells.inner);
       break;
