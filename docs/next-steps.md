@@ -235,7 +235,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    logged as the ore failing. Changed, each checked live: one rule (`unmineable`) for mine_ore and the shared
    sightings, which now mark partly wet veins too; the refusal says why each can't be mined ("can't be mined from
    here: under water with no dry ground or rock beside it"); failed ore is left alone for 10 minutes across calls; an
-   interrupted walk no longer marks the ore failed; the description states the dry-ground condition. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   interrupted walk no longer marks the ore failed; the description states the dry-ground condition.
+   **tluna24** (10 November, 94c2dd0, US$0.17 on the new pricing): 3 of 4 parts, no iron pickaxe (la made one and
+   died with it on day 3); 4 raw iron in all. The water fix backfired here: descend was cut short 49 times, 39 by "you
+   are under water and running out of air", in a flooded layer at y 57-61 under the home (x 8-16, z 20-24). It fills
+   the water in its step, but water floods in from all round; the swim-out reflex lifts the agent and it tries again
+   (la 16 times, lb 12, lc 11). Before, descend refused there. The live check passed only because its three spots had
+   small pockets. Not fixed yet (the owner's call). Latest code on the original world: 4 of 13. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
