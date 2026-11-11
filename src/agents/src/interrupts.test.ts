@@ -128,6 +128,15 @@ test("a hunt runs to its end through teammates' messages, which wait for the nex
   assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "lc", text: "Cooking 2 pork now" } }), null);
 });
 
+test("digging (descend, tunnel, mine_ore) runs through teammates' messages, but not through a monster", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  for (const skill of ["descend", "tunnel", "mine_ore"]) {
+    const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED[skill]);
+    assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "lc", text: "Need iron?" } }), null, skill);
+  }
+  assert.notEqual(createWatch({ ...base, directed: 0 }, SUPPRESSED["mine_ore"]).check({ ...base, directed: 0, hostiles: [zombie(5)] }), null);
+});
+
 test("damage while out of air says the agent is drowning", () => {
   const w = createWatch(calm);
   assert.match(w.check({ ...calm, health: 18, oxygen: 0 })!, /out of air/);

@@ -95,6 +95,9 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   // decision, as for hunt. Monsters, hits and nightfall still stop it.
   descend: ["message"],
   tunnel: ["message"],
+  // mine_ore digs its own way down to ore below (through descend), so the same holds: 4 of 44 mine_ore calls in
+  // tluna26-27b were cut short by a teammate's message.
+  mine_ore: ["message"],
   ask_agent: ["message"],
   // Standing at a furnace for a minute or two: a teammate's message or dusk can wait for it, and in tluna5c
   // they cut it short again and again (once a message asking that very agent to smelt). Monsters and hits
