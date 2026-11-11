@@ -205,11 +205,15 @@ const FLOOD_NEAR = 6;
 function stairIsDry(bot: Bot, start: Vec3, heading: { dx: number; dz: number }, depth: number): boolean {
   for (let i = 1; i <= depth; i++) {
     const feet = start.offset(heading.dx * i, -i, heading.dz * i);
+    // Solid ground under every step: a stair planned over a cave stops at "a drop into a cave" (live, twice).
+    if (bot.blockAt(feet.offset(0, -1, 0))?.boundingBox !== "block") return false;
     for (const dy of [0, 1, 2]) {
       const cell = feet.offset(0, dy, 0);
       for (const [ox, oy, oz] of [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]] as const) {
         const b = bot.blockAt(cell.offset(ox, oy, oz));
         if (!b || b.name === "water" || b.name === "lava" || b.name === "bubble_column") return false;
+        // Sand or gravel over the stair falls into it as it is dug ("blocks kept falling into the gap", live).
+        if (oy >= 0 && /^(sand|red_sand|gravel|suspicious_sand|suspicious_gravel)$/.test(b.name)) return false;
       }
       if (homeBlock(bot, cell)) return false;
     }
@@ -722,6 +726,8 @@ export const descend: Skill = {
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
     // A dry way down, planned before digging; walked to if it starts elsewhere. Without one, as before.
     let planned = "";
+    let maxTurns = 4;
+    let replans = 0;
     const plan = planDryDescent(bot, target);
     if (plan) {
       const at = bot.entity.position.floored();
@@ -734,7 +740,11 @@ export const descend: Skill = {
           if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
         }
       }
-      if (bot.entity.position.floored().distanceTo(plan.start) < 1.5) heading = plan.heading;
+      if (bot.entity.position.floored().distanceTo(plan.start) < 1.5) {
+        heading = plan.heading;
+        // Keep to the planned stair: turning off it is how a dig found water or a cave live.
+        maxTurns = 1;
+      }
     }
     try {
       while (Math.floor(bot.entity.position.y) > target) {
@@ -749,7 +759,7 @@ export const descend: Skill = {
         let moved = false;
         const refusals: string[] = [];
         await centre(bot);
-        for (let turn = 0; turn < 4 && !moved; turn++) {
+        for (let turn = 0; turn < maxTurns && !moved; turn++) {
           if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
           const index = (heading + turn) % 4;
           const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
@@ -761,6 +771,24 @@ export const descend: Skill = {
             await trail.step(HEADINGS[index]!);
           } else {
             refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+          }
+        }
+        // Off the planned stair (a block that would not dig, sand that fell): plan again from here, up to 3 times.
+        if (!moved && maxTurns === 1 && replans < 3) {
+          replans++;
+          const again = planDryDescent(bot, target);
+          if (again && again.start.equals(bot.entity.position.floored())) {
+            heading = again.heading;
+            continue;
+          }
+          if (again) {
+            try {
+              await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(again.start.x, again.start.y, again.start.z)), 30_000, "walking to a dry way down");
+              heading = again.heading;
+              continue;
+            } catch {
+              bot.pathfinder.setGoal(null);
+            }
           }
         }
         if (!moved) {
