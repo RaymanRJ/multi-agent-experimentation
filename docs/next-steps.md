@@ -254,7 +254,22 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    died with it on day 3); 5 raw iron in all. Air interrupts down to 12 (tluna24: 39); but descend was refused 35 times
    "you were driven out by water digging down within N blocks of here": the flooded layer lies under the home, and the
    agents kept starting descents from near it, each time after doing something else (only 1 right after a refusal), so
-   the repeated-failure facts never fired. tunnel once all run. Latest code on the original world: 4 of 14. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   the repeated-failure facts never fired. tunnel once all run. Latest code on the original world: 4 of 14.
+   **Overnight 10-11 November (the owner's mandate: three Lunas, 3 of 5 consecutive reps on unchanged code, the
+   original world, branch `overnight-luna`):** descend walks clear of ground where it or a teammate was driven out by
+   water, and plans a dry stair before digging (solid ground under every step, nothing that can fall onto it, here or
+   open ground up to 24 blocks off; live: 4 of 4 reached y=40 from over the lake, before 1 of 3); the server image
+   is pinned by digest and Paper build 133. A test that waited 9 hours on a bot the server's connection throttle had
+   kicked was the night's lost time; every script since has a time limit. **tluna26a-c** (11 November, frozen
+   b040a1e, US$0.36 estimated): **1 of 3** (26a the whole goal in 13:54 of game time for US$0.02; 26b and 26c 3 of 4
+   parts), stopped during 26d once 3 of 5 was out of reach. 26b: la was left outside the home at nightfall
+   ("stopped 3 blocks short") and killed with an iron pickaxe; 26c: one bed for three, lc never slept (asked for a
+   turn, refused 21 times "every bed nearby is taken"; no third bed made, left as the agents'). **Fixed after, each
+   checked live:** the head-unburying reflex dug out the home's door whenever an agent stood in an open doorway (in
+   every run since 27 October), now only a block whose solid part holds the eye; mine_ore digs down toward ore in
+   sight up to 40 blocks below through descend's dry planner (2 raw iron in 168 s, dry); endermen no longer stop
+   a skill by being near, and descend and tunnel let teammates' messages wait. **tluna27a-e** (frozen dc6fb61)
+   started 11 November 11:08. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
