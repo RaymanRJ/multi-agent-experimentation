@@ -273,7 +273,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    no deaths); 27a 3 of 4 parts (7 deaths over two nights, iron on day 3, two pickaxes passed round instead of a
    third made). No door dug out in any rep. Write-up 07. **Fixed after (on branch `mine-msg`, each checked live):**
    descend walks to open ground clear of a home when every way down is the home's (told an agent on the roof
-   "walk outside first" twice in 27a); mine_ore lets teammates' messages wait (4 of 44 calls cut short). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   "walk outside first" twice in 27a); mine_ore lets teammates' messages wait (4 of 44 calls cut short).
+   **tluna28a-e** (confirmation on 8fcd497, all five run): 28a 3 of 4 parts, 1 of 3 iron pickaxes (la made all
+   three by day 1 16:26; four were dropped in deaths on night 1 and early day 2), 7 deaths. **Open, not reproduced:**
+   creepers caused 6 of 26 deaths on 11 November, 5 during `flee`, most within two blocks of where the agent stood when
+   it decided ("while you were deciding, you stepped back from a creeper", then "hit by a creeper"); a sixth during a
+   hunt, which ignores monsters. Live on the first world at the death spots, one creeper summoned 6 blocks off and a
+   5 or 9 s decision (Luna's median is 4.8 s, p90 8.4 s) with the guard running, then flee: 16 of 16 lived, health
+   20. The real cases had other monsters close too. The guard steps back only from mobs within 3 blocks (a creeper's
+   fuse range); no change made without a reproduction. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
