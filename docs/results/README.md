@@ -42,6 +42,7 @@ From smallest to largest:
 | [04 Outpost after the p5 fixes](write-ups/04-p6-outpost-after-fixes.md) | 20 Oct | p6 | The paid models on the outpost goal again: 12 of 12 met. |
 | [05 Team homestead](write-ups/05-team-homestead.md) | 20 Oct | hpoc, thome1 | Can three models together build, sleep, mine iron and store food over three days? 0 of 3 teams. |
 | [06 Team base](write-ups/06-team-base.md) | 20–29 Oct | bpoc–bpoc13, tbase1–7, tluna1–4, tlunap1, thaiku1–2, tmix1 | The same, with one large shelter for everyone and a bed inside it. 0 of 3 teams. Every team split the work over chat at once and kept to it; teammates' messages broke off each other's work nearly as often as mobs. Iron failed mostly on a `mine_ore` bug, since fixed; on the fixed code (tbase2, tbase3) iron and food moved, and the agents' own habits (one agent carrying every pickaxe, a spare bed kept) and time stopped them. After reflexes, shared sightings and bed fixes (proof runs bpoc3–bpoc6), tbase5's, tbase6's and tbase7's first reps met the whole goal; on later fixes, so did one of three all-Luna reps (tluna2), for US$0.15. |
+| [07 Three Lunas, most of the time](write-ups/07-luna-majority.md) | 7–11 Nov | tluna26, tluna26b–c, tluna27a–e | Can the cheapest team meet the team-base goal most of the time on the hard first world? 4 of 5 reps on frozen code (tluna27b–e), after the agents' own reflex was found digging out their door and mining learned to dig toward ore. Roles were split in the first three decisions every time; the one loss passed two pickaxes around instead of making a third. |
 
 [`skill-usage.md`](skill-usage.md) is a running tracker across batches (below).
 
@@ -137,6 +138,14 @@ runs that no write-up uses are not published.
 | [tluna10](batch-reports/2026-10-31-1418-tluna10.md) | 31 Oct | `team-base` (one large room) | Three GPT-6 Luna, 5 reps on frozen code: one home within 80 blocks | 1 of 5 (4, 3, 3, 3 and 2 parts; home and food every rep) | [team base](write-ups/06-team-base.md) |
 | [tluna11](batch-reports/2026-10-31-2112-tluna11.md) | 31 Oct | `team-base` (one large room) | Three GPT-6 Luna, 2 reps: `flee` keeps its height underground | 1 of 2 (rep 2: 2 parts, iron and food short) | [team base](write-ups/06-team-base.md) |
 | [tluna12a](batch-reports/2026-11-01-0123-tluna12a.md) | 1 Nov | `team-base` (one large room) | Three GPT-6 Luna, 1 rep: flee into a home by its doorway; not comparable (an agent's process crashed on day 1) | 0 of 1 (3 parts: all but the crashed agent's sleep) | [team base](write-ups/06-team-base.md) |
+| [tluna26](batch-reports/2026-11-11-1348-tluna26.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, 1 rep on b040a1e: a dry stair planned past the lake | 1 of 1 (13:54 of game time, $0.02) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna26b](batch-reports/2026-11-11-1403-tluna26b.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen b040a1e | 0 of 1 (3 parts: pickaxes 2 of 3; an agent locked out at dusk by our door bug) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna26c](batch-reports/2026-11-11-1505-tluna26c.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen b040a1e | 0 of 1 (3 parts: one bed for three) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna27a](batch-reports/2026-11-11-1608-tluna27a.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen dc6fb61 (door reflex, mine_ore digs toward ore) | 0 of 1 (3 parts: pickaxes 2 of 3, 7 deaths) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna27b](batch-reports/2026-11-11-1710-tluna27b.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen dc6fb61 | 1 of 1 (44:39) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna27c](batch-reports/2026-11-11-1756-tluna27c.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen dc6fb61 | 1 of 1 (55:50) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna27d](batch-reports/2026-11-11-1852-tluna27d.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen dc6fb61 | 1 of 1 (50:02) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
+| [tluna27e](batch-reports/2026-11-11-1944-tluna27e.md) | 11 Nov | `team-base`, first world | Three GPT-6 Luna, frozen dc6fb61 | 1 of 1 (30:02, no deaths) | [three Lunas, most of the time](write-ups/07-luna-majority.md) |
 
 ## Batch names
 

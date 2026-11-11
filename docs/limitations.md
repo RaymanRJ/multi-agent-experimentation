@@ -89,7 +89,12 @@ building on it.
   them are not comparable with later ones.
 - **The world's seed changed on 7 November, from `multiagent` to `testbed`.** The first world's iron lay
   under lakes and flooded caves (water under 42% of the ground round spawn, 9% on `testbed`), and the agents
-  could not dig down past it. Runs on either seed compare only loosely.
+  could not dig down past it. Runs on either seed compare only loosely. Since 9 November the first world is
+  the target again (the owner's call; `SEED=multiagent`), and since 11 November `descend` plans a dry stair
+  past its lake before digging (4 of 4 live descents from over it, against 1 of 3).
+- **From 27 October to 11 November the agents' own reflex dug out their home's door** whenever one stood in
+  the open doorway (about 4,500 times in the logs), so homes in every run of that span were opened by our
+  code; deaths at or inside the home in those runs overstate what the agents' choices cost. Fixed in dc6fb61.
 - **The herds are restocked each morning (since 28 October, after tbase7).** The game barely brings
   animals back in that dark forest, so killed ones stayed gone and food and wool ran out mid-run
   (tbase6 rep 3: no sheep, no beds; tbase7 rep 2: no cows by day 2). Now at each dawn one agent per
@@ -329,4 +334,6 @@ building on it.
   28 October `mine_ore` mines the 7 with water only beside them (from dry footing, checked live), and
   still refuses the 63 under water or with water above them, where agents once drowned. The two ores in
   the spawn lake were behind most of the 82 refusals of iron in recent team runs; the rest of the iron
-  is deeper, which `mine_ore` says ("descend closer first").
+  is deeper. Since 7 November `mine_ore` plugs water touching ore and mines it from dry rock, and since
+  11 November it digs down toward ore it sees up to 40 blocks below (it had said "descend closer first"
+  144 times in 13 reps).

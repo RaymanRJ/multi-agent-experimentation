@@ -268,8 +268,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    checked live:** the head-unburying reflex dug out the home's door whenever an agent stood in an open doorway (in
    every run since 27 October), now only a block whose solid part holds the eye; mine_ore digs down toward ore in
    sight up to 40 blocks below through descend's dry planner (2 raw iron in 168 s, dry); endermen no longer stop
-   a skill by being near, and descend and tunnel let teammates' messages wait. **tluna27a-e** (frozen dc6fb61)
-   started 11 November 11:08. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   a skill by being near, and descend and tunnel let teammates' messages wait. **tluna27a-e** (11 November, frozen
+   dc6fb61, US$0.57): **4 of 5 whole goals, the owner's bar met** (27b 44:39, 27c 55:50, 27d 50:02, 27e 30:02 with
+   no deaths); 27a 3 of 4 parts (7 deaths over two nights, iron on day 3, two pickaxes passed round instead of a
+   third made). No door dug out in any rep. Write-up 07. **Fixed after (on branch `mine-msg`, each checked live):**
+   descend walks to open ground clear of a home when every way down is the home's (told an agent on the roof
+   "walk outside first" twice in 27a); mine_ore lets teammates' messages wait (4 of 44 calls cut short). OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**

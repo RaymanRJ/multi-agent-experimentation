@@ -342,4 +342,29 @@ export const chapters: Chapter[] = [
     ],
     lesson: { text: 'Change the design that keeps causing failures, not each failure: one taller room removed the cause behind most of the home traps that had been fixed one at a time.', anchor: 'the-improvement-loop' },
   },
+  {
+    title: 'Most of the time, on the hard world',
+    question: 'On the first world, with a lake under the start area and iron below it, can three Lunas meet the whole goal in at least 3 of 5 reps on unchanged code?',
+    runs: [
+      {
+        name: 'tluna26',
+        showed: 'The whole goal on day 1, in 13:54 of game time, for $0.02, once the way down planned a dry stair past the lake.',
+      },
+      {
+        name: 'tluna26b',
+        showed: 'Every part but the last pickaxe: an agent could not get back into the home at dusk and was killed with one. The home\'s door had been dug out by the agents\' own reflex.',
+      },
+      {
+        name: 'tluna26c',
+        showed: 'Every part but sleep: one bed for three agents, and one never got a turn. 1 win in 3 on this code, so the batch was stopped.',
+        then: 'The head-unburying reflex digs only a block that really covers the head, not a door (about 4,500 doors over two weeks); mining digs toward ore it sees below instead of saying "descend closer first"; endermen no longer stop a skill by being near.',
+      },
+      { name: 'tluna27a', showed: 'Every part but the last pickaxe: 7 deaths over two nights pushed iron to day 3, and the team passed two pickaxes around instead of making a third.' },
+      { name: 'tluna27b', showed: 'The whole goal in 44:39 of game time: one agent made all three pickaxes on day 2 and handed them out. No door was dug out.' },
+      { name: 'tluna27c', showed: 'The whole goal in 55:50, after 5 deaths, each followed by a return to work.' },
+      { name: 'tluna27d', showed: 'The whole goal in 50:02, for $0.09: 3 wins in 4 on frozen code, the target met.' },
+      { name: 'tluna27e', showed: 'The whole goal in 30:02, with no deaths: one agent made all three pickaxes on day 1. 4 of 5 on frozen code.' },
+    ],
+    lesson: { text: 'A reflex can do quiet harm: count how often it fires against what it guards. And measure the rate on frozen code, not between fixes.', anchor: 'the-control-loop' },
+  },
 ];

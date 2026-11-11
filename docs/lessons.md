@@ -37,6 +37,9 @@ the model.
   agent plan around a problem that isn't there, and it rarely tries again.
   *Evidence:* mining refused reachable ore as "out of reach" 44 times in one team run, and in 34 of
   53 earlier runs that mined; it starved the part of the goal that needed iron. ([06](results/write-ups/06-team-base.md))
+  A refusal must also fit the situation it is given in, and the best one is no refusal: "descend closer first" for
+  ore far below was said 144 times in 13 reps until the tool dug toward the ore itself, and "walk outside first"
+  was said to an agent already outside, on its home's roof. ([07](results/write-ups/07-luna-majority.md))
 - **Do exactly what was asked, no more.** A bulk side effect is invisible to the agent until the
   damage shows.
   *Evidence:* asked for 1 item from the team's store, `take` took all 10 and emptied it. ([06](results/write-ups/06-team-base.md))
@@ -198,6 +201,12 @@ asked, what can interrupt it and what happens without it.
   ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)). A reflex has to cover
   the whole gap: swimming out before and after each decision missed the drowning that came during
   one ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6)).
+- **A reflex can do quiet harm; count how often it fires against what it guards.** Code that acts
+  without the model acts without its judgement, and its mistakes show up only as an odd line in the log.
+  *Evidence:* a reflex meant to dig falling sand off an agent's head also dug out the home's door whenever
+  an agent stood in the doorway, about 4,500 events over two weeks, against 56 for every other block put
+  together; it left an agent locked out at dusk and killed with the team's iron pickaxe
+  ([07](results/write-ups/07-luna-majority.md)).
 - **An escape needs a destination.** "Away from danger" can lead somewhere worse; "toward safety"
   is the goal.
   *Evidence:* agents fled straight away from monsters, away from their home and into a lake, and 7 of
@@ -290,7 +299,9 @@ up a different failure, and the goal stayed out of reach while they were being f
 *Evidence:* nine overnight reps of three Lunas, each on the fixes from the one before: a new failure
 in almost every rep, about half of them in our code; the whole goal was met only in the last, which
 says the fixes allow a win, not how often
-([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)).
+([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)). The rate came from freezing the
+code: five reps of three Lunas on one unchanged commit met the whole goal in 4 of 5, where reps with fixes between
+them had won 4 of 14 on the same world ([07](results/write-ups/07-luna-majority.md)).
 
 **Then pool the failures across runs, and sort each by what could still have been done.** One run's
 failure tells a story; the same kind of failure gathered from every run tells which story is common.
