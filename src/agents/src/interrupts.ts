@@ -91,6 +91,10 @@ export const SUPPRESSED: Record<string, Trigger[]> = {
   // owner's call, 9 November): a chase broken off loses the animal, and in tluna21a 5 of 12 day-1 sheep hunts were
   // cut short by teammates' messages, so no beds were made by night 1. The message waits for the hunt to end.
   hunt: ["damage", "hostile", "message"],
+  // A long dig cut short by a teammate's message loses its way down (tluna26b: twice); the message waits for the next
+  // decision, as for hunt. Monsters, hits and nightfall still stop it.
+  descend: ["message"],
+  tunnel: ["message"],
   ask_agent: ["message"],
   // Standing at a furnace for a minute or two: a teammate's message or dusk can wait for it, and in tluna5c
   // they cut it short again and again (once a message asking that very agent to smelt). Monsters and hits

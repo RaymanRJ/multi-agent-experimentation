@@ -79,9 +79,15 @@ export function canReach(bot: Bot, mob: Entity): boolean {
  * stopped at least 15 times by creepers, skeletons and endermen in caves beside the shaft, and the team
  * never got down to the iron rep 1 had mined 42 blocks below its home.
  */
+/**
+ * Mobs that attack only when provoked (an enderman looked in the eye, or hit): nearby, they are no reason to stop. A hit
+ * still stops a skill as damage. In tluna26b an enderman 6 blocks off stopped or cut short la's mining 5 times in a row.
+ */
+export const NEUTRAL_UNTIL_PROVOKED = new Set(["enderman"]);
+
 export function threatened(ctx: SkillContext, within = 8, reachable = false): string | null {
   for (const entity of Object.values(ctx.bot.entities)) {
-    if (!entity || entity.type !== "hostile") continue;
+    if (!entity || entity.type !== "hostile" || NEUTRAL_UNTIL_PROVOKED.has(entity.name ?? "")) continue;
     const distance = entity.position.distanceTo(ctx.bot.entity.position);
     if (distance > within || (reachable && !canReach(ctx.bot, entity))) continue;
     return `${entity.name ?? "a hostile mob"} is ${Math.round(distance)} blocks away`;

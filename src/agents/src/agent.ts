@@ -28,7 +28,7 @@ import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { canReach, getOutOfWater, groundAbove, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
+import { NEUTRAL_UNTIL_PROVOKED, canReach, getOutOfWater, groundAbove, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -139,7 +139,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
 function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null, enclosed: boolean): WorldSnapshot {
   const hostiles: WorldSnapshot["hostiles"] = [];
   for (const entity of Object.values(bot.entities)) {
-    if (!entity || entity.type !== "hostile") continue;
+    if (!entity || entity.type !== "hostile" || NEUTRAL_UNTIL_PROVOKED.has(entity.name ?? "")) continue;
     const distance = entity.position.distanceTo(bot.entity.position);
     // Whether it can get at the agent matters only near enough to interrupt; the sight test walks the line block by block.
     hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance, ...(distance <= 16 ? { reachable: canReach(bot, entity) } : {}) });
