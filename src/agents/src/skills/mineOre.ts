@@ -5,7 +5,7 @@ import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
 import { asNumber, getOutOfWater, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
-import { fillWater, plugBlock, standable } from "./underground.js";
+import { descend, fillWater, plugBlock, standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
@@ -19,6 +19,8 @@ const MAX_TOTAL_MS = 4 * 60_000;
 /** Ore further above or below than this is left alone: the pathfinder gives up on long climbs. */
 const MAX_HEIGHT_GAP = 8;
 const REACH = 4.5;
+/** Ore in sight this far below or less is dug down to; deeper, the agent is told to descend. */
+const MAX_DIG_TOWARD = 40;
 /** Blocks dug through to ore that is in reach but behind them, before giving up on it. */
 const MAX_DIG_THROUGH = 3;
 /** Never dug through: someone's furniture. */
@@ -189,7 +191,7 @@ export const mineOre: Skill = {
   description:
     "Mine ore you can see and collect what it drops. Takes `ore` (coal, iron, copper, gold, diamond, redstone, lapis " +
     "or emerald) and `count` — how many drops you want to gain (iron gives raw_iron, diamond gives diamond). " +
-    "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
+    "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks; ore in sight up to 40 blocks below you is dug down to (as descend does). Ore deep inside " +
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
     "Uses the cheapest pickaxe good enough. Water touching the ore (above, beside or all round it) is plugged first with a block you carry " +
@@ -220,6 +222,7 @@ export const mineOre: Skill = {
       .map((name) => bot.registry.blocksByName[name]?.id)
       .filter((id): id is number => id !== undefined);
     const skipped = new Set<string>();
+    let dugToward = 0;
     const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
     const age = () => Number(bot.time.age);
     const failedBefore = failedOre.get(bot) ?? new Map<string, number>();
@@ -242,6 +245,7 @@ export const mineOre: Skill = {
 
       let block: Block | null = null;
       let outOfReach: number | null = null;
+      let farBelow: Vec3 | null = null;
       // Ore the agent can see but this won't dig toward: say so, or "none in reach" contradicts what it sees.
       const lava = new Set<string>();
       const noStand = new Set<string>();
@@ -273,12 +277,25 @@ export const mineOre: Skill = {
           const gap = point.y - Math.floor(bot.entity.position.y);
           if (Math.abs(gap) > MAX_HEIGHT_GAP) {
             outOfReach ??= gap;
+            if (gap < 0 && gap >= -MAX_DIG_TOWARD) farBelow ??= point;
             continue;
           }
           block = bot.blockAt(point);
           break;
         }
         if (block) break;
+      }
+      // Ore in sight further below than a walk can reach: dig down toward it, as a player who sees it would, then look
+      // again. In 13 reps mine_ore said "descend closer first" 144 times, and a descend followed only 62 times, heading
+      // wherever it last dug.
+      if (!block && farBelow && dugToward < 2) {
+        dugToward++;
+        const before = bot.entity.position.y;
+        const down = await descend.run(ctx, { y: farBelow.y + 1, toward: { x: farBelow.x, z: farBelow.z } });
+        ctx.log(`dug down toward the ${kind} ore at ${farBelow.x},${farBelow.y},${farBelow.z}: ${down.status}${down.reason ? ` (${down.reason.slice(0, 80)})` : ""}`);
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
+        if (before - bot.entity.position.y >= 3) continue;
+        failedBefore.set(key(farBelow), age());
       }
       if (!block) {
         const far =

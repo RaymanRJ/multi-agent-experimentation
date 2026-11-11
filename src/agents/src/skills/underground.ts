@@ -222,7 +222,7 @@ function stairIsDry(bot: Bot, start: Vec3, heading: { dx: number; dz: number }, 
 }
 
 /** The nearest start (here first) and heading with a dry stair down to `targetY`, or null. */
-function planDryDescent(bot: Bot, targetY: number): { start: Vec3; heading: number } | null {
+function planDryDescent(bot: Bot, targetY: number, toward?: { x: number; z: number }): { start: Vec3; heading: number } | null {
   const here = bot.entity.position.floored();
   const starts: Vec3[] = [here];
   for (let r = 4; r <= 24; r += 4)
@@ -237,6 +237,21 @@ function planDryDescent(bot: Bot, targetY: number): { start: Vec3; heading: numb
         }
       }
     }
+  // Toward something (ore in sight below): of the dry stairs, the one ending nearest it, then the nearest start.
+  if (toward) {
+    let best: { start: Vec3; heading: number; score: number } | null = null;
+    for (const start of starts) {
+      const depth = start.y - targetY;
+      if (depth <= 0) continue;
+      for (let h = 0; h < 4; h++) {
+        const end = start.offset(HEADINGS[h]!.dx * depth, 0, HEADINGS[h]!.dz * depth);
+        const score = Math.hypot(end.x - toward.x, end.z - toward.z) + start.distanceTo(here) / 4;
+        if (best && score >= best.score) continue;
+        if (stairIsDry(bot, start, HEADINGS[h]!, depth)) best = { start, heading: h, score };
+      }
+    }
+    return best;
+  }
   for (const start of starts) {
     const depth = start.y - targetY;
     if (depth <= 0) continue;
@@ -728,7 +743,9 @@ export const descend: Skill = {
     let planned = "";
     let maxTurns = 4;
     let replans = 0;
-    const plan = planDryDescent(bot, target);
+    // Internal: mine_ore passes where the ore it is digging toward lies (not offered to the model).
+    const toward = rawArgs["toward"] as { x: number; z: number } | undefined;
+    const plan = planDryDescent(bot, target, toward);
     if (plan) {
       const at = bot.entity.position.floored();
       if (!plan.start.equals(at)) {
@@ -776,7 +793,7 @@ export const descend: Skill = {
         // Off the planned stair (a block that would not dig, sand that fell): plan again from here, up to 3 times.
         if (!moved && maxTurns === 1 && replans < 3) {
           replans++;
-          const again = planDryDescent(bot, target);
+          const again = planDryDescent(bot, target, toward);
           if (again && again.start.equals(bot.entity.position.floored())) {
             heading = again.heading;
             continue;
