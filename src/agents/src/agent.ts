@@ -23,6 +23,7 @@ import { newDayBegan } from "./daytime.js";
 import { GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, SEED, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
+import { ownFloods } from "./skills/underground.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
@@ -395,7 +396,7 @@ async function main(): Promise<void> {
   // And the chests the team knows, each as last seen by anyone: a teammate's look replaces an older one.
   const teamChests = () => latestChests([chestViews, ...Object.values(board?.read() ?? {}).map((m) => m?.chests ?? {})]);
   const knownChests = new Map<string, string>();
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list() });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list(), floods: ownFloods(bot) });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -502,6 +503,7 @@ async function main(): Promise<void> {
     },
     shouldStop: () => stopping || interruptReason !== null,
     shelters: knownShelters,
+    floods: () => Object.values(board?.read() ?? {}).flatMap((m) => m?.floods ?? []),
     rcon: (command) => serverCommand(command, { host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") }),
   };
 

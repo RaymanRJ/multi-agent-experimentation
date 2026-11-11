@@ -162,9 +162,40 @@ function falling(bot: Bot, cells: Vec3[]): boolean {
  * live), only by the water coming back: in tluna24 the agents dug into one at y 57-61 39 times, cut short by "out of
  * air" each time, and went back to it. Ten minutes of game time.
  */
-const floodedAt = new WeakMap<Bot, Array<{ x: number; z: number; at: number }>>();
+export type FloodSpot = { x: number; z: number; at: number };
+const floodedAt = new WeakMap<Bot, FloodSpot[]>();
+/** This agent's own flooded spots, for its teammates (shared like ore sightings). */
+export function ownFloods(bot: Bot): FloodSpot[] {
+  return floodedAt.get(bot) ?? [];
+}
+
+/**
+ * Open ground 8-24 blocks off, at least FLOOD_CLEAR from every flooded spot known, nearest first: where descend digs
+ * from instead. The lake under the first world's start area is about 50 by 42 blocks (14,328 water blocks at y 45-62,
+ * mapped 10 November), and in tluna25 descend refused 35 times there as the agents kept starting from the home above it.
+ */
+function clearOfFloods(bot: Bot, floods: FloodSpot[]): Vec3[] {
+  const here = bot.entity.position.floored();
+  const out: Array<{ c: Vec3; d: number }> = [];
+  for (let r = 8; r <= 24; r += 2)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      if (floods.some((f) => Math.hypot(f.x - x, f.z - z) < FLOOD_CLEAR)) continue;
+      for (const dy of [0, 1, -1, 2, -2, 3, -3, 4, -4]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c) && !homeBlock(bot, c.offset(0, -1, 0))) {
+          out.push({ c, d: r });
+          break;
+        }
+      }
+    }
+  return out.sort((p, q) => p.d - q.d).map((p) => p.c);
+}
 const FLOOD_MEMORY_TICKS = 12_000;
 const FLOOD_NEAR = 6;
+/** How far from every flooded spot a new way down starts. */
+const FLOOD_CLEAR = 8;
 /** Seconds with the head under water in one descend before it counts as driven out. */
 const MAX_WET_MS = 6000;
 
@@ -594,11 +625,28 @@ export const descend: Skill = {
     const age = () => Number(bot.time.age);
     const floods = (floodedAt.get(bot) ?? []).filter((f) => age() - f.at < FLOOD_MEMORY_TICKS);
     floodedAt.set(bot, floods);
+    // Teammates' too: whoever finds the flooded ground, everyone digs clear of it.
+    const allFloods = [...floods, ...(ctx.floods?.() ?? [])].filter((f) => age() - f.at < FLOOD_MEMORY_TICKS);
     const here0 = bot.entity.position;
-    const known = floods.find((f) => Math.hypot(f.x - here0.x, f.z - here0.z) <= FLOOD_NEAR);
+    const known = allFloods.find((f) => Math.hypot(f.x - here0.x, f.z - here0.z) <= FLOOD_NEAR);
+    let movedClear = "";
     if (known) {
-      const mins = Math.max(1, Math.round((age() - known.at) / 1200));
-      return { status: "failed", reason: `you were driven out by water digging down within ${Math.round(Math.hypot(known.x - here0.x, known.z - here0.z))} blocks of here ${mins} min ago: a flooded layer lies below this spot`, detail: report() };
+      let reached: Vec3 | null = null;
+      for (const spot of clearOfFloods(bot, allFloods).slice(0, 3)) {
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 30_000, "walking clear of the flooded ground");
+          reached = spot;
+          break;
+        } catch {
+          bot.pathfinder.setGoal(null);
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+        }
+      }
+      if (!reached) {
+        const mins = Math.max(1, Math.round((age() - known.at) / 1200));
+        return { status: "failed", reason: `water drove an agent out digging down within ${Math.round(Math.hypot(known.x - here0.x, known.z - here0.z))} blocks of here ${mins} min ago, and no open ground clear of it could be reached: a flooded layer lies below this spot`, detail: report() };
+      }
+      movedClear = `you walked ${Math.round(reached.distanceTo(here0))} blocks clear of the flooded ground to ${reached.x},${reached.y},${reached.z} to dig from there. `;
     }
     let wetSteps = 0;
     const start = bot.entity.position.clone();
@@ -665,7 +713,7 @@ export const descend: Skill = {
       }
       lastHeading.set(bot.username, heading);
       const broke = brokenSince(bot, tools);
-      const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
+      const said = [walkedOut.trim(), movedClear.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
       return { status: "success", ...(said && { reason: said }), detail: report() };
     } finally {
       clearInterval(wetClock);
