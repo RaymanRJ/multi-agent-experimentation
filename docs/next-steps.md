@@ -249,7 +249,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    A count of water round the step could not tell a pocket from a flooded layer (10-11 where filling worked, 11-14
    where it did not), so it was dropped. Live, in a built flooded layer: first dig down through it fine (2 s under);
    back down the stair it had flooded, stopped after 6 s at health 20; a third try 3 blocks off refused at once;
-   tluna23's spots still reach y=30. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   tluna23's spots still reach y=30.
+   **tluna25** (10 November, 071cbaf, US$0.23): 3 of 4 parts, no iron pickaxe (lc made one on day 2, gave it to lb, who
+   died with it on day 3); 5 raw iron in all. Air interrupts down to 12 (tluna24: 39); but descend was refused 35 times
+   "you were driven out by water digging down within N blocks of here": the flooded layer lies under the home, and the
+   agents kept starting descents from near it, each time after doing something else (only 1 right after a refusal), so
+   the repeated-failure facts never fired. tunnel once all run. Latest code on the original world: 4 of 14. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
