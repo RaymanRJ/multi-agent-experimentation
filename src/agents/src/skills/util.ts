@@ -257,9 +257,14 @@ export function roomStaysOpen(room: Vec3[], open: (cell: Vec3) => boolean, entry
   const key = (cell: Vec3) => `${cell.x},${cell.z}`;
   const taken = new Set(put.map(key));
   const walkable = new Set(room.filter((cell) => open(cell) && !taken.has(key(cell))).map(key));
-  if (!walkable.has(key(entry))) return false;
-  const reached = new Set([key(entry)]);
-  const queue = [entry];
+  if (taken.has(key(entry))) return false;
+  // A block already on the cell inside the doorway is stepped over, as a player does: the walk starts from the open
+  // cells beside it. Requiring it open refused every bed in tluna28b's home ("no room left for a bed", 50 times) while
+  // the agents walked in and out over the crafting table on it.
+  const sides = [[1, 0], [-1, 0], [0, -1]].map(([dx, dz]) => entry.offset(dx!, 0, dz!));
+  const queue = walkable.has(key(entry)) ? [entry] : sides.filter((cell) => walkable.has(key(cell)));
+  if (queue.length === 0) return false;
+  const reached = new Set(queue.map(key));
   while (queue.length > 0) {
     const cell = queue.shift()!;
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
