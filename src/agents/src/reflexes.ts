@@ -276,9 +276,15 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
  * bpoc7 ("suffocated in a wall"), once mid-climb carrying two iron pickaxes.
  */
 export function buriedHead(bot: Bot): { name: string; position: Vec3 } | null {
-  const block = bot.blockAt(bot.entity.position.offset(0, EYE, 0).floored());
+  const eye = bot.entity.position.offset(0, EYE, 0);
+  const block = bot.blockAt(eye.floored());
   if (!block || block.boundingBox !== "block" || LIQUID.test(block.name)) return null;
-  return bot.canDigBlock(block) ? block : null;
+  // Only a block whose solid part holds the eye. A door, a dripleaf or an amethyst bud fills a sliver of its
+  // cell, and an agent walking through its own doorway dug the door out thousands of times (every run from
+  // 27 October to tluna26b), leaving the home open to monsters.
+  const [x, y, z] = [eye.x - block.position.x, eye.y - block.position.y, eye.z - block.position.z];
+  const holds = (block.shapes ?? []).some(([x0, y0, z0, x1, y1, z1]) => x > x0 && x < x1 && y > y0 && y < y1 && z > z0 && z < z1);
+  return holds && bot.canDigBlock(block) ? block : null;
 }
 
 /**

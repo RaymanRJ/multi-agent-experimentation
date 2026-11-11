@@ -186,6 +186,13 @@ test("buriedHead - a block at eye height is found; air, water and the block unde
   assert.equal(buriedHead(fakeBot({ position: at, blocks: { "0,65,0": "gravel" } }).bot)?.name, "gravel");
 });
 
+test("buriedHead - a door or a dripleaf the head stands beside is not a block over the head", () => {
+  const at = { x: 0.5, y: 64, z: 0.5 };
+  for (const name of ["dark_oak_door", "oak_door", "big_dripleaf", "small_amethyst_bud"]) {
+    assert.equal(buriedHead(fakeBot({ position: at, blocks: { "0,65,0": name } }).bot), null, name);
+  }
+});
+
 test("unburyHead - digs out the block over the head and says so", async () => {
   const fake = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: { "0,63,0": "stone", "0,65,0": "sand" } });
   const dug: string[] = [];
