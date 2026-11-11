@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
+import { asNumber, getOutOfWater, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
 export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
 import { torchTrail } from "./light.js";
@@ -155,6 +155,18 @@ function falling(bot: Bot, cells: Vec3[]): boolean {
     (e) => e.name === "falling_block" && cells.some((c) => Math.abs(e.position.x - c.x - 0.5) < 1 && Math.abs(e.position.z - c.z - 0.5) < 1 && e.position.y >= c.y),
   );
 }
+
+/**
+ * Where each agent was driven out by water digging down, and when (game ticks). A flooded layer can't be told from a
+ * pocket by the water in view (10-11 blocks round the step where filling worked, 11-14 where it did not, measured
+ * live), only by the water coming back: in tluna24 the agents dug into one at y 57-61 39 times, cut short by "out of
+ * air" each time, and went back to it. Ten minutes of game time.
+ */
+const floodedAt = new WeakMap<Bot, Array<{ x: number; z: number; at: number }>>();
+const FLOOD_MEMORY_TICKS = 12_000;
+const FLOOD_NEAR = 6;
+/** Seconds with the head under water in one descend before it counts as driven out. */
+const MAX_WET_MS = 6000;
 
 /** Blocks to stop water with, as a player plugs a leak: cheap ones that don't fall. */
 const PLUG_BLOCKS = ["cobblestone", "dirt", "cobbled_deepslate", "stone", "andesite", "diorite", "granite", "netherrack", "tuff"];
@@ -558,7 +570,7 @@ export const descend: Skill = {
   description:
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
-    "turns away from lava and drops into caves; water in the way (in the step, under it, or behind a block) is filled with a block you carry (cobblestone, dirt or stone), so carry some; stops if every way down is unsafe. A staircase can be walked " +
+    "turns away from lava and drops into caves; a small pocket of water in the way (in the step, under it, or behind a block) is filled with a block you carry (cobblestone, dirt or stone), but a flooded layer, with a lot of water round the next step, is not: it stops there and says so. Stops if every way down is unsafe. A staircase can be walked " +
     "back up, and is lit as it goes: a torch every 8 steps when you carry torches, coal or charcoal (1 coal and a stick make 4), so no monster spawns on it. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
@@ -579,47 +591,85 @@ export const descend: Skill = {
 
     const trail = torchTrail(ctx);
     const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...(trail.placed() ? { torches: trail.placed() } : {}), ...extra });
+    const age = () => Number(bot.time.age);
+    const floods = (floodedAt.get(bot) ?? []).filter((f) => age() - f.at < FLOOD_MEMORY_TICKS);
+    floodedAt.set(bot, floods);
+    const here0 = bot.entity.position;
+    const known = floods.find((f) => Math.hypot(f.x - here0.x, f.z - here0.z) <= FLOOD_NEAR);
+    if (known) {
+      const mins = Math.max(1, Math.round((age() - known.at) / 1200));
+      return { status: "failed", reason: `you were driven out by water digging down within ${Math.round(Math.hypot(known.x - here0.x, known.z - here0.z))} blocks of here ${mins} min ago: a flooded layer lies below this spot`, detail: report() };
+    }
+    let wetSteps = 0;
+    const start = bot.entity.position.clone();
+    // Head under water: plugged at the next step; the second time in one call, the water is coming back (a flooded
+    // layer, or a stair flooded since it was dug: going back down one, live, spent 11.5 s under water). Checked after
+    // every step tried, not once a round: once a round, a live try spent 58 s under water before it stopped.
+    // And by the clock: one step under water can take seconds (digging there is five times slower), so 2 checks alone
+    // still left it under water 35 s (health 20 to 18) in a live try.
+    let wetMs = 0;
+    const wetClock = setInterval(() => { if (headInWater(bot)) wetMs += 250; }, 250);
+    const drivenOut = async (): Promise<SkillResult | null> => {
+      const wetNow = headInWater(bot);
+      if (wetMs < MAX_WET_MS && (!wetNow || ++wetSteps < 2)) return null;
+      const at = bot.entity.position;
+      clearInterval(wetClock);
+      floods.push({ x: at.x, z: at.z, at: age() }, { x: start.x, z: start.z, at: age() });
+      await getOutOfWater(bot).catch(() => false);
+      lastHeading.set(bot.username, (heading + 1) % 4);
+      return {
+        status: "failed",
+        reason: `stopped at y=${Math.floor(at.y)}: water keeps coming in here (a flooded layer, or a flooded stair) faster than it can be filled.${brokenSince(bot, tools)}`,
+        detail: report(),
+      };
+    };
     const startedAt = Date.now();
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
-    while (Math.floor(bot.entity.position.y) > target) {
-      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-      const danger = threatened(ctx, 8, true);
-      if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
-      if (Date.now() - startedAt > MAX_SKILL_MS) {
-        return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} before running out of time — call descend again to continue.${brokenSince(bot, tools)}`, detail: report() };
-      }
-      const noTool = await equipDigger(bot);
-      if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
-      let moved = false;
-      const refusals: string[] = [];
-      await centre(bot);
-      for (let turn = 0; turn < 4 && !moved; turn++) {
+    try {
+      while (Math.floor(bot.entity.position.y) > target) {
         if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-        const index = (heading + turn) % 4;
-        const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
-        if (problem === null) {
-          heading = index;
-          moved = true;
-          await trail.step(HEADINGS[index]!);
-        } else {
-          refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+        const danger = threatened(ctx, 8, true);
+        if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
+        if (Date.now() - startedAt > MAX_SKILL_MS) {
+          return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} before running out of time — call descend again to continue.${brokenSince(bot, tools)}`, detail: report() };
+        }
+        const noTool = await equipDigger(bot);
+        if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
+        let moved = false;
+        const refusals: string[] = [];
+        await centre(bot);
+        for (let turn = 0; turn < 4 && !moved; turn++) {
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+          const index = (heading + turn) % 4;
+          const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
+          const out = await drivenOut();
+          if (out) return out;
+          if (problem === null) {
+            heading = index;
+            moved = true;
+            await trail.step(HEADINGS[index]!);
+          } else {
+            refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+          }
+        }
+        if (!moved) {
+          lastHeading.set(bot.username, (heading + 1) % 4);
+          return {
+            status: "failed",
+            reason: refusals.every((r) => r.includes("part of a home"))
+              ? `you are standing in a home: descend digs down from where you stand and won't dig through a home's floor or walls — walk outside first`
+              : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
+            detail: report(),
+          };
         }
       }
-      if (!moved) {
-        lastHeading.set(bot.username, (heading + 1) % 4);
-        return {
-          status: "failed",
-          reason: refusals.every((r) => r.includes("part of a home"))
-            ? `you are standing in a home: descend digs down from where you stand and won't dig through a home's floor or walls — walk outside first`
-            : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
-          detail: report(),
-        };
-      }
+      lastHeading.set(bot.username, heading);
+      const broke = brokenSince(bot, tools);
+      const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
+      return { status: "success", ...(said && { reason: said }), detail: report() };
+    } finally {
+      clearInterval(wetClock);
     }
-    lastHeading.set(bot.username, heading);
-    const broke = brokenSince(bot, tools);
-    const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
-    return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };
 

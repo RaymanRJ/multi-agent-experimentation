@@ -241,7 +241,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    are under water and running out of air", in a flooded layer at y 57-61 under the home (x 8-16, z 20-24). It fills
    the water in its step, but water floods in from all round; the swim-out reflex lifts the agent and it tries again
    (la 16 times, lb 12, lc 11). Before, descend refused there. The live check passed only because its three spots had
-   small pockets. Not fixed yet (the owner's call). Latest code on the original world: 4 of 13. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   small pockets. Latest code on the original world: 4 of 13. No agent used tunnel all run; they kept choosing
+   descend because its new description promised to handle water and each failure read as a passing "under water"
+   interrupt. **Changed (the owner's calls):** descend stops when water keeps coming back (6 s with the head under,
+   or under twice in one call), says so, and refuses to dig down within 6 blocks of there for 10 minutes; its
+   description no longer promises more than it does; the repeated-failure facts count a skill driven out by water.
+   A count of water round the step could not tell a pocket from a flooded layer (10-11 where filling worked, 11-14
+   where it did not), so it was dropped. Live, in a built flooded layer: first dig down through it fine (2 s under);
+   back down the stair it had flooded, stopped after 6 s at health 20; a third try 3 blocks off refused at once;
+   tluna23's spots still reach y=30. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**

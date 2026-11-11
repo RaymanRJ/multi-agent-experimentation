@@ -778,7 +778,10 @@ async function main(): Promise<void> {
       }
     }
 
-    const failKey = result.status === "failed" ? `${decision.skill}|${(result.reason ?? "").replace(/-?\d+(\.\d+)?/g, "N")}` : "";
+    // Driven out by water is the skill failing here, not a passing interruption: in tluna24 descend was cut short 39
+    // times by "under water and running out of air" in one flooded layer, and these facts never came.
+    const drivenOut = result.status === "aborted" && /under water and running out of air/.test(result.reason ?? "");
+    const failKey = result.status === "failed" || drivenOut ? `${decision.skill}|${(result.reason ?? "").replace(/-?\d+(\.\d+)?/g, "N")}` : "";
     failing = failKey && failKey === failing.key ? { key: failKey, count: failing.count + 1 } : { key: failKey, count: failKey ? 1 : 0 };
     if (failing.count >= STUCK_AFTER) {
       const facts = stuckFacts(decision.skill);
