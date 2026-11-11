@@ -194,6 +194,53 @@ function clearOfFloods(bot: Bot, floods: FloodSpot[]): Vec3[] {
 }
 const FLOOD_MEMORY_TICKS = 12_000;
 const FLOOD_NEAR = 6;
+/**
+ * A dry way down planned before digging: for each of the four headings, from where the agent stands and from open
+ * ground up to 24 blocks off, the diagonal stair to the target height is checked for water or lava within a block of
+ * it, using the blocks the game has sent (as the pathfinder and the unsafe() checks do; nothing is told to the agent).
+ * Filling cannot seal a stair through open water: at the lake under the first world's start area (about 50 by 42
+ * blocks, y 45-62) a live dig took flowing water into the head cell at its edge and most fills found nothing to
+ * place against; the agents' iron in the winning reps lay below and east of it (x 17-23, y 32-41).
+ */
+function stairIsDry(bot: Bot, start: Vec3, heading: { dx: number; dz: number }, depth: number): boolean {
+  for (let i = 1; i <= depth; i++) {
+    const feet = start.offset(heading.dx * i, -i, heading.dz * i);
+    for (const dy of [0, 1, 2]) {
+      const cell = feet.offset(0, dy, 0);
+      for (const [ox, oy, oz] of [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]] as const) {
+        const b = bot.blockAt(cell.offset(ox, oy, oz));
+        if (!b || b.name === "water" || b.name === "lava" || b.name === "bubble_column") return false;
+      }
+      if (homeBlock(bot, cell)) return false;
+    }
+  }
+  return true;
+}
+
+/** The nearest start (here first) and heading with a dry stair down to `targetY`, or null. */
+function planDryDescent(bot: Bot, targetY: number): { start: Vec3; heading: number } | null {
+  const here = bot.entity.position.floored();
+  const starts: Vec3[] = [here];
+  for (let r = 4; r <= 24; r += 4)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      for (const dy of [0, 1, -1, 2, -2, 3, -3]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c) && !homeBlock(bot, c.offset(0, -1, 0))) {
+          starts.push(c);
+          break;
+        }
+      }
+    }
+  for (const start of starts) {
+    const depth = start.y - targetY;
+    if (depth <= 0) continue;
+    for (let h = 0; h < 4; h++) if (stairIsDry(bot, start, HEADINGS[h]!, depth)) return { start, heading: h };
+  }
+  return null;
+}
+
 /** How far from every flooded spot a new way down starts. */
 const FLOOD_CLEAR = 8;
 /** Seconds with the head under water in one descend before it counts as driven out. */
@@ -673,6 +720,22 @@ export const descend: Skill = {
     };
     const startedAt = Date.now();
     let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
+    // A dry way down, planned before digging; walked to if it starts elsewhere. Without one, as before.
+    let planned = "";
+    const plan = planDryDescent(bot, target);
+    if (plan) {
+      const at = bot.entity.position.floored();
+      if (!plan.start.equals(at)) {
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(plan.start.x, plan.start.y, plan.start.z)), 30_000, "walking to a dry way down");
+          planned = `you walked ${Math.round(plan.start.distanceTo(at))} blocks to ${plan.start.x},${plan.start.y},${plan.start.z}, where the way down to y=${target} is clear of water, to dig from there. `;
+        } catch {
+          bot.pathfinder.setGoal(null);
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+        }
+      }
+      if (bot.entity.position.floored().distanceTo(plan.start) < 1.5) heading = plan.heading;
+    }
     try {
       while (Math.floor(bot.entity.position.y) > target) {
         if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
@@ -713,7 +776,7 @@ export const descend: Skill = {
       }
       lastHeading.set(bot.username, heading);
       const broke = brokenSince(bot, tools);
-      const said = [walkedOut.trim(), movedClear.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
+      const said = [walkedOut.trim(), movedClear.trim(), planned.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
       return { status: "success", ...(said && { reason: said }), detail: report() };
     } finally {
       clearInterval(wetClock);

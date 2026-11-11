@@ -3,7 +3,9 @@ name: multi-agent-experimentation
 
 services:
   mc:
-    image: itzg/minecraft-server
+    # Pinned by digest (pulled 11 November); Paper build pinned below. Runs before then used an older image of the
+    # same wrapper with the same Paper build (1.21.1-133), so the game itself is unchanged.
+    image: itzg/minecraft-server@sha256:d3415f085e10f522969d3a580247ff23b4ccd8d5b152ca08280fb13395dd15bc
     container_name: mae-mc
     ports:
       - "25565:25565"      # minecraft
@@ -12,6 +14,7 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.1"
+      PAPER_BUILD: "133"            # the build every run so far used (1.21.1-133, 3cb8529)
       MEMORY: 2G
 
       # Required for headless agents: skips the Mojang ownership check.
