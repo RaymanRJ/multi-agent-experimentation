@@ -222,6 +222,33 @@ function stairIsDry(bot: Bot, start: Vec3, heading: { dx: number; dz: number }, 
 }
 
 /** The nearest start (here first) and heading with a dry stair down to `targetY`, or null. */
+/**
+ * Open ground with no home within 2 blocks of it, down to 4 below: somewhere a stair can start. On a home's roof or
+ * against its wall every way down is the home's (tluna27a: refused twice, "walk outside first", to an agent outside).
+ */
+function clearOfHome(bot: Bot): Vec3 | null {
+  const here = bot.entity.position.floored();
+  const clear = (c: Vec3) => {
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = -5; dy <= 2; dy++) {
+      if (homeBlock(bot, c.offset(dx, dy, dz))) return false;
+    }
+    return true;
+  };
+  for (let r = 4; r <= 16; r += 2)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      for (const dy of [0, -1, 1, -2, 2, -3, 3, -4, -5, -6]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c)) {
+          if (clear(c)) return c;
+          break;
+        }
+      }
+    }
+  return null;
+}
+
 function planDryDescent(bot: Bot, targetY: number, toward?: { x: number; z: number }): { start: Vec3; heading: number } | null {
   const here = bot.entity.position.floored();
   const starts: Vec3[] = [here];
@@ -743,6 +770,8 @@ export const descend: Skill = {
     let planned = "";
     let maxTurns = 4;
     let replans = 0;
+    let offHome = 0;
+    let walkedOffHome = "";
     // Internal: mine_ore passes where the ore it is digging toward lies (not offered to the model).
     const toward = rawArgs["toward"] as { x: number; z: number } | undefined;
     const plan = planDryDescent(bot, target, toward);
@@ -808,12 +837,29 @@ export const descend: Skill = {
             }
           }
         }
+        // Every way down is a home's (on its roof, against its wall): walk to open ground clear of it and dig from there.
+        if (!moved && offHome < 2 && refusals.length > 0 && refusals.every((r) => r.includes("part of a home"))) {
+          offHome++;
+          const spot = clearOfHome(bot);
+          if (spot) {
+            const from = bot.entity.position.floored();
+            try {
+              await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 30_000, "walking clear of the home");
+              walkedOffHome = `you walked ${Math.round(spot.distanceTo(from))} blocks clear of the home to ${spot.x},${spot.y},${spot.z} to dig from there. `;
+              maxTurns = 4;
+              continue;
+            } catch {
+              bot.pathfinder.setGoal(null);
+              if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+            }
+          }
+        }
         if (!moved) {
           lastHeading.set(bot.username, (heading + 1) % 4);
           return {
             status: "failed",
             reason: refusals.every((r) => r.includes("part of a home"))
-              ? `you are standing in a home: descend digs down from where you stand and won't dig through a home's floor or walls — walk outside first`
+              ? `every way down from ${Math.floor(bot.entity.position.x)},${Math.floor(bot.entity.position.y)},${Math.floor(bot.entity.position.z)} goes through a home's floor, roof or walls, which descend won't dig, and no open ground clear of it was reached nearby — dig from somewhere else`
               : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
             detail: report(),
           };
@@ -821,7 +867,7 @@ export const descend: Skill = {
       }
       lastHeading.set(bot.username, heading);
       const broke = brokenSince(bot, tools);
-      const said = [walkedOut.trim(), movedClear.trim(), planned.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
+      const said = [walkedOut.trim(), movedClear.trim(), planned.trim(), walkedOffHome.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
       return { status: "success", ...(said && { reason: said }), detail: report() };
     } finally {
       clearInterval(wetClock);
