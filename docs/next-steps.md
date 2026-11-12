@@ -292,7 +292,17 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    **Second night (11-12 November, the owner's ask): 80%, then 90%.** Three Lunas, team-base, the first world, same
    rules; 80% is 8 of 10 reps on one unchanged commit, then 9 of 10. US$3.21 of OpenAI credit. Set A: tluna29a-j on
    131eb8f (bed fix and creeper reflex), one team from 22:26, two in parallel from midnight (second on port 25640,
-   no views), stopping early at 3 losses. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   no views), stopping early at 3 losses. **Set A: 2 of 6, stopped** (29b 24:17, 29d 45:52; 29a, c, e, f short).
+   Looked into (each checked live, old code against new): **hunt could not leave a closed home**: following an animal
+   from inside never got out, and the chase clock ran out in place, reported as "got away". Of 223 animal hunts begun in a
+   home on 11-12 November, 208 ended that way (135 without moving), against 16 of 120 begun outside; it starved wool,
+   beds and meat in most losses since tluna27. Live: old 0 of 4 kills from inside a closed home, new 4 of 4 in 11-12 s.
+   A creeper by the home's wall blocked every bed for three nights in 29c while the agents waited for it to leave; hunt
+   could not kill one (old: 0 of 4, blown to health 3-8; new: strike and back out of blast, 4 of 4 at health 20; from
+   inside a home old 3 of 4 died, new 0 of 4), and the sleep refusal now says a creeper doesn't burn in daylight and
+   stays near a player it can sense. An agent burned to death in lava at y=35 with 6 raw iron while deciding (29a): the
+   body now steers out of lava as out of water (old 4 of 4 died in a sunk pool, new 2 of 4; deaths only mid-5x5). craft
+   names the items an unknown name is part of ("bed": white_bed). **Set B: tluna30a-j on 54c5f86**, two lanes from 02:04. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
