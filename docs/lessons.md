@@ -33,6 +33,9 @@ the model.
   *Evidence:* a hand-over said two pickaxes lay "beside" a teammate who had walked off; the teammate
   searched for them five times. A `take` from a chest reported items picked up off the floor on the
   way as "taken from the chest". ([06](results/write-ups/06-team-base.md))
+  A hunt begun inside a closed home never got out of it and ran its clock down in place, then said "the sheep got
+  away": 208 of 223 such hunts in two nights, while the agents planned around animals that were never the problem.
+  Fixed, the team's success rate went from 2 in 6 to 7 and 8 in 10. ([07](results/write-ups/07-luna-majority.md#the-second-night-80-on-one-commit))
 - **A refusal must be true.** "Not possible" or "not found", when the action was possible, makes the
   agent plan around a problem that isn't there, and it rarely tries again.
   *Evidence:* mining refused reachable ore as "out of reach" 44 times in one team run, and in 34 of
@@ -301,7 +304,9 @@ in almost every rep, about half of them in our code; the whole goal was met only
 says the fixes allow a win, not how often
 ([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)). The rate came from freezing the
 code: five reps of three Lunas on one unchanged commit met the whole goal in 4 of 5, where reps with fixes between
-them had won 4 of 14 on the same world ([07](results/write-ups/07-luna-majority.md)).
+them had won 4 of 14 on the same world ([07](results/write-ups/07-luna-majority.md)). Two sets of ten on one later
+commit met it in 7 and 8: a single set of five, or even ten, is a wide estimate, and a run of five wins in a row came
+inside the set that scored 7 ([07](results/write-ups/07-luna-majority.md#the-second-night-80-on-one-commit)).
 
 **Then pool the failures across runs, and sort each by what could still have been done.** One run's
 failure tells a story; the same kind of failure gathered from every run tells which story is common.

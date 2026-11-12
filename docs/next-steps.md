@@ -309,7 +309,11 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    60 times for monsters by the home. Mostly the agents' own choices. Tried and dropped: letting hunt open the door to
    fight a monster waiting at it (live: old refused 3 of 3; new went out and lost, 1 death and health 5-6, no kills).
    Creepers still took 6 of 30 deaths over sets A and B, scattered (inside a home through the wall, a creeper already
-   at 3 blocks at the decision, one underground). **Set C: tluna31a-j on the same code**, from 05:31. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   at 3 blocks at the decision, one underground). **Set C: tluna31a-j on the same code**, from 05:31. **Set C: 8 of 10, the owner's 80% bar met** (all but 31d and 31h;
+   31i in 13:22 of game time). On 54c5f86, 15 of 20 over sets B and C. 90% not tried: about US$1 of credit left, under
+   a set of ten, and no fix in hand. Tonight US$2.88 estimated (set A 0.86, B 0.99, C 1.03), about US$2.20 billed; no
+   lag (206 tick-rate readings, all 20). Written up in 07 ("The second night"); 26 run pages published. Open: one
+   smelt furnace-craft failure in 31h not looked into; nothing merged into main or pushed. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a

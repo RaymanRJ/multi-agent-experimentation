@@ -15,6 +15,9 @@ Generated reports: [batch-reports](../batch-reports/) (tluna27a–e).
 cheapest team had met the whole goal in 4 of 14 reps on this world on its latest code, and on the run-up code
 (b040a1e) 1 of 3. The one rep that fell short met 3 of the 4 parts, as did the two that fell short on b040a1e.
 
+**A second night (11-12 November) took it to 8 of 10 on one commit**, after a hunting bug in our code was found
+and fixed: see [the second night](#the-second-night-80-on-one-commit).
+
 ## What this teaches about building agents
 
 Once the tools stopped misleading them, three cheap agents organised, recovered and finished a three-day team goal in most runs; what changed between "rarely" and "mostly" was the harness, not the agents.
@@ -155,3 +158,71 @@ from tluna13 to tluna27, on the hard world:
 **Left alone as the agents' own:** going out at night, hunting until health 1, one bed among three for a night,
 eating stored meat, and passing pickaxes in a circle. Each cost a part of the goal at least once; each is a choice,
 and coaching it away would measure the coaching.
+
+## The second night: 80% on one commit
+
+*Sets A, B and C (tluna29a-f, tluna30a-j, tluna31a-j), 11-12 November, branch `overnight-luna`. Set A on 131eb8f; sets B
+and C both on 54c5f86, frozen across all twenty reps. Same goal, world and conditions as above; two teams ran at once
+from midnight, each on its own server (206 tick-rate readings, every one at 20: no lag). US$2.88 estimated in all.
+The owner's bar: 8 of 10 on one unchanged commit, then 9 of 10.*
+
+**The result: set C met the whole goal in 8 of 10; set B, on the same commit, in 7 of 10.** Together, 15 of 20 (75%). Set
+A, on the code before the fixes below, stopped at 2 of 6. 90% was not tried: the credit left would not cover a set of ten.
+The fastest win was 13:22 of game time, still on day 1 (31i); the median 30:49.
+
+### What changed between set A and set B
+
+One bug decided most of the losses. **A hunt begun inside a closed home never left it**: it followed the animal from
+inside, ran its chase clock down in place and reported "the sheep got away". In tluna29a-f, 71 of 89 animal hunts begun
+inside ended that way with nothing killed. The agents read it as the animals' doing and planned around it (more hunts,
+other animals, waiting), while the wool for beds and the meat for the chest stayed out of reach. Hunts now walk out by
+the door first. In sets B and C, 40 of 54 hunts begun inside a home killed their animal.
+
+Three smaller fixes went in with it, each checked live against the old code: a hunt fights a creeper by striking and
+backing out of its blast (old 0 of 4 killed, new 4 of 4); the body climbs out of lava while the model decides (old 4 of
+4 died in a sunk pool, new 2 of 4); and asking to craft "bed" names the real items (`white_bed`). A creeper that kept
+everyone from sleeping for three nights in 29c led to one neutral fact in the sleep refusal: a creeper doesn't burn in
+daylight and stays near a player it can sense.
+
+### How the agents behaved
+
+- **They organised at once.** In 19 of 20 reps someone was building the home by the third decision; in 14 the first
+  three decisions covered home, food and tools between them. lc built 16 of the 20 homes, lb the other 4.
+- **One agent often carried the iron for everyone.** In 11 reps one agent made all three pickaxes and handed them out;
+  10 of those 11 met the goal. The exception, 30b, is the night's clearest loss: la made all three pickaxes on day 1,
+  140 blocks from home, waited out the night dug in at health 8, set off just before sunrise and was shot.
+- **They tracked the goal per teammate.** *"La and lb still need iron pickaxes; I have 7 iron ingots, enough to craft
+  two."* (lc, 30j, day 1). *"The shelter, beds, and 10 cooked meat are already in place; lc is the only teammate still
+  missing an iron pickaxe."* (la, 31c, day 2).
+- **Death was the main way away from the goal.** 64 deaths in 20 reps (median 3), 23 of them carrying iron. Every loss
+  but 30e (which never made iron) had iron die with whoever carried it, and agents rarely went back for what they dropped. Three wins had no deaths.
+  After a death they were back at goal work quickly (median of the reps' medians 0:23): *"I respawned with an empty
+  inventory, and my iron pickaxe is still needed. Coordinate with lb, who reported having enough iron for two more
+  picks."* (la, 31a, day 2).
+- **Asking worked; telling didn't.** 220 of 308 questions were answered; 36 of 201 instructions were acted on at the
+  next decision.
+
+### The five losses
+
+| Rep | What was missing | Why |
+|---|---|---|
+| 30b | pickaxes, 1 meat | All three pickaxes lost with la far from home at dawn (above); lc died with 6 raw iron |
+| 30c | pickaxes | Two deaths carrying iron; an iron pickaxe worn out digging |
+| 30e | pickaxes, lc's sleep | No agent worked on iron beyond ore under water; monsters by the home refused sleep about 60 times |
+| 31d | beds, pickaxes, 1 meat | Wool lost in two deaths on night 1, no sheep in range after; skeletons by the door, 60% of the time keeping safe |
+| 31h | pickaxes | Iron mined on day 2 lost in two deaths; 2 ingots by day 3 |
+
+All five come down to the agents' own choices about risk (travelling hurt or at night, carrying the team's iron far
+from home) and to the game's monsters, not to our code as far as the logs show. Left alone, as before.
+
+### How this testbed gets better (second night)
+
+| Where an agent got stuck | What was wrong | What changed | The same thing in a real system |
+|---|---|---|---|
+| "The sheep got away", 71 of 89 hunts from a home | A tool's own failure to start was reported as the world's doing | Hunt walks out by the door first | A job that times out waiting on its own lock and reports "upstream unavailable" |
+| A creeper by the wall, beds refused three nights | No safe way to remove the obstacle, and a false belief it would leave | Hunt fights creepers by hit-and-retreat; the refusal states one fact | A tool missing for a known blocker, plus an error that doesn't say the blocker is permanent |
+| Burned to death in lava while the model decided | A safety reflex covered water but not lava | The body climbs out of lava, as out of water | A watchdog that handles one failure mode and not its close cousin |
+| "Bed is not a known item", 5 times | An error that names no valid alternative | The error lists real names with the word in them | "Invalid parameter" with no hint of the valid values |
+
+**Tried and dropped:** letting the door open so a hunt can fight a monster waiting outside it. Live, the agent went out
+and lost (1 death, health 5-6 in the other tries, no kills); the refusal protects it, so it stays.

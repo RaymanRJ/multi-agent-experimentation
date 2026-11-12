@@ -95,6 +95,13 @@ building on it.
 - **From 27 October to 11 November the agents' own reflex dug out their home's door** whenever one stood in
   the open doorway (about 4,500 times in the logs), so homes in every run of that span were opened by our
   code; deaths at or inside the home in those runs overstate what the agents' choices cost. Fixed in dc6fb61.
+- **Until 12 November (54c5f86), a hunt or shear begun inside a closed home never left it.** It followed the animal from
+  inside, ran out its chase clock in place and reported "got away" (208 of 223 such hunts on 11-12 November, against
+  16 of 120 begun outside). Wool, beds and meat in every team run before then are understated by our code, not only by
+  the agents' choices; tluna27 (4 of 5) was measured with this bug in place.
+- **A monster waiting at the home's door still keeps the agents in.** The door won't open with one within 6 blocks, and
+  a hunt for it from inside is refused at the door. Letting the door open for the fight was tried and dropped: live,
+  the agent went out and lost (1 death and health 5-6 in 3 tries, no kills). Agents wait such a monster out.
 - **The herds are restocked each morning (since 28 October, after tbase7).** The game barely brings
   animals back in that dark forest, so killed ones stayed gone and food and wool ran out mid-run
   (tbase6 rep 3: no sheep, no beds; tbase7 rep 2: no cows by day 2). Now at each dawn one agent per
