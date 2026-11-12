@@ -49,11 +49,11 @@ export function chooseFuel(inventory: Record<string, number>, items: number): Ar
 }
 
 /** A furnace within reach: one nearby, one held and placed, or one crafted from 8 cobblestone and placed. */
-async function ensureFurnace(ctx: SkillContext): Promise<Block | string> {
+async function ensureFurnace(ctx: SkillContext, busy: Set<string> = new Set()): Promise<Block | string> {
   const bot = ctx.bot;
   const furnaceId = bot.registry.blocksByName["furnace"]?.id;
   if (furnaceId === undefined) return "this server version has no furnace";
-  const near = bot.findBlock({ matching: furnaceId, maxDistance: FURNACE_SEARCH_RADIUS });
+  const near = bot.findBlock({ matching: furnaceId, maxDistance: FURNACE_SEARCH_RADIUS, useExtraInfo: (b) => !busy.has(`${b.position.x},${b.position.y},${b.position.z}`) });
   if (near) {
     const { x, y, z } = near.position;
     try {
@@ -80,6 +80,17 @@ async function ensureFurnace(ctx: SkillContext): Promise<Block | string> {
   }
   const placed = await placeNearby(ctx, "furnace");
   return placed ?? "could not place the furnace: no open ground within reach — move somewhere clearer";
+}
+
+/** What is in a furnace's input slot ("8 beef"), or null if it is empty. */
+async function inputHeld(bot: SkillContext["bot"], block: Block): Promise<string | null> {
+  const furnace = await bot.openFurnace(block);
+  try {
+    const input = furnace.inputItem();
+    return input ? `${input.count} ${input.name}` : null;
+  } finally {
+    furnace.close();
+  }
 }
 
 export const smelt: Skill = {
@@ -110,7 +121,21 @@ export const smelt: Skill = {
     const noFuel = { status: "failed" as const, reason: `not enough fuel to smelt ${count} ${source}: carry coal (mine_ore coal), or logs or planks` };
     if (!chooseFuel(inventory, count)) return noFuel;
 
-    const furnaceBlock = await ensureFurnace(ctx);
+    // A furnace with something in its input slot is a teammate's smelt under way (an agent's own cut-short smelt is taken
+    // back out below): another is used, or one made. Clearing it as leftovers swapped two agents' meat in tluna30j: la
+    // took lc's 8 beef out mid-smelt, both were told "the furnace produced no cooked_...", and it happened 5 times in 3 reps.
+    const busy = new Set<string>();
+    let furnaceBlock: Block | string = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      furnaceBlock = await ensureFurnace(ctx, busy);
+      if (typeof furnaceBlock === "string") break;
+      const inUse = await inputHeld(bot, furnaceBlock);
+      if (!inUse) break;
+      const key = `${furnaceBlock.position.x},${furnaceBlock.position.y},${furnaceBlock.position.z}`;
+      ctx.log(`the furnace at ${key} is in use (${inUse} in it); using another`);
+      busy.add(key);
+      furnaceBlock = `the furnace at ${key} is in use by a teammate (${inUse} smelting in it), and no other could be found or made`;
+    }
     // An interrupt that stopped the furnace craft is an interrupt, not a failure: the agent then tells the model why.
     if (typeof furnaceBlock === "string") return { status: ctx.shouldStop() ? "aborted" : "failed", reason: furnaceBlock };
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };
@@ -125,7 +150,8 @@ export const smelt: Skill = {
     try {
       // Clear whatever an earlier smelt left behind.
       if (furnace.outputItem()) await furnace.takeOutput();
-      if (furnace.inputItem() && furnace.inputItem().type !== sourceId) await furnace.takeInput();
+      // Input left in it means a teammate's smelt: checked above, so none here but a race.
+      if (furnace.inputItem()) return { status: "failed", reason: "a teammate started smelting in this furnace just as you opened it — try again" };
       // The fuel slot holds one kind: leftover fuel of another kind comes out, and a mix goes in a kind at a time.
       const queue = fuel.map(([name, use]) => ({ id: bot.registry.itemsByName[name]!.id, use }));
       if (furnace.fuelItem() && furnace.fuelItem().type !== queue[0]!.id) await furnace.takeFuel();
