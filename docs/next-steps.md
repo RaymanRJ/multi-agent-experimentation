@@ -317,7 +317,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    **Cost estimate fixed (12 November):** GPT-6 bills uncached input as cache writes (Luna $0.125 against $0.10), which
    the estimate priced as plain input: the night was estimated at US$2.88 and billed US$3.16. Priced at the write rate it
    comes to US$3.17 (pricing.ts, OPENAI_CACHE_WRITE). The earlier "estimate about 1.3x the bill" no longer holds; caps
-   set with BUDGET_USD are on the estimate, so they now track the bill. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   set with BUDGET_USD are on the estimate, so they now track the bill. **Bug review of tluna29-31 (12 November, before the next run):**
+   fixed, checked live: smelt treated a teammate's smelt under way as leftovers and took its input out, so two agents
+   swapped meat and were both told "the furnace produced no cooked_..." (5 times in 3 reps; live with two bots, old: A lost
+   its 8 beef to B; new: B used its own furnace, both finished). Looked at and left: place_bed "no room" (59 times in 8
+   reps) cost no one their sleep in sets B and C, and only 2 crafting tables were ever put down inside a home there (82
+   outside; 16 furnaces and 17 chests inside), so the clutter theory doesn't hold; "the sheep got away" (51) was all set A,
+   the hunt bug since fixed (sets B and C: 40 of 54 hunts from a home killed, none got away); smaller and unproven: a
+   placed crafting table that "did not open" (4 events), a table crafted where none could be put down (sealed in after
+   flee), one iron pickaxe worn out by tunnelling skills (30c), toss-then-pick_up misses between teammates. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
