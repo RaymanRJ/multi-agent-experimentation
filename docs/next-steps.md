@@ -281,7 +281,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    hunt, which ignores monsters. Live on the first world at the death spots, one creeper summoned 6 blocks off and a
    5 or 9 s decision (Luna's median is 4.8 s, p90 8.4 s) with the guard running, then flee: 16 of 16 lived, health
    20. The real cases had other monsters close too. The guard steps back only from mobs within 3 blocks (a creeper's
-   fuse range); no change made without a reproduction. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   fuse range); no change made without a reproduction. **Then reproduced and fixed (the owner's call, 11 November
+   evening):** with a zombie or skeleton beside the creeper and an 8 s decision, 4 of 16 died on the old code, 3 of
+   them at tluna27d's lakeside spot, where the body swam in place or swam out onto the creeper's bank while it walked
+   up. Creepers now get their own reflex, as archers did: backed away from within 8 blocks, again whenever one closes
+   in, before swimming out while air lasts and straight through water when no dry ground lies away; swimming out
+   lands away from creepers; flee won't dig in beside one; a creeper within 8 blocks stops any skill but flee,
+   build_shelter and sleep, hunts included (unit-tested, not seen live). Live after: 0 of 16 died (lowest health 8,
+   at the lake), d068ff2. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
