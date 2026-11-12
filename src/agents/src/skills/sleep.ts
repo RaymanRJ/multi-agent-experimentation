@@ -2,6 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Block } from "prismarine-block";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
+import type { Bot } from "mineflayer";
 import { opensOnClick, roomStaysOpen, threatened, withTimeout } from "./util.js";
 export { roomStaysOpen };
 import { BEDS_FROM, BEDS_UNTIL, bedRefusal } from "../daytime.js";
@@ -17,7 +18,29 @@ const TRAVEL_TIMEOUT_MS = 30_000;
  * runs sleepers missed each other by as little as a second (tbase1, thome1).
  */
 const MAX_IN_BED_MS = 10 * 60_000;
-const MONSTER_RANGE = 10;
+/**
+ * The game's own rule, measured live on 7 November with a zombie held still outside a closed home: no sleep with a
+ * monster within about 7 blocks of the bed on either side (7 straight out refused, 8 allowed; 7 and 7 diagonally
+ * allowed) and 6 up or down, walls or not. Our own check refused anything within 10 blocks, which turned away
+ * 8 of tluna15's 23 refusals that the game would have allowed.
+ */
+const BED_BOX = { side: 7.5, below: 6.5, above: 5 };
+
+/** The nearest monster inside the game's box round `at`, named for the model. */
+function monsterAtBed(bot: Bot, at: Vec3): string | null {
+  let best: { name: string; d: number } | null = null;
+  for (const e of Object.values(bot.entities)) {
+    if (!e || e.type !== "hostile") continue;
+    const dx = Math.abs(e.position.x - at.x), dz = Math.abs(e.position.z - at.z), dy = e.position.y - at.y;
+    if (dx > BED_BOX.side || dz > BED_BOX.side || dy < -BED_BOX.below || dy > BED_BOX.above) continue;
+    const d = e.position.distanceTo(bot.entity.position);
+    if (!best || d < best.d) best = { name: e.name ?? "a hostile mob", d };
+  }
+  if (!best) return null;
+  // A fact a player knows, not advice: in tluna29c the agents waited three nights for a creeper by the wall to move off.
+  const stays = best.name === "creeper" ? " (a creeper does not burn in daylight, and stays near a player it can sense)" : "";
+  return `${best.name} is ${Math.round(best.d)} blocks away${stays}`;
+}
 
 /** Tries to put a bed from inventory on flat ground next to the bot. */
 async function placeBed(ctx: SkillContext): Promise<boolean> {
@@ -141,7 +164,7 @@ export const sleep: Skill = {
   description:
     "Sleep through the night in a bed: finds a bed within 32 blocks (or places one from your inventory), walks to it and sleeps " +
     `until morning or until woken: by a hit, or by a teammate speaking to you by name. Takes no arguments. Beds can only be used from about ${BEDS_FROM} until ${BEDS_UNTIL} ` +
-    "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (hostiles within 10 blocks stop you sleeping). " +
+    "(timeOfDay); outside those hours it fails and says how long to wait. Fails with `no bed nearby or in inventory`, or `monsters nearby` (the game allows no sleep with a monster within about 7 blocks of the bed, even outside a closed home's walls). " +
     "The night is only skipped when every player is asleep; otherwise this fails and says who was not in bed. " +
     "Inside a shelter, a bed you carry is put down inside it; a bed in a shelter you are not in is reached by going into that shelter and closing it behind you.",
   args: {},
@@ -150,8 +173,7 @@ export const sleep: Skill = {
     const bot = ctx.bot;
     const refusal = bedRefusal(bot.time.timeOfDay);
     if (refusal) return { status: "failed", reason: refusal, detail: { timeOfDay: bot.time.timeOfDay } };
-    const danger = threatened(ctx, MONSTER_RANGE);
-    if (danger) return { status: "failed", reason: `monsters nearby: ${danger}` };
+    // Monsters by the bed are the game's to judge (see BED_BOX); one asleep inside a closed home is safe from them.
 
     const bedIds = Object.values(bot.registry.blocksByName)
       .filter((b) => b.name.endsWith("_bed"))
@@ -234,7 +256,7 @@ export const sleep: Skill = {
       bot.removeListener("message", hear);
       const message = told ? `${(error as Error).message} ${told}` : (error as Error).message;
       const reason = /monster/i.test(message)
-        ? "monsters nearby"
+        ? `monsters nearby${(() => { const m = monsterAtBed(bot, new Vec3(x + 0.5, y, z + 0.5)); return m ? `: ${m}` : ""; })()} — the game allows no sleep with a monster within about 7 blocks of the bed, walls or not`
         : /day/i.test(message)
           ? (bedRefusal(bot.time.timeOfDay) ?? "the game says it is not yet time to sleep")
           : /occupied/i.test(message)
@@ -274,11 +296,11 @@ export const sleep: Skill = {
       } catch {
         // already awake
       }
-      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { slept: true, health: bot.health } };
+      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { slept: true, at: { x, y, z }, health: bot.health } };
       return {
         status: "failed",
         reason: `you slept for ${seconds}s and got up while it was still night — the night only passes when every player in the world is asleep${whoIsAwake(bot, count)}`,
-        detail: { slept: true, health: bot.health },
+        detail: { slept: true, at: { x, y, z }, health: bot.health },
       };
     }
     // The morning's time update can land a moment after the wake.
@@ -287,7 +309,7 @@ export const sleep: Skill = {
       return {
         status: "failed",
         reason: `woke before morning after ${seconds}s — the night only passes when every player in the world is asleep, or something woke you`,
-        detail: { slept: true, health: bot.health },
+        detail: { slept: true, at: { x, y, z }, health: bot.health },
       };
     }
     // Skipped (everyone asleep) or slept until it ended: the time of day leapt ahead of the world's age, or kept pace.
@@ -296,7 +318,7 @@ export const sleep: Skill = {
     return {
       status: "success",
       ...(skipped ? {} : { reason: `you slept until morning, but the night was not skipped — it only passes when every player in the world is asleep${whoIsAwake(bot, count)}` }),
-      detail: { slept: true, skipped, health: bot.health },
+      detail: { slept: true, at: { x, y, z }, skipped, health: bot.health },
     };
   },
 };
@@ -306,12 +328,49 @@ export const sleep: Skill = {
  * its carrier slept: in tbase3 Sonnet planned to "place beds" in the team's shelter, slept, and so put
  * down one of its two, while Luna, beside it, had none.
  */
+/** The bed each agent last made its respawn point, so it is not clicked again. */
+const claimed = new WeakMap<Bot, string>();
+
+/**
+ * Makes a bed in reach this agent's respawn point, by using it by day, as a player does: the game answers "Respawn
+ * point set" without sleeping. Without it an agent that dies before its first night in a bed comes back at the
+ * world's spawn, outside, with nothing: in tluna21 19 of 27 respawns were outside the home, and 18 deaths came before
+ * an agent's first sleep (tluna20: 3). At night it does nothing (using a bed is sleeping, which sets it anyway).
+ * Returns where, or null.
+ */
+export async function claimBed(bot: Bot): Promise<string | null> {
+  const t = bot.time.timeOfDay;
+  if (t >= BEDS_FROM - 200 && t <= BEDS_UNTIL + 100) return null;
+  const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
+  const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+  const beds = bot.findBlocks({ matching: bedIds, maxDistance: 5, count: 16 })
+    .map((p) => bot.blockAt(p)!)
+    .filter((b) => b && eye.distanceTo(b.position.offset(0.5, 0.3, 0.5)) <= 4.5 && b.getProperties()["occupied"] !== true)
+    .sort((a, b) => eye.distanceTo(a.position) - eye.distanceTo(b.position));
+  const bed = beds[0];
+  if (!bed) return null;
+  const key = `${bed.position.x},${bed.position.y},${bed.position.z}`;
+  if (claimed.get(bot) === key) return key;
+  let set = false;
+  const hear = (message: { toString(): string }) => { if (/respawn point set|spawn point set/i.test(message.toString())) set = true; };
+  bot.on("message", hear);
+  try {
+    await bot.activateBlock(bed).catch(() => {});
+    for (let tick = 0; tick < 20 && !set; tick++) await bot.waitForTicks(1);
+  } finally {
+    bot.removeListener("message", hear);
+  }
+  if (!set) return null;
+  claimed.set(bot, key);
+  return key;
+}
+
 export const placeBedSkill: Skill = {
   name: "place_bed",
   description:
     "Put a bed you carry down without sleeping in it, for you or anyone to sleep in. Inside a shelter, it goes in the shelter; " +
     `outside, with a shelter within ${BED_RANGE} blocks, it goes into the largest one near you; otherwise next to you. ` +
-    "Takes no arguments; puts down one bed.",
+    "By day you also use the bed, which makes it where you come back if you die (as sleeping in it does). Takes no arguments; puts down one bed.",
   args: {},
 
   async run(ctx: SkillContext): Promise<SkillResult> {
@@ -349,6 +408,11 @@ export const placeBedSkill: Skill = {
     const bedIds = bot.registry.blocksArray.filter((block) => block.name.endsWith("_bed")).map((block) => block.id);
     const heads = bot.findBlocks({ matching: bedIds, maxDistance: 8, count: 16 }).filter((point) => bot.blockAt(point)?.getProperties()["part"] === "head");
     const where = inside ? `in the shelter at ${spotKey(inside)}` : "next to you";
-    return { status: "success", reason: `put a bed down ${where}; ${heads.length} ${heads.length === 1 ? "bed is" : "beds are"} down within 8 blocks`, detail: { beds: heads.length } };
+    const spawn = await claimBed(bot).catch(() => null);
+    return {
+      status: "success",
+      reason: `put a bed down ${where}; ${heads.length} ${heads.length === 1 ? "bed is" : "beds are"} down within 8 blocks${spawn ? `; you used it, so you come back here if you die` : ""}`,
+      detail: { beds: heads.length, ...(spawn ? { respawnAt: spawn } : {}) },
+    };
   },
 };

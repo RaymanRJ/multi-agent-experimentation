@@ -122,6 +122,21 @@ test("flee and eat are not interrupted by messages; a sleeper is, so it can stil
   assert.match(asleep.check({ ...base, directed: 1, lastDirected: { from: "agent_b", text: "can I have your spare bed?" } }) ?? "", /agent_b said to you/);
 });
 
+test("a hunt runs to its end through teammates' messages, which wait for the next decision", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED["hunt"]);
+  assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "lc", text: "Cooking 2 pork now" } }), null);
+});
+
+test("digging (descend, tunnel, mine_ore) runs through teammates' messages, but not through a monster", () => {
+  const base = { health: 20, hostiles: [], timeOfDay: 1000 };
+  for (const skill of ["descend", "tunnel", "mine_ore"]) {
+    const watch = createWatch({ ...base, directed: 0 }, SUPPRESSED[skill]);
+    assert.equal(watch.check({ ...base, directed: 1, lastDirected: { from: "lc", text: "Need iron?" } }), null, skill);
+  }
+  assert.notEqual(createWatch({ ...base, directed: 0 }, SUPPRESSED["mine_ore"]).check({ ...base, directed: 0, hostiles: [zombie(5)] }), null);
+});
+
 test("damage while out of air says the agent is drowning", () => {
   const w = createWatch(calm);
   assert.match(w.check({ ...calm, health: 18, oxygen: 0 })!, /out of air/);
@@ -163,4 +178,13 @@ test("a hostile outside a closed shelter does not interrupt; damage still does",
   assert.match(w.check({ ...calm, enclosed: true, hostiles: [zombie(2)], health: 17 })!, /took damage/);
   const open = createWatch(calm);
   assert.match(open.check({ ...calm, hostiles: [zombie(2)] })!, /zombie came within/);
+});
+
+test("a creeper within 8 blocks stops even a hunt, which carries on beside other monsters, but not a flee", () => {
+  const creeper = (distance: number) => ({ id: 9, name: "creeper", distance });
+  assert.match(createWatch(calm, SUPPRESSED["hunt"]).check({ ...calm, hostiles: [creeper(7)] })!, /creeper came within 8 blocks \(now 7\)/);
+  assert.equal(createWatch(calm, SUPPRESSED["hunt"]).check({ ...calm, hostiles: [zombie(4)] }), null, "a zombie still doesn't stop a hunt");
+  assert.equal(createWatch(calm, SUPPRESSED["flee"]).check({ ...calm, hostiles: [creeper(3)] }), null, "flee is the answer to it");
+  assert.equal(createWatch(calm).check({ ...calm, hostiles: [creeper(10)] }), null, "farther off: no");
+  assert.equal(createWatch(calm).check({ ...calm, hostiles: [creeper(7)], enclosed: true }), null, "behind closed walls: no");
 });

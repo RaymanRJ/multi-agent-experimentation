@@ -2,8 +2,8 @@ import type { ModelCall } from "../types.js";
 
 /**
  * US dollars (USD) per million tokens: [input, output] or [input, output, cached input]. Claude's
- * cache rates are multiples of its input price (below). Elsewhere, cached input without a listed price
- * is billed at the full input price, so a cost is never understated.
+ * cache rates are multiples of its input price (below). Elsewhere, cached input is billed at its listed
+ * price, or at the full input price where none is listed.
  *
  * Checked against the providers' own pages on 28 October 2026, both in USD:
  * platform.claude.com/docs/en/about-claude/pricing ("All prices are in USD") and
@@ -26,15 +26,17 @@ const PRICING: Record<string, [number, number] | [number, number, number]> = {
   "claude-haiku-5-5": [0.1, 0.5],
   "claude-haiku-4-5": [1.0, 5.0],
 
-  // OpenAI models. The GPT-6 models list cached input (Luna $0.01, Sol $0.10, Astra $1.00) but also
-  // cache writes above the input price (Luna $0.125), and the API doesn't report how many tokens were
-  // written, so cached input is billed at the full price: costs may be overstated, never understated.
+  // OpenAI models, with the GPT-6 models' listed cached-input prices (Luna $0.01, Sol $0.10, Astra $1.00).
+  // Cache writes cost a little above input (Luna $0.125) and the API doesn't report how many tokens were
+  // written, so those are priced as plain input: a cost may be understated by a few percent. Until 10 November
+  // cached input was priced in full, which put Luna runs at about 2.7 times the bill (tluna20: $1.45
+  // estimated, $0.53 billed).
   "gpt-4.1-mini": [0.4, 1.6, 0.1],
-  "gpt-6-luna": [0.1, 0.5],
+  "gpt-6-luna": [0.1, 0.5, 0.01],
   "gpt-6.1-terra": [1.0, 5.0],
-  "gpt-6.1-sol": [2.0, 10.0],
-  "gpt-6-sol": [2.0, 10.0],
-  "gpt-6-astra": [10.0, 50.0],
+  "gpt-6.1-sol": [2.0, 10.0, 0.1],
+  "gpt-6-sol": [2.0, 10.0, 0.1],
+  "gpt-6-astra": [10.0, 50.0, 1.0],
 };
 
 /** Models with a known price, for error messages. */

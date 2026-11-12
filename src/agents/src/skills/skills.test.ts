@@ -9,7 +9,7 @@ import { SKILLS, findSkill } from "./index.js";
 import { runSkill } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { Vec3 } from "vec3";
-import { firstSolidBetween } from "./mineOre.js";
+import { firstSolidBetween, standsFor } from "./mineOre.js";
 
 const run = (name: string, setup: Parameters<typeof fakeBot>[0], args: Record<string, unknown> = {}, stop = false) => {
   const { bot } = fakeBot(setup);
@@ -53,15 +53,23 @@ test("wait - clamps its seconds and stops when the run ends", async () => {
   assert.deepEqual([stopped.status, stopped.reason], ["aborted", "the run is ending"]);
 });
 
-test("sleep - refuses outside the hours beds work, with monsters near, and with no bed", async () => {
+test("sleep - refuses outside the hours beds work and with no bed; monsters by the bed are the game's to judge (checked live)", async () => {
   assert.match((await run("sleep", { timeOfDay: 12191 })).reason!, /too early to sleep: beds can be used from about 12541 \(18 seconds from now\)/);
   assert.match((await run("sleep", { timeOfDay: 23500 })).reason!, /it is morning, too late to sleep/);
-  assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /monsters nearby/);
+  assert.match((await run("sleep", { timeOfDay: 18000, entities: [zombie(3)] })).reason!, /no bed nearby/, "no check of our own stricter than the game's");
   assert.match((await run("sleep", { timeOfDay: 12600 })).reason!, /no bed nearby or in inventory — a bed is crafted from 3 wool and 3 planks, and wool comes from sheep/);
   const { bot } = fakeBot({ timeOfDay: 18000, blocks: { ...floor(64), "2,64,0": "red_bed" } });
   (bot as unknown as { parseBedMetadata: () => { occupied: boolean } }).parseBedMetadata = () => ({ occupied: true });
   const taken = await findSkill("sleep")!.run(context(bot), {});
   assert.match(taken.reason!, /^every bed nearby is taken by someone sleeping in it, and you have none to put down/);
+});
+
+test("mine_ore - a dry place beside wet ore: open ground, or rock to dig a pocket in, never anything wet", () => {
+  const { bot } = fakeBot({ blocks: { ...floor(64), "0,64,0": "stone", "0,65,0": "stone", "1,64,0": "stone", "1,65,0": "water", "2,64,0": "stone", "2,65,0": "stone", "2,66,0": "water" } });
+  assert.equal(standsFor(bot, new Vec3(3, 64, 0)), "open");
+  assert.equal(standsFor(bot, new Vec3(0, 64, 0)), "pocket", "rock with rock overhead: dug out, as a player tunnels in beside ore");
+  assert.equal(standsFor(bot, new Vec3(1, 64, 0)), null, "water at the head");
+  assert.equal(standsFor(bot, new Vec3(2, 64, 0)), null, "rock with water right above it: the pocket would flood");
 });
 
 test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is", async () => {
@@ -82,7 +90,18 @@ test("mine_ore - names the valid ores, the pickaxe needed, and where the ore is"
     inventory: { stone_pickaxe: 1 },
     blocks: { "3,63,0": "iron_ore", "2,63,0": "water", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "stone", "3,63,1": "stone", "3,63,-1": "stone" },
   }, { ore: "iron" });
-  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is beside lava, under water or below water, which this won't mine — explore/);
+  assert.match(wet.reason!, /^no iron ore in reach within 48 blocks; 1 iron ore in sight is under water, and you carry no cobblestone, dirt or stone to plug it — explore/);
+  // On a pool's floor: water above and round it, nothing dry beside it. Blocks in hand don't help.
+  const pool: Record<string, string> = { "3,62,0": "iron_ore" };
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = 63; dy <= 66; dy++) if (!(dx === 0 && dz === 0 && dy === 62)) pool[`${3 + dx},${dy},${dz}`] = "water";
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (dx || dz) pool[`${3 + dx},62,${dz}`] = "water";
+  const floor = await run("mine_ore", { inventory: { stone_pickaxe: 1, cobblestone: 32 }, position: { x: 12.5, y: 64, z: 0.5 }, blocks: { ...pool } }, { ore: "iron" });
+  assert.match(floor.reason ?? "", /can't be mined from here: it lies under water with no dry ground or rock beside it to stand in|no iron ore in reach/);
+  const hot = await run("mine_ore", {
+    inventory: { stone_pickaxe: 1, cobblestone: 10 },
+    blocks: { "3,63,0": "iron_ore", "2,63,0": "lava", "4,63,0": "stone", "3,62,0": "stone", "3,64,0": "air", "3,63,1": "stone", "3,63,-1": "stone" },
+  }, { ore: "iron" });
+  assert.match(hot.reason!, /1 iron ore in sight is beside lava and can't be mined/, "lava is never plugged");
   const stopped = await run("mine_ore", { inventory: { stone_pickaxe: 1 } }, { ore: "iron" }, true);
   assert.equal(stopped.status, "aborted");
   const chased = await run("mine_ore", { inventory: { stone_pickaxe: 1 }, entities: [zombie(4)] }, { ore: "coal" });
@@ -173,10 +192,10 @@ test("climb_out - done under open sky; won't dig beside water, or start from it 
 test("hunt and shear - say what's missing before they move", async () => {
   assert.match((await run("hunt", {})).reason!, /say what to hunt/);
   assert.match((await run("hunt", {}, { target: "tester" })).reason!, /cannot attack yourself/);
-  assert.match((await run("hunt", {}, { target: "cow" })).reason!, /^no cow within 32 blocks — explore to find one/);
-  assert.match((await run("hunt", { entities: [zombie(40)] }, { target: "zombie" })).reason!, /no zombie within 32 blocks/, "too far away");
+  assert.match((await run("hunt", {}, { target: "cow" })).reason!, /^no cow within 64 blocks — explore to find one/);
+  assert.match((await run("hunt", { entities: [zombie(70)] }, { target: "zombie" })).reason!, /no zombie within 64 blocks/, "too far away");
   assert.match((await run("shear", {})).reason!, /need shears — craft them from 2 iron_ingot/);
-  assert.match((await run("shear", { inventory: { shears: 1 } })).reason!, /^no sheep within 32 blocks — explore to find some/);
+  assert.match((await run("shear", { inventory: { shears: 1 } })).reason!, /^no sheep within 64 blocks — explore to find some/);
 });
 
 test("runSkill - an error a skill didn't catch becomes a failed result, and the pathfinder is stopped", async () => {
@@ -364,4 +383,11 @@ test("go_to - a far home is walked to in legs, to the ground before its doorway,
   assert.equal(Math.round(goals[0]?.x ?? 0), 32, "a first leg of 32 blocks, not one path all the way");
   assert.equal(goals[1]?.z, 4, "then toward the ground before its doorway (south side)");
   assert.match(result.reason ?? "", /could not get into a large shelter at 60,64,0/, "then in by the doorway");
+});
+
+test("light - with nothing to make torches from, says what a torch needs (crafting them is checked live)", async () => {
+  const none = await run("light", { blocks: floor(64) }, {});
+  assert.equal(none.status, "failed");
+  assert.match(none.reason!, /a torch is 1 coal or charcoal and 1 stick \(they make 4\) — mine_ore coal, or smelt logs into charcoal/);
+  assert.ok(findSkill("light"), "light is in the skill list");
 });

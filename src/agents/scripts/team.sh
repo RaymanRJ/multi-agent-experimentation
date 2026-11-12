@@ -10,7 +10,7 @@
 #   STANCE=collaborative GOAL=team-camp scripts/team.sh t3 "haiku=claude@claude-haiku-4-5 qwen=ollama"
 #   STANCE=collaborative COMMS=on GOAL=shelter scripts/team.sh t2 "opus=claude:full@claude-opus-5-5 sol=gpt@gpt-6.1-sol"
 #
-# STANCE (neutral), COMMS (on), PROGRESS (off), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent.
+# STANCE (neutral), COMMS (on), PROGRESS (on; off is its own condition), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent.
 # VIEW=on serves each agent's view in a browser, the first at localhost:3007, the next at 3008, and so on. @model sets the brain's
 # model variable for that agent only, so two models from one provider can play together.
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/team-NAME.txt
@@ -24,7 +24,7 @@ ticks="${4:-12000}"
 scenario="${5:-sandbox}"
 stance="${STANCE:-neutral}"
 comms="${COMMS:-on}"
-progress="${PROGRESS:-off}"
+progress="${PROGRESS:-on}"
 budget="${BUDGET_USD:-1.00}"
 goal="${GOAL:-tools}"
 view="${VIEW:-off}"

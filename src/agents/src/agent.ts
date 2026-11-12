@@ -10,7 +10,7 @@ import { attachComms, narrate, responseTo, speak, trackActivity, type MessageBuf
 import { createWatch, DAMAGE_FLOOR, REACHABLE_ONLY, suppressedFor, type Watch, type WorldSnapshot } from "./interrupts.js";
 import { guardWhileDeciding, unburyHead } from "./reflexes.js";
 import { enclosed } from "./skills/flee.js";
-import { describeShelter, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
+import { describeShelter, doorwayState, HOME_RANGE, TEAM_HOME_RANGE, hostilesInside, intrudersIn, insideClosedShelter, insideSpot, keepDoorsShut, mobsAtDoorwayNote, mobsInsideNote, protectHomes, REUSE_RANGE, walkThroughDoors, spotKey, standing, type ShelterSpot } from "./skills/buildShelter.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
@@ -20,14 +20,15 @@ import { toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 import { looksStuck, surroundings, type Surroundings } from "./surroundings.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
-import { GOAL_CHECKS, GOAL_GAPS, SCENARIOS, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, SEED, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
+import { ownFloods } from "./skills/underground.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { canReach, getOutOfWater, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
+import { NEUTRAL_UNTIL_PROVOKED, canReach, getOutOfLava, getOutOfWater, groundAbove, headInWater, inLava, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -43,7 +44,7 @@ const argv = minimist(process.argv.slice(2), {
   string: ["scenario", "brain", "name", "goal", "memory", "comms", "stance", "episode", "progress", "team"],
   // A run ends on its goal, the model saying "done", or the in-game time budget
   // (one full day by default). --steps is only a safety cap; --budget-usd guards paid models.
-  default: { scenario: "sandbox", brain: "scripted", ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "off" },
+  default: { scenario: "sandbox", brain: "scripted", ticks: 24000, "budget-usd": 1, memory: "plan", comms: "on", stance: "neutral", progress: "on" },
 });
 // The step cap scales with the time budget, 200 decisions per in-game day, so it stays a safety cap:
 // a flat 200 ended bpoc4's lc and tlunap1's lb with game time left on a three-day run.
@@ -75,7 +76,8 @@ if (!["on", "off"].includes(commsArg)) {
   process.exit(1);
 }
 const comms = commsArg === "on";
-const progressArg = String(argv["progress"] || "off");
+// On by default since 8 November (the owner's call); `--progress off` is the condition without it.
+const progressArg = String(argv["progress"] || "on");
 if (!["on", "off"].includes(progressArg)) {
   console.error(`unknown --progress "${progressArg}" — expected on or off`);
   process.exit(1);
@@ -137,7 +139,7 @@ function buildPolicy(brain: string): { policy: Policy; backend?: Backend } {
 function snapshot(bot: mineflayer.Bot, buffer: MessageBuffer | null, enclosed: boolean): WorldSnapshot {
   const hostiles: WorldSnapshot["hostiles"] = [];
   for (const entity of Object.values(bot.entities)) {
-    if (!entity || entity.type !== "hostile") continue;
+    if (!entity || entity.type !== "hostile" || NEUTRAL_UNTIL_PROVOKED.has(entity.name ?? "")) continue;
     const distance = entity.position.distanceTo(bot.entity.position);
     // Whether it can get at the agent matters only near enough to interrupt; the sight test walks the line block by block.
     hostiles.push({ id: entity.id, name: entity.name ?? "hostile mob", distance, ...(distance <= 16 ? { reachable: canReach(bot, entity) } : {}) });
@@ -184,12 +186,13 @@ async function main(): Promise<void> {
   const brain = brainLabel(probe ? [{ calls: [probe] } as unknown as LoggedStep] : []);
   const start: RunStart = {
     agent: agentName, brain: brain.label, brainDetail: brain.detail, goal, scenario: scenario.name,
-    memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(),
+    memory: backend ? memory : null, comms, stance: backend ? stance : null, episode: config.episode, startedAt: new Date().toISOString(), seed: SEED,
     ...(viewPort !== null ? { view: viewPort } : {}),
   };
   writeFileSync(startFileFor(runLog.file), JSON.stringify(start));
 
-  console.log(`[${agentName}] scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
+  if (HERDS.length === 0) console.warn(`[${agentName}] no herd spots are surveyed for seed "${SEED}": no animals will be placed (HERDS_BY_SEED in scenario.ts)`);
+  console.log(`[${agentName}] seed=${SEED} scenario=${scenario.name} brain=${policy.name} episode=${config.episode} memory=${memory} comms=${comms ? "on" : "off"} stance=${stance} progress=${progress ? "on" : "off"} -> ${runLog.file}`);
   console.log(`[${agentName}] goal: ${goal}`);
 
   await applyScenario(scenario, {
@@ -393,7 +396,7 @@ async function main(): Promise<void> {
   // And the chests the team knows, each as last seen by anyone: a teammate's look replaces an older one.
   const teamChests = () => latestChests([chestViews, ...Object.values(board?.read() ?? {}).map((m) => m?.chests ?? {})]);
   const knownChests = new Map<string, string>();
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list() });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list(), floods: ownFloods(bot) });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -500,7 +503,38 @@ async function main(): Promise<void> {
     },
     shouldStop: () => stopping || interruptReason !== null,
     shelters: knownShelters,
+    floods: () => Object.values(board?.read() ?? {}).flatMap((m) => m?.floods ?? []),
     rcon: (command) => serverCommand(command, { host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") }),
+  };
+
+  /**
+   * The same skill failing the same way three times in a row: the failure is followed by facts about where the agent
+   * is and what is round it, never by advice. Most stuck stretches were in the home (1,327 of 3,938 decisions in ten
+   * reps standing in one), some on a doorway full of gravel, some on a pickaxe that was no longer on the ground.
+   */
+  let failing = { key: "", count: 0 };
+  const STUCK_AFTER = 3;
+  const stuckFacts = (skillName: string): string => {
+    const facts: string[] = [];
+    const here = bot.entity.position;
+    const home = knownShelters().find((spot) => insideSpot(bot, spot));
+    if (home) facts.push(`you are inside the ${describeShelter(home).replace(/^an? /, "")} at ${spotKey(home)}, whose doorway is ${doorwayState(bot, home)}`);
+    else {
+      const below = groundAbove(bot);
+      if (below > 0) facts.push(`you are under ${below} blocks of ground`);
+      const nearest = knownShelters().map((s) => ({ s, d: Math.round(here.distanceTo(new Vec3(s.x + 0.5, s.y, s.z + 0.5))) })).sort((a, b) => a.d - b.d)[0];
+      if (nearest) facts.push(`the nearest shelter you know is ${nearest.d} blocks away, its doorway ${doorwayState(bot, nearest.s)}`);
+    }
+    if (/^(pick_up|take|give)$/.test(skillName)) {
+      const items = Object.values(bot.entities)
+        .filter((e) => e?.name === "item" && e.position.distanceTo(here) <= 16)
+        .map((e) => ({ name: (e as unknown as { getDroppedItem(): { name: string; count: number } | null }).getDroppedItem?.(), d: Math.round(e.position.distanceTo(here)) }))
+        .filter((x) => x.name)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 5);
+      facts.push(items.length ? `on the ground within 16 blocks: ${items.map((x) => `${x.name!.count} ${x.name!.name} ${x.d} blocks away`).join(", ")}` : "nothing lies on the ground within 16 blocks");
+    }
+    return facts.join("; ");
   };
 
   let policyFailures = 0;
@@ -518,6 +552,12 @@ async function main(): Promise<void> {
    * model thinking for ten seconds under water drowned (team trio2), and again before each skill.
    */
   const escapeWater = async (): Promise<string | null> => {
+    if (inLava(bot)) {
+      const out = await getOutOfLava(bot);
+      const event = out ? "you were in lava and got out of it" : "you are in lava and could not find a way out";
+      recentEvents.push(event);
+      return event;
+    }
     if (!headInWater(bot)) return null;
     const out = await getOutOfWater(bot);
     const event = out ? "you were under water and swam out" : "you are under water and could not find a way out";
@@ -575,7 +615,7 @@ async function main(): Promise<void> {
     const startedAt = Date.now();
     let output;
     // The body keeps out of reach while the model thinks (reflexes.ts).
-    const guard = guardWhileDeciding(bot, inShelter);
+    const guard = guardWhileDeciding(bot, inShelter, () => knownShelters().filter((spot) => insideSpot(bot, spot)).flatMap((spot) => intrudersIn(bot, spot)));
     const guarded = () => {
       const did = guard.stop();
       if (did) {
@@ -746,6 +786,15 @@ async function main(): Promise<void> {
       }
     }
 
+    // Driven out by water is the skill failing here, not a passing interruption: in tluna24 descend was cut short 39
+    // times by "under water and running out of air" in one flooded layer, and these facts never came.
+    const drivenOut = result.status === "aborted" && /under water and running out of air/.test(result.reason ?? "");
+    const failKey = result.status === "failed" || drivenOut ? `${decision.skill}|${(result.reason ?? "").replace(/-?\d+(\.\d+)?/g, "N")}` : "";
+    failing = failKey && failKey === failing.key ? { key: failKey, count: failing.count + 1 } : { key: failKey, count: failKey ? 1 : 0 };
+    if (failing.count >= STUCK_AFTER) {
+      const facts = stuckFacts(decision.skill);
+      result.reason = `${result.reason ?? "failed"} (the ${failing.count}${failing.count === 3 ? "rd" : "th"} time in a row ${decision.skill} has failed this way${facts ? `; ${facts}` : ""})`;
+    }
     recentEvents.push(`${decision.skill} ${result.status}${result.reason ? ` (${result.reason})` : ""}`);
     const outcome = `${decision.skill} ${JSON.stringify(decision.args)} ${result.status} ${result.reason ?? ""}`;
     repeats = outcome === lastOutcome ? repeats + 1 : 1;

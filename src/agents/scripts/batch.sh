@@ -7,9 +7,9 @@
 #   scripts/batch.sh NAME [REPS] [TICKS] [SCENARIO]
 #   CONDITIONS="scripted ollama:none ollama:plan ollama:full" GOALS="shelter tools" scripts/batch.sh b1
 #   GOALS="tools tools-guided" scripts/batch.sh b5     # bare goal vs the step-by-step one
-#   CONDITIONS="ollama:none ollama:none+progress" scripts/batch.sh b6   # +progress: told what the goal still lacks
+#   CONDITIONS="ollama:none ollama:none+noprogress" scripts/batch.sh b6   # progress (told what the goal still lacks) is on; +noprogress turns it off
 #   BUDGET_USD=15 CONDITIONS="claude:full@claude-sonnet-5-5 claude:full@claude-opus-5-5" scripts/batch.sh p1
-#     a condition is brain[:memory][+progress][@model]; BUDGET_USD caps each paid run (default 1.00)
+#     a condition is brain[:memory][+progress|+noprogress][@model]; BUDGET_USD caps each paid run (default 1.00)
 #   VIEW=on scripts/batch.sh b7    # watch each run in a browser at :3007 (VIEW_PORT to change); one run at a time, so one port
 #
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/batch-NAME.txt
@@ -50,7 +50,8 @@ for rep in $(seq 1 "$reps"); do
       n=$((n + 1))
       model=""; spec="$condition"
       [[ "$spec" == *@* ]] && { model="${spec#*@}"; spec="${spec%%@*}"; }
-      progress=off; base="$spec"
+      progress=on; base="$spec"
+      [ "${spec%+noprogress}" != "$spec" ] && { progress=off; base="${spec%+noprogress}"; }
       [ "${spec%+progress}" != "$spec" ] && { progress=on; base="${spec%+progress}"; }
       brain="${base%%:*}"
       memory="${base#*:}"; [ "$memory" = "$base" ] && memory=plan

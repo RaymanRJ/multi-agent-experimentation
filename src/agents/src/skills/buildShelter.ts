@@ -1,7 +1,10 @@
 import pathfinderPkg from "mineflayer-pathfinder";
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
+import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
+import { lightHome } from "./light.js";
+import { claimBed } from "./sleep.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, doorwayLanes, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
 import { craft, placeNearby } from "./craft.js";
@@ -222,6 +225,11 @@ export function describeShelter(shelter: ShelterSpot): string {
  * through a creeper's hole; the agents were told it was "closed" and 11 of them died to it, respawning at
  * the base's bed.
  */
+/** The monsters inside the shelter. */
+export function intrudersIn(bot: Bot, shelter: ShelterSpot): Entity[] {
+  return Object.values(bot.entities).filter((e): e is Entity => !!e && e.type === "hostile" && pointInside(e.position, shelter));
+}
+
 export function hostilesInside(bot: Bot, shelter: ShelterSpot): string[] {
   return Object.values(bot.entities)
     .filter((e) => e?.type === "hostile" && pointInside(e.position, shelter))
@@ -239,6 +247,22 @@ export function mobsInsideNote(bot: Bot, shelter: ShelterSpot): string {
 export const DOORWAY_RANGE = 8;
 /** The same through a door, which opens and shuts in about a second instead of being dug out and filled. */
 export const DOOR_RANGE = 3;
+/**
+ * A monster this close to the door, or to the agent at it, follows it through in the second the door is open: in
+ * tluna15 agents fled in with a zombie 4-5 blocks behind, the zombie came in, and the door shut with it inside,
+ * where it killed three. Checked again at the door itself, going in or out, since a chaser arrives with the agent.
+ */
+export const FOLLOW_RANGE = 6;
+
+/** Monsters outside the home close enough to the door, or to the agent, to get in while it is open. */
+export function followers(bot: Bot, spot: ShelterSpot): string[] {
+  const { door } = doorwayCells(spot);
+  const at = door.offset(0.5, 0, 0.5);
+  return Object.values(bot.entities)
+    .filter((e) => e?.type === "hostile" && !pointInside(e.position, spot))
+    .filter((e) => Math.min(e.position.distanceTo(at), e.position.distanceTo(bot.entity.position)) <= FOLLOW_RANGE)
+    .map((e) => (e.name ?? "hostile mob").replace(/_/g, " "));
+}
 
 /**
  * Hostile mobs outside the shelter within DOORWAY_RANGE of the cell in front of its doorway, nearest
@@ -630,6 +654,11 @@ async function inThroughDoor(ctx: SkillContext, spot: ShelterSpot, timeoutMs: nu
   const centre = new Vec3(spot.x, spot.y, spot.z);
   const outside = centre.offset(0, 0, r + 1);
   await gotoWatched(bot, new goals.GoalBlock(outside.x, outside.y, outside.z), timeoutMs, "walking to the shelter's doorway");
+  // A monster on the agent's heels gets in while the doorway is open (tluna15: three killed inside a shut home).
+  const close = followers(bot, spot);
+  if (close.length > 0) {
+    throw new Error(`did not open the doorway: ${mobList(close)} ${close.length === 1 ? "is" : "are"} within ${FOLLOW_RANGE} blocks and would follow you in`);
+  }
   const door = doorOf(bot, spot);
   if (door) {
     // Open it, step in; construct shuts it behind.
@@ -726,6 +755,7 @@ export const buildShelter: Skill = {
     "Optional `size`: \"large\" for one room with a 5x5 interior, 3 high, with room for several beds, a chest and a furnace, " +
     "and room to step over a bed: about 105 blocks (27 logs). A large one can be built a part at a time: with too few blocks it places what you have and " +
     "says what is left, and anyone calling build_shelter near it later carries on with it. " +
+    "When you carry torches, coal or charcoal, the shelter you end up in is lit: torches on its walls and one beside its door. " +
     "Stand on reasonably flat open ground to build a new one. You end up standing inside. Returns the shelter's centre position and how many blocks were used.",
   args: { storeys: "number?", size: "string?" },
 
@@ -769,9 +799,18 @@ export const buildShelter: Skill = {
       : whyOpen(ctx, built.gaps, hasDoor);
     const owner = spot?.by ? ` (${spot.by}'s)` : "";
     const company = mobsInsideNote(bot, { ...position, ...use });
+    // Lit with torches when the agent has them or the makings: dark inside by day too, and monsters waited at doors.
+    const home: ShelterSpot = { ...position, ...use, complete: true };
+    const lit = insideSpot(bot, home) ? await lightHome(ctx, home) : null;
+    // A bed in the home, used by day, is where the agent comes back if it dies (sleep.ts, claimBed).
+    const spawnAt = insideSpot(bot, home) ? await claimBed(bot).catch(() => null) : null;
+    const spawnNote = spawnAt ? "; you used a bed here, so you come back here if you die" : "";
+    const litNote = lit?.placed
+      ? `; ${lit.placed} torch${lit.placed === 1 ? "" : "es"} put up (${[lit.inside ? `${lit.inside} inside` : "", lit.door ? "1 beside the door" : ""].filter(Boolean).join(", ")}), so monsters can't spawn there`
+      : "";
     const reason = spot && spot.complete !== false
-      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another`
-      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again`;
+      ? `you are inside ${kind}${owner} at ${position.x},${position.y},${position.z}${built.placed ? `, ${built.placed} missing blocks filled,` : ""} with the doorway ${doorway}${company} — there is no need to build another${litNote}${spawnNote}`
+      : `the ${kind.replace(/^an? /, "")} is finished and you are standing inside it, with the doorway ${doorway}${company} — there is no need to build it again${litNote}${spawnNote}`;
     return {
       status: "success",
       reason,
@@ -784,6 +823,7 @@ export const buildShelter: Skill = {
         blocksPlaced: built.placed,
         doorwayClosed: built.closed,
         complete: true,
+        ...(lit?.placed ? { torchesPlaced: lit.placed } : {}),
         ...(spot ? { entered: true, ...(spot.by ? { by: spot.by } : {}) } : {}),
       },
     };
@@ -843,6 +883,16 @@ function doorwayCells(spot: ShelterSpot): { inner: Vec3; door: Vec3; outer: Vec3
   return { inner: new Vec3(spot.x, spot.y, spot.z + r - 1), door: new Vec3(spot.x, spot.y, spot.z + r), outer: new Vec3(spot.x, spot.y, spot.z + r + 1) };
 }
 
+/** The doorway as a player would see it: "a door, shut", "a door, open", "open", or the blocks that fill it. */
+export function doorwayState(bot: Bot, spot: ShelterSpot): string {
+  const { door } = doorwayCells(spot);
+  const cells = [door, door.offset(0, 1, 0)].map((c) => bot.blockAt(c));
+  const d = cells.find((b) => b && isDoor(b.name));
+  if (d) return d.getProperties?.()["open"] === true ? "a door, open" : "a door, shut";
+  const solid = cells.filter((b) => b && b.boundingBox === "block").map((b) => b!.name.replace(/_/g, " "));
+  return solid.length ? `filled with ${solid.join(" and ")}` : "open";
+}
+
 /** Where a pathfinder goal points, if it says (GoalXZ has no height: the home's floor is assumed). */
 function goalPoint(goal: unknown, y: number): Vec3 | null {
   const g = goal as { x?: number; y?: number; z?: number };
@@ -850,11 +900,15 @@ function goalPoint(goal: unknown, y: number): Vec3 | null {
 }
 
 /** Opens the door, walks straight through it to `to`, and stops there; the door keeper shuts it behind. */
-async function stepThroughDoor(bot: Bot, cells: { door: Vec3 }, from: Vec3, to: Vec3): Promise<void> {
+async function stepThroughDoor(bot: Bot, spot: ShelterSpot, cells: { door: Vec3 }, from: Vec3, to: Vec3): Promise<void> {
   // Up to 48 blocks to the door: 20 s flat ran out ("walking to the door timed out", tluna runs), so a
   // second a block, at least 20.
   const far = bot.entity.position.distanceTo(from.offset(0.5, 0, 0.5));
   await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), Math.max(20_000, Math.round(far * 1000) + 10_000));
+  const close = followers(bot, spot);
+  if (close.length > 0) {
+    throw new Error(`did not open the door: ${mobList(close)} ${close.length === 1 ? "is" : "are"} within ${FOLLOW_RANGE} blocks and would follow you through it`);
+  }
   doorBusy.add(bot);
   try {
     await walkThrough(bot, cells, to);
@@ -912,6 +966,24 @@ async function clearLane(bot: Bot, spot: ShelterSpot): Promise<void> {
   }
 }
 
+/**
+ * A doorway filled with blocks instead of a door is dug out before walking through it, bottom first and again as
+ * gravel or sand falls into the gap. The pathfinder will not dig under a block that falls, so gravel two high in a
+ * doorway shut an agent in for 100 decisions in tluna22a ("No path to the goal"); reproduced live there.
+ */
+async function openDoorway(bot: Bot, spot: ShelterSpot): Promise<void> {
+  const { door } = doorwayCells(spot);
+  for (let dug = 0; dug < 8; dug++) {
+    const block = [door, door.offset(0, 1, 0)].map((c) => bot.blockAt(c)).find((b) => b && b.boundingBox === "block");
+    if (!block || isDoor(block.name) || opensOnClick(block.name)) return;
+    if (bot.entity.position.offset(0, 1.6, 0).distanceTo(block.position.offset(0.5, 0.5, 0.5)) > 4.5) return;
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool) await bot.equip(tool, "hand").catch(() => {});
+    await withTimeout(bot.dig(block), 10_000, `digging the ${block.name} out of the doorway`).catch(() => {});
+    await bot.waitForTicks(6); // a falling block lands in the gap
+  }
+}
+
 export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
   if (unwrappedGoto.has(bot)) return;
   const original = bot.pathfinder.goto.bind(bot.pathfinder);
@@ -926,9 +998,16 @@ export function walkThroughDoors(bot: Bot, homes: () => ShelterSpot[]): void {
       const entering = !inside && goalInside && bot.entity.position.distanceTo(cells.outer) <= 48;
       if (!leaving && !entering) continue;
       await clearLane(bot, spot);
-      if (!doorOf(bot, spot)) break;
-      if (leaving) await stepThroughDoor(bot, cells, cells.inner, cells.outer);
-      else await stepThroughDoor(bot, cells, cells.outer, cells.inner);
+      if (!doorOf(bot, spot)) {
+        // No door: walk to the inside (or outside) of the doorway and dig out whatever fills it, then on as usual.
+        const { inner, outer } = doorwayCells(spot);
+        const from = leaving ? inner : outer;
+        await gotoUnwrapped(bot, new goals.GoalBlock(from.x, from.y, from.z), 20_000).catch(() => bot.pathfinder.setGoal(null));
+        await openDoorway(bot, spot);
+        break;
+      }
+      if (leaving) await stepThroughDoor(bot, spot, cells, cells.inner, cells.outer);
+      else await stepThroughDoor(bot, spot, cells, cells.outer, cells.inner);
       break;
     }
     return original(goal);

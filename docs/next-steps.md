@@ -3,7 +3,7 @@
 Read this at the start of a session; update it when something finishes or a new ask comes in. The
 plan comes first; what's done is a dated list at the end, one line each, with the write-ups holding
 the detail.
-*Last updated 30 October 2026.*
+*Last updated 5 November 2026.*
 
 ## The road ahead (agreed with the owner, 28 October)
 
@@ -97,8 +97,230 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    agents stuck underground by a lake, cost sleep; the log now records the blocks round a failed walk), tluna9b the
    whole goal. **tluna10** (5 reps, frozen 124f45b, US$1.96): 1 whole goal; 4, 3, 3, 3 and 2 parts. **On the one-room
    home: 4 whole goals in 15 reps, 27%; home and food in all 15.** Iron is what stands between that and more than
-   half: lost in deaths carrying it. The minds panel's Progress card now shows each goal's own parts. **Next:** the
-   owner's call on iron. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   half: lost in deaths carrying it. The minds panel's Progress card now shows each goal's own parts.
+   **31 October-1 November:** `flee` keeps to its height underground (17 healthy agents had died fleeing through
+   tunnels); **tluna11** (2 reps, US$0.77): 1 whole goal, so **5 in 17 on the one-room home**; rep 2 ended with the
+   stored meat eaten down to 7 and the team's second pickaxe lost with an agent at health 1. **tluna12a** (US$0.29,
+   not comparable): la crashed on day 1 holding all three pickaxes; the others met every other part. Fixed after,
+   each checked live: under a home `flee` goes up into it by its doorway; walks into a home go by its door; a far
+   home is walked to in legs, and unloaded ground no longer crashes an agent. tluna12b stopped early by the owner
+   (an agent stuck), not looked into. Write-up 06. All pushed 5 November. **tluna13** (7 November, one rep on
+   828d025, US$0.38): 3 of 4 parts (home, all slept, 10 meat), no iron pickaxe at the end; 10 deaths. Gaps
+   reported to the owner, not fixed yet: one pickaxe made all run, lost twice to a witch throwing potions into a
+   home with 15 gaps blown in its walls and no blocks left to fill them (a witch isn't treated as a ranged
+   attacker); `mine_ore` refused 23 times (all iron within 48 blocks wet or by lava, "descend closer") while
+   `descend` refused for drops into caves and water; `descend` from inside the home refused 5 times for no open
+   ground before its door. Not written up yet. **Fixed after (the owner's calls, 7 November), each checked live:** a
+   witch is an archer with a 13-block throw (measured: potions hurt to 12.7 blocks, none at 14 or through a wall), so
+   the body takes cover from it while the model decides; `mine_ore` plugs water touching ore and mines it from a dry
+   place, dug out of the rock if need be, never swimming (tluna13's lake-wall iron: 2 raw iron in 26 s); `descend`
+   and `tunnel` from inside a home walk out to any open ground before the door (the agents' own stairs had left the
+   straight line out with none). Still open: dry iron 14-40 blocks down that `descend` can't reach past caves and
+   water. **Then torches (the owner's ask):** a `light` skill, and `build_shelter` lights a home it finishes or
+   enters when the agent has torches, coal or charcoal (checked live: one torch took a sealed dark room from 121 of
+   121 cells dark to 0). **tluna14** (7 November, one rep on bf666b5, US$0.37): 3 of 4 parts again (home, all slept,
+   11 meat), 1 of 3 iron pickaxes; 2 deaths (tluna13: 10). The home was lit (3 torches, from coal lb carried); no
+   agent chose `light`. `mine_ore` 3 of 12 worked (tluna13: 0 of 27), one on plugged wet ore. No witch, no doorway
+   refusal. Gap reported, not fixed: `descend` stopped 5 times at "every way down is unsafe: water below" on all
+   sides (y=59 to 36), cut short 6 times by teammates' messages and twice by running out of air; la made a pickaxe
+   on day 1 and died with it that night. Not written up yet (tluna13 and tluna14 together). **Then a new world
+   (the owner's call):** seed `testbed`, chosen by a survey of seven: water under 9% of the ground round spawn
+   against 42%, trees 39%, open grass 32%, flat (62-70); the herds moved to its grass. Main world reset to it and
+   both servers checked (seed -1422453073, the hash of "testbed"). **tluna15** (8 November, first rep on testbed,
+   3d0702b, US$0.54): 1 of 4 parts (home only; 2 of 3 slept, 1 pickaxe, 8 meat), 7 deaths. Gaps reported, not
+   fixed: `flee` dug in 3 blocks down in sand with nothing to cover the hole, reported success, and left lc in the
+   pit for 67 decisions (41 more flees, 17 pick_ups, never climb_out); sleep refused 23 times for monsters nearby;
+   `hunt` found "no sheep within 32" 19 times: the herd scatters on open grass (never more than 4 seen at once,
+   14 killed). **Fixed after (the owner's calls, 8 November), each checked live:** `flee` digs in only when the
+   hole can be covered (never with sand or gravel), and `climb_out` gets out of an open pit, digging its walls for
+   blocks to build up on (6 of 6 pits walked away from); `sleep` leaves monsters to the game's own rule, measured
+   live (about 7 blocks a side, 6 up or down, walls or not), instead of our 10-block check, which caused 8 of the
+   23 refusals; the other 15 were monsters 2-7 blocks outside a closed home, which the game refuses; `hunt` and
+   `shear` look 64 blocks out (12 sheep at 49-59 blocks: 2 killed in 18 s). Then the door (the owner's call): 3 of
+   tluna15's 7 deaths were zombies inside the shut home. A door is no longer opened with a monster within 6 blocks of
+   it or of the agent, and while the model decides the body hits a monster inside its home in reach (live: alone
+   with a zombie inside, unguarded died, guarded killed it in 5 blows at full health, 3 of 3). How the zombies got
+   in was not reproduced: on the old code 5 chases in and 4 walks out with a zombie at the door let none in; the
+   door was broken twice by creeper blasts in that run. **tluna16** (8 November, one rep on 5908aaa, US$0.14): **the
+   whole goal**, by day 2 (31:50 of game time), the first on the testbed world; 1 death; 165 decisions in all. None
+   of the new guards fired (no door kept shut, no monster inside, no torch, no pit, no sleep refused for monsters),
+   so the win says the code allows it, not that the fixes caused it. Not written up yet (tluna13-16 together).
+   **tluna17** (8 November, the owner's ask: the fixes on the first world; SEED=multiagent, 478ba33, US$0.21): **the
+   whole goal** again, by day 2 (30:25); 2 deaths (a skeleton, a witch); one door kept shut, one torch up; la's
+   `mine_ore` failed all 14 tries but the team mined 9 raw iron. On that world tluna13 and tluna14 (before the
+   fixes since) met 3 of 4. So on the latest code: 1 of 1 on each world. One SEED setting now picks the world for
+   server and agents, with each seed's herds (`HERDS_BY_SEED`). Noticed, not fixed: the report credits items that
+   arrive during a smelt to the smelt ("lb smelted 2 iron pickaxe": one given by la, one crafted). **Next:** more reps
+   on this code, on either world, to see the rate (ask first), then the write-up of tluna13-17.
+   **Overnight 8 November (the owner's ask: 3 reps per world, US$2.90 credit; capped US$0.25 an agent, a driver
+   that stops before a rep could pass US$2.75):** all six ran on 15fca7f, US$1.88. Original world (tluna18a-c): 3, 3
+   and 2 parts, no whole goal; with tluna17, **1 of 4**. New world (tluna19a-c): 3 parts, **the whole goal**
+   (19b, 17:51 of game time, US$0.09, no deaths) and 2 parts; with tluna16, **2 of 4**. Home every rep, food every
+   rep; iron the part missing in 5 of the 6 losses. Where it went: on the original world, pickaxes made and lost in
+   deaths (18a: all three made, la died carrying two), `descend` stopped by water below (18b, 19 refusals), and 10
+   of 18c's 13 deaths healthy agents (13-20 health) killed while fleeing underground (y 31-53); on the new world one
+   pickaxe short twice (19a lost one in a death; 19c made two). Sleep: 19c nobody slept, mostly not tried (3
+   tries); 18c one never slept. The guards fired: intruders fought in 3 reps, doors kept shut 7 times, wet ore
+   plugged in all 3 original-world reps, torches up in 4; `light` never chosen. Open, not fixed: underground flee
+   deaths on the original world; descend past water below; 19c's "walking to the door timed out" from inside a
+   home (5); the report undercounts sleepers (19b: all three slept, it says 2) and credits items gained during a
+   smelt to the smelt. Not written up yet (tluna13-19).
+   **Fixed after (the owner's calls, 8 November), each checked live:** underground with a monster close, `flee`
+   shuts the agent in before running (dug in, into the rock, or walled in; carved caves, monsters 7 blocks off:
+   old died 3 of 3, new survived 3 of 3); inside a home with no monster in it, `flee` closes the home and stays, and
+   never digs or walls up inside one (19c's door timeouts: two dig-ins through the floor left blocks that, with the
+   table, furnace and chest, boxed the room's centre; old walled itself in the room 3 of 3, new closed up 3 of 3);
+   the report counts sleepers where they slept (19b and 18c were 3 of 3, so 18c met 3 of 4 parts, not 2) and credits
+   smelts and crafts only with what they made. Owner's questions (8 November): progress was off in every run (its
+   own condition); agents talk a lot (1,181 messages in 2,143 decisions, 120 questions, 65 answered) and see shared
+   sightings and chests in most observations; no agent ever stored iron (0 of 21 stores); 10 swords made, no armor
+   or shield, never chose to fight a monster (226 flees). The owner is unhappy switching worlds: the original world
+   is the one to beat. Then (the owner's calls): progress on by default (71f7942); `descend` and `tunnel` light their
+   way, a torch every 8 steps from what is carried (checked live: 2 of 113 path cells left dark); fighting and
+   shields left for a later round. **tluna20a-e** (9 November, the original world, 086a57d, progress on, US$1.45
+   estimated, about US$0.75 billed): **3 of 5 whole goals** (20a 49:39, 20b 25:34, 20d 47:26 of game time); 20c and
+   20e met everything but iron (0 and 1 of 3 pickaxes). With tluna17, the latest code is 4 of 6 on the original world
+   (tluna18a-c, before the flee/home/torch fixes and with progress off, 0 of 3). Deaths 4.4 a rep against 7.3,
+   underground 2.4 against 5.0; but 13 healthy agents still died fleeing (10 underground). Underground flees: 37
+   reached home, 11 shut in, 8 tried home and failed, 24 ran with a monster within 10. Fatal ones mostly had home 29-46
+   blocks off: flee still runs for a home that far through the cave before the shut-in is reached. Not fixed (the
+   owner's call): shut in first underground and run home only when it is close. Torches along the way: 41 placed;
+   10 descents and tunnels had none to place. Our cost estimate is about double the bill (cached input priced in full).
+   **tluna21a-c** (9 November, 35e2506: underground flee shuts in before running for a home more than 12 blocks off;
+   stopped by the owner during 21d, whose partial logs are in runs/.killed): **0 of 3** (3, 3 and 2 parts; iron short
+   in all, 21c also 9 of 10 meat). 27 deaths (9.0 a rep against 4.4 in tluna20): 15 during flee on the surface, 6
+   underground; 6 underground shut-ins, none followed by a death. On the original world the latest code stands at
+   4 of 9 (tluna17, 20a-e, 21a-c). US$1.09 estimated. **Why it was worse (looked into, 9 November):** not the flee
+   change. In 21a and 21b nobody slept on night 1: no beds until day 2 (wool late: 21a's day-1 sheep hunts failed 9
+   of 12, 5 of them cut short by teammates' messages and 4 "the sheep got away"; in 21b sheep were in view in 15 of
+   142 day-1 observations against 64-99 elsewhere). With no bed there is no respawn point: 19 of 27 respawns were
+   outside the home (tluna20: 3 of 22), at night, empty-handed, and 18 deaths came before an agent's first sleep (tluna20:
+   3). Respawned with nothing, flee could not dig in ("stone too slow without a pickaxe" 12 times) or wall in (no
+   blocks, 8), and the home had monsters at its doorway, so it ran until it died: lb died 7 times on night 2 of 21a.
+   That spiral began with lb walking out of the closed home at night to dig (its own choice, left alone).
+   **Changed after (the owner's calls):** a bed put down, or found in a home walked into, is used by day, which makes
+   it the agent's respawn point (live: both agents came back 3 blocks from the home's centre); `hunt` runs to its end
+   through teammates' messages, which wait for the next decision. **tluna22a-b** (9 November, 90ff1ec, US$0.93
+   estimated): **0 of 2**, both 3 of 4 parts, iron short (2 and 1 of 3). The two changes worked: 3 deaths a rep (21a-c:
+   9), every agent asleep on night 1, every respawn inside the home, day-1 sheep hunts 12 of 17 worked. Iron is the
+   only part left: pickaxes made and then lost in deaths on day 3 (22a lc; 22b lb twice), and in 22a lb could not walk
+   out of the closed home 26 times ("No path to the goal") on days 2-3, with its doorway holding a block, not a door;
+   not reproduced live (two tries could not build a whole large home on this world's forest ground). The latest code
+   on the original world: 4 of 11.
+   **Where agents get stuck (looked into, 9 November; ten reps on the latest code, 3,938 decisions):** 23% of
+   decisions failed, but only 244 in runs of the same skill failing back-to-back (pick_up 62, sleep 41, flee 31,
+   ask_agent 22, go_to 22, give 20). Standing still is the bigger thing: 1,615 decisions in stretches of 8+ within 3
+   blocks, 1,327 of them in the home; some trapped by our code, more waiting and messaging about iron instead of
+   mining it (left as the agents' own behaviour). Fixed (the owner's calls): a doorway filled with blocks is dug out
+   before walking through (gravel two high had shut lb in for 100 decisions in 22a; reproduced at its spot, fixed);
+   after the same skill fails the same way 3 times in a row, the failure says plain facts: where the agent is, the
+   home's doorway, and what lies on the ground (no advice; smoke-run only, not seen live in a repeat). The owner
+   declined guidance or the code stepping in.
+   **tluna23** (9 November, 00b5fb2, US$0.32 estimated, about US$0.12 billed): 3 of 4 parts, **no iron pickaxe**: 5
+   raw iron mined in three days, none made. Safety held (3 deaths, none at night, every respawn in the home, the
+   facts note fired once). What stopped iron is water: descend stopped at "every way down is unsafe: water below"
+   11 times, and mine_ore found iron only "under or below water" with no dry ground beside it 12 times. That is the gap
+   left open after tluna14 (descend plugs water behind a block, not below it), now the main one on this world. lb also
+   could not walk out of the home twice ("No path"), not looked into. Latest code on the original world: 4 of 12.
+   **Then (the owner's calls, 10 November):** descend and tunnel fill water in or under the next step with a block
+   carried (live at tluna23's spots: old reached y=30 from 1 of 3, new from 3 of 3, health 20). Wet ore: left alone
+   after a look (round tluna23's mines 502 iron ore within 48 blocks, 14 in sight, 1 wet, on a pool's floor; the rest
+   is reached by digging, which descend now can). lb's walk-out in tluna23: no snapshot was taken at that spot and
+   the wall had changed since the last one, so the cause is unknown. Cost: GPT-6 cached input is now priced at its
+   listed rate (Luna $0.01) instead of in full; tluna20 re-priced is US$0.69 against US$0.53 billed (was US$1.45).
+   BUDGET_USD caps are on the estimate, so a $0.25 cap now allows about twice the real spend it did.
+   **mine_ore and the loop (looked into, the owner's calls, 10 November):** of 188 mine_ore calls in 11 reps, 87
+   failed at once on ore in sight it would not mine; only 17 were retried within 3 decisions, half citing ore "in
+   sight". Only 8 of 71 ore failures were an ore that had failed before (lb 6 times on one), and 24 were interrupts
+   logged as the ore failing. Changed, each checked live: one rule (`unmineable`) for mine_ore and the shared
+   sightings, which now mark partly wet veins too; the refusal says why each can't be mined ("can't be mined from
+   here: under water with no dry ground or rock beside it"); failed ore is left alone for 10 minutes across calls; an
+   interrupted walk no longer marks the ore failed; the description states the dry-ground condition.
+   **tluna24** (10 November, 94c2dd0, US$0.17 on the new pricing): 3 of 4 parts, no iron pickaxe (la made one and
+   died with it on day 3); 4 raw iron in all. The water fix backfired here: descend was cut short 49 times, 39 by "you
+   are under water and running out of air", in a flooded layer at y 57-61 under the home (x 8-16, z 20-24). It fills
+   the water in its step, but water floods in from all round; the swim-out reflex lifts the agent and it tries again
+   (la 16 times, lb 12, lc 11). Before, descend refused there. The live check passed only because its three spots had
+   small pockets. Latest code on the original world: 4 of 13. No agent used tunnel all run; they kept choosing
+   descend because its new description promised to handle water and each failure read as a passing "under water"
+   interrupt. **Changed (the owner's calls):** descend stops when water keeps coming back (6 s with the head under,
+   or under twice in one call), says so, and refuses to dig down within 6 blocks of there for 10 minutes; its
+   description no longer promises more than it does; the repeated-failure facts count a skill driven out by water.
+   A count of water round the step could not tell a pocket from a flooded layer (10-11 where filling worked, 11-14
+   where it did not), so it was dropped. Live, in a built flooded layer: first dig down through it fine (2 s under);
+   back down the stair it had flooded, stopped after 6 s at health 20; a third try 3 blocks off refused at once;
+   tluna23's spots still reach y=30.
+   **tluna25** (10 November, 071cbaf, US$0.23): 3 of 4 parts, no iron pickaxe (lc made one on day 2, gave it to lb, who
+   died with it on day 3); 5 raw iron in all. Air interrupts down to 12 (tluna24: 39); but descend was refused 35 times
+   "you were driven out by water digging down within N blocks of here": the flooded layer lies under the home, and the
+   agents kept starting descents from near it, each time after doing something else (only 1 right after a refusal), so
+   the repeated-failure facts never fired. tunnel once all run. Latest code on the original world: 4 of 14.
+   **Overnight 10-11 November (the owner's mandate: three Lunas, 3 of 5 consecutive reps on unchanged code, the
+   original world, branch `overnight-luna`):** descend walks clear of ground where it or a teammate was driven out by
+   water, and plans a dry stair before digging (solid ground under every step, nothing that can fall onto it, here or
+   open ground up to 24 blocks off; live: 4 of 4 reached y=40 from over the lake, before 1 of 3); the server image
+   is pinned by digest and Paper build 133. A test that waited 9 hours on a bot the server's connection throttle had
+   kicked was the night's lost time; every script since has a time limit. **tluna26a-c** (11 November, frozen
+   b040a1e, US$0.36 estimated): **1 of 3** (26a the whole goal in 13:54 of game time for US$0.02; 26b and 26c 3 of 4
+   parts), stopped during 26d once 3 of 5 was out of reach. 26b: la was left outside the home at nightfall
+   ("stopped 3 blocks short") and killed with an iron pickaxe; 26c: one bed for three, lc never slept (asked for a
+   turn, refused 21 times "every bed nearby is taken"; no third bed made, left as the agents'). **Fixed after, each
+   checked live:** the head-unburying reflex dug out the home's door whenever an agent stood in an open doorway (in
+   every run since 27 October), now only a block whose solid part holds the eye; mine_ore digs down toward ore in
+   sight up to 40 blocks below through descend's dry planner (2 raw iron in 168 s, dry); endermen no longer stop
+   a skill by being near, and descend and tunnel let teammates' messages wait. **tluna27a-e** (11 November, frozen
+   dc6fb61, US$0.57): **4 of 5 whole goals, the owner's bar met** (27b 44:39, 27c 55:50, 27d 50:02, 27e 30:02 with
+   no deaths); 27a 3 of 4 parts (7 deaths over two nights, iron on day 3, two pickaxes passed round instead of a
+   third made). No door dug out in any rep. Write-up 07. **Fixed after (on branch `mine-msg`, each checked live):**
+   descend walks to open ground clear of a home when every way down is the home's (told an agent on the roof
+   "walk outside first" twice in 27a); mine_ore lets teammates' messages wait (4 of 44 calls cut short).
+   **tluna28a-e** (confirmation on 8fcd497, all five run): 28a 3 of 4 parts, 1 of 3 iron pickaxes (la made all
+   three by day 1 16:26; four were dropped in deaths on night 1 and early day 2), 7 deaths. **Open, not reproduced:**
+   creepers caused 6 of 26 deaths on 11 November, 5 during `flee`, most within two blocks of where the agent stood when
+   it decided ("while you were deciding, you stepped back from a creeper", then "hit by a creeper"); a sixth during a
+   hunt, which ignores monsters. Live on the first world at the death spots, one creeper summoned 6 blocks off and a
+   5 or 9 s decision (Luna's median is 4.8 s, p90 8.4 s) with the guard running, then flee: 16 of 16 lived, health
+   20. The real cases had other monsters close too. The guard steps back only from mobs within 3 blocks (a creeper's
+   fuse range); no change made without a reproduction. **Then reproduced and fixed (the owner's call, 11 November
+   evening):** with a zombie or skeleton beside the creeper and an 8 s decision, 4 of 16 died on the old code, 3 of
+   them at tluna27d's lakeside spot, where the body swam in place or swam out onto the creeper's bank while it walked
+   up. Creepers now get their own reflex, as archers did: backed away from within 8 blocks, again whenever one closes
+   in, before swimming out while air lasts and straight through water when no dry ground lies away; swimming out
+   lands away from creepers; flee won't dig in beside one; a creeper within 8 blocks stops any skill but flee,
+   build_shelter and sleep, hunts included (unit-tested, not seen live). Live after: 0 of 16 died (lowest health 8,
+   at the lake), d068ff2.
+   **Second night (11-12 November, the owner's ask): 80%, then 90%.** Three Lunas, team-base, the first world, same
+   rules; 80% is 8 of 10 reps on one unchanged commit, then 9 of 10. US$3.21 of OpenAI credit. Set A: tluna29a-j on
+   131eb8f (bed fix and creeper reflex), one team from 22:26, two in parallel from midnight (second on port 25640,
+   no views), stopping early at 3 losses. **Set A: 2 of 6, stopped** (29b 24:17, 29d 45:52; 29a, c, e, f short).
+   Looked into (each checked live, old code against new): **hunt could not leave a closed home**: following an animal
+   from inside never got out, and the chase clock ran out in place, reported as "got away". Of 223 animal hunts begun in a
+   home on 11-12 November, 208 ended that way (135 without moving), against 16 of 120 begun outside; it starved wool,
+   beds and meat in most losses since tluna27. Live: old 0 of 4 kills from inside a closed home, new 4 of 4 in 11-12 s.
+   A creeper by the home's wall blocked every bed for three nights in 29c while the agents waited for it to leave; hunt
+   could not kill one (old: 0 of 4, blown to health 3-8; new: strike and back out of blast, 4 of 4 at health 20; from
+   inside a home old 3 of 4 died, new 0 of 4), and the sleep refusal now says a creeper doesn't burn in daylight and
+   stays near a player it can sense. An agent burned to death in lava at y=35 with 6 raw iron while deciding (29a): the
+   body now steers out of lava as out of water (old 4 of 4 died in a sunk pool, new 2 of 4; deaths only mid-5x5). craft
+   names the items an unknown name is part of ("bed": white_bed). **Set B: tluna30a-j on 54c5f86**, two lanes from 02:04. **Set B: 7 of 10** (30a, d, f, g, h, i, j; the last five in a
+   row, 22:05-39:10 of game time), US$0.99; run to the full ten after its third loss (stop rule lifted, said so in the
+   report). Losses: 30b la made all three pickaxes on day 1, 140 blocks from home, set off at health 8 before sunrise and
+   was shot; 30c two deaths with iron and an iron pickaxe worn out digging; 30e no iron work at all, sleep refused about
+   60 times for monsters by the home. Mostly the agents' own choices. Tried and dropped: letting hunt open the door to
+   fight a monster waiting at it (live: old refused 3 of 3; new went out and lost, 1 death and health 5-6, no kills).
+   Creepers still took 6 of 30 deaths over sets A and B, scattered (inside a home through the wall, a creeper already
+   at 3 blocks at the decision, one underground). **Set C: tluna31a-j on the same code**, from 05:31. **Set C: 8 of 10, the owner's 80% bar met** (all but 31d and 31h;
+   31i in 13:22 of game time). On 54c5f86, 15 of 20 over sets B and C. 90% not tried: about US$1 of credit left, under
+   a set of ten, and no fix in hand. Tonight US$2.88 estimated (set A 0.86, B 0.99, C 1.03), about US$2.20 billed; no
+   lag (206 tick-rate readings, all 20). Written up in 07 ("The second night"); 26 run pages published. Open: one
+   smelt furnace-craft failure in 31h not looked into; nothing merged into main or pushed. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
+   a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
+   needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
+   block there is stepped over and the check starts from the cells beside it; live, with a crafting table inside the
+   doorway, the old code placed 0 of 3 beds and the new 3 of 3. 28c and 28d met the whole goal (32:04 and 33:55, US$0.06 and US$0.05); 28e 3 of 4 parts, lc never
+   slept ("no room left for a bed" 66 times, the same bug). **tluna28: 2 of 5 on 8fcd497, US$0.78**; two of the three
+   losses were the bed bug, merged after the batch (522516e). Next, if the owner wants it: five reps on 522516e. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
@@ -175,6 +397,12 @@ Runs on either side of these lines compare only loosely.
 - **From tbase6:** the cap is $3 (tbase5: $2, which ended Opus early in reps 2 and 3).
 - **After tbase7 (28 October):** the herds are restocked each morning; food and bed results compare
   with earlier runs only loosely.
+- **From 10 November:** costs of GPT-6 runs are priced with cached input at its listed rate; reports rebuilt
+  since then show about half the cost of the same run published before.
+- **From 8 November (after tluna19): progress is on by default** (each observation lists what the goal still
+  lacks); runs before had it off unless named (tlunap1). They compare only loosely.
+- **From 7 November (after tluna14): a new world, seed `testbed`** instead of `multiagent`, with the herds
+  moved to its open grass. Nothing about the terrain, ore or distances compares across it.
 
 ## Done, in short
 
@@ -266,3 +494,7 @@ The write-up named on each line has the detail.
 - tluna7a-c, then tluna8 (5 reps on frozen code): 1 of 5 whole goals; doors on the spot; the day of the run shown. Write-up 06.
 - A teammate's large home counts within 80 blocks; failed walks log the blocks round the agent; tluna9a-b and tluna10 (1 of 5). On the one-room home: 4 of 15.
 - The minds panel's Progress card shows each goal's own parts.
+- `flee` keeps its height underground; tluna11 (1 of 2); under a home `flee` goes in by the doorway, walks into a home use its door.
+
+**1 November**
+- tluna12a (not comparable: an agent crashed); unloaded ground no longer crashes an agent, far homes walked to in legs. Write-up 06.

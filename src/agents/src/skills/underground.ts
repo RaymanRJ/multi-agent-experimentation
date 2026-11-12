@@ -3,9 +3,10 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
+import { asNumber, getOutOfWater, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
 export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
+import { torchTrail } from "./light.js";
 
 const { goals } = pathfinderPkg;
 
@@ -155,11 +156,147 @@ function falling(bot: Bot, cells: Vec3[]): boolean {
   );
 }
 
+/**
+ * Where each agent was driven out by water digging down, and when (game ticks). A flooded layer can't be told from a
+ * pocket by the water in view (10-11 blocks round the step where filling worked, 11-14 where it did not, measured
+ * live), only by the water coming back: in tluna24 the agents dug into one at y 57-61 39 times, cut short by "out of
+ * air" each time, and went back to it. Ten minutes of game time.
+ */
+export type FloodSpot = { x: number; z: number; at: number };
+const floodedAt = new WeakMap<Bot, FloodSpot[]>();
+/** This agent's own flooded spots, for its teammates (shared like ore sightings). */
+export function ownFloods(bot: Bot): FloodSpot[] {
+  return floodedAt.get(bot) ?? [];
+}
+
+/**
+ * Open ground 8-24 blocks off, at least FLOOD_CLEAR from every flooded spot known, nearest first: where descend digs
+ * from instead. The lake under the first world's start area is about 50 by 42 blocks (14,328 water blocks at y 45-62,
+ * mapped 10 November), and in tluna25 descend refused 35 times there as the agents kept starting from the home above it.
+ */
+function clearOfFloods(bot: Bot, floods: FloodSpot[]): Vec3[] {
+  const here = bot.entity.position.floored();
+  const out: Array<{ c: Vec3; d: number }> = [];
+  for (let r = 8; r <= 24; r += 2)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      if (floods.some((f) => Math.hypot(f.x - x, f.z - z) < FLOOD_CLEAR)) continue;
+      for (const dy of [0, 1, -1, 2, -2, 3, -3, 4, -4]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c) && !homeBlock(bot, c.offset(0, -1, 0))) {
+          out.push({ c, d: r });
+          break;
+        }
+      }
+    }
+  return out.sort((p, q) => p.d - q.d).map((p) => p.c);
+}
+const FLOOD_MEMORY_TICKS = 12_000;
+const FLOOD_NEAR = 6;
+/**
+ * A dry way down planned before digging: for each of the four headings, from where the agent stands and from open
+ * ground up to 24 blocks off, the diagonal stair to the target height is checked for water or lava within a block of
+ * it, using the blocks the game has sent (as the pathfinder and the unsafe() checks do; nothing is told to the agent).
+ * Filling cannot seal a stair through open water: at the lake under the first world's start area (about 50 by 42
+ * blocks, y 45-62) a live dig took flowing water into the head cell at its edge and most fills found nothing to
+ * place against; the agents' iron in the winning reps lay below and east of it (x 17-23, y 32-41).
+ */
+function stairIsDry(bot: Bot, start: Vec3, heading: { dx: number; dz: number }, depth: number): boolean {
+  for (let i = 1; i <= depth; i++) {
+    const feet = start.offset(heading.dx * i, -i, heading.dz * i);
+    // Solid ground under every step: a stair planned over a cave stops at "a drop into a cave" (live, twice).
+    if (bot.blockAt(feet.offset(0, -1, 0))?.boundingBox !== "block") return false;
+    for (const dy of [0, 1, 2]) {
+      const cell = feet.offset(0, dy, 0);
+      for (const [ox, oy, oz] of [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]] as const) {
+        const b = bot.blockAt(cell.offset(ox, oy, oz));
+        if (!b || b.name === "water" || b.name === "lava" || b.name === "bubble_column") return false;
+        // Sand or gravel over the stair falls into it as it is dug ("blocks kept falling into the gap", live).
+        if (oy >= 0 && /^(sand|red_sand|gravel|suspicious_sand|suspicious_gravel)$/.test(b.name)) return false;
+      }
+      if (homeBlock(bot, cell)) return false;
+    }
+  }
+  return true;
+}
+
+/** The nearest start (here first) and heading with a dry stair down to `targetY`, or null. */
+/**
+ * Open ground with no home within 2 blocks of it, down to 4 below: somewhere a stair can start. On a home's roof or
+ * against its wall every way down is the home's (tluna27a: refused twice, "walk outside first", to an agent outside).
+ */
+function clearOfHome(bot: Bot): Vec3 | null {
+  const here = bot.entity.position.floored();
+  const clear = (c: Vec3) => {
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = -5; dy <= 2; dy++) {
+      if (homeBlock(bot, c.offset(dx, dy, dz))) return false;
+    }
+    return true;
+  };
+  for (let r = 4; r <= 16; r += 2)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      for (const dy of [0, -1, 1, -2, 2, -3, 3, -4, -5, -6]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c)) {
+          if (clear(c)) return c;
+          break;
+        }
+      }
+    }
+  return null;
+}
+
+function planDryDescent(bot: Bot, targetY: number, toward?: { x: number; z: number }): { start: Vec3; heading: number } | null {
+  const here = bot.entity.position.floored();
+  const starts: Vec3[] = [here];
+  for (let r = 4; r <= 24; r += 4)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI;
+      const x = here.x + Math.round(Math.cos(a) * r), z = here.z + Math.round(Math.sin(a) * r);
+      for (const dy of [0, 1, -1, 2, -2, 3, -3]) {
+        const c = new Vec3(x, here.y + dy, z);
+        if (standable(bot, c) && !homeBlock(bot, c.offset(0, -1, 0))) {
+          starts.push(c);
+          break;
+        }
+      }
+    }
+  // Toward something (ore in sight below): of the dry stairs, the one ending nearest it, then the nearest start.
+  if (toward) {
+    let best: { start: Vec3; heading: number; score: number } | null = null;
+    for (const start of starts) {
+      const depth = start.y - targetY;
+      if (depth <= 0) continue;
+      for (let h = 0; h < 4; h++) {
+        const end = start.offset(HEADINGS[h]!.dx * depth, 0, HEADINGS[h]!.dz * depth);
+        const score = Math.hypot(end.x - toward.x, end.z - toward.z) + start.distanceTo(here) / 4;
+        if (best && score >= best.score) continue;
+        if (stairIsDry(bot, start, HEADINGS[h]!, depth)) best = { start, heading: h, score };
+      }
+    }
+    return best;
+  }
+  for (const start of starts) {
+    const depth = start.y - targetY;
+    if (depth <= 0) continue;
+    for (let h = 0; h < 4; h++) if (stairIsDry(bot, start, HEADINGS[h]!, depth)) return { start, heading: h };
+  }
+  return null;
+}
+
+/** How far from every flooded spot a new way down starts. */
+const FLOOD_CLEAR = 8;
+/** Seconds with the head under water in one descend before it counts as driven out. */
+const MAX_WET_MS = 6000;
+
 /** Blocks to stop water with, as a player plugs a leak: cheap ones that don't fall. */
 const PLUG_BLOCKS = ["cobblestone", "dirt", "cobbled_deepslate", "stone", "andesite", "diorite", "granite", "netherrack", "tuff"];
 const SIDES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
 
-function plugBlock(bot: Bot): string | undefined {
+export function plugBlock(bot: Bot): string | undefined {
   const held = countInventory(bot);
   return PLUG_BLOCKS.find((name) => (held[name] ?? 0) > 0);
 }
@@ -189,7 +326,7 @@ async function plugWater(bot: Bot, dug: Vec3, path: Vec3[]): Promise<void> {
 }
 
 /** A block put into a cell of water. Throws why not. */
-async function fillWater(bot: Bot, wet: Vec3): Promise<void> {
+export async function fillWater(bot: Bot, wet: Vec3): Promise<void> {
   const name = plugBlock(bot);
   if (!name) throw new Error("water came in and there was no block left to plug it with");
   const against = SIDES.map((s) => bot.blockAt(wet.plus(s))).find((b) => b && b.boundingBox === "block" && !opensOnClick(b.name));
@@ -249,6 +386,14 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     await equipDigger(bot);
     for (let tick = 0; tick < 30 && headInWater(bot); tick += 5) await bot.waitForTicks(5);
   }
+  // Open water in the step itself: each cell filled with a block first, which the dig below then cuts through,
+  // plugging what lies behind, as a player fills a flooded way down. On the first world descend stopped at
+  // "every way down is unsafe: water" 11 times in tluna23 alone, with the iron below it.
+  if (plugBlock(bot)) {
+    for (const cell of [...cells].reverse()) {
+      if (bot.blockAt(cell)?.name === "water") await fillWater(bot, cell).catch(() => {});
+    }
+  }
   // Water behind a block is plugged as it is dug, given a block to plug it with.
   const problems = cells.map((cell) => unsafe(bot, cell));
   const plug = problems.some(leak) && plugBlock(bot) !== undefined;
@@ -263,6 +408,8 @@ async function step(bot: Bot, heading: { dx: number; dz: number }, dy: number): 
     if (bot.blockAt(below)?.boundingBox !== "empty" || unsafe(bot, below)) break;
     landing = below;
   }
+  // Water to stand on: filled with a block to make the step's floor.
+  if (badFloor(bot, landing) === "water below" && plugBlock(bot)) await fillWater(bot, landing.offset(0, -1, 0)).catch(() => {});
   const floor = badFloor(bot, landing);
   // Going up, the "floor" is the block to step onto; none there is open space, not a drop.
   if (floor) return dy > 0 && floor === "a drop into a cave" ? "no rock to step up onto" : floor;
@@ -502,31 +649,39 @@ export function oreInSight(bot: Bot, radius = 16): Record<string, number> {
  * inside the shared home. The model chose to dig; walking out to do it is the code's job. Walks through the
  * door (or the doorway) to the nearest open ground in front of it. Null when not in a home.
  */
-async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error: string } | null> {
+export async function leaveHome(ctx: SkillContext, to = "dig"): Promise<{ note: string } | { error: string } | null> {
   const bot = ctx.bot;
   const home = (ctx.shelters?.() ?? []).find((spot) => insideSpot(bot, spot));
   if (!home) return null;
   const r = half(home.size ?? 3) + 1;
-  let target: Vec3 | null = null;
-  for (const ahead of [3, 4, 5, 6, 2]) {
-    for (const dy of [0, -1, 1, -2, 2]) {
-      const cell = new Vec3(home.x, home.y + dy, home.z + r + ahead);
-      if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) {
-        target = cell;
-        break;
+  const outer = new Vec3(home.x, home.y, home.z + r + 1);
+  // Any open ground in front of the door, nearest the doorway first. Only the line straight out from it was looked
+  // at, and in tluna13 the agents' own staircases, dug from that line, left nothing standable on it: descend from
+  // inside was refused 5 times on day 3 with open ground a step to either side.
+  const targets: Vec3[] = [];
+  for (let ahead = 2; ahead <= 7; ahead++)
+    for (let dx = -3; dx <= 3; dx++)
+      for (const dy of [0, -1, 1, -2, 2, -3]) {
+        const cell = new Vec3(home.x + dx, home.y + dy, home.z + r + ahead);
+        if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) targets.push(cell);
       }
+  targets.sort((a, b) => a.distanceTo(outer) - b.distanceTo(outer));
+  if (targets.length === 0) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to ${to} from` };
+  let target: Vec3 | null = null;
+  let failure = "";
+  for (const cell of targets.slice(0, 3)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(cell.x, cell.y, cell.z)), 30_000, "walking out of the home");
+      target = cell;
+      break;
+    } catch (error) {
+      bot.pathfinder.setGoal(null);
+      failure = plainError((error as Error).message);
     }
-    if (target) break;
   }
-  if (!target) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to dig from` };
-  try {
-    await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(target.x, target.y, target.z)), 30_000, "walking out of the home");
-  } catch (error) {
-    bot.pathfinder.setGoal(null);
-    return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig: ${plainError((error as Error).message)}` };
-  }
-  if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig` };
-  return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to dig from there` };
+  if (!target) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to ${to}: ${failure}` };
+  if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to ${to}` };
+  return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to ${to} from there` };
 }
 
 function headingIndex(name: unknown): number | null {
@@ -539,8 +694,8 @@ export const descend: Skill = {
   description:
     "Dig a staircase down until your feet are at height `y` (sea level is 63, diamonds are most common near -58, " +
     `iron around 16; the lowest allowed is ${LOWEST_Y}). Needs any pickaxe. Checks every block before breaking it and ` +
-    "turns away from lava, open water and drops into caves, and plugs water behind a block with a block you carry; stops if every way down is unsafe. A staircase can be walked " +
-    "back up. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
+    "turns away from lava and drops into caves; a small pocket of water in the way (in the step, under it, or behind a block) is filled with a block you carry (cobblestone, dirt or stone), but a flooded layer, with a lot of water round the next step, is not: it stops there and says so. Stops if every way down is unsafe. A staircase can be walked " +
+    "back up, and is lit as it goes: a torch every 8 steps when you carry torches, coal or charcoal (1 coal and a stick make 4), so no monster spawns on it. Started inside a home, it first walks out through its door and digs from just outside. Pickaxes wear out (stone lasts about 130 blocks, iron 250, and the surface to diamond depth is about 400), " +
     "so it digs with your cheapest pickaxe and will not wear an iron one below 16 uses — carry spare stone pickaxes. " +
     "Returns the height reached and the ore now in sight. Takes a few minutes for a long way down; call it again to continue.",
   args: { y: "number" },
@@ -558,47 +713,165 @@ export const descend: Skill = {
     if (out && "error" in out) return { status: "failed", reason: out.error };
     const walkedOut = out ? `${out.note}. ` : "";
 
-    const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...extra });
-    const startedAt = Date.now();
-    let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
-    while (Math.floor(bot.entity.position.y) > target) {
-      if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-      const danger = threatened(ctx, 8, true);
-      if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
-      if (Date.now() - startedAt > MAX_SKILL_MS) {
-        return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} before running out of time — call descend again to continue.${brokenSince(bot, tools)}`, detail: report() };
-      }
-      const noTool = await equipDigger(bot);
-      if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
-      let moved = false;
-      const refusals: string[] = [];
-      await centre(bot);
-      for (let turn = 0; turn < 4 && !moved; turn++) {
-        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
-        const index = (heading + turn) % 4;
-        const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
-        if (problem === null) {
-          heading = index;
-          moved = true;
-        } else {
-          refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+    const trail = torchTrail(ctx);
+    const report = (extra: Record<string, unknown> = {}) => ({ y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...(trail.placed() ? { torches: trail.placed() } : {}), ...extra });
+    const age = () => Number(bot.time.age);
+    const floods = (floodedAt.get(bot) ?? []).filter((f) => age() - f.at < FLOOD_MEMORY_TICKS);
+    floodedAt.set(bot, floods);
+    // Teammates' too: whoever finds the flooded ground, everyone digs clear of it.
+    const allFloods = [...floods, ...(ctx.floods?.() ?? [])].filter((f) => age() - f.at < FLOOD_MEMORY_TICKS);
+    const here0 = bot.entity.position;
+    const known = allFloods.find((f) => Math.hypot(f.x - here0.x, f.z - here0.z) <= FLOOD_NEAR);
+    let movedClear = "";
+    if (known) {
+      let reached: Vec3 | null = null;
+      for (const spot of clearOfFloods(bot, allFloods).slice(0, 3)) {
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 30_000, "walking clear of the flooded ground");
+          reached = spot;
+          break;
+        } catch {
+          bot.pathfinder.setGoal(null);
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
         }
       }
-      if (!moved) {
-        lastHeading.set(bot.username, (heading + 1) % 4);
-        return {
-          status: "failed",
-          reason: refusals.every((r) => r.includes("part of a home"))
-            ? `you are standing in a home: descend digs down from where you stand and won't dig through a home's floor or walls — walk outside first`
-            : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
-          detail: report(),
-        };
+      if (!reached) {
+        const mins = Math.max(1, Math.round((age() - known.at) / 1200));
+        return { status: "failed", reason: `water drove an agent out digging down within ${Math.round(Math.hypot(known.x - here0.x, known.z - here0.z))} blocks of here ${mins} min ago, and no open ground clear of it could be reached: a flooded layer lies below this spot`, detail: report() };
+      }
+      movedClear = `you walked ${Math.round(reached.distanceTo(here0))} blocks clear of the flooded ground to ${reached.x},${reached.y},${reached.z} to dig from there. `;
+    }
+    let wetSteps = 0;
+    const start = bot.entity.position.clone();
+    // Head under water: plugged at the next step; the second time in one call, the water is coming back (a flooded
+    // layer, or a stair flooded since it was dug: going back down one, live, spent 11.5 s under water). Checked after
+    // every step tried, not once a round: once a round, a live try spent 58 s under water before it stopped.
+    // And by the clock: one step under water can take seconds (digging there is five times slower), so 2 checks alone
+    // still left it under water 35 s (health 20 to 18) in a live try.
+    let wetMs = 0;
+    const wetClock = setInterval(() => { if (headInWater(bot)) wetMs += 250; }, 250);
+    const drivenOut = async (): Promise<SkillResult | null> => {
+      const wetNow = headInWater(bot);
+      if (wetMs < MAX_WET_MS && (!wetNow || ++wetSteps < 2)) return null;
+      const at = bot.entity.position;
+      clearInterval(wetClock);
+      floods.push({ x: at.x, z: at.z, at: age() }, { x: start.x, z: start.z, at: age() });
+      await getOutOfWater(bot).catch(() => false);
+      lastHeading.set(bot.username, (heading + 1) % 4);
+      return {
+        status: "failed",
+        reason: `stopped at y=${Math.floor(at.y)}: water keeps coming in here (a flooded layer, or a flooded stair) faster than it can be filled.${brokenSince(bot, tools)}`,
+        detail: report(),
+      };
+    };
+    const startedAt = Date.now();
+    let heading = lastHeading.get(bot.username) ?? Math.floor(Math.random() * 4);
+    // A dry way down, planned before digging; walked to if it starts elsewhere. Without one, as before.
+    let planned = "";
+    let maxTurns = 4;
+    let replans = 0;
+    let offHome = 0;
+    let walkedOffHome = "";
+    // Internal: mine_ore passes where the ore it is digging toward lies (not offered to the model).
+    const toward = rawArgs["toward"] as { x: number; z: number } | undefined;
+    const plan = planDryDescent(bot, target, toward);
+    if (plan) {
+      const at = bot.entity.position.floored();
+      if (!plan.start.equals(at)) {
+        try {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(plan.start.x, plan.start.y, plan.start.z)), 30_000, "walking to a dry way down");
+          planned = `you walked ${Math.round(plan.start.distanceTo(at))} blocks to ${plan.start.x},${plan.start.y},${plan.start.z}, where the way down to y=${target} is clear of water, to dig from there. `;
+        } catch {
+          bot.pathfinder.setGoal(null);
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+        }
+      }
+      if (bot.entity.position.floored().distanceTo(plan.start) < 1.5) {
+        heading = plan.heading;
+        // Keep to the planned stair: turning off it is how a dig found water or a cave live.
+        maxTurns = 1;
       }
     }
-    lastHeading.set(bot.username, heading);
-    const broke = brokenSince(bot, tools);
-    const said = `${walkedOut}${broke.trim()}`.trim();
-    return { status: "success", ...(said && { reason: said }), detail: report() };
+    try {
+      while (Math.floor(bot.entity.position.y) > target) {
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+        const danger = threatened(ctx, 8, true);
+        if (danger) return { status: "aborted", reason: `stopped digging because ${danger}`, detail: report() };
+        if (Date.now() - startedAt > MAX_SKILL_MS) {
+          return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} before running out of time — call descend again to continue.${brokenSince(bot, tools)}`, detail: report() };
+        }
+        const noTool = await equipDigger(bot);
+        if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
+        let moved = false;
+        const refusals: string[] = [];
+        await centre(bot);
+        for (let turn = 0; turn < maxTurns && !moved; turn++) {
+          if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+          const index = (heading + turn) % 4;
+          const problem = await step(bot, HEADINGS[index]!, -1).catch((error: Error) => plainError(error.message));
+          const out = await drivenOut();
+          if (out) return out;
+          if (problem === null) {
+            heading = index;
+            moved = true;
+            await trail.step(HEADINGS[index]!);
+          } else {
+            refusals.push(`${HEADINGS[index]!.name}: ${problem}`);
+          }
+        }
+        // Off the planned stair (a block that would not dig, sand that fell): plan again from here, up to 3 times.
+        if (!moved && maxTurns === 1 && replans < 3) {
+          replans++;
+          const again = planDryDescent(bot, target, toward);
+          if (again && again.start.equals(bot.entity.position.floored())) {
+            heading = again.heading;
+            continue;
+          }
+          if (again) {
+            try {
+              await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(again.start.x, again.start.y, again.start.z)), 30_000, "walking to a dry way down");
+              heading = again.heading;
+              continue;
+            } catch {
+              bot.pathfinder.setGoal(null);
+            }
+          }
+        }
+        // Every way down is a home's (on its roof, against its wall): walk to open ground clear of it and dig from there.
+        if (!moved && offHome < 2 && refusals.length > 0 && refusals.every((r) => r.includes("part of a home"))) {
+          offHome++;
+          const spot = clearOfHome(bot);
+          if (spot) {
+            const from = bot.entity.position.floored();
+            try {
+              await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 30_000, "walking clear of the home");
+              walkedOffHome = `you walked ${Math.round(spot.distanceTo(from))} blocks clear of the home to ${spot.x},${spot.y},${spot.z} to dig from there. `;
+              maxTurns = 4;
+              continue;
+            } catch {
+              bot.pathfinder.setGoal(null);
+              if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
+            }
+          }
+        }
+        if (!moved) {
+          lastHeading.set(bot.username, (heading + 1) % 4);
+          return {
+            status: "failed",
+            reason: refusals.every((r) => r.includes("part of a home"))
+              ? `every way down from ${Math.floor(bot.entity.position.x)},${Math.floor(bot.entity.position.y)},${Math.floor(bot.entity.position.z)} goes through a home's floor, roof or walls, which descend won't dig, and no open ground clear of it was reached nearby — dig from somewhere else`
+              : `stopped at y=${Math.floor(bot.entity.position.y)}: every way down is unsafe (${refusals.join("; ")}) — explore or tunnel somewhere else and try again.${brokenSince(bot, tools)}`,
+            detail: report(),
+          };
+        }
+      }
+      lastHeading.set(bot.username, heading);
+      const broke = brokenSince(bot, tools);
+      const said = [walkedOut.trim(), movedClear.trim(), planned.trim(), walkedOffHome.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
+      return { status: "success", ...(said && { reason: said }), detail: report() };
+    } finally {
+      clearInterval(wetClock);
+    }
   },
 };
 
@@ -608,7 +881,7 @@ export const tunnel: Skill = {
     "Dig a straight tunnel, 2 blocks high, `length` blocks long (up to 32), at your current height: the way to uncover " +
     "ore hidden inside rock, since mine_ore only finds ore you can see. Takes an optional `direction` (north, east, " +
     "south or west); by default it keeps going the way you last dug. Digs with your cheapest pickaxe, sparing an iron one " +
-    "as descend does. Stops before lava, open water or a drop, and plugs water behind a block as descend does. Returns how far it got and the ore now in sight, for mine_ore.",
+    "as descend does. Stops before lava or a drop; water in the way is filled with a block you carry, as descend does. Lit as it goes, as descend is. Returns how far it got and the ore now in sight, for mine_ore.",
   args: { length: "number", direction: "string?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -627,7 +900,8 @@ export const tunnel: Skill = {
     lastHeading.set(bot.username, index);
 
     let dug = 0;
-    const report = () => ({ dug, direction: heading.name, y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot) });
+    const trail = torchTrail(ctx);
+    const report = () => ({ dug, direction: heading.name, y: Math.floor(bot.entity.position.y), oreInSight: oreInSight(bot), ...(trail.placed() ? { torches: trail.placed() } : {}) });
     for (; dug < length; dug++) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: report() };
       const danger = threatened(ctx, 8, true);
@@ -641,11 +915,12 @@ export const tunnel: Skill = {
         // Next call should try another way rather than hit the same wall.
         lastHeading.set(bot.username, (index + 1) % 4);
         if (dug === 0) return { status: "failed", reason: `cannot tunnel ${heading.name}: ${problem} — try another direction`, detail: report() };
-        return { status: "success", reason: `stopped after ${dug} blocks: ${problem} ahead.${brokenSince(bot, tools)}`, detail: report() };
+        return { status: "success", reason: `stopped after ${dug} blocks: ${problem} ahead.${brokenSince(bot, tools)}${trail.note() ? ` ${trail.note()}.` : ""}`, detail: report() };
       }
+      await trail.step(heading);
     }
     const broke = brokenSince(bot, tools);
-    const said = `${walkedOut}${broke.trim()}`.trim();
+    const said = [walkedOut.trim(), broke.trim(), trail.note() && `${trail.note()}.`].filter(Boolean).join(" ");
     return { status: "success", ...(said && { reason: said }), detail: report() };
   },
 };
@@ -709,6 +984,75 @@ async function pillar(bot: Bot): Promise<string | null> {
   return failure;
 }
 
+
+/**
+ * At the bottom of a narrow hole open to the sky: solid on all four sides at the feet and the head. "Under open
+ * sky" is true there, so climb_out used to stop at once; in tluna15 an agent sat 67 decisions in a 3-deep hole
+ * flee had dug in sand and could not cover. Exported for flee's messages.
+ */
+export function inPit(bot: Bot): boolean {
+  const feet = bot.entity.position.floored();
+  const SIDES4 = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
+  if (groundAbove(bot) > 0) return false; // covered over, or under rock: a dug-in hole or a tunnel, not a pit
+  return [0, 1].every((dy) => SIDES4.every((d) => bot.blockAt(feet.offset(d.x, dy, d.z))?.boundingBox === "block"));
+}
+
+/** Out of a pit: walked or dug out to open ground beside it, or failing that built up on any block held. */
+async function outOfPit(bot: Bot): Promise<boolean> {
+  const feet = bot.entity.position.floored();
+  const exits: Vec3[] = [];
+  for (let dx = -4; dx <= 4; dx++)
+    for (let dz = -4; dz <= 4; dz++)
+      for (let dy = 1; dy <= 5; dy++) {
+        const cell = feet.offset(dx, dy, dz);
+        if ((dx || dz) && standable(bot, cell)) exits.push(cell);
+      }
+  exits.sort((a, b) => a.distanceTo(feet) - b.distanceTo(feet));
+  for (const cell of exits.slice(0, 3)) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(cell.x, cell.y, cell.z)), 20_000, "climbing out of the hole");
+      if (!inPit(bot)) return true;
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+  }
+  // Built up, a block under the feet at each jump: sand and gravel will do here, each resting on the one below.
+  // With none held, the walls give them: a dug wall block drops one, and sand above falls into the gap to dig again.
+  const held = () => bot.inventory.items().filter((item) => bot.registry.blocksByName[item.name]?.boundingBox === "block" && !opensOnClick(item.name)).reduce((n, item) => n + item.count, 0);
+  const SIDES4 = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)];
+  for (let dug = 0; dug < 12 && held() < 5; dug++) {
+    const feet = bot.entity.position.floored();
+    const wall = SIDES4.map((d) => bot.blockAt(feet.plus(d))).find((b) => b && b.boundingBox === "block" && bot.canDigBlock(b) && !homeBlock(bot, b.position) && !opensOnClick(b.name) && b.digTime(null, false, false, false, [], bot.entity.effects ?? {}) < 2000);
+    if (!wall) break;
+    try {
+      await withTimeout(bot.dig(wall), 4000, "digging a block out of the wall");
+    } catch {
+      break;
+    }
+    await bot.waitForTicks(12);
+  }
+  for (let step = 0; step < 6 && inPit(bot); step++) {
+    const block = bot.inventory.items().find((item) => bot.registry.blocksByName[item.name]?.boundingBox === "block" && !opensOnClick(item.name));
+    if (!block) return false;
+    const below = bot.blockAt(bot.entity.position.floored().offset(0, -1, 0));
+    if (!below || below.boundingBox !== "block") return false;
+    const y0 = bot.entity.position.y;
+    try {
+      await bot.equip(block, "hand");
+      await bot.look(bot.entity.yaw, -Math.PI / 2, true);
+      bot.setControlState("jump", true);
+      for (let t = 0; t < 10 && bot.entity.position.y < y0 + 1; t++) await bot.waitForTicks(1);
+      await withTimeout(bot.placeBlock(below, new Vec3(0, 1, 0)), 3000, "building up out of the hole");
+    } catch {
+      // The block itself says whether it went down.
+    } finally {
+      bot.setControlState("jump", false);
+    }
+    await bot.waitForTicks(8);
+    if (bot.entity.position.y < y0 + 0.5) return false;
+  }
+  return !inPit(bot);
+}
 export const climbOut: Skill = {
   name: "climb_out",
   description:
@@ -717,7 +1061,8 @@ export const climbOut: Skill = {
     "Checks every block before breaking it and turns away from lava and water, and steps out from under gravel or sand " +
     "that would fall on your head; if you are in water it first swims out (under rock, to the nearest air first), " +
     "digging through anything over your head, and climbs onto the nearest bank, or walks to dry ground nearby. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks " +
-    "from your inventory (dirt or cobblestone first, logs last). Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
+    "from your inventory (dirt or cobblestone first, logs last). At the bottom of a narrow hole open to the sky it climbs out of it, " +
+    "digging blocks from its walls to stand on if you carry none. Stops if every way up is unsafe. Returns the height reached. Takes a few minutes from deep down; call " +
     "it again to continue.",
   args: {},
 
@@ -726,6 +1071,11 @@ export const climbOut: Skill = {
     const startY = Math.floor(bot.entity.position.y);
     const report = () => ({ y: Math.floor(bot.entity.position.y), climbed: Math.floor(bot.entity.position.y) - startY, groundAbove: groundAbove(bot) });
     // The bottom of a lake is under open sky too, but not out: water first (thaiku1).
+    if (!inWater(bot) && inPit(bot)) {
+      return (await outOfPit(bot))
+        ? { status: "success", reason: "climbed out of the hole you were in, onto open ground", detail: report() }
+        : { status: "failed", reason: "you are in a narrow hole and could not climb or dig out of it: carry a block to build up on, or a shovel for sand and dirt", detail: report() };
+    }
     if (groundAbove(bot) === 0 && !inWater(bot)) return { status: "success", reason: "already under open sky", detail: report() };
     const tools = countInventory(bot);
     // No pickaxe, or only one being saved for ore: dig by hand. Getting out matters more.

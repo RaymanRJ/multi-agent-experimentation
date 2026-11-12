@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOALS, GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, TEAM_GOALS, herdCommands, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
+import { GOALS, GOAL_CHECKS, GOAL_GAPS, HERDS, HERDS_BY_SEED, SEED, SCENARIOS, TEAM_GOALS, herdCommands, goalTask, isNight, NightWatch, presetName, resolveGoal } from "./scenario.js";
 
 test("resolveGoal - no goal uses the scenario's own", () => {
   assert.equal(resolveGoal(SCENARIOS.survival, undefined), SCENARIOS.survival.goal);
@@ -214,4 +214,13 @@ test("team-base - one large shelter that every member slept inside, iron pickaxe
   }
   assert.ok(TEAM_GOALS.has("team-base"));
   assert.match(GOALS["team-base"]!, /one large shelter/);
+});
+
+test("herds - each surveyed seed has the same four herds; SEED picks them, testbed by default", () => {
+  for (const herds of Object.values(HERDS_BY_SEED)) {
+    assert.deepEqual(herds.map((h) => `${h.count} ${h.animal}`), ["12 sheep", "4 cow", "4 pig", "4 chicken"]);
+  }
+  assert.deepEqual(Object.keys(HERDS_BY_SEED).sort(), ["multiagent", "testbed"]);
+  if (!process.env["SEED"]) assert.equal(SEED, "testbed");
+  assert.deepEqual(HERDS, HERDS_BY_SEED[SEED]);
 });

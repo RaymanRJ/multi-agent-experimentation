@@ -236,9 +236,12 @@ test("OpenAI pricing - cached input at its listed price; unlisted models pay ful
   // gpt-4.1-mini: $0.40/M input, $0.10/M cached.
   const mini = costUSD({ ...base, model: "gpt-4.1-mini", inputTokens: 2_000_000, cacheReadTokens: 1_000_000 });
   assert.ok(Math.abs(mini - 0.5) < 1e-9);
-  // gpt-6.1-sol lists no cached price: never understate, bill it as plain input.
-  const sol = costUSD({ ...base, model: "gpt-6.1-sol", inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
-  assert.ok(Math.abs(sol - 2) < 1e-9);
+  // gpt-6.1-terra lists no cached price: bill it as plain input.
+  const terra = costUSD({ ...base, model: "gpt-6.1-terra", inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
+  assert.ok(Math.abs(terra - 1) < 1e-9);
+  // gpt-6-luna: $0.10/M input, $0.01/M cached (since 10 November).
+  const luna = costUSD({ ...base, model: "gpt-6-luna", inputTokens: 1_000_000, cacheReadTokens: 750_000 });
+  assert.ok(Math.abs(luna - (0.25 * 0.1 + 0.75 * 0.01)) < 1e-9);
 });
 
 test("OpenAIBackend - offers the decision tool to hosted models only, and reads the call's arguments", async () => {

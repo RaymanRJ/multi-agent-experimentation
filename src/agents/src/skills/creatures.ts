@@ -5,25 +5,34 @@ import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { pickUp } from "./pickUp.js";
 import { asNumber, withTimeout } from "./util.js";
+import { retreatPoint } from "../reflexes.js";
+import { leaveHome } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
 /** How far a creature can be and still be found, as far as observations list them. */
-export const CREATURE_RANGE = 32;
+/**
+ * How far hunt and shear look: 64, the world's simulation distance (the server tracks animals out to 96, but
+ * past 64 they stand still). 32 until 8 November: on the testbed world's open grass the herd scatters, and in
+ * tluna15 hunt found "no sheep within 32" 19 times while teammates had seen sheep 25-36 blocks off.
+ */
+export const CREATURE_RANGE = 64;
 /** The entity kinds observations list as animals: farm animals, wildlife and fish. */
 export const ANIMAL_TYPES = new Set(["animal", "water_creature"]);
 const REACH = 3;
+/** A creeper's fuse builds while a player is within 7 blocks of it; the hunt backs off past this after each blow. */
+const BLAST_CLEAR = 8;
 const CHASE_MS = 30_000;
 const MAX_SKILL_MS = 2 * 60_000;
 /** Hunting stops at this health or below: a fight the agent is losing is the model's to rethink. */
 const RETREAT_HEALTH = 6;
 /** Best first. A sword hits harder and recovers faster than an axe; bare hands last. */
-const WEAPONS = [
+export const WEAPONS = [
   "netherite_sword", "diamond_sword", "iron_sword", "stone_sword", "golden_sword", "wooden_sword",
   "netherite_axe", "diamond_axe", "iron_axe", "stone_axe", "golden_axe", "wooden_axe",
 ];
 /** Time for a full-strength blow again (the attack cooldown), by what is held. */
-function cooldownMs(weapon: string | undefined): number {
+export function cooldownMs(weapon: string | undefined): number {
   if (!weapon) return 300;
   return weapon.endsWith("_sword") ? 650 : 1250;
 }
@@ -45,6 +54,11 @@ function nearest(bot: Bot, accept: (entity: Entity) => boolean): Entity | null {
   return best;
 }
 
+/** Any target of this kind within range, so a hunt with none in range doesn't walk out of the home for nothing. */
+function prey0(bot: Bot, target: string): Entity | null {
+  return nearest(bot, (entity) => matches(bot, entity, target));
+}
+
 /** Walks up to the entity, following it as it moves. Resolves true once within reach. */
 async function closeIn(bot: Bot, entity: Entity, reach: number, ms: number): Promise<boolean> {
   bot.pathfinder.setGoal(new goals.GoalFollow(entity, reach - 1), true);
@@ -54,6 +68,25 @@ async function closeIn(bot: Bot, entity: Entity, reach: number, ms: number): Pro
     await bot.waitForTicks(2);
   }
   return false;
+}
+
+/**
+ * After each blow at a creeper, out of its reach until its fuse cools: the fuse builds while a player stands within 7
+ * blocks and cools beyond. Standing and trading blows, the hunt never killed one and was blown up to health 3-8 every
+ * time (live, 4 of 4); in tluna29c a creeper by the home's wall blocked every bed for three nights.
+ */
+async function outOfBlast(bot: Bot, creeper: Entity): Promise<void> {
+  const here = bot.entity.position;
+  const away = retreatPoint(bot, [creeper], BLAST_CLEAR + 2);
+  const length = Math.hypot(here.x - creeper.position.x, here.z - creeper.position.z) || 1;
+  bot.pathfinder.setGoal(away
+    ? new goals.GoalNear(away.x, away.y, away.z, 1)
+    : new goals.GoalXZ(Math.round(here.x + ((here.x - creeper.position.x) / length) * (BLAST_CLEAR + 2)), Math.round(here.z + ((here.z - creeper.position.z) / length) * (BLAST_CLEAR + 2))));
+  const started = Date.now();
+  while (Date.now() - started < 2500 && bot.entities[creeper.id] && creeper.position.distanceTo(bot.entity.position) < BLAST_CLEAR) await bot.waitForTicks(2);
+  bot.setControlState("sprint", false);
+  // Its fuse cools a tick at a time out there.
+  await bot.waitForTicks(20);
 }
 
 /** Picks up what fell, if anything did; a failure here is not the skill's failure. */
@@ -76,7 +109,8 @@ export const hunt: Skill = {
     "skeleton, spider…) or another agent's name, and `count` how many to kill (default 1, up to 5). Goes after the nearest " +
     `one within ${CREATURE_RANGE} blocks, with the best sword or axe you hold (bare hands otherwise, much weaker), then ` +
     "picks up what it drops: meat to cook and eat, wool from a sheep (1 for each sheep killed), string from a spider. Stops when your health falls " +
-    `to ${RETREAT_HEALTH}, or when the target gets away. Returns how many were killed and what was picked up.`,
+    `to ${RETREAT_HEALTH}, or when the target gets away. A creeper is struck and backed away from after each blow, out of reach of ` +
+    "its blast while its fuse cools. Returns how many were killed and what was picked up.",
   args: { target: "string", count: "number?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -91,9 +125,16 @@ export const hunt: Skill = {
     if (held) await bot.equip(held, "hand");
     else if (bot.heldItem) await bot.unequip("hand");
 
+    // Out of the home by its door first: following an animal from inside a closed home never got out, and the chase ran
+    // out its clock in place. Of 223 hunts for animals begun in a home on 11-12 November, 208 ended "got away" (135 without
+    // moving); of 120 begun outside, 16.
+    const out = prey0(bot, target) ? await leaveHome(ctx, "hunt") : null;
+    if (out && "error" in out) return { status: "failed", reason: out.error };
+    const walkedOut = out ? out.note : "";
+
     let killed = 0;
     const startedAt = Date.now();
-    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: shownHealth(bot.health) });
+    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: shownHealth(bot.health), ...(walkedOut ? { walkedOut } : {}) });
     const dead = new Set<number>();
     const onDead = (entity: Entity) => { dead.add(entity.id); };
     bot.on("entityDead", onDead);
@@ -109,7 +150,8 @@ export const hunt: Skill = {
         }
         // The chase gives up after CHASE_MS out of reach, counted from the last hit: each hit knocks the
         // target back, so a fixed limit from the start let a player "get away" mid-fight (5 hits, live).
-        let chaseEnds = Date.now() + CHASE_MS;
+        // The first walk to it takes a second a block on top: a sheep 64 blocks off is a 15-30 s walk.
+        let chaseEnds = Date.now() + CHASE_MS + Math.round(prey.position.distanceTo(bot.entity.position) * 1000);
         let lastHit = 0;
         while (!dead.has(prey.id)) {
           if (ctx.shouldStop() || bot.health <= RETREAT_HEALTH) break;
@@ -119,9 +161,12 @@ export const hunt: Skill = {
           if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
           if (!bot.entities[prey.id] || dead.has(prey.id)) break;
           await bot.lookAt(prey.position.offset(0, prey.height * 0.8, 0), true);
+          const creeper = prey.name === "creeper";
+          if (creeper) bot.setControlState("sprint", true);
           bot.attack(prey);
           lastHit = Date.now();
           chaseEnds = lastHit + CHASE_MS;
+          if (creeper) await outOfBlast(bot, prey);
         }
         bot.pathfinder.setGoal(null);
         if (!dead.has(prey.id)) {
@@ -180,6 +225,9 @@ export const shear: Skill = {
     const shears = bot.inventory.items().find((item) => item.name === "shears");
     if (!shears) return { status: "failed", reason: "need shears — craft them from 2 iron_ingot" };
     await bot.equip(shears, "hand");
+    // Out of the home by its door first, as for hunt.
+    const out = prey0(bot, "sheep") ? await leaveHome(ctx, "shear") : null;
+    if (out && "error" in out) return { status: "failed", reason: out.error };
     const before = countInventory(bot);
     const report = () => ({ sheared: done, gained: gainedSince(bot, before) });
     const tried = new Set<number>();
@@ -196,7 +244,7 @@ export const shear: Skill = {
           return { status: done ? "success" : "failed", reason, detail: report() };
         }
         tried.add(sheep.id);
-        if (!(await closeIn(bot, sheep, REACH, CHASE_MS))) continue;
+        if (!(await closeIn(bot, sheep, REACH, CHASE_MS + Math.round(sheep.position.distanceTo(bot.entity.position) * 1000)))) continue;
         bot.pathfinder.setGoal(null);
         await bot.lookAt(sheep.position.offset(0, sheep.height * 0.6, 0), true);
         await withTimeout(Promise.resolve(bot.activateEntity(sheep)), 3000, "shearing").catch(() => undefined);

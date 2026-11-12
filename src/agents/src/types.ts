@@ -147,6 +147,8 @@ export interface SkillContext {
    * Skills check each one against the world before using it. Absent in tests and tools.
    */
   shelters?: () => import("./skills/buildShelter.js").ShelterSpot[];
+  /** Flooded spots teammates were driven out of digging down (descend), shared like ore sightings. */
+  floods?: () => import("./skills/underground.js").FloodSpot[];
   /** Sends a server command (RCON) and returns the reply. Only `respawn` uses it; absent in tests and tools. */
   rcon?: (command: string) => Promise<string>;
 }

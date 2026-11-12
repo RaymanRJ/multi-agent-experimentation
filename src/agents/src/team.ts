@@ -31,6 +31,8 @@ export interface MemberState {
   sightings?: Sighting[];
   /** Ore this member has seen lately, and where (sightings.ts). */
   oreSightings?: OreSighting[];
+  /** Where this member was driven out by water digging down (descend). */
+  floods?: Array<{ x: number; z: number; at: number }>;
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;

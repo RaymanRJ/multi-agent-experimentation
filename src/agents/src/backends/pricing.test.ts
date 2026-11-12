@@ -35,6 +35,6 @@ test("pricing - cached input never makes a call cost more than uncached", () => 
 });
 
 test("pricing - an OpenAI model without a listed cached price bills cached input in full", () => {
-  const plain = costUSD(call("gpt", "gpt-6.1-sol", 10_000, 0));
-  assert.equal(costUSD(call("gpt", "gpt-6.1-sol", 10_000, 0, { cacheReadTokens: 10_000 })), plain);
+  const plain = costUSD(call("gpt", "gpt-6.1-terra", 10_000, 0));
+  assert.equal(costUSD(call("gpt", "gpt-6.1-terra", 10_000, 0, { cacheReadTokens: 10_000 })), plain);
 });

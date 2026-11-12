@@ -1,4 +1,4 @@
-import { plainError } from "./underground.js";
+import { inPit, plainError } from "./underground.js";
 import pathfinderPkg from "mineflayer-pathfinder";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
@@ -6,7 +6,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
 import { describeShelter, doorOf, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, whyOpen, type ShelterSpot } from "./buildShelter.js";
-import { ARCHERS, BOW_RANGE, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
+import { ARCHERS, archersWithSight, coverPoint, CREEPER_KEEP, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -61,14 +61,20 @@ export function enclosure(feet: Vec3): Vec3[] {
  * Cornered with no path away: wall the bot in where it stands, as a player would. Mobs can't reach
  * through, and the pathfinder can dig back out later. Returns how many cells are still open.
  */
-async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlocks: boolean }> {
+export async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlocks: boolean }> {
   const feet = bot.entity.position.floored();
   const isOpen = (cell: Vec3) => bot.blockAt(cell)?.boundingBox !== "block";
   let placed = 0;
   let noBlocks = false;
   for (const cell of enclosure(feet)) {
     if (!isOpen(cell)) continue;
-    const stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    let stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    // Under attack the server resends the inventory after a refused placement, and for a moment it reads empty:
+    // with 32 cobblestone held, walling in reported "no dirt, cobblestone or planks" in three live tries.
+    for (let wait = 0; !stack && wait < 3; wait++) {
+      await bot.waitForTicks(5);
+      stack = bot.inventory.items().find((item) => isBuildingBlock(item.name));
+    }
     if (!stack) {
       noBlocks = true;
       break;
@@ -90,6 +96,58 @@ async function sealIn(bot: Bot): Promise<{ placed: number; open: number; noBlock
     }
   }
   return { placed, open: enclosure(feet).filter(isOpen).length, noBlocks };
+}
+
+/** A monster that strikes up close this near, under the ground, and the agent walls in rather than runs. */
+const WALL_FIRST_RADIUS = 10;
+/** With one that near, a home under the ground counts as a refuge only this close; further, it shuts in first. */
+const NEAR_HOME_UNDERGROUND = 12;
+
+/**
+ * Into the rock beside the agent: two blocks dug out of a cave wall (feet and head), stepped into, and the
+ * opening behind filled, as a player caught in a cave tucks into the wall. Running through a dark cave runs
+ * into more of what lives there: on the first world 13 of 22 deaths in three reps were healthy agents killed
+ * mid-flee underground, in daylight. Two digs and two blocks, where walling in out in the open takes up to nine.
+ * Null once shut in; otherwise why not.
+ */
+async function nookIn(bot: Bot): Promise<string | null> {
+  const feet = bot.entity.position.floored();
+  const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
+  const diggable = (cell: Vec3) => {
+    const block = bot.blockAt(cell);
+    return !!block && block.boundingBox === "block" && bot.canDigBlock(block) && !opensOnClick(block.name) && !homeBlock(bot, cell) &&
+      !/^(sand|red_sand|gravel|bedrock)$/.test(block.name) && !FACES.some((f) => /water|lava/.test(bot.blockAt(cell.plus(f))?.name ?? ""));
+  };
+  const near = (d: Vec3) => Object.values(bot.entities).filter((e) => e?.type === "hostile").reduce((m, e) => Math.min(m, e.position.distanceTo(feet.plus(d))), 99);
+  // A wall whose nook would be closed on its other three sides, over the head and under the feet; farthest from the monsters first.
+  const options = SIDES.filter((d) => {
+    const nook = feet.plus(d);
+    if (!diggable(nook) || !diggable(nook.offset(0, 1, 0)) || !solid(nook.offset(0, -1, 0)) || !solid(nook.offset(0, 2, 0))) return false;
+    return SIDES.filter((s) => !s.equals(d.scaled(-1))).every((s) => solid(nook.plus(s)) && solid(nook.plus(s).offset(0, 1, 0)));
+  }).sort((a, b) => near(b) - near(a));
+  const side = options[0];
+  if (!side) return "no rock wall beside you to dig a nook into";
+  if (!bot.inventory.items().some((item) => isBuildingBlock(item.name))) return "no block to close the nook behind you";
+  const nook = feet.plus(side);
+  for (const cell of [nook.offset(0, 1, 0), nook]) {
+    const block = bot.blockAt(cell)!;
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool) await bot.equip(tool, "hand");
+    await withTimeout(bot.dig(block), BURROW_DIG_TIMEOUT_MS, `digging into the ${block.name}`);
+  }
+  // Step in, then fill where the agent stood: the opening at the feet and the head.
+  for (let tick = 0; tick < 30; tick++) {
+    const at = bot.entity.position.floored();
+    if (at.equals(nook)) break;
+    await bot.lookAt(nook.offset(0.5, 1.6, 0.5), true);
+    bot.setControlState("forward", true);
+    await bot.waitForTicks(1);
+  }
+  bot.setControlState("forward", false);
+  if (!bot.entity.position.floored().equals(nook)) return "could not step into the nook";
+  const sealed = await sealIn(bot);
+  if (sealed.open > 0) return `${sealed.open} gaps left in the nook${sealed.noBlocks ? ": no blocks left to place" : ""}`;
+  return hostileInside(bot) ? "a monster followed you into the nook" : null;
 }
 
 /**
@@ -126,6 +184,11 @@ const BURROW_DIG_TIMEOUT_MS = 6_000;
  * tool, which matters most just after a death: in bpoc8, 13 of 20 agents killed during a flee held
  * fewer than the 10 blocks walling in takes, 8 of them none. Returns null when dug in, or why not.
  */
+/** Whether digging this block gives one that can cover a hole (falling sand and gravel can't). */
+function coverFrom(name: string): boolean {
+  return /^(grass_block|dirt|coarse_dirt|podzol|rooted_dirt|mycelium|dirt_path|stone|cobblestone|deepslate|cobbled_deepslate|andesite|diorite|granite|tuff)$/.test(name);
+}
+
 export async function burrow(bot: Bot): Promise<string | null> {
   // Land first: measured mid-jump, the hole is planned in the air, and a dig made off the ground takes
   // five times as long (bpoc9's lb: "digging the stone timed out" with a stone pickaxe, then killed).
@@ -136,6 +199,7 @@ export async function burrow(bot: Bot): Promise<string | null> {
   };
   await landed();
   const feet = bot.entity.position.floored();
+  if (homeBlock(bot, feet.offset(0, -1, 0)) || homeBlock(bot, feet.offset(0, 2, 0))) return "you are in a home: its floor is not dug";
   const dig = [1, 2, 3].slice(0, BURROW_DEPTH).map((d) => feet.offset(0, -d, 0));
   const solid = (cell: Vec3) => bot.blockAt(cell)?.boundingBox === "block";
   const effects = bot.entity.effects ?? {};
@@ -162,6 +226,13 @@ export async function burrow(bot: Bot): Promise<string | null> {
   }
   const cap = dig[0]!;
   if (!SIDES.some((d) => solid(cap.plus(d)))) return "nothing to build the cover against";
+  // The cover comes from what is carried or what the digging gives. Sand and gravel give nothing that stays up over
+  // a head: in tluna15 lc dug 3 down in sand, had nothing to cover the hole with, and sat in it 67 decisions.
+  const carried = bot.inventory.items().some((item) => isBuildingBlock(item.name));
+  if (!carried && !dig.some((cell) => coverFrom(bot.blockAt(cell)?.name ?? ""))) {
+    const ground = bot.blockAt(dig[0]!)?.name.replace(/_/g, " ") ?? "ground";
+    return `nothing to cover a hole with: the ${ground} here gives no block that stays up, and you carry no dirt, cobblestone or planks`;
+  }
 
   // A hit knocks the body sideways: once off the hole's column it is digging a hole it isn't in
   // (bpoc9: lb went from 20 health to 5 while digging, ended beside its hole, and was told it had dug in).
@@ -257,18 +328,20 @@ export const flee: Skill = {
   description:
     "Get away from nearby hostile mobs (those within 16 blocks). Inside a closed shelter with nothing in it, you stay put: " +
     "nothing outside can reach you there. If a finished shelter you know (yours or another agent's) stands within " +
-    `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton can see you), with no hostile at its doorway, ` +
+    `${REFUGE_RANGE} blocks on the side away from them (on any side, if a skeleton or witch can see you), with no hostile at its doorway, ` +
     "you run into it by its doorway and the doorway is closed behind you; a shelter far below you does not count. " +
-    `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off. ` +
-    "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton can still " +
-    "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, only at what it can see). " +
+    `Under the ground, a shelter on any side within ${UNDERGROUND_REFUGE_RANGE} blocks counts, since monsters in a cave never leave or burn off; ` +
+    `with a monster that strikes up close within ${WALL_FIRST_RADIUS} blocks, only one within ${NEAR_HOME_UNDERGROUND}, and otherwise you are shut in first. ` +
+    "Otherwise you run directly away from them, keeping to your height or climbing, never down, turning aside rather than into water or off a drop, and if a skeleton or witch can still " +
+    "see you at the end you step behind the nearest cover (a skeleton shoots up to 16 blocks, a witch throws up to 13, only at what they can see). " +
     "Takes `distance` — how far to run in the open (clamped 8-64). Succeeds when no hostile is within 12 blocks and no skeleton " +
-    `within ${BOW_RANGE} can see you, or the distance is covered; ` +
+    `or witch in range can see you, or the distance is covered; ` +
     "succeeds immediately with `no threat` if no hostile is within 16. Returns new position, how many hostiles remain within 12 and how many archers can see you. " +
     "If at night monsters are still after you once it has a few blocks' lead, you are still in danger after running, or there is no path away, it digs you in where you " +
     "stand: three blocks down and a block over your head, which needs no blocks carried and on dirt no tool (not on rock " +
-    "without a pickaxe, nor beside water or lava). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
-    "Under the ground it only walls you in, and that only buys time: the monsters stay, so climb out or go home after. " +
+    "without a pickaxe, nor beside water or lava, nor in sand or gravel with nothing carried to cover the hole). Failing that it walls you in with blocks you carry (dirt, cobblestone, planks). " +
+    "Under the ground, with a monster that strikes up close within 10 blocks, it shuts you in before any running: dug in where you stand, " +
+    "or into the rock beside you, or walled in; that only buys time, as the monsters stay, so climb out or go home after. " +
     "Under a shelter you know, it goes up into it by its doorway and never walls you in. " +
     "Dug in or walled in, mobs can't reach you; wait there, then carry on — any later move digs back out. " +
     "Fails only if it can't run, dig in or wall you in. Fleeing does not fight; follow up with shelter or sleep.",
@@ -298,6 +371,20 @@ export const flee: Skill = {
         detail: { stayed: true },
       };
     }
+    // Inside a home that is not closed (just come in, the door in use): close it up and stay, never dig or wall in
+    // here. In tluna19c flee dug in through a home's floor twice, and the blocks left behind boxed its centre in
+    // with the table, furnace and chest: "walking to the door timed out" from the centre 5 times after.
+    const homeIn = (ctx.shelters?.() ?? []).find((spot) => insideSpot(ctx.bot, spot));
+    // With a monster inside it, run out as before; the checks below still never dig or wall in inside a home.
+    if (homeIn && hostilesInside(ctx.bot, homeIn).length === 0) {
+      const closed = await enterShelter(ctx, homeIn, { byDoorOnly: true });
+      if (!closed.ok) return closed.result;
+      return {
+        status: "success",
+        reason: `you are inside ${describeShelter(homeIn)} at ${spotKey(homeIn)}, so you stayed${closed.closed ? " and closed it up" : `; it is ${whyOpen(ctx, closed.gaps, !!doorOf(ctx.bot, homeIn))}`}`,
+        detail: { stayed: true, shelter: spotKey(homeIn), doorwayClosed: closed.closed },
+      };
+    }
 
     // Somewhere safe to run to beats running into the open; with an archer in sight, or underground, on any side.
     const underground = groundAbove(ctx.bot) >= UNDERGROUND_MIN;
@@ -324,7 +411,12 @@ export const flee: Skill = {
         ctx.bot.pathfinder.thinkTimeout = think;
       }
     }
-    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE);
+    // Under the ground with a monster that strikes up close near, a home counts only if it is close: the run to a far
+    // one goes through the cave. In tluna20 13 healthy agents died fleeing, 10 underground, most with home 29-46 blocks
+    // off and the shut-in below never reached; 37 of 94 underground flees reached home, 11 shut in.
+    const closeUnderground = underground && !above && hostilesNear(ctx, WALL_FIRST_RADIUS).some((e) => !ARCHERS.has(e.name ?? ""));
+    const range = closeUnderground ? NEAR_HOME_UNDERGROUND : underground ? UNDERGROUND_REFUGE_RANGE : REFUGE_RANGE;
+    const home = refuge(ctx.bot, ctx.shelters?.() ?? [], hostilesNear(ctx, THREAT_RADIUS), underground || archersWithSight(ctx.bot).length > 0, range);
     if (home) {
       const entered = await enterShelter(ctx, home, { byDoorOnly: true });
       const owner = home.by && home.by !== ctx.bot.username ? ` (${home.by}'s)` : home.by ? " (yours)" : "";
@@ -338,6 +430,39 @@ export const flee: Skill = {
       }
       if (entered.result.status === "aborted") return entered.result;
       ctx.log(`could not get into the shelter at ${spotKey(home)} (${entered.result.reason}); running instead`);
+    }
+
+    // Under the ground with a monster close: into the rock, or walled in where it stands, before any running.
+    if (closeUnderground) {
+      // Straight down first: it needs no wall in reach, and in an open cave there often is none. burrow checks for
+      // lava, water and a cave under the hole before digging.
+      const dug = await burrow(ctx.bot).catch((error: Error) => error.message);
+      if (dug === null) {
+        return {
+          status: "success",
+          reason: "monsters were close under the ground, so you dug in where you stood and covered the hole over your head: nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near",
+          detail: { position: ctx.bot.entity.position.floored(), dugIn: true },
+        };
+      }
+      ctx.log(`could not dig in: ${dug}`);
+      const why = await nookIn(ctx.bot).catch((error: Error) => error.message);
+      if (why === null) {
+        return {
+          status: "success",
+          reason: "monsters were close under the ground, so you dug into the rock beside you and closed the way in: nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near",
+          detail: { position: ctx.bot.entity.position.floored(), sealedIn: true, nook: true },
+        };
+      }
+      ctx.log(`could not dig into the rock: ${why}`);
+      const sealed = await sealIn(ctx.bot);
+      if (sealed.open === 0 && !hostileInside(ctx.bot)) {
+        return {
+          status: "success",
+          reason: `monsters were close under the ground, so you walled yourself in where you stood (${sealed.placed} blocks placed): nothing can reach you here. They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near`,
+          detail: { position: ctx.bot.entity.position.floored(), sealedIn: true },
+        };
+      }
+      ctx.log(`could not wall in (${sealed.open} gaps left); running instead`);
     }
 
     const covered = () => Math.hypot(ctx.bot.entity.position.x - start.x, ctx.bot.entity.position.z - start.z);
@@ -357,11 +482,17 @@ export const flee: Skill = {
       return r.hostilesWithin12 === 0 && r.archersInSight === 0;
     };
     /** No mob that strikes up close is near enough to reach the hole before it is covered. */
-    const lead = () => !hostilesNear(ctx, DIG_LEAD).some((e) => !ARCHERS.has(e.name ?? ""));
+    // Nor a creeper within CREEPER_KEEP: it blows the cover off a hole dug beside it.
+    const lead = () => !hostilesNear(ctx, DIG_LEAD).some((e) => !ARCHERS.has(e.name ?? "")) && !hostilesNear(ctx, CREEPER_KEEP).some((e) => e.name === "creeper");
 
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";
+    const inAHome = () => (ctx.shelters?.() ?? []).some((spot) => insideSpot(ctx.bot, spot));
     const digIn = async (why: string): Promise<SkillResult | null> => {
+      if (inAHome()) {
+        refused = "you are in a home, whose floor is never dug and whose room is never walled up";
+        return null;
+      }
       if (above) {
         refused = `you are under ${describeShelter(above)} at ${spotKey(above)}, where walls would only make the way up to its doorway harder to find`;
         return null;
@@ -398,6 +529,7 @@ export const flee: Skill = {
       };
     };
 
+    const pitNote = () => (inPit(ctx.bot) ? " — you are at the bottom of a narrow hole: climb_out gets you out of it" : "");
     const cornered = async (): Promise<SkillResult> => {
       const dug = await digIn("no path away");
       if (dug) return dug;
@@ -409,7 +541,10 @@ export const flee: Skill = {
         };
       }
       if (underground) {
-        return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})`, detail: report() };
+        return { status: "failed", reason: `could not find a path away from the hostiles and could not wall yourself in (${refused})${pitNote()}`, detail: report() };
+      }
+      if (inAHome()) {
+        return { status: "failed", reason: `could not get out of the home past the monsters (${refused}); build_shelter closes it up around you, or fight with hunt`, detail: report() };
       }
       const sealed = await sealIn(ctx.bot);
       if (sealed.open === 0) {
@@ -421,7 +556,7 @@ export const flee: Skill = {
       }
       return {
         status: "failed",
-        reason: `could not find a path away from the hostiles, could not dig in (${refused}), and could not wall yourself in (${sealed.open} gaps left${sealed.noBlocks ? ": no dirt, cobblestone or planks to place" : ""})`,
+        reason: `could not find a path away from the hostiles, could not dig in (${refused}), and could not wall yourself in (${sealed.open} gaps left${sealed.noBlocks ? ": no dirt, cobblestone or planks to place" : ""})${pitNote()}`,
         detail: report(),
       };
     };
@@ -503,10 +638,14 @@ export const flee: Skill = {
       if (detail.hostilesWithin12) parts.push(`${detail.hostilesWithin12} hostile(s) are still within ${SAFE_RADIUS} blocks`);
       if (detail.archersInSight) {
         const names = [...new Set(archersWithSight(ctx.bot).map((e) => e.name ?? "skeleton"))].join(", ");
-        parts.push(`${detail.archersInSight === 1 ? `a ${names}` : `${detail.archersInSight} archers (${names})`} within ${BOW_RANGE} blocks can still see you`);
+        parts.push(`${detail.archersInSight === 1 ? `a ${names}` : `${detail.archersInSight} archers (${names})`} in range can still see you`);
       }
       return parts.join(" and ");
     };
+    // A dig-in that could not be covered leaves the agent in the hole it dug: not a safe place to call it done.
+    if (inPit(ctx.bot)) {
+      return { status: "failed", reason: `you are at the bottom of a narrow hole, open above${refused ? ` (${refused})` : ""}: climb_out gets you out of it`, detail };
+    }
     if (safe()) {
       return hid
         ? { status: "success", reason: `ran ${detail.distanceCovered} blocks and took cover where no archer can see you`, detail }

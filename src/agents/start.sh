@@ -69,7 +69,7 @@ GOAL="${GOAL:-}"
 AGENT_MEMORY="${AGENT_MEMORY:-plan}"
 AGENT_COMMS="${AGENT_COMMS:-on}"
 AGENT_STANCE="${AGENT_STANCE:-neutral}"
-AGENT_PROGRESS="${AGENT_PROGRESS:-off}"
+AGENT_PROGRESS="${AGENT_PROGRESS:-on}"
 CHECK_ONLY=false
 while [ $# -gt 0 ]; do
   case "$1" in

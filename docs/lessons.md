@@ -33,10 +33,16 @@ the model.
   *Evidence:* a hand-over said two pickaxes lay "beside" a teammate who had walked off; the teammate
   searched for them five times. A `take` from a chest reported items picked up off the floor on the
   way as "taken from the chest". ([06](results/write-ups/06-team-base.md))
+  A hunt begun inside a closed home never got out of it and ran its clock down in place, then said "the sheep got
+  away": 208 of 223 such hunts in two nights, while the agents planned around animals that were never the problem.
+  Fixed, the team's success rate went from 2 in 6 to 7 and 8 in 10. ([07](results/write-ups/07-luna-majority.md#the-second-night-80-on-one-commit))
 - **A refusal must be true.** "Not possible" or "not found", when the action was possible, makes the
   agent plan around a problem that isn't there, and it rarely tries again.
   *Evidence:* mining refused reachable ore as "out of reach" 44 times in one team run, and in 34 of
   53 earlier runs that mined; it starved the part of the goal that needed iron. ([06](results/write-ups/06-team-base.md))
+  A refusal must also fit the situation it is given in, and the best one is no refusal: "descend closer first" for
+  ore far below was said 144 times in 13 reps until the tool dug toward the ore itself, and "walk outside first"
+  was said to an agent already outside, on its home's roof. ([07](results/write-ups/07-luna-majority.md))
 - **Do exactly what was asked, no more.** A bulk side effect is invisible to the agent until the
   damage shows.
   *Evidence:* asked for 1 item from the team's store, `take` took all 10 and emptied it. ([06](results/write-ups/06-team-base.md))
@@ -148,6 +154,10 @@ the same problems as state in any distributed system.
   first few decisions, and nobody revisits the split when an owner stalls.
   *Evidence:* every team divided the goal over chat within two or three decisions; when the agent
   that owned a part stalled, no one took it over. ([06](results/write-ups/06-team-base.md#1-how-they-organised))
+  It holds even when a tool says the owner is gone: after the agent holding all the team's pickaxes left
+  the game, a teammate sent it 62 requests, each refused with "no other agent ... is in the world right
+  now", before mining for its own on day 2.
+  ([06](results/write-ups/06-team-base.md#running-away-underground-and-a-teammate-who-vanished-tluna11-tluna12a))
 - **State held in one place is lost with it.** What lives only in one agent goes when that agent
   fails.
   *Evidence:* twice an agent made every pickaxe the team needed, carried them all, and died with
@@ -194,6 +204,12 @@ asked, what can interrupt it and what happens without it.
   ([06](results/write-ups/06-team-base.md#a-proof-run-on-the-doorway-fix-bpoc3)). A reflex has to cover
   the whole gap: swimming out before and after each decision missed the drowning that came during
   one ([06](results/write-ups/06-team-base.md#remembering-where-the-sheep-were-bpoc6)).
+- **A reflex can do quiet harm; count how often it fires against what it guards.** Code that acts
+  without the model acts without its judgement, and its mistakes show up only as an odd line in the log.
+  *Evidence:* a reflex meant to dig falling sand off an agent's head also dug out the home's door whenever
+  an agent stood in the doorway, about 4,500 events over two weeks, against 56 for every other block put
+  together; it left an agent locked out at dusk and killed with the team's iron pickaxe
+  ([07](results/write-ups/07-luna-majority.md)).
 - **An escape needs a destination.** "Away from danger" can lead somewhere worse; "toward safety"
   is the goal.
   *Evidence:* agents fled straight away from monsters, away from their home and into a lake, and 7 of
@@ -286,7 +302,11 @@ up a different failure, and the goal stayed out of reach while they were being f
 *Evidence:* nine overnight reps of three Lunas, each on the fixes from the one before: a new failure
 in almost every rep, about half of them in our code; the whole goal was met only in the last, which
 says the fixes allow a win, not how often
-([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)).
+([06](results/write-ups/06-team-base.md#a-fix-after-every-rep-tluna5a-to-tluna5i)). The rate came from freezing the
+code: five reps of three Lunas on one unchanged commit met the whole goal in 4 of 5, where reps with fixes between
+them had won 4 of 14 on the same world ([07](results/write-ups/07-luna-majority.md)). Two sets of ten on one later
+commit met it in 7 and 8: a single set of five, or even ten, is a wide estimate, and a run of five wins in a row came
+inside the set that scored 7 ([07](results/write-ups/07-luna-majority.md#the-second-night-80-on-one-commit)).
 
 **Then pool the failures across runs, and sort each by what could still have been done.** One run's
 failure tells a story; the same kind of failure gathered from every run tells which story is common.

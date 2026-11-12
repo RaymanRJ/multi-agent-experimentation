@@ -2,7 +2,8 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
-import { eyeOf, getOutOfWater, headInWater, inSight } from "./skills/util.js";
+import { eyeOf, getOutOfLava, getOutOfWater, headInWater, inLava, inSight } from "./skills/util.js";
+import { WEAPONS, cooldownMs } from "./skills/creatures.js";
 
 const { goals } = pathfinderPkg;
 
@@ -17,17 +18,32 @@ const { goals } = pathfinderPkg;
 export const GUARD_RADIUS = 3;
 /** How far to step back each time: out of reach, not out of the area. */
 export const BACK_OFF = 6;
+/** A monster inside the home this close is hit: the game lands a blow out to 3 blocks. */
+const FIGHT_REACH = 3;
 const GUARD_EVERY_MS = 250;
+/**
+ * A creeper this close is backed away from, CREEPER_STEP blocks at a time, again whenever it closes in. Its fuse
+ * starts at 3 blocks and its blast hurts out to about 6, so the step back from mobs within reach (GUARD_RADIUS) came
+ * too late: on 11 November 5 of 6 creeper deaths were within two blocks of where the agent stood when it decided.
+ */
+export const CREEPER_KEEP = 8;
+const CREEPER_STEP = 10;
+/** Air (0-20) above which backing away from a creeper comes before swimming out. */
+const CREEPER_AIR = 8;
 /** A step back that hasn't arrived by now is abandoned, so a stuck path can't end the guard. */
 const STEP_BACK_MS = 3_000;
 
 /**
- * Mobs that shoot, and how far. Measured live on 26 October: a skeleton with a bow, held in place,
- * fired at 15 and 16.7 blocks and not at 17 or beyond, and never through a wall. Strays and bogged
- * share its bow.
+ * Mobs that shoot or throw, and how far. Measured live on 26 October: a skeleton with a bow, held in
+ * place, fired at 15 and 16.7 blocks and not at 17 or beyond, and never through a wall. Strays and
+ * bogged share its bow. A witch's potions, measured on 7 November with the witch held in place, hurt
+ * out to 12.7 blocks and not at 14 or 16, and it threw nothing through a wall; in tluna13 one killed
+ * two agents through the gaps of a broken home, the team's only iron pickaxe with each.
  */
-export const ARCHERS = new Set(["skeleton", "stray", "bogged"]);
 export const BOW_RANGE = 16;
+export const THROW_RANGE = 13;
+export const ARCHER_RANGE: Record<string, number> = { skeleton: BOW_RANGE, stray: BOW_RANGE, bogged: BOW_RANGE, witch: THROW_RANGE };
+export const ARCHERS = new Set(Object.keys(ARCHER_RANGE));
 /** How far to look for cover from an archer: a few steps, not a journey. */
 export const COVER_RADIUS = 5;
 const EYE = 1.62;
@@ -115,11 +131,11 @@ export function hostilesWithin(bot: Bot, radius: number): Entity[] {
 // The sight test lives in util.ts, where the digging skills' danger check uses it too.
 export { inSight };
 
-/** Archers within bow range that can see a body standing at `feet` (the agent's own, by default). */
+/** Archers within their range that can see a body standing at `feet` (the agent's own, by default). */
 export function archersWithSight(bot: Bot, feet: Vec3 = bot.entity.position): Entity[] {
   const eye = feet.offset(0, EYE, 0);
   return hostilesWithin(bot, BOW_RANGE + 4).filter(
-    (e) => ARCHERS.has(e.name ?? "") && e.position.distanceTo(feet) <= BOW_RANGE && inSight(bot, eyeOf(e), eye),
+    (e) => ARCHERS.has(e.name ?? "") && e.position.distanceTo(feet) <= (ARCHER_RANGE[e.name ?? ""] ?? 0) && inSight(bot, eyeOf(e), eye),
   );
 }
 
@@ -154,30 +170,96 @@ export function coverPoint(bot: Bot, archers: Entity[]): { x: number; y: number;
  *   agent drowned underground while its model decided, carrying the team's three iron pickaxes;
  * - a monster within reach: step back from it. In bpoc3, 9 of 17 deaths came while the model was
  *   still deciding, most with a mob 0-2 blocks away;
- * - an archer that can see the agent: move to the nearest cover from it, since stepping back doesn't
- *   help against a bow (bpoc4: 12 of 24 deaths to skeletons).
- * In that order. Nothing happens inside a closed shelter, where nothing can reach, or with no cover
- * close by. `stop` ends it when the decision arrives and returns what it did, for the next
+ * - an archer (a skeleton, or a witch throwing potions) that can see the agent: move to the nearest
+ *   cover from it, since stepping back doesn't help against a bow (bpoc4: 12 of 24 deaths to skeletons).
+ * In that order, after one more: a monster inside the agent's own home and in reach is fought where it stands,
+ * at the weapon's pace. There is nowhere to step back to in a room, and in tluna15 zombies that followed agents in
+ * killed three inside a shut home while the reflexes, counting it as safe, did nothing. Nothing else happens inside
+ * a closed shelter, where nothing can reach, or with no cover close by. `stop` ends it when the decision arrives and returns what it did, for the next
  * observation, or null if it did nothing.
  */
-export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: () => string | null } {
+export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders: () => Entity[] = () => []): { stop: () => string | null } {
+  const foughtOff = new Set<string>();
+  let blows = 0;
+  let lastBlow = 0;
   const steppedFrom = new Set<string>();
   const hidFrom = new Set<string>();
   let backedOff = 0;
+  let keptAway = 0;
+  let lastKeep = 0;
   let tookCover = 0;
   let movingSince = 0;
   let swimming = false;
   let swam: boolean | null = null;
+  let leftLava: boolean | null = null;
   const named = (e: Entity) => (e.name ?? "hostile mob").replace(/_/g, " ");
+  /**
+   * A creeper close outside: back away from it, before anything else, even with the head under water while air
+   * lasts: its blast kills in a second and a half, drowning takes about 15 s. At a lakeside spot from tluna27d the
+   * body swam in place for the whole decision while a creeper walked up, and was blown up 3 times in 4 (live).
+   */
+  const keepFromCreepers = (): boolean => {
+    if (sheltered() || (bot.oxygenLevel ?? 20) <= CREEPER_AIR) return false;
+    const here = bot.entity.position;
+    const creepers = hostilesWithin(bot, CREEPER_KEEP).filter((e) => e.name === "creeper");
+    if (creepers.length === 0) return false;
+    const nearest = Math.min(...creepers.map((e) => e.position.distanceTo(here)));
+    if (!movingSince || (nearest < 5 && Date.now() - lastKeep > 750)) {
+      // Dry ground away from it, or with none (a lake on that side), straight away through the water: standing still
+      // is the one thing that never helps (live, the body stood in the shallows while the creeper walked up).
+      const target = retreatPoint(bot, creepers, CREEPER_STEP);
+      const cx = creepers.reduce((n, e) => n + e.position.x, 0) / creepers.length;
+      const cz = creepers.reduce((n, e) => n + e.position.z, 0) / creepers.length;
+      const length = Math.hypot(here.x - cx, here.z - cz) || 1;
+      bot.setControlState("jump", false);
+      keptAway++;
+      lastKeep = Date.now();
+      movingSince = Date.now();
+      bot.pathfinder.setGoal(target
+        ? new goals.GoalNear(target.x, target.y, target.z, 1)
+        : new goals.GoalXZ(Math.round(here.x + ((here.x - cx) / length) * CREEPER_STEP), Math.round(here.z + ((here.z - cz) / length) * CREEPER_STEP)));
+    }
+    return true;
+  };
   const tick = () => {
     if (swimming) return;
+    // Lava first: it burns through a full health bar in seconds, faster than a decision.
+    if (inLava(bot)) {
+      swimming = true;
+      bot.pathfinder.setGoal(null);
+      getOutOfLava(bot)
+        .then((out) => { leftLava = out; })
+        .catch(() => { leftLava = false; })
+        .finally(() => { swimming = false; });
+      return;
+    }
+    if (keepFromCreepers()) return;
     if (headInWater(bot)) {
       swimming = true;
       bot.pathfinder.setGoal(null);
-      getOutOfWater(bot)
+      getOutOfWater(bot, () => hostilesWithin(bot, 16).filter((e) => e.name === "creeper").map((e) => e.position))
         .then((out) => { swam = out; })
         .catch(() => { swam = false; })
         .finally(() => { swimming = false; });
+      return;
+    }
+    const here = bot.entity.position;
+    const foe = intruders()
+      .filter((e) => e.position.distanceTo(here) <= FIGHT_REACH)
+      .sort((a, b) => a.position.distanceTo(here) - b.position.distanceTo(here))[0];
+    if (foe) {
+      bot.pathfinder.setGoal(null);
+      const weapon = WEAPONS.find((name) => bot.inventory.items().some((item) => item.name === name));
+      if (Date.now() - lastBlow < cooldownMs(weapon)) return;
+      lastBlow = Date.now();
+      const held = weapon ? bot.inventory.items().find((item) => item.name === weapon) : undefined;
+      void (async () => {
+        if (held && bot.heldItem?.name !== held.name) await bot.equip(held, "hand").catch(() => {});
+        await bot.lookAt(foe.position.offset(0, foe.height * 0.8, 0), true).catch(() => {});
+        bot.attack(foe);
+      })();
+      foughtOff.add(named(foe));
+      blows++;
       return;
     }
     if (movingSince && Date.now() - movingSince < STEP_BACK_MS) return;
@@ -226,12 +308,15 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
         bot.setControlState("jump", false);
         bot.pathfinder.setGoal(null);
       }
-      if (backedOff + tookCover === 0 && swam === null && !swimming) return null;
+      if (backedOff + keptAway + tookCover + blows === 0 && swam === null && leftLava === null && !swimming) return null;
       bot.pathfinder.setGoal(null);
       const did = [
+        ...(leftLava === true ? ["were in lava and got out of it"] : leftLava === false ? ["were in lava and could not get out"] : []),
         ...(swam === true ? ["were under water and swam out"] : swam === false || swimming ? ["were under water and tried to swim out"] : []),
+        ...(keptAway ? [`backed away from a creeper${times(keptAway)}`] : []),
         ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
         ...(tookCover ? [`took cover from ${who([...hidFrom])}${times(tookCover)}`] : []),
+        ...(blows ? [`fought ${who([...foughtOff])} inside your home (${blows} blow${blows === 1 ? "" : "s"})`] : []),
       ];
       return `while you were deciding, you ${did.join(" and ")}`;
     },
@@ -244,9 +329,15 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean): { stop: 
  * bpoc7 ("suffocated in a wall"), once mid-climb carrying two iron pickaxes.
  */
 export function buriedHead(bot: Bot): { name: string; position: Vec3 } | null {
-  const block = bot.blockAt(bot.entity.position.offset(0, EYE, 0).floored());
+  const eye = bot.entity.position.offset(0, EYE, 0);
+  const block = bot.blockAt(eye.floored());
   if (!block || block.boundingBox !== "block" || LIQUID.test(block.name)) return null;
-  return bot.canDigBlock(block) ? block : null;
+  // Only a block whose solid part holds the eye. A door, a dripleaf or an amethyst bud fills a sliver of its
+  // cell, and an agent walking through its own doorway dug the door out thousands of times (every run from
+  // 27 October to tluna26b), leaving the home open to monsters.
+  const [x, y, z] = [eye.x - block.position.x, eye.y - block.position.y, eye.z - block.position.z];
+  const holds = (block.shapes ?? []).some(([x0, y0, z0, x1, y1, z1]) => x > x0 && x < x1 && y > y0 && y < y1 && z > z0 && z < z1);
+  return holds && bot.canDigBlock(block) ? block : null;
 }
 
 /**

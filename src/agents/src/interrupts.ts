@@ -37,7 +37,7 @@ export interface WorldSnapshot {
  * another agent never interrupts (agents working side by side would thrash), and
  * messages to everyone wait for the next decision.
  */
-export type Trigger = "air" | "damage" | "hostile" | "dusk" | "night" | "message";
+export type Trigger = "air" | "damage" | "hostile" | "creeper" | "dusk" | "night" | "message";
 
 /**
  * Air (0-20, about 15 s under water from full) at or below which a skill is stopped. Drowning damage
@@ -46,6 +46,12 @@ export type Trigger = "air" | "damage" | "hostile" | "dusk" | "night" | "message
 export const LOW_AIR = 10;
 /** A hostile at or inside this many blocks is a threat worth stopping for. */
 export const HOSTILE_RADIUS = 6;
+/**
+ * A creeper this close stops any skill but running or taking cover, even one that carries on beside other monsters:
+ * its blast kills from full health. On 11 November creepers caused 6 of 26 deaths, one during a hunt (which ignores
+ * monsters) at health 20.
+ */
+export const CREEPER_RADIUS = 8;
 /** A hostile already known at the start only interrupts if it closes in by this much. */
 export const CLOSING_MARGIN = 2;
 export { NIGHT_START, DUSK_START } from "./daytime.js";
@@ -77,18 +83,27 @@ export function suppressedFor(skill: string, lastMessageInterruptMs: number | nu
  *  - ask_agent: it is waiting for an answer addressed to it, which must not cut the wait short.
  */
 export const SUPPRESSED: Record<string, Trigger[]> = {
-  flee: ["damage", "hostile", "dusk", "night", "message"],
+  flee: ["damage", "hostile", "creeper", "dusk", "night", "message"],
   eat: ["damage", "hostile", "dusk", "night", "message"],
   // Not message: asleep until the night passes, an agent must still hear a teammate who asks it for
   // something (in tbase3 one held a spare bed while another, beside it, had none).
-  sleep: ["damage", "hostile", "dusk", "night"],
+  sleep: ["damage", "hostile", "creeper", "dusk", "night"],
   // Hostile too: going into a shelter is the answer to a zombie close by (in bpoc it was interrupted 13
   // times on the way in). Building in the open still stops for a mob or a hit by itself (construct), and
   // damage interrupts the way in only when health is low (DAMAGE_FLOOR). Message too: a teammate's message
   // stopped 3 entries in bpoc2; it waits for the next decision, made once inside.
-  build_shelter: ["dusk", "night", "hostile", "message"],
-  // A fight means taking hits with a mob close by; hunt stops by itself when health runs low.
-  hunt: ["damage", "hostile"],
+  build_shelter: ["dusk", "night", "hostile", "creeper", "message"],
+  // A fight means taking hits with a mob close by; hunt stops by itself when health runs low. Message too (the
+  // owner's call, 9 November): a chase broken off loses the animal, and in tluna21a 5 of 12 day-1 sheep hunts were
+  // cut short by teammates' messages, so no beds were made by night 1. The message waits for the hunt to end.
+  hunt: ["damage", "hostile", "message"],
+  // A long dig cut short by a teammate's message loses its way down (tluna26b: twice); the message waits for the next
+  // decision, as for hunt. Monsters, hits and nightfall still stop it.
+  descend: ["message"],
+  tunnel: ["message"],
+  // mine_ore digs its own way down to ore below (through descend), so the same holds: 4 of 44 mine_ore calls in
+  // tluna26-27b were cut short by a teammate's message.
+  mine_ore: ["message"],
   ask_agent: ["message"],
   // Standing at a furnace for a minute or two: a teammate's message or dusk can wait for it, and in tluna5c
   // they cut it short again and again (once a message asking that very agent to smelt). Monsters and hits
@@ -141,6 +156,16 @@ export function createWatch(start: WorldSnapshot, suppressed: Trigger[] = [], da
     if (!off.has("damage") && now.health < peakHealth && (damageFloor === undefined || now.health <= damageFloor)) {
       const drowning = now.oxygen !== undefined && now.oxygen <= 0;
       return ["damage", `interrupted: you took damage (health ${shownHealth(now.health)})${drowning ? " — you are under water and out of air; move somewhere else" : ""}`];
+    }
+
+    if (!off.has("creeper") && !now.enclosed) {
+      for (const h of now.hostiles) {
+        if (h.name !== "creeper" || h.distance > CREEPER_RADIUS || (reachableOnly && h.reachable === false)) continue;
+        const before = startDistance.get(h.id);
+        if (before === undefined || h.distance <= before - CLOSING_MARGIN) {
+          return ["creeper", `interrupted: a creeper came within ${CREEPER_RADIUS} blocks (now ${Math.round(h.distance)})`];
+        }
+      }
     }
 
     // A mob outside closed walls can't reach the agent; damage still interrupts if one somehow does.

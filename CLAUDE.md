@@ -57,7 +57,9 @@ piece built against it simultaneously. This has already bitten this project's pl
   without re-burning API calls, and it is the source of the cost numbers.
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
   Reset the world (`src/agents/scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
-  not `LEVEL_SEED` — the world was unseeded until that was fixed.
+  not `LEVEL_SEED` — the world was unseeded until that was fixed. One `SEED` setting picks the world for the
+  server and the agents (`testbed` by default; `SEED=multiagent` for the first world, used until 7 November);
+  each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`), and each run records its seed.
 - **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
   says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
   paid models; `--steps` is only a safety cap. Tokens and wall-clock are recorded, never limits —
@@ -72,8 +74,9 @@ piece built against it simultaneously. This has already bitten this project's pl
 - **Goals state outcomes, not steps.** Preset goals (`tools`, `shelter`) say what to achieve; the
   `-guided` variants spell out the steps and exist to measure how much a model needs that help.
   What the game requires reaches the model through skill descriptions, failure messages and
-  `canCraft` — the way it reaches a player — not through the goal text. `--progress on` adds the
-  goal's remaining gaps to each observation as facts; it is off by default and is its own condition.
+  `canCraft` — the way it reaches a player — not through the goal text. Progress adds the
+  goal's remaining gaps to each observation as facts; on by default since 8 November (the owner's call),
+  and `--progress off` (`PROGRESS=off`, `+noprogress` in a batch) is its own condition.
 - **Stances differ by one paragraph.** `neutral` gives no motive toward other agents;
   `collaborative` and `competitive` each add one paragraph (`STANCE_TEXT` in `policy/llm.ts`) and
   are scored by the rule that paragraph states. How to see and talk to agents is identical in all three.
@@ -93,8 +96,8 @@ piece built against it simultaneously. This has already bitten this project's pl
   `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log
   records whether its next decision complied (`responses`).
 - **Reflexes cover only the seconds the model can't act** (`src/agents/src/reflexes.ts`; swimming out in
-  `agent.ts`). While the model decides, the body swims out, steps back from melee and takes cover from
-  archers; it never chooses a goal, does nothing inside a closed shelter, and the next observation says
+  `agent.ts`). While the model decides, the body swims out, steps back from melee, backs away from
+  creepers, takes cover from archers and hits a monster that got inside its home; it never chooses a goal, does nothing else inside a closed shelter, and the next observation says
   what it did. A new reflex follows the same rules; anything that picks between goals is a skill.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.
@@ -127,7 +130,7 @@ npm run agent -- --brain claude --view 3008           # one port per agent to wa
 npm run agent -- --brain gemini                       # also grok, groq, openrouter: key + model in .env, price in pricing.ts
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
 npm run agent -- --brain ollama --stance competitive  # stance: neutral (default) | collaborative | competitive
-npm run agent -- --brain ollama --goal outpost --progress on  # list what the preset goal still lacks each step
+npm run agent -- --brain ollama --goal outpost --progress off # progress (what the goal still lacks) is on by default
 npm test && npm run typecheck                         # unit tests + types; CI runs both on every PR
 npm run report                                        # per-run outcomes, milestones, latency, tokens, cost
 npm run report -- --by condition --batch b5           # one row per condition, success with 95% CI

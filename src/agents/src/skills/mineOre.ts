@@ -4,8 +4,8 @@ import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
-import { standable } from "./underground.js";
+import { asNumber, getOutOfWater, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
+import { descend, fillWater, plugBlock, standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
@@ -19,6 +19,8 @@ const MAX_TOTAL_MS = 4 * 60_000;
 /** Ore further above or below than this is left alone: the pathfinder gives up on long climbs. */
 const MAX_HEIGHT_GAP = 8;
 const REACH = 4.5;
+/** Ore in sight this far below or less is dug down to; deeper, the agent is told to descend. */
+const MAX_DIG_TOWARD = 40;
 /** Blocks dug through to ore that is in reach but behind them, before giving up on it. */
 const MAX_DIG_THROUGH = 3;
 /** Never dug through: someone's furniture. */
@@ -69,17 +71,62 @@ function inWaterNow(bot: Bot): boolean {
  * slower, and a dig by a pool timed out at 20 s in the check that added this. Steps to the nearest dry spot within
  * reach of the ore; stays put if there is none.
  */
-async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
-  if (!inWaterNow(bot)) return;
-  const spots: Vec3[] = [];
+const WET = /^(water|lava|bubble_column)$/;
+
+/**
+ * A place to stand within reach of the ore, dry: open ground, or rock beside it that can be dug out into a
+ * pocket (as a player tunnels in beside ore at a lake's edge) with nothing wet at its feet, its head or above.
+ * Ore with water above it or all round is tried only from such a place: walking to it otherwise swims, and a
+ * live try left the agent under water at 3 air.
+ */
+export function standsFor(bot: Bot, cell: Vec3): "open" | "pocket" | null {
+  if (standable(bot, cell)) return "open";
+  const floor = bot.blockAt(cell.offset(0, -1, 0));
+  if (!floor || floor.boundingBox !== "block" || WET.test(floor.name)) return null;
+  for (const dy of [0, 1, 2]) {
+    const block = bot.blockAt(cell.offset(0, dy, 0));
+    if (!block || WET.test(block.name)) return null;
+    if (dy < 2 && block.boundingBox === "block" && (!bot.canDigBlock(block) || FURNITURE.test(block.name) || homeBlock(bot, block.position))) return null;
+  }
+  return "pocket";
+}
+
+/** Dry places to stand (or dig out) within reach of the ore, open ones first, then nearest to the agent. */
+function dryStands(bot: Bot, ore: Vec3, pockets = false): Vec3[] {
+  const spots: Array<{ cell: Vec3; open: boolean }> = [];
   for (let dx = -3; dx <= 3; dx++)
     for (let dz = -3; dz <= 3; dz++)
-      for (let dy = -2; dy <= 1; dy++) {
+      for (let dy = -2; dy <= 2; dy++) {
         const cell = ore.offset(dx, dy, dz);
-        if (cell.offset(0.5, 1.6, 0.5).distanceTo(ore.offset(0.5, 0.5, 0.5)) <= REACH - 0.5 && standable(bot, cell)) spots.push(cell);
+        if (cell.equals(ore) || cell.offset(0.5, 1.6, 0.5).distanceTo(ore.offset(0.5, 0.5, 0.5)) > REACH - 0.5) continue;
+        const kind = pockets ? standsFor(bot, cell) : standable(bot, cell) ? "open" : null;
+        if (kind) spots.push({ cell, open: kind === "open" });
       }
-  spots.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position));
-  for (const spot of spots.slice(0, 3)) {
+  const here = bot.entity.position;
+  return spots
+    .sort((a, b) => Number(b.open) - Number(a.open) || a.cell.distanceTo(here) - b.cell.distanceTo(here))
+    .map((s) => s.cell);
+}
+
+/**
+ * Why this ore can't be mined from where it lies, whoever tries (blocks to plug water with aside), or null: the one
+ * rule mine_ore and the shared ore sightings both use, so what agents are told matches what the skill does.
+ */
+export function unmineable(bot: Bot, ore: Vec3): string | null {
+  const hazard = oreHazard(bot, ore);
+  if (hazard === "lava beside it") return "beside lava";
+  if (hazard && dryStands(bot, ore, true).length === 0) return "under water with no dry ground or rock beside it to stand in";
+  return null;
+}
+
+/** Ore each agent failed to get, by place, and when (game ticks): left alone for a while in later calls too. */
+const failedOre = new WeakMap<Bot, Map<string, number>>();
+/** Ten minutes of game time. Before, a failed ore was forgotten when the call ended: in tluna23 lb went back to one 6 times. */
+const FORGET_FAILED_TICKS = 12_000;
+
+async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
+  if (!inWaterNow(bot)) return;
+  for (const spot of dryStands(bot, ore).slice(0, 3)) {
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(spot.x, spot.y, spot.z)), 8000, "stepping out of the water to dig");
       if (!inWaterNow(bot)) return;
@@ -87,6 +134,30 @@ async function dryFooting(bot: Bot, ore: Vec3): Promise<void> {
       bot.pathfinder.setGoal(null);
     }
   }
+}
+
+const FACES: Array<[number, number, number]> = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+
+/** Cells of water touching the ore. */
+function waterAround(bot: Bot, ore: Vec3): Vec3[] {
+  return FACES.map(([dx, dy, dz]) => ore.offset(dx, dy, dz)).filter((cell) => bot.blockAt(cell)?.name === "water");
+}
+
+/**
+ * Fills the water touching the ore with blocks carried, as a player plugs it before mining, so digging
+ * the ore floods nothing and nobody digs in water. Ore with water above it or all round was refused, and
+ * in tluna13 that was all the iron near the home: 23 refusals, by agents carrying 36-319 cobblestone.
+ * Throws why not (no block left, nothing to put it against, out of reach).
+ */
+async function plugAround(bot: Bot, ore: Vec3): Promise<number> {
+  const feet = bot.entity.position.floored();
+  let filled = 0;
+  for (const cell of waterAround(bot, ore)) {
+    if (cell.equals(feet) || cell.equals(feet.offset(0, 1, 0))) continue;
+    await fillWater(bot, cell);
+    filled++;
+  }
+  return filled;
 }
 
 /** Pickaxes, weakest first. */
@@ -120,10 +191,12 @@ export const mineOre: Skill = {
   description:
     "Mine ore you can see and collect what it drops. Takes `ore` (coal, iron, copper, gold, diamond, redstone, lapis " +
     "or emerald) and `count` — how many drops you want to gain (iron gives raw_iron, diamond gives diamond). " +
-    "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks. Ore deep inside " +
+    "Only finds ore you could see: on a cave wall, a cliff or a tunnel you dug, within 48 blocks; ore in sight up to 40 blocks below you is dug down to (as descend does). Ore deep inside " +
     "rock is invisible, so if none is in sight, explore, descend or dig a tunnel to uncover some. Needs a good enough " +
     "pickaxe: coal needs wooden, iron/copper/lapis need stone, diamond/gold/redstone/emerald need iron. " +
-    "Uses the cheapest pickaxe good enough. Skips ore beside lava, ore with water right above it, and ore under water; ore with water only beside it is mined. Returns how many were gained and the new total.",
+    "Uses the cheapest pickaxe good enough. Water touching the ore (above, beside or all round it) is plugged first with a block you carry " +
+    "(cobblestone, dirt or stone), and the ore is mined from dry ground or rock beside it; ore under water with neither beside it (on a pool's floor) " +
+    "can't be mined, nor can ore beside lava. Ore it failed to get is left alone for about 10 minutes. Returns how many were gained and the new total.",
   args: { ore: "string", count: "number" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -149,7 +222,15 @@ export const mineOre: Skill = {
       .map((name) => bot.registry.blocksByName[name]?.id)
       .filter((id): id is number => id !== undefined);
     const skipped = new Set<string>();
+    let dugToward = 0;
     const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
+    const age = () => Number(bot.time.age);
+    const failedBefore = failedOre.get(bot) ?? new Map<string, number>();
+    failedOre.set(bot, failedBefore);
+    const triedBefore = (p: Vec3) => {
+      const at = failedBefore.get(key(p));
+      return at !== undefined && age() - at < FORGET_FAILED_TICKS;
+    };
 
     while (dropsHeld() < wanted) {
       if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
@@ -164,20 +245,39 @@ export const mineOre: Skill = {
 
       let block: Block | null = null;
       let outOfReach: number | null = null;
+      let farBelow: Vec3 | null = null;
       // Ore the agent can see but this won't dig toward: say so, or "none in reach" contradicts what it sees.
-      const wet = new Set<string>();
+      const lava = new Set<string>();
+      const noStand = new Set<string>();
+      const noPlug = new Set<string>();
+      const leftAlone = new Set<string>();
       for (const radius of SEARCH_RADII) {
         const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point)) continue;
-          if (oreHazard(bot, point)) {
-            wet.add(key(point));
+          if (triedBefore(point)) {
+            leftAlone.add(key(point));
+            continue;
+          }
+          // Ore at a pool's floor is reached only by swimming: a live try left the agent under water at 3 air.
+          const why = unmineable(bot, point);
+          if (why === "beside lava") {
+            lava.add(key(point));
+            continue;
+          }
+          if (why) {
+            noStand.add(key(point));
+            continue;
+          }
+          if (oreHazard(bot, point) && !plugBlock(bot)) {
+            noPlug.add(key(point));
             continue;
           }
           const gap = point.y - Math.floor(bot.entity.position.y);
           if (Math.abs(gap) > MAX_HEIGHT_GAP) {
             outOfReach ??= gap;
+            if (gap < 0 && gap >= -MAX_DIG_TOWARD) farBelow ??= point;
             continue;
           }
           block = bot.blockAt(point);
@@ -185,12 +285,31 @@ export const mineOre: Skill = {
         }
         if (block) break;
       }
+      // Ore in sight further below than a walk can reach: dig down toward it, as a player who sees it would, then look
+      // again. In 13 reps mine_ore said "descend closer first" 144 times, and a descend followed only 62 times, heading
+      // wherever it last dug.
+      if (!block && farBelow && dugToward < 2) {
+        dugToward++;
+        const before = bot.entity.position.y;
+        const down = await descend.run(ctx, { y: farBelow.y + 1, toward: { x: farBelow.x, z: farBelow.z } });
+        ctx.log(`dug down toward the ${kind} ore at ${farBelow.x},${farBelow.y},${farBelow.z}: ${down.status}${down.reason ? ` (${down.reason.slice(0, 80)})` : ""}`);
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
+        if (before - bot.entity.position.y >= 3) continue;
+        failedBefore.set(key(farBelow), age());
+      }
       if (!block) {
         const far =
           outOfReach === null
             ? ""
             : ` (there is some ${Math.abs(outOfReach)} blocks ${outOfReach < 0 ? "below" : "above"} you — ${outOfReach < 0 ? "descend" : "climb"} closer first)`;
-        const wetNote = wet.size ? `; ${wet.size} ${kind} ore in sight ${wet.size === 1 ? "is" : "are"} beside lava, under water or below water, which this won't mine` : "";
+        // Said plainly: ore in sight that can't be mined from here is no reason to try again here.
+        const n = (set: Set<string>) => `${set.size} ${kind} ore in sight`;
+        const are = (set: Set<string>) => (set.size === 1 ? "is" : "are");
+        const wetNote =
+          (lava.size ? `; ${n(lava)} ${are(lava)} beside lava and can't be mined` : "") +
+          (noStand.size ? `; ${n(noStand)} can't be mined from here: ${noStand.size === 1 ? "it lies" : "they lie"} under water with no dry ground or rock beside ${noStand.size === 1 ? "it" : "them"} to stand in` : "") +
+          (noPlug.size ? `; ${n(noPlug)} ${are(noPlug)} under water, and you carry no cobblestone, dirt or stone to plug it` : "") +
+          (leftAlone.size ? `; ${leftAlone.size} you could not get to in the last 10 minutes ${leftAlone.size === 1 ? "was" : "were"} left alone` : "");
         const reason =
           gained() > 0
             ? `gained ${gained()} ${drop}, then no more ${kind} ore in reach${far}${wetNote}`
@@ -199,21 +318,50 @@ export const mineOre: Skill = {
       }
 
       const { x, y, z } = block.position;
+      const wetOre = oreHazard(bot, block.position) !== null;
       try {
-        await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
+        if (wetOre) {
+          // To a dry place beside it, dug out of the rock if need be, never by swimming to the ore.
+          const stand = dryStands(bot, block.position, true)[0];
+          if (!stand) throw new Error("no dry place beside it to stand");
+          await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(stand.x, stand.y, stand.z)), TRAVEL_TIMEOUT_MS, "walking to a dry place beside the ore");
+          if (inWaterNow(bot)) {
+            await getOutOfWater(bot);
+            throw new Error("the way there was through water");
+          }
+        } else {
+          await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), TRAVEL_TIMEOUT_MS, "walking to ore");
+        }
         const fresh = bot.blockAt(block.position);
         if (!fresh || !oreIds.includes(fresh.type) || !bot.canDigBlock(fresh)) throw new Error("cannot dig it from here");
+        // Water touching the ore is plugged from dry footing before anything is dug.
+        let plugged = 0;
+        if (plugBlock(bot) && waterAround(bot, fresh.position).length > 0) {
+          await dryFooting(bot, fresh.position);
+          plugged = await plugAround(bot, fresh.position);
+          if (plugged) ctx.log(`plugged ${plugged} water beside the ${kind} ore at ${x},${y},${z}`);
+        }
         // Out of reach or behind a wall, the server ignores the dig and mineflayer waits forever.
-        if (!(await digThrough(bot, fresh))) throw new Error("out of reach");
+        if (!(await digThrough(bot, fresh))) {
+          // Plugged all round the ore shows no face, but from dry footing in reach the server breaks it (live: 2 of 2 in
+          // 24 s). Not from water: under a pool the dig never finished in 45 s, so the agent is told to find dry ground.
+          const eye = bot.entity.position.offset(0, bot.entity.height, 0);
+          if (!plugged || eye.distanceTo(fresh.position.offset(0.5, 0.5, 0.5)) > REACH) throw new Error("out of reach");
+          if (inWaterNow(bot)) throw new Error("plugged, but there is no dry footing in reach of it to dig from");
+        }
         // digThrough may have changed the tool in hand to dig dirt or stone; ore needs the pickaxe.
         if (liquidBeside(bot, fresh.position)) await dryFooting(bot, fresh.position);
         const pick = bot.inventory.items().find((item) => item.name === pickaxe);
         if (pick) await bot.equip(pick, "hand");
         await withTimeout(bot.dig(fresh), inWaterNow(bot) ? WET_DIG_TIMEOUT_MS : DIG_TIMEOUT_MS, "digging ore");
       } catch (error) {
-        ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
         bot.pathfinder.setGoal(null);
+        // Stopped from outside (an interrupt cancels the walk: "The goal was changed..."): not the ore's fault. 24 of 71
+        // ore failures in ten reps were this, logged as the ore failing.
+        if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending", detail: { gained: gained() } };
+        ctx.log(`could not mine ${kind} ore at ${x},${y},${z}: ${(error as Error).message}`);
         skipped.add(key(block.position));
+        failedBefore.set(key(block.position), age());
         continue;
       }
       // A drop can't be picked up for its first 10 ticks; leaving after exactly 10 left raw iron on the floor.

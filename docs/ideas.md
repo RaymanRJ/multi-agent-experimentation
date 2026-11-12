@@ -18,8 +18,8 @@ choose it and deterministic code would do it.
    today's one-day outpost runs no agent's food fell below 15 of 20.
 4. **Ranged weapons:** `craft` can already make a bow and arrows (string from spiders, feathers from
    chickens), but no skill shoots.
-5. **`light`: place torches.** Mobs spawn in the dark, including in an unlit shelter or mine.
-   Cheap to build, but torches need coal, which ties it to `mine_ore`.
+5. **Done (7 November): `light`, and `build_shelter` lights homes.** Mobs spawn in the dark, including in an
+   unlit shelter or mine. Torches need coal or charcoal, which ties them to `mine_ore` and `smelt`.
 
 ## Hard goals
 
