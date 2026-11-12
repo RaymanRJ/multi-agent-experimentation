@@ -6,6 +6,7 @@ import { countInventory, shownHealth } from "../observe.js";
 import { pickUp } from "./pickUp.js";
 import { asNumber, withTimeout } from "./util.js";
 import { retreatPoint } from "../reflexes.js";
+import { leaveHome } from "./underground.js";
 
 const { goals } = pathfinderPkg;
 
@@ -51,6 +52,11 @@ function nearest(bot: Bot, accept: (entity: Entity) => boolean): Entity | null {
     if (!best || entity.position.distanceTo(here) < best.position.distanceTo(here)) best = entity;
   }
   return best;
+}
+
+/** Any target of this kind within range, so a hunt with none in range doesn't walk out of the home for nothing. */
+function prey0(bot: Bot, target: string): Entity | null {
+  return nearest(bot, (entity) => matches(bot, entity, target));
 }
 
 /** Walks up to the entity, following it as it moves. Resolves true once within reach. */
@@ -119,9 +125,16 @@ export const hunt: Skill = {
     if (held) await bot.equip(held, "hand");
     else if (bot.heldItem) await bot.unequip("hand");
 
+    // Out of the home by its door first: following an animal from inside a closed home never got out, and the chase ran
+    // out its clock in place. Of 223 hunts for animals begun in a home on 11-12 November, 208 ended "got away" (135 without
+    // moving); of 120 begun outside, 16.
+    const out = prey0(bot, target) ? await leaveHome(ctx, "hunt") : null;
+    if (out && "error" in out) return { status: "failed", reason: out.error };
+    const walkedOut = out ? out.note : "";
+
     let killed = 0;
     const startedAt = Date.now();
-    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: shownHealth(bot.health) });
+    const report = () => ({ target, killed, weapon: weapon ?? "bare hands", gained: gainedSince(bot, before), health: shownHealth(bot.health), ...(walkedOut ? { walkedOut } : {}) });
     const dead = new Set<number>();
     const onDead = (entity: Entity) => { dead.add(entity.id); };
     bot.on("entityDead", onDead);
@@ -212,6 +225,9 @@ export const shear: Skill = {
     const shears = bot.inventory.items().find((item) => item.name === "shears");
     if (!shears) return { status: "failed", reason: "need shears — craft them from 2 iron_ingot" };
     await bot.equip(shears, "hand");
+    // Out of the home by its door first, as for hunt.
+    const out = prey0(bot, "sheep") ? await leaveHome(ctx, "shear") : null;
+    if (out && "error" in out) return { status: "failed", reason: out.error };
     const before = countInventory(bot);
     const report = () => ({ sheared: done, gained: gainedSince(bot, before) });
     const tried = new Set<number>();

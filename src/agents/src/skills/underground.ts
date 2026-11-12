@@ -649,7 +649,7 @@ export function oreInSight(bot: Bot, radius = 16): Record<string, number> {
  * inside the shared home. The model chose to dig; walking out to do it is the code's job. Walks through the
  * door (or the doorway) to the nearest open ground in front of it. Null when not in a home.
  */
-async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error: string } | null> {
+export async function leaveHome(ctx: SkillContext, to = "dig"): Promise<{ note: string } | { error: string } | null> {
   const bot = ctx.bot;
   const home = (ctx.shelters?.() ?? []).find((spot) => insideSpot(bot, spot));
   if (!home) return null;
@@ -666,7 +666,7 @@ async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error:
         if (standable(bot, cell) && !homeBlock(bot, cell.offset(0, -1, 0))) targets.push(cell);
       }
   targets.sort((a, b) => a.distanceTo(outer) - b.distanceTo(outer));
-  if (targets.length === 0) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to dig from` };
+  if (targets.length === 0) return { error: `you are in the home at ${spotKey(home)} and there is no open ground in front of its door to ${to} from` };
   let target: Vec3 | null = null;
   let failure = "";
   for (const cell of targets.slice(0, 3)) {
@@ -679,9 +679,9 @@ async function leaveHome(ctx: SkillContext): Promise<{ note: string } | { error:
       failure = plainError((error as Error).message);
     }
   }
-  if (!target) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig: ${failure}` };
-  if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to dig` };
-  return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to dig from there` };
+  if (!target) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to ${to}: ${failure}` };
+  if (insideSpot(bot, home)) return { error: `you are in the home at ${spotKey(home)} and could not walk out of it to ${to}` };
+  return { note: `you walked out of the home at ${spotKey(home)} to ${target.x},${target.y},${target.z} to ${to} from there` };
 }
 
 function headingIndex(name: unknown): number | null {
