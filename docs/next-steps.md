@@ -302,7 +302,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    inside a home old 3 of 4 died, new 0 of 4), and the sleep refusal now says a creeper doesn't burn in daylight and
    stays near a player it can sense. An agent burned to death in lava at y=35 with 6 raw iron while deciding (29a): the
    body now steers out of lava as out of water (old 4 of 4 died in a sunk pool, new 2 of 4; deaths only mid-5x5). craft
-   names the items an unknown name is part of ("bed": white_bed). **Set B: tluna30a-j on 54c5f86**, two lanes from 02:04. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   names the items an unknown name is part of ("bed": white_bed). **Set B: tluna30a-j on 54c5f86**, two lanes from 02:04. **Set B: 7 of 10** (30a, d, f, g, h, i, j; the last five in a
+   row, 22:05-39:10 of game time), US$0.99; run to the full ten after its third loss (stop rule lifted, said so in the
+   report). Losses: 30b la made all three pickaxes on day 1, 140 blocks from home, set off at health 8 before sunrise and
+   was shot; 30c two deaths with iron and an iron pickaxe worn out digging; 30e no iron work at all, sleep refused about
+   60 times for monsters by the home. Mostly the agents' own choices. Tried and dropped: letting hunt open the door to
+   fight a monster waiting at it (live: old refused 3 of 3; new went out and lost, 1 death and health 5-6, no kills).
+   Creepers still took 6 of 30 deaths over sets A and B, scattered (inside a home through the wall, a creeper already
+   at 3 blocks at the decision, one underground). **Set C: tluna31a-j on the same code**, from 05:31. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
