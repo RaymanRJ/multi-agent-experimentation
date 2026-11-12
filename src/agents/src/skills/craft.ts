@@ -568,7 +568,19 @@ export const craft: Skill = {
     let name = asked;
     let item = bot.registry.itemsByName[name];
     if (!item) {
-      return { status: "failed", reason: `"${name}" is not a known item name — use names like wooden_pickaxe or oak_planks` };
+      // The names it may have meant, said plainly: "bed" was asked for 5 times in tluna29a and told only "use names
+      // like wooden_pickaxe", while beds are named by colour (white_bed).
+      const near = bot.registry.itemsArray.map((i) => i.name)
+        .filter((n) => n.endsWith(`_${name}`) || n.startsWith(`${name}_`) || n.includes(`_${name}_`))
+        // White first: sheep are mostly white, so white_bed and white_wool are the ones within reach.
+        .sort((a, b) => Number(!a.startsWith("white_")) - Number(!b.startsWith("white_")) || a.length - b.length || a.localeCompare(b))
+        .slice(0, 4);
+      return {
+        status: "failed",
+        reason: near.length
+          ? `"${name}" is not a known item name; names with it in them: ${near.join(", ")}`
+          : `"${name}" is not a known item name — use names like wooden_pickaxe or oak_planks`,
+      };
     }
 
     if (ctx.shouldStop()) return { status: "aborted", reason: "the run is ending" };

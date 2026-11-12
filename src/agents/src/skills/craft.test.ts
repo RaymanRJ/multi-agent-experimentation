@@ -38,6 +38,7 @@ const tryCraft = (inventory: Record<string, number>, args: Record<string, unknow
 
 test("craft - unknown item, smelted item and uncraftable item each get their own answer", async () => {
   assert.match((await tryCraft({}, { item: "wodden_pickaxe" })).reason!, /"wodden_pickaxe" is not a known item name/);
+  assert.match((await tryCraft({}, { item: "bed" })).reason!, /"bed" is not a known item name; names with it in them: .*white_bed/);
   assert.equal(
     (await tryCraft({}, { item: "iron_ingot" })).reason,
     "iron_ingot is smelted from raw_iron, not crafted — use smelt with item iron_ingot",
