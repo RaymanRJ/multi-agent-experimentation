@@ -5,6 +5,7 @@ import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { pickUp } from "./pickUp.js";
 import { asNumber, withTimeout } from "./util.js";
+import { retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -18,6 +19,8 @@ export const CREATURE_RANGE = 64;
 /** The entity kinds observations list as animals: farm animals, wildlife and fish. */
 export const ANIMAL_TYPES = new Set(["animal", "water_creature"]);
 const REACH = 3;
+/** A creeper's fuse builds while a player is within 7 blocks of it; the hunt backs off past this after each blow. */
+const BLAST_CLEAR = 8;
 const CHASE_MS = 30_000;
 const MAX_SKILL_MS = 2 * 60_000;
 /** Hunting stops at this health or below: a fight the agent is losing is the model's to rethink. */
@@ -61,6 +64,25 @@ async function closeIn(bot: Bot, entity: Entity, reach: number, ms: number): Pro
   return false;
 }
 
+/**
+ * After each blow at a creeper, out of its reach until its fuse cools: the fuse builds while a player stands within 7
+ * blocks and cools beyond. Standing and trading blows, the hunt never killed one and was blown up to health 3-8 every
+ * time (live, 4 of 4); in tluna29c a creeper by the home's wall blocked every bed for three nights.
+ */
+async function outOfBlast(bot: Bot, creeper: Entity): Promise<void> {
+  const here = bot.entity.position;
+  const away = retreatPoint(bot, [creeper], BLAST_CLEAR + 2);
+  const length = Math.hypot(here.x - creeper.position.x, here.z - creeper.position.z) || 1;
+  bot.pathfinder.setGoal(away
+    ? new goals.GoalNear(away.x, away.y, away.z, 1)
+    : new goals.GoalXZ(Math.round(here.x + ((here.x - creeper.position.x) / length) * (BLAST_CLEAR + 2)), Math.round(here.z + ((here.z - creeper.position.z) / length) * (BLAST_CLEAR + 2))));
+  const started = Date.now();
+  while (Date.now() - started < 2500 && bot.entities[creeper.id] && creeper.position.distanceTo(bot.entity.position) < BLAST_CLEAR) await bot.waitForTicks(2);
+  bot.setControlState("sprint", false);
+  // Its fuse cools a tick at a time out there.
+  await bot.waitForTicks(20);
+}
+
 /** Picks up what fell, if anything did; a failure here is not the skill's failure. */
 async function collect(ctx: SkillContext): Promise<void> {
   await ctx.bot.waitForTicks(10);
@@ -81,7 +103,8 @@ export const hunt: Skill = {
     "skeleton, spider…) or another agent's name, and `count` how many to kill (default 1, up to 5). Goes after the nearest " +
     `one within ${CREATURE_RANGE} blocks, with the best sword or axe you hold (bare hands otherwise, much weaker), then ` +
     "picks up what it drops: meat to cook and eat, wool from a sheep (1 for each sheep killed), string from a spider. Stops when your health falls " +
-    `to ${RETREAT_HEALTH}, or when the target gets away. Returns how many were killed and what was picked up.`,
+    `to ${RETREAT_HEALTH}, or when the target gets away. A creeper is struck and backed away from after each blow, out of reach of ` +
+    "its blast while its fuse cools. Returns how many were killed and what was picked up.",
   args: { target: "string", count: "number?" },
 
   async run(ctx: SkillContext, rawArgs): Promise<SkillResult> {
@@ -125,9 +148,12 @@ export const hunt: Skill = {
           if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
           if (!bot.entities[prey.id] || dead.has(prey.id)) break;
           await bot.lookAt(prey.position.offset(0, prey.height * 0.8, 0), true);
+          const creeper = prey.name === "creeper";
+          if (creeper) bot.setControlState("sprint", true);
           bot.attack(prey);
           lastHit = Date.now();
           chaseEnds = lastHit + CHASE_MS;
+          if (creeper) await outOfBlast(bot, prey);
         }
         bot.pathfinder.setGoal(null);
         if (!dead.has(prey.id)) {

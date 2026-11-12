@@ -36,7 +36,10 @@ function monsterAtBed(bot: Bot, at: Vec3): string | null {
     const d = e.position.distanceTo(bot.entity.position);
     if (!best || d < best.d) best = { name: e.name ?? "a hostile mob", d };
   }
-  return best ? `${best.name} is ${Math.round(best.d)} blocks away` : null;
+  if (!best) return null;
+  // A fact a player knows, not advice: in tluna29c the agents waited three nights for a creeper by the wall to move off.
+  const stays = best.name === "creeper" ? " (a creeper does not burn in daylight, and stays near a player it can sense)" : "";
+  return `${best.name} is ${Math.round(best.d)} blocks away${stays}`;
 }
 
 /** Tries to put a bed from inventory on flat ground next to the bot. */
