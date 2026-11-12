@@ -27,10 +27,10 @@ const PRICING: Record<string, [number, number] | [number, number, number]> = {
   "claude-haiku-4-5": [1.0, 5.0],
 
   // OpenAI models, with the GPT-6 models' listed cached-input prices (Luna $0.01, Sol $0.10, Astra $1.00).
-  // Cache writes cost a little above input (Luna $0.125) and the API doesn't report how many tokens were
-  // written, so those are priced as plain input: a cost may be understated by a few percent. Until 10 November
-  // cached input was priced in full, which put Luna runs at about 2.7 times the bill (tluna20: $1.45
-  // estimated, $0.53 billed).
+  // Until 10 November cached input was priced in full, which put Luna runs at about 2.7 times the bill
+  // (tluna20: $1.45 estimated, $0.53 billed). Then uncached input was priced as plain input, but it is billed
+  // as cache writes (OPENAI_CACHE_WRITE): the 12 November night (tluna29-31, 47.9M input of which 37.3M cached,
+  // 2.9M output) was estimated at $2.90 and billed $3.16; at the write rate it prices at $3.17.
   "gpt-4.1-mini": [0.4, 1.6, 0.1],
   "gpt-6-luna": [0.1, 0.5, 0.01],
   "gpt-6.1-terra": [1.0, 5.0],
@@ -57,6 +57,13 @@ const CLAUDE_CACHE_READ_BY_MODEL: Record<string, number> = {
   "claude-fable-5-1": 0.025,
 };
 
+/**
+ * Uncached input to a GPT-6 model with a listed cached price is billed as a cache write, at this multiple of its
+ * input price (Luna: $0.125 against $0.10). The API doesn't say which tokens were written, and nearly all uncached
+ * input in our runs is: the prompt's fixed head is cached and each call adds to it.
+ */
+export const OPENAI_CACHE_WRITE = 1.25;
+
 export function costUSD(call: ModelCall): number {
   // Local/unknown models have zero cost
   if (call.backend === "ollama") {
@@ -78,8 +85,10 @@ export function costUSD(call: ModelCall): number {
   const base = call.model.replace(/-\d{8}$/, "");
   const readPrice = claude ? inputPrice * (CLAUDE_CACHE_READ_BY_MODEL[base] ?? CLAUDE_CACHE_READ) : (listedCached ?? inputPrice);
   const writePrice = claude ? inputPrice * CLAUDE_CACHE_WRITE : inputPrice;
+  // GPT-6 with a cached price: uncached input is billed as cache writes.
+  const plainPrice = base.startsWith("gpt-6") && listedCached !== undefined ? inputPrice * OPENAI_CACHE_WRITE : inputPrice;
   // Anthropic's 1-hour cache writes cost twice the input price, not 1.25x (the 5-minute default we ask for).
   const write1h = claude ? Math.min(write, call.cacheWrite1hTokens ?? 0) : 0;
   const write1hPrice = inputPrice * CLAUDE_CACHE_WRITE_1H;
-  return (plain * inputPrice + read * readPrice + (write - write1h) * writePrice + write1h * write1hPrice + call.outputTokens * outputPrice) / 1_000_000;
+  return (plain * plainPrice + read * readPrice + (write - write1h) * writePrice + write1h * write1hPrice + call.outputTokens * outputPrice) / 1_000_000;
 }

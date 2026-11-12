@@ -134,7 +134,7 @@ Found in this batch and fixed after it (not in these five reps):
 | 27d | whole goal | 50:02 | 3 | 98 / 102 / 52 | 1,714k / 87k | $0.09 |
 | 27e | whole goal | 30:02 | 0 | 67 / 63 / 43 | 1,175k / 62k | $0.07 |
 
-Costs are our estimate; the bill runs about 1.3× lower.
+Costs are our estimate from the logged tokens, before the 12 November pricing fix: they ran about 9% under the bill (uncached input is billed as cache writes, which the estimate then missed).
 
 ## How this testbed gets better: from where the agents get stuck
 
@@ -163,7 +163,8 @@ and coaching it away would measure the coaching.
 
 *Sets A, B and C (tluna29a-f, tluna30a-j, tluna31a-j), 11-12 November, branch `overnight-luna`. Set A on 131eb8f; sets B
 and C both on 54c5f86, frozen across all twenty reps. Same goal, world and conditions as above; two teams ran at once
-from midnight, each on its own server (206 tick-rate readings, every one at 20: no lag). US$2.88 estimated in all.
+from midnight, each on its own server (206 tick-rate readings, every one at 20: no lag). US$3.16 billed in all (US$2.88 estimated
+before the pricing fix; the per-rep costs below are those estimates, about 9% low).
 The owner's bar: 8 of 10 on one unchanged commit, then 9 of 10.*
 
 **The result: set C met the whole goal in 8 of 10; set B, on the same commit, in 7 of 10.** Together, 15 of 20 (75%). Set

@@ -209,7 +209,8 @@ test("OpenAIBackend - ollamaContext derives a model with that window once, then 
 
 test("costUSD - GPT-6 models are priced, so the budget can cap them", () => {
   const call = { backend: "gpt", model: "gpt-6.1-sol", inputTokens: 1_000_000, outputTokens: 100_000, ms: 0, text: "", request: [] };
-  assert.strictEqual(costUSD(call), 3);
+  // Uncached GPT-6 input is billed as cache writes, 1.25x input: 1M x $2.50 + 0.1M x $10.
+  assert.strictEqual(costUSD(call), 3.5);
   assert.ok(Number.isNaN(costUSD({ ...call, model: "gpt-unreleased" })));
 });
 
@@ -239,9 +240,9 @@ test("OpenAI pricing - cached input at its listed price; unlisted models pay ful
   // gpt-6.1-terra lists no cached price: bill it as plain input.
   const terra = costUSD({ ...base, model: "gpt-6.1-terra", inputTokens: 1_000_000, cacheReadTokens: 1_000_000 });
   assert.ok(Math.abs(terra - 1) < 1e-9);
-  // gpt-6-luna: $0.10/M input, $0.01/M cached (since 10 November).
+  // gpt-6-luna: $0.01/M cached (since 10 November); uncached input at the cache-write rate, $0.125/M (since 12 November).
   const luna = costUSD({ ...base, model: "gpt-6-luna", inputTokens: 1_000_000, cacheReadTokens: 750_000 });
-  assert.ok(Math.abs(luna - (0.25 * 0.1 + 0.75 * 0.01)) < 1e-9);
+  assert.ok(Math.abs(luna - (0.25 * 0.125 + 0.75 * 0.01)) < 1e-9);
 });
 
 test("OpenAIBackend - offers the decision tool to hosted models only, and reads the call's arguments", async () => {

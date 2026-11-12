@@ -38,3 +38,8 @@ test("pricing - an OpenAI model without a listed cached price bills cached input
   const plain = costUSD(call("gpt", "gpt-6.1-terra", 10_000, 0));
   assert.equal(costUSD(call("gpt", "gpt-6.1-terra", 10_000, 0, { cacheReadTokens: 10_000 })), plain);
 });
+
+test("pricing - a Luna night prices at its bill: uncached input at the cache-write rate (12 November: billed $3.16)", () => {
+  const night = costUSD(call("gpt", "gpt-6-luna", 47_910_000, 2_929_000, { cacheReadTokens: 37_260_000 }));
+  assert.ok(Math.abs(night - 3.16) < 0.05, `priced at $${night.toFixed(2)}`);
+});
