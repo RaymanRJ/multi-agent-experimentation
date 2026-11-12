@@ -28,7 +28,7 @@ import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
 import { respawn, CHOSE_TO_RESPAWN } from "./skills/respawn.js";
 import { COMMS_SKILLS } from "./skills/tellAgent.js";
-import { NEUTRAL_UNTIL_PROVOKED, canReach, getOutOfWater, groundAbove, headInWater, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
+import { NEUTRAL_UNTIL_PROVOKED, canReach, getOutOfLava, getOutOfWater, groundAbove, headInWater, inLava, honestWalks, movementsFor, quickDigs, runSkill } from "./skills/util.js";
 import { ScriptedPolicy } from "./policy/scripted.js";
 import { GIVE_UP, LLMPolicy } from "./policy/llm.js";
 import { BRAINS, createBackend, type BrainName } from "./backends/index.js";
@@ -552,6 +552,12 @@ async function main(): Promise<void> {
    * model thinking for ten seconds under water drowned (team trio2), and again before each skill.
    */
   const escapeWater = async (): Promise<string | null> => {
+    if (inLava(bot)) {
+      const out = await getOutOfLava(bot);
+      const event = out ? "you were in lava and got out of it" : "you are in lava and could not find a way out";
+      recentEvents.push(event);
+      return event;
+    }
     if (!headInWater(bot)) return null;
     const out = await getOutOfWater(bot);
     const event = out ? "you were under water and swam out" : "you are under water and could not find a way out";

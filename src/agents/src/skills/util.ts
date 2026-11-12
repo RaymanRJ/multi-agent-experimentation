@@ -310,6 +310,60 @@ export function headInWater(bot: Bot): boolean {
   return bot.blockAt(bot.entity.position.offset(0, 1.62, 0))?.name === "water";
 }
 
+/** In lava: the feet or the head are in it. */
+export function inLava(bot: Bot): boolean {
+  const feet = bot.entity.position;
+  return [feet, feet.offset(0, 1.62, 0)].some((p) => bot.blockAt(p)?.name === "lava");
+}
+
+/**
+ * Out of lava, to the nearest ground within 8 blocks with no lava under it or beside it: by the pathfinder, and by
+ * hand (facing the spot, jumping and walking) when the pathfinder won't plan through lava. A reflex, like getting out
+ * of water: in tluna29a an agent took lava damage mining at y=35 and burned to death while its model decided, with 6
+ * raw iron and three stone pickaxes; lava or fire took 6 of 162 deaths in November runs. Returns whether it got out.
+ */
+export async function getOutOfLava(bot: Bot): Promise<boolean> {
+  const here = bot.entity.position;
+  const hot = (p: Vec3) => bot.blockAt(p)?.name === "lava";
+  const spots: Vec3[] = [];
+  const base = here.floored();
+  for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) for (let dy = -2; dy <= 3; dy++) {
+    const c = base.offset(dx, dy, dz);
+    const below = bot.blockAt(c.offset(0, -1, 0));
+    if (!below || below.boundingBox !== "block" || hot(c.offset(0, -1, 0))) continue;
+    if (!AIR.has(bot.blockAt(c)?.name ?? "") || !AIR.has(bot.blockAt(c.offset(0, 1, 0))?.name ?? "")) continue;
+    if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([x, z]) => hot(c.offset(x!, 0, z!)) || hot(c.offset(x!, -1, z!)))) continue;
+    spots.push(c);
+  }
+  spots.sort((a, b) => a.distanceTo(here) - b.distanceTo(here));
+  for (const spot of spots.slice(0, 3)) {
+    // By hand first, as a player does: face the nearest edge, jump and walk at it. The pathfinder stalls in lava for
+    // seconds, and every second there costs about 8 health (live: 3 of 4 burned to death going by it first).
+    bot.pathfinder.setGoal(null);
+    await bot.lookAt(spot.offset(0.5, 1, 0.5), true).catch(() => {});
+    bot.setControlState("forward", true);
+    bot.setControlState("sprint", true);
+    bot.setControlState("jump", true);
+    for (let tick = 0; tick < 30 && inLava(bot); tick += 1) {
+      await bot.waitForTicks(1);
+      if (tick % 5 === 4) await bot.lookAt(spot.offset(0.5, 1, 0.5), true).catch(() => {});
+    }
+    // A few more steps onto the spot, off the lava's edge.
+    for (let tick = 0; tick < 6; tick++) await bot.waitForTicks(1);
+    bot.setControlState("forward", false);
+    bot.setControlState("sprint", false);
+    bot.setControlState("jump", false);
+    if (!inLava(bot)) return true;
+    try {
+      await withTimeout(bot.pathfinder.goto(new pathfinderPkg.goals.GoalBlock(spot.x, spot.y, spot.z)), 3_000, "getting out of the lava");
+    } catch {
+      bot.pathfinder.setGoal(null);
+    }
+    if (!inLava(bot)) return true;
+  }
+  return !inLava(bot);
+}
+
 /** Landing spots this close (across) to something to avoid, such as a creeper, are passed over when swimming out. */
 const AVOID_LANDING = 10;
 

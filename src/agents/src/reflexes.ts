@@ -2,7 +2,7 @@ import pathfinderPkg from "mineflayer-pathfinder";
 import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import { Vec3 } from "vec3";
-import { eyeOf, getOutOfWater, headInWater, inSight } from "./skills/util.js";
+import { eyeOf, getOutOfLava, getOutOfWater, headInWater, inLava, inSight } from "./skills/util.js";
 import { WEAPONS, cooldownMs } from "./skills/creatures.js";
 
 const { goals } = pathfinderPkg;
@@ -191,6 +191,7 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
   let movingSince = 0;
   let swimming = false;
   let swam: boolean | null = null;
+  let leftLava: boolean | null = null;
   const named = (e: Entity) => (e.name ?? "hostile mob").replace(/_/g, " ");
   /**
    * A creeper close outside: back away from it, before anything else, even with the head under water while air
@@ -222,6 +223,16 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
   };
   const tick = () => {
     if (swimming) return;
+    // Lava first: it burns through a full health bar in seconds, faster than a decision.
+    if (inLava(bot)) {
+      swimming = true;
+      bot.pathfinder.setGoal(null);
+      getOutOfLava(bot)
+        .then((out) => { leftLava = out; })
+        .catch(() => { leftLava = false; })
+        .finally(() => { swimming = false; });
+      return;
+    }
     if (keepFromCreepers()) return;
     if (headInWater(bot)) {
       swimming = true;
@@ -297,9 +308,10 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
         bot.setControlState("jump", false);
         bot.pathfinder.setGoal(null);
       }
-      if (backedOff + keptAway + tookCover + blows === 0 && swam === null && !swimming) return null;
+      if (backedOff + keptAway + tookCover + blows === 0 && swam === null && leftLava === null && !swimming) return null;
       bot.pathfinder.setGoal(null);
       const did = [
+        ...(leftLava === true ? ["were in lava and got out of it"] : leftLava === false ? ["were in lava and could not get out"] : []),
         ...(swam === true ? ["were under water and swam out"] : swam === false || swimming ? ["were under water and tried to swim out"] : []),
         ...(keptAway ? [`backed away from a creeper${times(keptAway)}`] : []),
         ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
