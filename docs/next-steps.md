@@ -284,9 +284,11 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    fuse range); no change made without a reproduction. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
-   needed that cell open before it tried anything. **Fixed (branch `bed-entry`, 146ea63, to merge after tluna28):** a
+   needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
    block there is stepped over and the check starts from the cells beside it; live, with a crafting table inside the
-   doorway, the old code placed 0 of 3 beds and the new 3 of 3. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
+   doorway, the old code placed 0 of 3 beds and the new 3 of 3. 28c and 28d met the whole goal (32:04 and 33:55, US$0.06 and US$0.05); 28e 3 of 4 parts, lc never
+   slept ("no room left for a bed" 66 times, the same bug). **tluna28: 2 of 5 on 8fcd497, US$0.78**; two of the three
+   losses were the bed bug, merged after the batch (522516e). Next, if the owner wants it: five reps on 522516e. OpenAI credit about US$0.65 left (estimate). Was open: the deaths at night round the home, most of them during a
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
