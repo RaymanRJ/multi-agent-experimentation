@@ -6,7 +6,7 @@ import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
 import { describeShelter, doorOf, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, whyOpen, type ShelterSpot } from "./buildShelter.js";
-import { ARCHERS, archersWithSight, coverPoint, retreatPoint } from "../reflexes.js";
+import { ARCHERS, archersWithSight, coverPoint, CREEPER_KEEP, retreatPoint } from "../reflexes.js";
 
 const { goals } = pathfinderPkg;
 
@@ -482,7 +482,8 @@ export const flee: Skill = {
       return r.hostilesWithin12 === 0 && r.archersInSight === 0;
     };
     /** No mob that strikes up close is near enough to reach the hole before it is covered. */
-    const lead = () => !hostilesNear(ctx, DIG_LEAD).some((e) => !ARCHERS.has(e.name ?? ""));
+    // Nor a creeper within CREEPER_KEEP: it blows the cover off a hole dug beside it.
+    const lead = () => !hostilesNear(ctx, DIG_LEAD).some((e) => !ARCHERS.has(e.name ?? "")) && !hostilesNear(ctx, CREEPER_KEEP).some((e) => e.name === "creeper");
 
     /** Dig in where it stands; the result, or null with why not in `refused`. */
     let refused = "";

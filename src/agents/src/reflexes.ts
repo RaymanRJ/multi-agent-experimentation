@@ -21,6 +21,15 @@ export const BACK_OFF = 6;
 /** A monster inside the home this close is hit: the game lands a blow out to 3 blocks. */
 const FIGHT_REACH = 3;
 const GUARD_EVERY_MS = 250;
+/**
+ * A creeper this close is backed away from, CREEPER_STEP blocks at a time, again whenever it closes in. Its fuse
+ * starts at 3 blocks and its blast hurts out to about 6, so the step back from mobs within reach (GUARD_RADIUS) came
+ * too late: on 11 November 5 of 6 creeper deaths were within two blocks of where the agent stood when it decided.
+ */
+export const CREEPER_KEEP = 8;
+const CREEPER_STEP = 10;
+/** Air (0-20) above which backing away from a creeper comes before swimming out. */
+const CREEPER_AIR = 8;
 /** A step back that hasn't arrived by now is abandoned, so a stuck path can't end the guard. */
 const STEP_BACK_MS = 3_000;
 
@@ -176,17 +185,48 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
   const steppedFrom = new Set<string>();
   const hidFrom = new Set<string>();
   let backedOff = 0;
+  let keptAway = 0;
+  let lastKeep = 0;
   let tookCover = 0;
   let movingSince = 0;
   let swimming = false;
   let swam: boolean | null = null;
   const named = (e: Entity) => (e.name ?? "hostile mob").replace(/_/g, " ");
+  /**
+   * A creeper close outside: back away from it, before anything else, even with the head under water while air
+   * lasts: its blast kills in a second and a half, drowning takes about 15 s. At a lakeside spot from tluna27d the
+   * body swam in place for the whole decision while a creeper walked up, and was blown up 3 times in 4 (live).
+   */
+  const keepFromCreepers = (): boolean => {
+    if (sheltered() || (bot.oxygenLevel ?? 20) <= CREEPER_AIR) return false;
+    const here = bot.entity.position;
+    const creepers = hostilesWithin(bot, CREEPER_KEEP).filter((e) => e.name === "creeper");
+    if (creepers.length === 0) return false;
+    const nearest = Math.min(...creepers.map((e) => e.position.distanceTo(here)));
+    if (!movingSince || (nearest < 5 && Date.now() - lastKeep > 750)) {
+      // Dry ground away from it, or with none (a lake on that side), straight away through the water: standing still
+      // is the one thing that never helps (live, the body stood in the shallows while the creeper walked up).
+      const target = retreatPoint(bot, creepers, CREEPER_STEP);
+      const cx = creepers.reduce((n, e) => n + e.position.x, 0) / creepers.length;
+      const cz = creepers.reduce((n, e) => n + e.position.z, 0) / creepers.length;
+      const length = Math.hypot(here.x - cx, here.z - cz) || 1;
+      bot.setControlState("jump", false);
+      keptAway++;
+      lastKeep = Date.now();
+      movingSince = Date.now();
+      bot.pathfinder.setGoal(target
+        ? new goals.GoalNear(target.x, target.y, target.z, 1)
+        : new goals.GoalXZ(Math.round(here.x + ((here.x - cx) / length) * CREEPER_STEP), Math.round(here.z + ((here.z - cz) / length) * CREEPER_STEP)));
+    }
+    return true;
+  };
   const tick = () => {
     if (swimming) return;
+    if (keepFromCreepers()) return;
     if (headInWater(bot)) {
       swimming = true;
       bot.pathfinder.setGoal(null);
-      getOutOfWater(bot)
+      getOutOfWater(bot, () => hostilesWithin(bot, 16).filter((e) => e.name === "creeper").map((e) => e.position))
         .then((out) => { swam = out; })
         .catch(() => { swam = false; })
         .finally(() => { swimming = false; });
@@ -257,10 +297,11 @@ export function guardWhileDeciding(bot: Bot, sheltered: () => boolean, intruders
         bot.setControlState("jump", false);
         bot.pathfinder.setGoal(null);
       }
-      if (backedOff + tookCover + blows === 0 && swam === null && !swimming) return null;
+      if (backedOff + keptAway + tookCover + blows === 0 && swam === null && !swimming) return null;
       bot.pathfinder.setGoal(null);
       const did = [
         ...(swam === true ? ["were under water and swam out"] : swam === false || swimming ? ["were under water and tried to swim out"] : []),
+        ...(keptAway ? [`backed away from a creeper${times(keptAway)}`] : []),
         ...(backedOff ? [`stepped back from ${who([...steppedFrom])}${times(backedOff)}`] : []),
         ...(tookCover ? [`took cover from ${who([...hidFrom])}${times(tookCover)}`] : []),
         ...(blows ? [`fought ${who([...foughtOff])} inside your home (${blows} blow${blows === 1 ? "" : "s"})`] : []),

@@ -310,6 +310,9 @@ export function headInWater(bot: Bot): boolean {
   return bot.blockAt(bot.entity.position.offset(0, 1.62, 0))?.name === "water";
 }
 
+/** Landing spots this close (across) to something to avoid, such as a creeper, are passed over when swimming out. */
+const AVOID_LANDING = 10;
+
 /** Nothing solid between the bot's head and open air within `height` blocks: swimming up gets it out. */
 function openWaterAbove(bot: Bot, height = 8): boolean {
   for (let dy = 2; dy <= height; dy++) {
@@ -327,7 +330,7 @@ function openWaterAbove(bot: Bot, height = 8): boolean {
  * an agent that fell into a flooded cave otherwise re-chose its skill, was stopped at once by
  * drowning damage, and repeated that until it died (seen in batch b6). Returns whether it got out.
  */
-export async function getOutOfWater(bot: Bot): Promise<boolean> {
+export async function getOutOfWater(bot: Bot, avoid: () => Array<{ x: number; y: number; z: number }> = () => []): Promise<boolean> {
   if (openWaterAbove(bot)) {
     bot.setControlState("jump", true);
     for (let tick = 0; tick < 80 && headInWater(bot); tick += 5) await bot.waitForTicks(5);
@@ -336,6 +339,7 @@ export async function getOutOfWater(bot: Bot): Promise<boolean> {
   }
   const airIds = [...AIR].map((name) => bot.registry.blocksByName[name]?.id).filter((id): id is number => id !== undefined);
   const here = bot.entity.position;
+  const cost = (point: Vec3) => point.distanceTo(here) - avoid().reduce((n, p) => Math.min(n, Math.hypot(point.x - p.x, point.z - p.z)), 24);
   const spots = bot
     .findBlocks({ matching: airIds, maxDistance: 24, count: 2048 })
     .filter((point) => {
@@ -343,7 +347,10 @@ export async function getOutOfWater(bot: Bot): Promise<boolean> {
       const head = bot.blockAt(point.offset(0, 1, 0));
       return below?.boundingBox === "block" && below.name !== "water" && head !== null && AIR.has(head.name);
     })
-    .sort((a, b) => a.distanceTo(here) - b.distanceTo(here));
+    // Not onto ground beside a creeper: the nearest bank was on its side at a lakeside spot from tluna27d, and the
+    // swim out delivered the agent to it (blown up 7 times in 8, live). Farther from it counts as nearer.
+    .filter((point) => avoid().every((p) => Math.hypot(point.x - p.x, point.z - p.z) > AVOID_LANDING))
+    .sort((a, b) => cost(a) - cost(b));
   for (const spot of spots.slice(0, 4)) {
     try {
       await withTimeout(bot.pathfinder.goto(new pathfinderPkg.goals.GoalBlock(spot.x, spot.y, spot.z)), 15_000, "getting out of the water");
