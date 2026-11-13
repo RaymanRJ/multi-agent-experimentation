@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spotKey, type ShelterSpot } from "./skills/buildShelter.js";
 import type { OreSighting, Sighting } from "./sightings.js";
+import type { Drop, DropLooks } from "./drops.js";
 
 /** What a chest held when an agent last opened it, by "x,y,z", with when (ms since epoch) and who. */
 export type ChestViews = Record<string, { holds: Record<string, number>; seenAt: number; by?: string }>;
@@ -33,6 +34,10 @@ export interface MemberState {
   oreSightings?: OreSighting[];
   /** Where this member was driven out by water digging down (descend). */
   floods?: Array<{ x: number; z: number; at: number }>;
+  /** What this member dropped when it died, and where, while it can still be on the ground (drops.ts). */
+  drops?: Drop[];
+  /** What this member saw still lying at drops it came near (by dropKey), and when. */
+  dropLooks?: DropLooks;
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;

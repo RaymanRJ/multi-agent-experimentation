@@ -242,6 +242,7 @@ export function buildSystemPrompt(
     '"animalsSeen" lists animals you or another agent saw in the last 10 minutes and are out of your sight now, with where and how long ago; they may have moved.',
     '"oreSeen" lists ore you or another agent saw (on a cave wall or a tunnel side, as a player sees it) in the last 30 minutes and is out of your sight now, with where, how far above or below you, and how long ago.',
     '"chestsSeen" lists chests you or another agent opened, each with what it held when last opened, by whom and how long ago; someone may have changed it since.',
+    '"dropsSeen" lists what you or another agent dropped on dying, where, how long ago and how far from you, while it can still be lying there; dropped items vanish 5 minutes after they drop. pick_up with x, y and z collects them from there.',
     '"beds" appears when beds are put down near you: how many, and how many have someone in them.',
     '"air" appears only when you are under water and losing it (20 is full); at 0 you take damage every second until your head is out of the water.',
     '"inShelter" appears only when you are inside a shelter with its floor, walls, roof and doorway all closed: mobs cannot reach you there.',

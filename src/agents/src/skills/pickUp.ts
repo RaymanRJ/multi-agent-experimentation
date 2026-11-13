@@ -3,7 +3,8 @@ import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { withTimeout } from "./util.js";
+import { asNumber, withTimeout } from "./util.js";
+import { goTo } from "./goTo.js";
 
 const { goals } = pathfinderPkg;
 
@@ -30,16 +31,27 @@ export const pickUp: Skill = {
   name: "pick_up",
   description:
     `Collect items lying on the ground within ${PICKUP_RADIUS} blocks (listed in itemsOnGround), such as ones another ` +
-    "agent tossed to you or that fell out of reach. Args: `item` (optional: collect only this item; default everything). " +
+    "agent tossed to you or that fell out of reach. Args: `item` (optional: collect only this item; default everything); " +
+    "`x`, `y` and `z` (optional: a spot further off, such as one in dropsSeen; it walks there first, as go_to does, then " +
+    `collects within ${PICKUP_RADIUS} blocks of it). ` +
     "Walks over each one. Fails if there is nothing there to collect, or none of it could be reached.",
-  args: { item: "string?" },
+  args: { item: "string?", x: "number?", y: "number?", z: "number?" },
 
   async run(ctx: SkillContext, args: Record<string, unknown>): Promise<SkillResult> {
     const bot = ctx.bot;
     const only = String(args["item"] ?? "").trim().toLowerCase();
+    const x = asNumber(args["x"], NaN), y = asNumber(args["y"], NaN), z = asNumber(args["z"], NaN);
+    const spot = Number.isFinite(x) && Number.isFinite(z) ? { x, z, ...(Number.isFinite(y) ? { y } : {}) } : undefined;
+    // A spot out of reach: walk there first, the way go_to does, and say how far it got if it fell short.
+    if (spot && Math.hypot(spot.x - bot.entity.position.x, spot.z - bot.entity.position.z) > PICKUP_RADIUS - 2) {
+      const walked = await goTo.run(ctx, spot);
+      if (walked.status !== "success") {
+        return { ...walked, reason: `did not reach ${Math.round(x)},${Number.isFinite(y) ? `${Math.round(y)},` : ""}${Math.round(z)}: ${walked.reason ?? walked.status}` };
+      }
+    }
     const targets = droppedNearby(bot).filter((d) => !only || d.name === only).slice(0, MAX_ITEMS);
     if (targets.length === 0) {
-      return { status: "failed", reason: `there is no dropped ${only || "item"} within ${PICKUP_RADIUS} blocks` };
+      return { status: "failed", reason: `there is no dropped ${only || "item"} within ${PICKUP_RADIUS} blocks${spot ? " of there" : ""}` };
     }
     const before = countInventory(bot);
     for (const target of targets) {
