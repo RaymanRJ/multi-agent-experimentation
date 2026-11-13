@@ -35,20 +35,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   }
 }
 
-# Logs are written once and read rarely: after 30 days they move to Glacier Instant Retrieval (still readable at
-# once, about a fifth of the price), and versions replaced by a later sync are dropped after 90 days.
+# Logs stay in standard storage (the owner's call: no move to Glacier). Only housekeeping: versions replaced by a
+# later sync are dropped after 90 days, and uploads left unfinished after 7.
 resource "aws_s3_bucket_lifecycle_configuration" "logs" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
-    id     = "archive"
+    id     = "housekeeping"
     status = "Enabled"
     filter {}
-
-    transition {
-      days          = 30
-      storage_class = "GLACIER_IR"
-    }
 
     noncurrent_version_expiration {
       noncurrent_days = 90
