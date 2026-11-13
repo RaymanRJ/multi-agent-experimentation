@@ -325,7 +325,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    outside; 16 furnaces and 17 chests inside), so the clutter theory doesn't hold; "the sheep got away" (51) was all set A,
    the hunt bug since fixed (sets B and C: 40 of 54 hunts from a home killed, none got away); smaller and unproven: a
    placed crafting table that "did not open" (4 events), a table crafted where none could be put down (sealed in after
-   flee), one iron pickaxe worn out by tunnelling skills (30c), toss-then-pick_up misses between teammates. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   flee), one iron pickaxe worn out by tunnelling skills (30c), toss-then-pick_up misses between teammates.
+   **Plan for the next night (the owner's calls, 12 November):** set D, tluna32a-j, three GPT-6 Luna on frozen `main`
+   (set C's code plus the smelt fix), two lanes, 80-minute cap a rep, report refreshed each rep; target 9 of 10, and all
+   ten run whatever the losses (no early stop). Losses triaged as they come; fixes wait in a worktree. Then, by result:
+   a confirmation set, or set E on fixes, or stop and report. Morning: site headline, milestones, team case and
+   write-up 07 updated; reports published; logs archived (`scripts/archive-runs.sh`); bill checked against the
+   corrected estimate. US$5 OpenAI top-up. A three-Haiku 5.5 comparison on the same code is for another night. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
