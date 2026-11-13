@@ -6,7 +6,7 @@
 #   LOGS_BUCKET=<name> scripts/archive-runs.sh            # upload what is new or changed
 #   LOGS_BUCKET=<name> scripts/archive-runs.sh --dryrun   # list what would be uploaded, upload nothing
 #
-# The bucket is made by src/terraform (modules/logs); its name: `docker compose run --rm terraform output -raw
+# The bucket is made by src/terraform (modules/run_archive); its name: `docker compose run --rm terraform output -raw
 # logs_bucket_name` in src/terraform. AWS_PROFILE picks the credentials, as for Terraform.
 set -euo pipefail
 cd "$(dirname "$0")/.."

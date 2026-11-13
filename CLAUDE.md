@@ -198,7 +198,7 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   hand-off that it changed. The `triage-batch` skill's site checklist has the details.
 - **`runs/` is not in git.** Logs from earlier machines are not here; the numbers that matter are in
   `docs/results/`. Since 12 November the logs are archived to a private S3 bucket after each published batch
-  (`scripts/archive-runs.sh`, bucket from `src/terraform`'s `modules/logs`); never make that bucket public.
+  (`scripts/archive-runs.sh`, bucket from `src/terraform`'s `modules/run_archive`); never make that bucket public.
 
 ## Hard constraints
 
