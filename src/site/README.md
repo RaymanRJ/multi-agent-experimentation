@@ -1,7 +1,10 @@
 # Project site
 
-The public site for the experiment, framed around what it teaches about building agents: a
-hand-written overview, the lessons (`docs/lessons.md`), case studies (the write-ups) and "how it's built", and every
+The public site for the experiment, for two readers. The overview (`pages/Home.tsx`) is for someone deciding in a
+few minutes, such as a prospective employer or client: the result in plain terms, what it means for a company, how
+the work is approached, and contact details (`lib/contact.ts`); the game appears once, as the test environment. The
+deep dive (`pages/DeepDive.tsx`) is the way in for a technical reader: the lessons (`docs/lessons.md`), case studies
+(the write-ups), results, stats, "how it's built" and limitations. Every
 doc in the repository's `docs/` (write-ups, batch reports, limitations…) rendered when the site is
 built, so a new write-up appears on the next deploy without touching this code. `docs/next-steps.md`
 is left out: it's working notes.

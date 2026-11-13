@@ -1,103 +1,163 @@
-import { lessons, reps } from '../content/lessons';
+import { useEffect } from 'react';
+import { CONTACT } from '../lib/contact';
 import { HASH } from '../lib/route';
 
-export function Home() {
+/** Where the headline numbers come from: the second night's write-up, every run linked from it. */
+const PROOF = HASH.doc('results/write-ups/07-luna-majority', 'the-second-night-80-on-one-commit');
+
+const FIGURES = [
+  { value: '8 in 10', label: 'runs met the whole goal, on unchanged code', href: PROOF },
+  { value: '≈ 15¢', label: 'per goal achieved, failed runs included', href: PROOF },
+  { value: '≈ 3×', label: 'the success rate, from under 1 in 3 to 8 in 10, by fixing the agents’ tools, not the model', href: HASH.doc('results/write-ups/07-luna-majority') },
+  { value: '0', label: 'human interventions during a run', href: HASH.doc('lessons', 'the-improvement-loop') },
+];
+
+const LESSONS = [
+  {
+    title: 'Most failures were in the tools, not the model',
+    body: 'One tool reported “the animal got away” when it had in fact never left the building. The agents believed it, 208 times over two nights, and planned around a problem that wasn’t there. Fixing it, with three smaller tool fixes, took success from 2 in 6 to 8 in 10.',
+    you: 'Audit what your agent’s tools report, not just what the agent decides. A misleading status costs more than a weak model.',
+  },
+  {
+    title: 'A small, cheap model is enough when the structure is right',
+    body: 'These results use the smallest, cheapest model in its family. Reliability came from the tools, information and guardrails around it, not from a bigger model.',
+    you: 'Spend on the structure first. A larger model often hides problems a better tool would fix for a fraction of the cost.',
+  },
+  {
+    title: 'Measure before you believe a number',
+    body: 'Two identical sets of ten runs scored 7 and 8. A streak of five straight successes came inside the set that scored 7. Every claim here is checked against the logged runs.',
+    you: 'Know your real success rate on frozen code before you ship, and keep cost per success visible.',
+  },
+  {
+    title: 'Agents coordinate, but asking beats telling',
+    body: 'The agents split the work among themselves within their first few steps. Questions between them were answered about 7 times in 10; instructions were acted on fewer than 2 times in 10.',
+    you: 'Design hand-offs between agents, or between agents and people, as clear requests with an owner.',
+  },
+];
+
+const STEPS = [
+  { title: 'Define the goal and the bar', body: 'An outcome to reach, not steps to follow, and the success rate and cost that would make it worth deploying.' },
+  { title: 'Run it and log every decision', body: 'What each agent was told, what it chose and why, and what really happened.' },
+  { title: 'Sort every failure', body: 'A tool that failed or misled, information the agent lacked, or its own judgement. Fix the first two, checked in the real environment.' },
+  { title: 'Measure again, on frozen code', body: 'Report the success rate and the cost per success, honestly, before calling it done.' },
+];
+
+export function Home({ section }: { section?: string }) {
+  useEffect(() => {
+    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [section]);
+
   return (
-    <main>
+    <main className="landing">
       <section className="hero">
-        <p className="eyebrow">An open testbed</p>
-        <h1>What does it take to build AI agents that work on their own?</h1>
+        <p className="eyebrow">AI agents that deliver</p>
+        <h1>Give three AI agents a goal, not instructions.</h1>
+        <p className="lede strong">They plan, divide the work and finish it 8 in 10 times, at 15¢ a success.</p>
         <p className="lede">
-          Not a better prompt, mostly. Agents here get a goal, a set of tools and a short account of their
-          situation, and are left alone. When they get stuck, we read the logs and ask what failed: the tool,
-          what the agent was told, or its own judgement. These are the lessons, about tools, context, shared
-          state, the control loop and evaluation, for agents anywhere.
-        </p>
-        <p className="lede muted">
-          The agents play Minecraft, alone and in teams of different models, because there an agent can be
-          watched and a run repeated from the same seed. The game is the evidence, not the subject. The
-          models came knowing it already: Minecraft is one of the best-documented games there is, and nothing
-          here trains them.
+          I build the structure around AI models: the tools they use, what they are told and how they are measured.
+          That structure is what turns a model into an agent a business can rely on.
         </p>
         <div className="actions">
-          <a className="button primary" href={HASH.lessons}>
-            Read the lessons
+          <a className="button primary" href={HASH.contact}>
+            Get in touch
           </a>
-          <a className="button" href={HASH.how}>
-            How it’s built
+          <a className="button" href={PROOF}>
+            See the evidence
           </a>
         </div>
       </section>
 
+      <section aria-label="Results">
+        <div className="figures">
+          {FIGURES.map((f) => (
+            <a className="figure" key={f.label} href={f.href}>
+              <strong>{f.value}</strong>
+              <span>{f.label}</span>
+            </a>
+          ))}
+        </div>
+        <p className="fineprint">
+        Model costs only, at the provider’s billed rates. One demanding goal, measured over many runs: twenty runs on one
+        version of the code, 15 of them successful.
+        </p>
+      </section>
+
+      <section className="task">
+        <h2 className="section-title">The task</h2>
+        <p>
+          Three agents share one goal over three simulated days: build a base that houses all of them, give each a
+          place to sleep in it, equip each one with a tool that has to be found, refined and made, and leave a stock
+          of food. Nobody tells them who does what, or how. They plan, split the work, talk to each other, and recover
+          when things go wrong: a teammate lost, supplies gone, the plan blocked.
+        </p>
+        <p className="muted">
+          The proving ground is Minecraft: a shared world where every step an agent takes can be watched, measured and
+          replayed. The game isn’t the point. It is a demanding, observable stand-in for real multi-step work, and the
+          models already know it, so nothing here is trained or coached.
+        </p>
+      </section>
+
       <section>
-        <h2 className="section-title">Lessons so far</h2>
-        <div className="cards">
-          {lessons.map((lesson) => (
-            <article className="card" key={lesson.part}>
-              <p className="eyebrow">{lesson.part}</p>
-              <h3>{lesson.title}</h3>
-              <p>{lesson.body}</p>
-              <p className="evidence">{lesson.evidence}</p>
-              <a className="more" href={HASH.doc('lessons', lesson.anchor)}>
-                More on {lesson.part.toLowerCase()} →
-              </a>
+        <h2 className="section-title">What this means for your company</h2>
+        <div className="lessons-grid">
+          {LESSONS.map((l) => (
+            <article className="card" key={l.title}>
+              <h3>{l.title}</h3>
+              <p>{l.body}</p>
+              <p className="you">
+                <span>For your team</span>
+                {l.you}
+              </p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="split">
-        <div>
-          <h2 className="section-title">The structure is the deliverable</h2>
-          <p>
-            The agents are never coached. A stuck point is sorted three ways: a tool failed or misled the agent; it
-            lacked information a person in its place would have; or it was its own judgement. Only the first two
-            are changed, and each fix is checked in the real environment. Judgement is reported, because that is
-            what is being measured.
-          </p>
-          <p>
-            Fixes to tools and information alone took the same team of three models from one or two parts of a
-            four-part goal to three, and cut its failed decisions by about two fifths. With reflexes and shared
-            sightings added, it met all four once, with no deaths.
-          </p>
-          <a className="more" href={HASH.doc('results/write-ups/06-team-base', 'how-this-testbed-gets-better-from-where-the-agents-get-stuck')}>
-            Every fix, beside the same problem in real systems →
-          </a>
-        </div>
-        <figure className="chart" aria-label="Parts of the goal met per rep">
-          <figcaption>Parts of the four-part team goal met, rep by rep</figcaption>
-          <ol>
-            {reps.map((rep) => (
-              <li key={rep.label}>
-                <span className="bar-label">{rep.label}</span>
-                <span className="bar-track">
-                  <span className="bar" style={{ width: `${(rep.met / 4) * 100}%` }}>
-                    {rep.met}
-                  </span>
-                </span>
-                <span className="bar-note">{rep.note}</span>
-              </li>
-            ))}
-          </ol>
-          <p className="chart-foot">
-            One rep each from tbase2 to tbase4, three each in tbase1 and tbase5: a sign, not proof. Same models,
-            settings and world each time.
-          </p>
-        </figure>
+      <section>
+        <h2 className="section-title">How I’d approach your agents</h2>
+        <ol className="steps">
+          {STEPS.map((s, i) => (
+            <li key={s.title}>
+              <span className="step-n">{i + 1}</span>
+              <div>
+                <strong>{s.title}</strong>
+                <p>{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p className="muted">
+          The same loop that took these agents from under 1 in 3 to 8 in 10 applies to support desks, operations,
+          internal tools, or any work you want agents to carry on their own.
+        </p>
       </section>
 
-      <section className="links">
-        <a className="tile" href={HASH.findings}>
-          <strong>Case studies</strong>
-          <span>Each set of runs, what it teaches about building agents, and the evidence</span>
-        </a>
-        <a className="tile" href={HASH.results}>
-          <strong>Results</strong>
-          <span>Every batch and team run, as its report was built from the logs</span>
-        </a>
-        <a className="tile" href={HASH.doc('limitations')}>
-          <strong>Limitations</strong>
-          <span>What the agents can’t do, and what the numbers can’t show</span>
+      <section className="contact" id="contact">
+        <h2 className="section-title">Let’s talk</h2>
+        <p>
+          I work on AI engineering, technical leadership and AI consulting. If you are building agents, or deciding
+          whether to, I’d be glad to hear about it.
+        </p>
+        <div className="contact-links">
+          <a className="button primary" href={`mailto:${CONTACT.email}`}>
+            {CONTACT.email}
+          </a>
+          <a className="button" href={CONTACT.linkedin} target="_blank" rel="noreferrer">
+            LinkedIn
+          </a>
+          <a className="button" href={CONTACT.website} target="_blank" rel="noreferrer">
+            rrjamal.ca
+          </a>
+        </div>
+      </section>
+
+      <section className="deep-cta">
+        <div>
+          <strong>Want the technical detail?</strong>
+          <p>Architecture, every run and its logs, the failure analysis, and what didn’t work.</p>
+        </div>
+        <a className="button" href={HASH.deep}>
+          The technical deep dive →
         </a>
       </section>
     </main>

@@ -1,24 +1,25 @@
 import { useEffect } from 'react';
+import { DeepDive } from './pages/DeepDive';
 import { DocPage } from './pages/DocPage';
 import { Findings } from './pages/Findings';
 import { Home } from './pages/Home';
 import { HowItWorks } from './pages/HowItWorks';
 import { Results } from './pages/Results';
 import { Stats } from './pages/Stats';
+import { CONTACT } from './lib/contact';
 import { REPO, SITE } from './lib/docs';
 import { HASH, useRoute, type Route } from './lib/route';
 
+// Two readers: the overview is for someone deciding in a few minutes; everything technical sits under the deep dive.
 const NAV: Array<{ label: string; href: string; active: (r: Route) => boolean }> = [
-  { label: 'Overview', href: HASH.home, active: (r) => r.page === 'home' },
-  { label: 'Lessons', href: HASH.lessons, active: (r) => r.page === 'doc' && r.path === 'lessons' },
-  { label: 'Case studies', href: HASH.findings, active: (r) => r.page === 'findings' || (r.page === 'doc' && r.path.startsWith('results/write-ups/')) },
-  { label: 'Results', href: HASH.results, active: (r) => r.page === 'results' || (r.page === 'doc' && r.path.startsWith('results/') && !r.path.startsWith('results/write-ups/')) },
-  { label: 'Stats', href: HASH.stats, active: (r) => r.page === 'stats' },
-  { label: 'How it’s built', href: HASH.how, active: (r) => r.page === 'how' },
+  { label: 'Overview', href: HASH.home, active: (r) => r.page === 'home' && !r.section },
+  { label: 'Deep dive', href: HASH.deep, active: (r) => ['deep', 'findings', 'results', 'stats', 'how', 'doc'].includes(r.page) },
+  { label: 'Contact', href: HASH.contact, active: (r) => r.page === 'home' && r.section === 'contact' },
 ];
 
 const TITLES: Partial<Record<Route['page'], string>> = {
   home: SITE,
+  deep: `Deep dive · ${SITE}`,
   findings: `Case studies · ${SITE}`,
   how: `How it’s built · ${SITE}`,
   results: `Results · ${SITE}`,
@@ -56,7 +57,8 @@ export default function App() {
         </nav>
       </header>
 
-      {route.page === 'home' && <Home />}
+      {route.page === 'home' && <Home section={route.section} />}
+      {route.page === 'deep' && <DeepDive />}
       {route.page === 'findings' && <Findings />}
       {route.page === 'how' && <HowItWorks />}
       {route.page === 'results' && <Results />}
@@ -73,11 +75,16 @@ export default function App() {
 
       <footer className="site-footer">
         <span>
-          By <a href="https://rrjamal.ca">Rayman Jamal</a>. Every number traces back to a logged run.
+          {CONTACT.name} · <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> ·{' '}
+          <a href={CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a> ·{' '}
+          <a href={CONTACT.website} target="_blank" rel="noreferrer">rrjamal.ca</a>
         </span>
-        <a href={REPO} target="_blank" rel="noreferrer">
-          Source and data on GitHub
-        </a>
+        <span>
+          Every number traces back to a logged run.{' '}
+          <a href={REPO} target="_blank" rel="noreferrer">
+            Source and data on GitHub
+          </a>
+        </span>
       </footer>
     </div>
   );

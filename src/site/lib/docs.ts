@@ -6,7 +6,7 @@ import { HASH } from './route';
 export const REPO = 'https://github.com/RaymanRJ/multi-agent-experimentation';
 
 /** The site's name, in the header and every page title. */
-export const SITE = 'Building agents';
+export const SITE = 'Rayman Jamal · AI agents';
 
 // Every doc in the repository's docs/, read when the site is built: one small chunk each, loaded when
 // opened. next-steps.md is working notes for whoever works on the repo, not for readers.

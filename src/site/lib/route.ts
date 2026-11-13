@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
  * rules. `#/docs/<path>::<anchor>` opens a doc at a heading; "::" stands in for a second "#".
  */
 export type Route =
-  | { page: 'home' }
+  | { page: 'home'; section?: string }
+  | { page: 'deep' }
   | { page: 'findings' }
   | { page: 'how' }
   | { page: 'results' }
@@ -15,6 +16,8 @@ export type Route =
 
 export const HASH = {
   home: '#/',
+  contact: '#/contact',
+  deep: '#/deep-dive',
   lessons: '#/docs/lessons',
   findings: '#/findings',
   how: '#/how-it-works',
@@ -27,6 +30,9 @@ export function parse(hash: string): Route {
   const raw = decodeURIComponent(hash.replace(/^#\/?/, ''));
   const [path = '', anchor = ''] = raw.split('::');
   if (path === '') return { page: 'home' };
+  // A section of the landing page, scrolled to once it has rendered (Home).
+  if (path === 'contact') return { page: 'home', section: 'contact' };
+  if (path === 'deep-dive') return { page: 'deep' };
   if (path === 'findings') return { page: 'findings' };
   if (path === 'how-it-works') return { page: 'how' };
   if (path === 'results') return { page: 'results' };
@@ -42,7 +48,7 @@ export function useRoute(): Route {
       const next = parse(location.hash);
       setRoute(next);
       // A heading link scrolls itself into view once the doc has rendered (DocPage).
-      if (!(next.page === 'doc' && next.anchor)) window.scrollTo(0, 0);
+      if (!(next.page === 'doc' && next.anchor) && !(next.page === 'home' && next.section)) window.scrollTo(0, 0);
     };
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);

@@ -1242,3 +1242,174 @@ h3 {
   max-width: 760px;
   font-size: 14px;
 }
+
+/* Landing page: for a reader deciding in a few minutes. */
+
+.landing .hero h1 {
+  font-size: clamp(34px, 6vw, 58px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.lede.strong {
+  color: var(--text);
+  font-size: clamp(20px, 2.6vw, 25px);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.figure strong {
+  color: var(--accent);
+  font: 600 clamp(28px, 3.4vw, 36px)/1.1 var(--serif);
+}
+
+.figure span {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.figure:hover {
+  border-color: var(--accent);
+}
+
+.fineprint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.task {
+  max-width: 760px;
+}
+
+.task p {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 16px;
+}
+
+.card .you {
+  margin: auto 0 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.card .you span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.steps p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.step-n {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .step-n {
+    color: #0c1513;
+  }
+}
+
+.contact {
+  max-width: 760px;
+  scroll-margin-top: 24px;
+}
+
+.contact p {
+  font-size: 18px;
+}
+
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.deep-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.deep-cta p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.links.six {
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+}
+
+.site-footer {
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
