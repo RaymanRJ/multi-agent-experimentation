@@ -25,6 +25,12 @@ const MAX_SKILL_MS = 6 * 60_000;
 const DIGGERS = ["stone_pickaxe", "wooden_pickaxe", "golden_pickaxe", "iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"];
 const PRECIOUS = new Set(["iron_pickaxe", "diamond_pickaxe", "netherite_pickaxe"]);
 const KEEP_USES = 16;
+/**
+ * Going down stops while the pickaxes held still have this many uses over the ground overhead: in sets D-I a digging
+ * skill wore out the last pickaxe 31 times, 11 of them in descend, and in tluna37a an agent dug 50 blocks down with
+ * its only stone pickaxe, was left at y=24 among lava with nothing to dig with, and took 25 decisions to get home.
+ */
+const CLIMB_MARGIN = 10;
 /** A block slower than this to dig with the held pickaxe gets the best tool instead. */
 const SLOW_DIG_MS = 3000;
 const HEADINGS: Array<{ name: string; dx: number; dz: number }> = [
@@ -802,6 +808,15 @@ export const descend: Skill = {
         }
         const noTool = await equipDigger(bot);
         if (noTool) return { status: "failed", reason: `reached y=${Math.floor(bot.entity.position.y)} of ${target} and ${noTool}.${brokenSince(bot, tools)}`, detail: report() };
+        const overhead = groundAbove(bot);
+        const uses = bot.inventory.items().filter((item) => DIGGERS.includes(item.name)).reduce((sum, item) => sum + usesLeft(item), 0);
+        if (uses < overhead + CLIMB_MARGIN) {
+          return {
+            status: "failed",
+            reason: `stopped at y=${Math.floor(bot.entity.position.y)} of ${target} to keep enough pickaxe to dig back up: ${uses} uses left, under ${overhead} blocks of ground — craft another pickaxe to go deeper.${brokenSince(bot, tools)}`,
+            detail: report(),
+          };
+        }
         let moved = false;
         const refusals: string[] = [];
         await centre(bot);
