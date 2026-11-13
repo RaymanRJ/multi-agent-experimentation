@@ -375,7 +375,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    on 173a9da, main checkout)**, four lanes as set F's free up, all ten, 80-minute cap. Money is close: about
    US$1.70 left for set G's ten (US$0.17 a rep on average); the owner offered US$5 more. Seen but rare: a zombie got
    into a home once in 42 episodes (an agent opened the door at night to fetch a drop and died in the doorway, door
-   open). The drop facts drew agents out at night (33c: 10 of 16 trips at night, 2 deaths after): their choice, kept. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   open). The drop facts drew agents out at night (33c: 10 of 16 trips at night, 2 deaths after): their choice, kept.
+   **Set F ended 2 of 6** (34b, 34e met the goal; 34a meat 7, 34c and 34d no bed ever made: no agent held 3 wool and
+   3 planks at once, 34f two pickaxes and 9 meat). Sets E and F together 4 of 12 against 21 of 30 for B-D, and per rep
+   against set D: pick_up 17 to 37, at night 1.3 to 15, deaths 2.7 to 5.2 (E) and 8.8 (F), about 89% of pick_ups
+   failing. **The standing drop fact did more harm than good: taken out (2f1c753)**, keeping pick_up's optional spot.
+   Set G stopped at 12:22 with its four reps partial (set aside in runs/.killed/tluna35). **Set H (tluna36a-j on
+   2f1c753): all fixes but the drop fact**, four lanes from 12:25. Credit about US$1.5 left, so about eight reps
+   unless the owner tops up. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
