@@ -340,7 +340,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    lost with agents who died carrying it (32i: 15 raw iron on day 1); 32f, 2 of 3 pickaxes and 4 of 10 meat, with
    shear unable to leave the home ("No path", 10 times) and 23 pick_ups of a pickaxe no longer on the ground, not yet
    looked into. On the final code across sets B, C and D: 21 of 30. The site's headline (8 in 10, set C) is still
-   true of set C; whether to restate it as 21 of 30 is the owner's call. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   true of set C; whether to restate it as 21 of 30 is the owner's call.
+   **Why the rate sits near 70% (pooled over the 9 losses of sets B-D):** iron lost in deaths decided 6 of them (30b,
+   30c, 31h, 32b, 32f, 32i): 56 of 91 deaths carried goal items, 49 of those within 100 blocks of the respawn (median
+   34), and only 3 were recovered. The death message gave the spot once, and pick_up looked 8 blocks round the agent.
+   **Fixed on branch `nightly-3` (e2a0b25, 13 November):** a standing `dropsSeen` fact lists what the agent or a
+   teammate dropped on dying, where, how long ago and how far, updated to what is still lying there by anyone who
+   comes near (team board), until the 5 minutes are up; `pick_up` takes an optional spot and walks there first. Live:
+   4 of 4 drops 12-43 blocks off recovered with the spot, 0 of 4 without. **Set E (13 November, the owner's ask:
+   consistently 80%):** tluna33a-j on e2a0b25, three lanes (25600/25640/25680; tick rate was 20.0 in all 292
+   readings with two), all ten, 80-minute cap. US$3.78 credit, about US$1.3 expected; the owner may add US$5. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
