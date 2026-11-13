@@ -382,7 +382,17 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    failing. **The standing drop fact did more harm than good: taken out (2f1c753)**, keeping pick_up's optional spot.
    Set G stopped at 12:22 with its four reps partial (set aside in runs/.killed/tluna35). **Set H (tluna36a-j on
    2f1c753): all fixes but the drop fact**, four lanes from 12:25. Credit about US$1.5 left, so about eight reps
-   unless the owner tops up. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   unless the owner tops up. The owner topped up to US$5.82 at 13:20 (US$0.82 before: today's runs to then cost
+   US$2.96 against an estimate near US$2.40, so per-rep estimates run low).
+   **Set H ended 7 of 10** (36d 10:43, 36e 30:00, 36f 43:47, 36g 53:57, 36h 51:17, 36i 30:55, 36j 37:18 of game
+   time; 36a and 36b every iron pickaxe lost in deaths, 36c no bed and no meat). Back to the B-D level with the
+   fixes in and the drop fact out; 22 deaths in 6 reps counted mid-set, 3.7 a rep against 2.7 in D and 5-9 in E, F.
+   **Deaths across D-H (131):** 81 during flee, which never fought: 32 underground with home too far, where digging
+   in, a nook and walling in all failed in 22 ("could not wall in (N gaps left)"); 19 healthy with at most two melee
+   monsters near, 8 carrying iron. 29 during hunts, 22 of them in the dark (the agents' choice, left alone).
+   **Fixed (00697eb):** under the ground, healthy (12+), one or two melee monsters and no archer or creeper near,
+   flee fights first; live in a closed stone cave with a stone sword, old died 2 of 2, new lived 6 of 6 at health 20.
+   **Set I (tluna37a-j on 00697eb, flee-fight worktree)** from 14:00, four lanes as set H's freed up. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
