@@ -1720,3 +1720,149 @@ h3 {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Results: the shared goal's milestones, then every batch. */
+
+.section-note {
+  max-width: 720px;
+  margin: -8px 0 20px;
+  font-size: 15px;
+}
+
+.milestones {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.milestones li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-areas: 'head bar figures' 'note note note';
+  gap: 6px 20px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ms-head {
+  grid-area: head;
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-when {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ms-team {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.ms-bar {
+  grid-area: bar;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.ms-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--bar);
+}
+
+.ms-figures {
+  grid-area: figures;
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-figures strong {
+  color: var(--accent);
+  font: 600 22px/1.1 var(--serif);
+}
+
+.ms-figures span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ms-note {
+  grid-area: note;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ms-note a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .milestones li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'head figures' 'bar bar' 'note note';
+  }
+}
+
+.results-page .stats {
+  margin: 0;
+}
+
+table.batches {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+table.batches td,
+table.batches th {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.batches th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+table.batches tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+table.batches tbody tr:hover {
+  background: var(--code-bg);
+}
+
+table.batches .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+table.batches a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+table.batches td:nth-child(4) {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.show-all {
+  margin-top: 14px;
+  cursor: pointer;
+}

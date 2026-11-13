@@ -7,7 +7,6 @@ export const DEEP_SECTIONS = [
   { key: 'lessons', label: 'Lessons', href: HASH.lessons },
   { key: 'findings', label: 'Case studies', href: HASH.findings },
   { key: 'results', label: 'Results', href: HASH.results },
-  { key: 'stats', label: 'Stats', href: HASH.stats },
   { key: 'limitations', label: 'Limitations', href: HASH.doc('limitations') },
 ] as const;
 
@@ -23,7 +22,6 @@ export function deepSection(route: Route): DeepSection | null {
     case 'how':
     case 'findings':
     case 'results':
-    case 'stats':
       return route.page;
     case 'doc':
       if (route.path === 'lessons') return 'lessons';

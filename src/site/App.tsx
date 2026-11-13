@@ -6,7 +6,6 @@ import { Home } from './pages/Home';
 import { Lessons } from './pages/Lessons';
 import { HowItWorks } from './pages/HowItWorks';
 import { Results } from './pages/Results';
-import { Stats } from './pages/Stats';
 import { CONTACT } from './lib/contact';
 import { DeepNav, deepSection } from './lib/DeepNav';
 import { REPO, SITE } from './lib/docs';
@@ -15,7 +14,7 @@ import { HASH, useRoute, type Route } from './lib/route';
 // Two readers: the overview is for someone deciding in a few minutes; everything technical sits under the deep dive.
 const NAV: Array<{ label: string; href: string; active: (r: Route) => boolean }> = [
   { label: 'Overview', href: HASH.home, active: (r) => r.page === 'home' && !r.section },
-  { label: 'Deep dive', href: HASH.deep, active: (r) => ['deep', 'lessons', 'cases', 'case', 'method', 'findings', 'results', 'stats', 'how', 'doc'].includes(r.page) },
+  { label: 'Deep dive', href: HASH.deep, active: (r) => ['deep', 'lessons', 'cases', 'case', 'method', 'findings', 'results', 'how', 'doc'].includes(r.page) },
   { label: 'Contact', href: HASH.contact, active: (r) => r.page === 'home' && r.section === 'contact' },
 ];
 
@@ -26,7 +25,6 @@ const TITLES: Partial<Record<Route['page'], string>> = {
   findings: `Case studies · ${SITE}`,
   how: `How it’s built · ${SITE}`,
   results: `Results · ${SITE}`,
-  stats: `Stats · ${SITE}`,
 };
 
 export default function App() {
@@ -69,7 +67,6 @@ export default function App() {
       {route.page === 'findings' && <Findings />}
       {route.page === 'how' && <HowItWorks />}
       {route.page === 'results' && <Results />}
-      {route.page === 'stats' && <Stats />}
       {route.page === 'doc' && <DocPage path={route.path} anchor={route.anchor} />}
       {route.page === 'missing' && (
         <main className="narrow">

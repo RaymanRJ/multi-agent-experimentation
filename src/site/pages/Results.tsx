@@ -1,165 +1,175 @@
-import { batches, writeUpOf } from 'virtual:batches';
-import { chapters, type Chapter, type StoryRun } from '../content/story';
-import type { Batch } from '../lib/batches';
+import { useState } from 'react';
+import { batches } from 'virtual:batches';
+import { milestones } from '../content/milestones';
+import usage from '../../../docs/results/token-usage.json';
+import type { AgentRun, Batch } from '../lib/batches';
 import { HASH } from '../lib/route';
-import { OutcomeBar, dollars, when } from './BatchParts';
-import { ResultsGoals } from './ResultsGoals';
-import { ResultsOverview } from './ResultsOverview';
+import { dollars } from './BatchParts';
 
-const byName = new Map(batches.map((b) => [b.name, b]));
-const placed = new Set(chapters.flatMap((c) => c.runs.map((r) => r.name)));
+// One page for "how well does it work, and is it getting better?": the shared goal's milestones, a few totals, every
+// batch with its report, and a short table by model. The narrative of each set of runs belongs to the case studies.
 
-// A published batch no chapter names yet still appears, at the end, oldest first.
-const unplaced = [...batches].filter((b) => !placed.has(b.name)).sort((a, b) => a.started.localeCompare(b.started));
-const story: Chapter[] = unplaced.length
-  ? [
-      ...chapters,
-      {
-        title: 'Not yet written up',
-        question: 'Published since the last write-up. What these runs showed is still being read from their logs.',
-        runs: unplaced.map((b) => ({ name: b.name, showed: '' })),
-        lesson: { text: '', anchor: '' },
-      },
-    ]
-  : chapters;
+const newestFirst = [...batches].sort((a: Batch, b: Batch) => b.started.localeCompare(a.started));
+const runs = batches.reduce((n: number, b: Batch) => n + b.runs, 0);
+const spent = batches.reduce((n: number, b: Batch) => n + b.cost, 0);
+const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-const shortDay = (started: string) => when(started).replace(/ \d{4},.*$/, '');
-
-/** "16 Oct" or "20–23 Oct", from the chapter's batches. */
-function dates(chapter: Chapter): string {
-  const days = chapter.runs.map((r) => byName.get(r.name)?.started).filter((s): s is string => !!s).sort();
-  if (!days.length) return '';
-  const [first, last] = [shortDay(days[0]!), shortDay(days.at(-1)!)];
-  if (first === last) return first;
-  const [d1, m1] = first.split(' ');
-  const [d2, m2] = last.split(' ');
-  return m1 === m2 ? `${d1}–${d2} ${m2}` : `${first} – ${last}`;
+function outcome(b: Batch): string {
+  if (b.kind === 'team' && b.teams.length) {
+    const met = b.teams.filter((t) => t.met).length;
+    return `${met} of ${b.teams.length} ${b.teams.length === 1 ? 'team' : 'teams'}`;
+  }
+  return `${b.met} of ${b.runs} runs`;
 }
 
-const anchor = (i: number) => `chapter-${i + 1}`;
-const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
+
+// By model, over every published run: how many runs, how often the goal was met, cost per run, and how much of the
+// input the provider read from its cache (from docs/results/token-usage.json).
+const byModel = (() => {
+  const all: AgentRun[] = batches.flatMap((b: Batch) => b.agentRuns);
+  const rows = new Map<string, { runs: number; met: number; cost: number }>();
+  for (const r of all) {
+    const t = rows.get(r.model) ?? { runs: 0, met: 0, cost: 0 };
+    t.runs += 1;
+    t.met += r.met ? 1 : 0;
+    t.cost += r.cost;
+    rows.set(r.model, t);
+  }
+  const cached = new Map(usage.models.map((m) => [m.model, m.inputTokens ? m.cacheReadTokens / m.inputTokens : 0]));
+  return [...rows.entries()]
+    .map(([model, t]) => ({ model, ...t, cached: cached.get(model) }))
+    .sort((a, b) => b.runs - a.runs);
+})();
 
 export function Results() {
+  const [all, setAll] = useState(false);
+  const shown = all ? newestFirst : newestFirst.slice(0, 20);
   return (
-    <main>
+    <main className="results-page">
       <header className="page-head">
         <h1>Results</h1>
-        <p className="lede">
-          Every test, in the order it ran. Each chapter asks one question. Each run shows something; what we
-          changed because of it leads to the next run. Read down to follow how the agents, and the structure
-          around them, got further.
-        </p>
+        <p className="lede">How often the agents met their goal, what it cost, and how that changed. Every row opens the report built from its logs.</p>
       </header>
 
-      <ResultsOverview />
-
-      <ResultsGoals />
-
-      <nav className="chapter-map" aria-label="Chapters">
-        <ol>
-          {story.map((c, i) => (
-            <li key={c.title}>
-              <button type="button" onClick={() => jump(anchor(i))}>
-                <span className="chapter-n">{i + 1}</span>
-                <span className="chapter-map-text">
-                  <strong>{c.title}</strong>
-                  <span>
-                    {dates(c)} · {c.runs.length} {c.runs.length === 1 ? 'test' : 'tests'}
-                  </span>
+      <section>
+        <h2 className="section-title">The shared team goal, over time</h2>
+        <p className="muted section-note">
+          Three agents, one goal over three simulated days: a home for all, a bed each, an iron pickaxe each and 10
+          cooked meat stored. Same world throughout; the models, home design and code changed between milestones.
+        </p>
+        <ol className="milestones">
+          {milestones.map((m) => (
+            <li key={m.when + m.team}>
+              <div className="ms-head">
+                <span className="ms-when">{m.when}</span>
+                <span className="ms-team">{m.team}</span>
+              </div>
+              <div className="ms-bar" role="img" aria-label={`${m.met} of ${m.runs} runs met the goal`}>
+                <span style={{ width: pct(m.met / m.runs) }} />
+              </div>
+              <div className="ms-figures">
+                <strong>{pct(m.met / m.runs)}</strong>
+                <span>
+                  {m.met} of {m.runs} runs{m.costPerSuccess ? ` · ${m.costPerSuccess} per success` : ''}
                 </span>
-              </button>
+              </div>
+              <p className="ms-note">
+                {m.note} <a href={HASH.doc(m.source.doc, m.source.anchor)}>Source →</a>
+              </p>
             </li>
           ))}
         </ol>
-      </nav>
-
-      {story.map((c, i) => (
-        <ChapterSection key={c.title} chapter={c} index={i} last={i === story.length - 1} />
-      ))}
-
-      <p className="muted">
-        What a run, a condition and a batch are, and why the logs aren't published:{' '}
-        <a href={HASH.doc('results/README')}>about these results</a>. Which skills the agents chose and how often they
-        worked: <a href={HASH.doc('results/skill-usage')}>skill usage</a>.
-      </p>
-    </main>
-  );
-}
-
-function ChapterSection({ chapter, index, last }: { chapter: Chapter; index: number; last: boolean }) {
-  const writeUp = chapter.runs.map((r) => writeUpOf[r.name]).find(Boolean);
-  return (
-    <section className="chapter" id={anchor(index)}>
-      <header className="chapter-head">
-        <p className="eyebrow">
-          Chapter {index + 1} · {dates(chapter)}
+        <p className="fineprint">
+          The mixed team’s cost is the estimate of the time; the latest is at billed rates. Costs for three Lunas before
+          10 November were estimated with cached input priced in full, so they are left out.
         </p>
-        <h2>{chapter.title}</h2>
-        <p className="chapter-question">{chapter.question}</p>
-      </header>
+      </section>
 
-      <ol className="story">
-        {chapter.runs.map((run) => {
-          const batch = byName.get(run.name);
-          return batch ? <RunItem key={run.name} run={run} batch={batch} /> : null;
-        })}
-      </ol>
-
-      {(chapter.lesson.text || writeUp) && (
-        <footer className="chapter-end">
-          {chapter.lesson.text && (
-            <p>
-              <strong>What it taught:</strong> {chapter.lesson.text}{' '}
-              <a href={HASH.doc('lessons', chapter.lesson.anchor)}>The lesson →</a>
-            </p>
-          )}
-          {writeUp && (
-            <p className="muted">
-              The full account: <a href={HASH.doc(writeUp.path)}>{writeUp.title}</a>
-            </p>
-          )}
-        </footer>
-      )}
-      {!last && (
-        <button type="button" className="next-chapter" onClick={() => jump(anchor(index + 1))}>
-          Next: chapter {index + 2} ↓
-        </button>
-      )}
-    </section>
-  );
-}
-
-function RunItem({ run, batch }: { run: StoryRun; batch: Batch }) {
-  return (
-    <li className="story-run">
-      <article className="batch">
-        <div className="batch-head">
-          <a className="batch-name" href={HASH.doc(batch.path)}>
-            {batch.name}
-          </a>
-          <span className="batch-kind">{batch.kind === 'team' ? 'Team run' : 'Batch'}</span>
-          <span className="batch-when">{when(batch.started)}</span>
+      <section>
+        <div className="stats">
+          <div className="stat">
+            <strong>{batches.length}</strong>
+            <span>published batches and team runs</span>
+          </div>
+          <div className="stat">
+            <strong>{runs.toLocaleString('en-GB')}</strong>
+            <span>agent runs logged, every decision kept</span>
+          </div>
+          <div className="stat">
+            <strong>{dollars(spent)}</strong>
+            <span>model spend over all of them, as estimated at the time</span>
+          </div>
         </div>
-        <p className="batch-who">
-          {batch.models.join(', ')}
-          {batch.kind === 'team' ? ', together' : ''} on{' '}
-          {batch.goals.map((g, i) => (
-            <span key={g}>
-              {i > 0 && ', '}
-              <code>{g}</code>
-            </span>
-          ))}
-          {' '}· {batch.runs} runs · {dollars(batch.cost)}
+      </section>
+
+      <section>
+        <h2 className="section-title">Every batch</h2>
+        <div className="table-wrap">
+          <table className="batches">
+            <thead>
+              <tr>
+                <th>Batch</th>
+                <th>Date</th>
+                <th>Goal</th>
+                <th>Models</th>
+                <th>Met the goal</th>
+                <th className="num">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((b: Batch) => (
+                <tr key={b.path}>
+                  <td>
+                    <a href={HASH.doc(b.path)}>{b.name}</a>
+                  </td>
+                  <td>{day(b.started)}</td>
+                  <td>{b.goals.join(', ')}</td>
+                  <td>{b.models.join(', ')}</td>
+                  <td>{outcome(b)}</td>
+                  <td className="num">{dollars(b.cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!all && newestFirst.length > shown.length && (
+          <button type="button" className="button show-all" onClick={() => setAll(true)}>
+            Show all {newestFirst.length}
+          </button>
+        )}
+      </section>
+
+      <section>
+        <h2 className="section-title">By model</h2>
+        <p className="muted section-note">
+          Over every published run. Models were given different goals, so this is a count, not a ranking.
         </p>
-        <OutcomeBar batch={batch} />
-        {run.showed && <p className="story-showed">{run.showed}</p>}
-      </article>
-      {run.then && (
-        <p className="story-then">
-          <span className="story-then-label">Changed next</span>
-          {run.then}
-        </p>
-      )}
-    </li>
+        <div className="table-wrap">
+          <table className="batches">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th className="num">Runs</th>
+                <th className="num">Met the goal</th>
+                <th className="num">Cost per run</th>
+                <th className="num">Input read from cache</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byModel.map((m) => (
+                <tr key={m.model}>
+                  <td>{m.model}</td>
+                  <td className="num">{m.runs}</td>
+                  <td className="num">{pct(m.met / m.runs)}</td>
+                  <td className="num">{dollars(m.cost / m.runs)}</td>
+                  <td className="num">{m.cached === undefined ? '–' : pct(m.cached)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
   );
 }
