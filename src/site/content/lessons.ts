@@ -68,7 +68,7 @@ export const lessons: Lesson[] = [
       '9 of 17 deaths in one run came while the model was still deciding; a reflex that steps back while it decides kept health at 20. Another reflex quietly dug out the home’s door about 4,500 times in two weeks before anyone noticed.',
     source: { label: 'Write-ups 06 and 07', doc: 'results/write-ups/07-luna-majority' },
     practice: 'Let the model choose goals and deterministic code execute them; count how often every automatic action fires against what it guards.',
-    cases: ['team'],
+    cases: ['team', 'tools'],
   },
   {
     id: 'frozen-code',

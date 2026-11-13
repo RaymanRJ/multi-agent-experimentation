@@ -25,7 +25,7 @@ const GROUPS = [
   {
     title: 'Evidence',
     items: [
-      { title: 'Case studies', body: 'Every set of runs written up: how the agents organised, coped and helped or hindered each other.', href: HASH.findings },
+      { title: 'Case studies', body: 'Every set of runs written up: how the agents organised, coped and helped or hindered each other.', href: HASH.cases },
       { title: 'Results', body: 'The shared goal over time, every batch with its report, and costs by model.', href: HASH.results },
     ],
   },

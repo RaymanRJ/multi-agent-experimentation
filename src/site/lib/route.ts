@@ -11,7 +11,6 @@ export type Route =
   | { page: 'cases' }
   | { page: 'case'; id: string }
   | { page: 'method' }
-  | { page: 'findings' }
   | { page: 'how' }
   | { page: 'results' }
   | { page: 'doc'; path: string; anchor: string }
@@ -27,7 +26,6 @@ export const HASH = {
   cases: '#/case-studies',
   caseStudy: (id: string) => `#/case-studies/${id}`,
   method: '#/method',
-  findings: '#/findings',
   how: '#/how-it-works',
   results: '#/results',
   doc: (path: string, anchor = '') => `#/docs/${path}${anchor ? `::${anchor}` : ''}`,
@@ -44,7 +42,8 @@ export function parse(hash: string): Route {
   if (path === 'case-studies') return { page: 'cases' };
   if (path.startsWith('case-studies/')) return { page: 'case', id: path.slice('case-studies/'.length) };
   if (path === 'method') return { page: 'method' };
-  if (path === 'findings') return { page: 'findings' };
+  // The old case-studies address lands on the new list.
+  if (path === 'findings') return { page: 'cases' };
   if (path === 'how-it-works') return { page: 'how' };
   if (path === 'results') return { page: 'results' };
   // Stats became part of Results; the old address still lands there.

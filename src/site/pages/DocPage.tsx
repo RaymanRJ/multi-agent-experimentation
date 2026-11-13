@@ -9,7 +9,7 @@ import { BatchSummary, reportBody } from './BatchSummary';
 function crumbs(path: string): Array<{ label: string; href: string }> {
   const trail = [{ label: 'Deep dive', href: HASH.deep }];
   if (path === 'lessons') trail.push({ label: 'Lessons', href: HASH.lessons });
-  else if (path.startsWith('results/write-ups/')) trail.push({ label: 'Case studies', href: HASH.findings });
+  else if (path.startsWith('results/write-ups/')) trail.push({ label: 'Case studies', href: HASH.cases });
   else if (path.startsWith('results/')) trail.push({ label: 'Results', href: HASH.results });
   return trail;
 }
@@ -53,7 +53,7 @@ export function DocPage({ path, anchor }: { path: string; anchor: string }) {
         <h1>No such page</h1>
         <p>
           There's no doc at <code>{path}</code>. Try the <a href={HASH.lessons}>lessons</a>, the{' '}
-          <a href={HASH.findings}>case studies</a> or the{' '}
+          <a href={HASH.cases}>case studies</a> or the{' '}
           <a href={HASH.results}>results</a>.
         </p>
       </main>
