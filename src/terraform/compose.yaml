@@ -7,7 +7,8 @@ name: multi-agent-experimentation-terraform
 
 services:
   terraform:
-    image: hashicorp/terraform:1.16
+    # Pinned by version and digest, like the game server's image: a fresh pull can't change the tool under us.
+    image: hashicorp/terraform:1.16.6@sha256:bfffc1ded5fbf0a17beaaf22eb4793980abdb19d0761ff6a3a0efb2ab4d9b316
     working_dir: /work
     volumes:
       - .:/work

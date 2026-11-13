@@ -143,6 +143,7 @@ STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in
 STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; watch at :3007, :3008
 
 scripts/reset-world.sh                                # regenerate the main world from its seed
+LOGS_BUCKET=<bucket> scripts/archive-runs.sh         # copy runs/ to the private logs bucket (--dryrun to preview)
 scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)
 MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
 ```
@@ -196,7 +197,8 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   in the same commit, keep every figure traceable to a logged run and no stronger than the evidence, and say in the
   hand-off that it changed. The `triage-batch` skill's site checklist has the details.
 - **`runs/` is not in git.** Logs from earlier machines are not here; the numbers that matter are in
-  `docs/results/`.
+  `docs/results/`. Since 12 November the logs are archived to a private S3 bucket after each published batch
+  (`scripts/archive-runs.sh`, bucket from `src/terraform`'s `modules/logs`); never make that bucket public.
 
 ## Hard constraints
 

@@ -25,3 +25,8 @@ output "site_urls" {
   description = "Where the site is served."
   value       = [for alias in local.aliases : "https://${alias}"]
 }
+
+output "logs_bucket_name" {
+  description = "Private bucket for the agents' run logs (src/agents/scripts/archive-runs.sh)."
+  value       = module.logs.bucket_name
+}

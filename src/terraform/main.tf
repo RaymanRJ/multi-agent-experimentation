@@ -20,6 +20,13 @@ module "s3" {
   distribution_arn = module.cloudfront.distribution_arn
 }
 
+# The agents' run logs, archived privately (see modules/logs). Not served by the site.
+module "logs" {
+  source = "./modules/logs"
+
+  bucket_name = "${replace(var.domain_name, ".", "-")}-logs"
+}
+
 module "acm" {
   source = "./modules/acm"
   providers = {

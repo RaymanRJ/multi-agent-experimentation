@@ -89,6 +89,8 @@ better than before": keep improving it):
 - `src/agents/scripts/publish-reports.sh <name>` for real batches and team runs (not `poc` or dev runs), and
   commit the page it writes, `docs/results/batch-reports/<date>-<time>-<name>.md`; add the run's row to
   the table in `docs/results/README.md`, in start order.
+- Archive the logs off this machine: `LOGS_BUCKET=<bucket> src/agents/scripts/archive-runs.sh` (the private bucket from
+  `src/terraform`, `terraform output logs_bucket_name`). It only adds and updates; the bucket is versioned.
 - `docs/next-steps.md`: one paragraph under the open item, with the result and what is next.
 - `docs/limitations.md`: add what is newly known, and **remove or correct what the batch made
   out of date** (it fell behind once; check every entry the batch touched).

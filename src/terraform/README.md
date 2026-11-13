@@ -15,6 +15,7 @@ GitHub Actions ──(OIDC, no stored keys)──▶ S3 bucket (private) ◀─�
 | `modules/cloudfront` | The distribution: HTTPS only, compression, AWS's security headers, the site's own `404.html` |
 | `modules/route53` | IPv4 and IPv6 alias records from the domain to the distribution |
 | `modules/iam` | The role GitHub Actions takes on through GitHub's OIDC provider, only from `main` of this repository |
+| `modules/logs` | A separate private bucket for the agents' run logs (`src/agents/runs/`): versioned, encrypted, HTTPS only, moved to Glacier Instant Retrieval after 30 days. Never served; filled by `src/agents/scripts/archive-runs.sh` |
 
 **What it costs:** the certificate is free. S3 and CloudFront cost pennies a month for a small
 static site, and the hosted zone you already have is $0.50 a month whatever it serves.
