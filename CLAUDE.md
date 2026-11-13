@@ -190,6 +190,11 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
   keeping the goal in mind, and how they helped or hindered each other. Game mechanics are brief
   examples; per-model numbers and our-code bugs come last. `docs/results/write-ups/06-team-base.md`
   is the model (the `triage-batch` skill has the details).
+- **The website's landing page carries the headline result** (`src/site/content/headline.ts`, and the figures its prose
+  repeats in `src/site/pages/Home.tsx`). It is written for an employer or client, not a technical reader. When a
+  write-up changes the headline (a frozen set's success rate, the cost per success at billed rates, the goal), update it
+  in the same commit, keep every figure traceable to a logged run and no stronger than the evidence, and say in the
+  hand-off that it changed. The `triage-batch` skill's site checklist has the details.
 - **`runs/` is not in git.** Logs from earlier machines are not here; the numbers that matter are in
   `docs/results/`.
 

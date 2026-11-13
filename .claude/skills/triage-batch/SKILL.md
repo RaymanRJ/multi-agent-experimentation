@@ -97,7 +97,8 @@ better than before": keep improving it):
 
   | Page | Comes from | Updated by |
   |---|---|---|
-  | Overview (home) | `src/site/content/lessons.ts`: six lesson cards with their evidence, and the chart | Hand: change a card's evidence or the chart when the batch adds to or overturns it |
+  | Overview (home), for an employer or client | `src/site/content/headline.ts`: the four headline figures, each with a plain explanation and its source; the hero line; and the figures repeated in `pages/Home.tsx` prose ("2 in 6 to 8 in 10", "under 1 in 3 to 8 in 10") | Hand: **whenever a write-up changes the headline result** (a frozen set's success rate, the cost per success at billed rates, the goal), in the same commit; a figure must trace to a logged run, and the claim stays no stronger than the evidence |
+  | Deep dive | `src/site/content/lessons.ts`: six lesson cards with their evidence, and the chart | Hand: change a card's evidence or the chart when the batch adds to or overturns it |
   | Lessons | `docs/lessons.md` | Hand: a new lesson, or new evidence for one (above) |
   | Case studies | `docs/results/write-ups/` | Hand: the write-up (above) |
   | Results | `src/site/content/story.ts` and the published reports | Hand for the story (above); `publish-reports.sh` for the reports |

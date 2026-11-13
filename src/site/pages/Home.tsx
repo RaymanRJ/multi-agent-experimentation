@@ -1,16 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { FIGURES, HEADLINE } from '../content/headline';
 import { CONTACT } from '../lib/contact';
 import { HASH } from '../lib/route';
 
-/** Where the headline numbers come from: the second night's write-up, every run linked from it. */
-const PROOF = HASH.doc('results/write-ups/07-luna-majority', 'the-second-night-80-on-one-commit');
 
-const FIGURES = [
-  { value: '8 in 10', label: 'runs met the whole goal, on unchanged code', href: PROOF },
-  { value: '≈ 15¢', label: 'per goal achieved, failed runs included', href: PROOF },
-  { value: '≈ 3×', label: 'the success rate, from under 1 in 3 to 8 in 10, by fixing the agents’ tools, not the model', href: HASH.doc('results/write-ups/07-luna-majority') },
-  { value: '0', label: 'human interventions during a run', href: HASH.doc('lessons', 'the-improvement-loop') },
-];
 
 const LESSONS = [
   {
@@ -43,6 +36,8 @@ const STEPS = [
 ];
 
 export function Home({ section }: { section?: string }) {
+  // One figure's explanation open at a time, in place: tapping a number shouldn't take a reader off the page.
+  const [open, setOpen] = useState<number | null>(null);
   useEffect(() => {
     if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [section]);
@@ -52,7 +47,7 @@ export function Home({ section }: { section?: string }) {
       <section className="hero">
         <p className="eyebrow">AI agents that deliver</p>
         <h1>Give three AI agents a goal, not instructions.</h1>
-        <p className="lede strong">They plan, divide the work and finish it 8 in 10 times, at 15¢ a success.</p>
+        <p className="lede strong">They plan, divide the work and finish it {HEADLINE.successRate} times, at {HEADLINE.costPerSuccess} a success.</p>
         <p className="lede">
           I build the structure around AI models: the tools they use, what they are told and how they are measured.
           That structure is what turns a model into an agent a business can rely on.
@@ -61,19 +56,28 @@ export function Home({ section }: { section?: string }) {
           <a className="button primary" href={HASH.contact}>
             Get in touch
           </a>
-          <a className="button" href={PROOF}>
-            See the evidence
+          <a className="button" href={HASH.deep}>
+            The technical detail
           </a>
         </div>
       </section>
 
       <section aria-label="Results">
         <div className="figures">
-          {FIGURES.map((f) => (
-            <a className="figure" key={f.label} href={f.href}>
-              <strong>{f.value}</strong>
-              <span>{f.label}</span>
-            </a>
+          {FIGURES.map((f, i) => (
+            <div className={`figure${open === i ? ' open' : ''}`} key={f.label}>
+              <button type="button" aria-expanded={open === i} aria-controls={`figure-${i}`} onClick={() => setOpen(open === i ? null : i)}>
+                <strong>{f.value}</strong>
+                <span>{f.label}</span>
+                <span className="figure-more" aria-hidden="true">{open === i ? 'Less' : 'How we know'}</span>
+              </button>
+              {open === i && (
+                <div className="figure-detail" id={`figure-${i}`}>
+                  <p>{f.detail}</p>
+                  <a href={f.href}>Full technical write-up →</a>
+                </div>
+              )}
+            </div>
           ))}
         </div>
         <p className="fineprint">
