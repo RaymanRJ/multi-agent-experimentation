@@ -5,10 +5,12 @@ import { HASH } from '../lib/route';
 import { BatchSummary, reportBody } from './BatchSummary';
 
 /** Which section of the site a doc belongs to, for the breadcrumb. */
-function crumb(path: string): { label: string; href: string } {
-  if (path.startsWith('results/write-ups/')) return { label: 'Case studies', href: HASH.findings };
-  if (path.startsWith('results/')) return { label: 'Results', href: HASH.results };
-  return { label: 'Overview', href: HASH.home };
+/** Where a doc sits in the deep dive, as a trail back: "Deep dive › Case studies" for a write-up, "Deep dive" for lessons. */
+function crumbs(path: string): Array<{ label: string; href: string }> {
+  const trail = [{ label: 'Deep dive', href: HASH.deep }];
+  if (path.startsWith('results/write-ups/')) trail.push({ label: 'Case studies', href: HASH.findings });
+  else if (path.startsWith('results/')) trail.push({ label: 'Results', href: HASH.results });
+  return trail;
 }
 
 export function DocPage({ path, anchor }: { path: string; anchor: string }) {
@@ -57,11 +59,18 @@ export function DocPage({ path, anchor }: { path: string; anchor: string }) {
     );
   }
 
-  const back = crumb(path);
+  const trail = crumbs(path);
   return (
     <main className={path.startsWith('results/batch-reports/') ? 'report' : 'narrow'}>
       <nav className="crumbs" aria-label="Breadcrumb">
-        <a href={back.href}>{back.label}</a>
+        <span className="trail">
+          {trail.map((c, i) => (
+            <span key={c.href}>
+              {i > 0 && <span className="sep" aria-hidden="true">›</span>}
+              <a href={c.href}>{c.label}</a>
+            </span>
+          ))}
+        </span>
         <a className="source" href={`${REPO}/blob/main/docs/${path}.md`} target="_blank" rel="noreferrer">
           View on GitHub
         </a>

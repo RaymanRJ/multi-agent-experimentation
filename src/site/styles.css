@@ -486,8 +486,13 @@ h3 {
   text-decoration: none;
 }
 
-.crumbs a:first-child::before {
+.crumbs .trail a:first-child::before {
   content: '← ';
+}
+
+.crumbs .sep {
+  margin: 0 8px;
+  color: var(--muted);
 }
 
 .crumbs .source {
@@ -1463,4 +1468,148 @@ h3 {
 .site-footer {
   flex-wrap: wrap;
   gap: 8px 24px;
+}
+
+/* Deep dive: one bar of sections on every technical page, so a reader can always move between them. */
+
+.deep-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.deep-nav-label {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deep-nav-items {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.deep-nav-items::-webkit-scrollbar {
+  display: none;
+}
+
+.deep-nav-items a {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.deep-nav-items a:hover {
+  color: var(--text);
+}
+
+.deep-nav-items a[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  /* A fade at the right edge: the sections scroll sideways, and the cut-off one should look like more, not a glitch. */
+  .deep-nav-items {
+    -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
+    mask-image: linear-gradient(to right, #000 82%, transparent);
+    padding-right: 32px;
+  }
+}
+
+@media (max-width: 560px) {
+  .deep-nav-label {
+    display: none;
+  }
+}
+
+.deep .page-head .lede {
+  max-width: 720px;
+}
+
+.path {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.path a {
+  display: flex;
+  gap: 14px;
+  height: 100%;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.path a:hover {
+  border-color: var(--accent);
+}
+
+.path a > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.path strong {
+  font-family: var(--serif);
+  font-size: 20px;
+}
+
+.path a > span:last-child > span {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.lesson-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 0 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.lesson-list .eyebrow {
+  margin: 0;
+  font-size: 12px;
+}
+
+.lesson-list a {
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.lesson-list a:hover {
+  color: var(--accent);
 }

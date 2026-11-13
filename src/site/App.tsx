@@ -7,6 +7,7 @@ import { HowItWorks } from './pages/HowItWorks';
 import { Results } from './pages/Results';
 import { Stats } from './pages/Stats';
 import { CONTACT } from './lib/contact';
+import { DeepNav, deepSection } from './lib/DeepNav';
 import { REPO, SITE } from './lib/docs';
 import { HASH, useRoute, type Route } from './lib/route';
 
@@ -28,6 +29,7 @@ const TITLES: Partial<Record<Route['page'], string>> = {
 
 export default function App() {
   const route = useRoute();
+  const section = deepSection(route);
   useEffect(() => {
     const title = TITLES[route.page];
     if (title) document.title = title;
@@ -56,6 +58,8 @@ export default function App() {
           </a>
         </nav>
       </header>
+
+      {section && <DeepNav active={section} />}
 
       {route.page === 'home' && <Home section={route.section} />}
       {route.page === 'deep' && <DeepDive />}
