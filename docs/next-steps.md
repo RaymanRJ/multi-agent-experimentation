@@ -349,7 +349,20 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    comes near (team board), until the 5 minutes are up; `pick_up` takes an optional spot and walks there first. Live:
    4 of 4 drops 12-43 blocks off recovered with the spot, 0 of 4 without. **Set E (13 November, the owner's ask:
    consistently 80%):** tluna33a-j on e2a0b25, three lanes (25600/25640/25680; tick rate was 20.0 in all 292
-   readings with two), all ten, 80-minute cap. US$3.78 credit, about US$1.3 expected; the owner may add US$5. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   readings with two), all ten, 80-minute cap. US$3.78 credit, about US$1.3 expected; the owner may add US$5.
+   Stopped at 6 reps (a-f) at 10:09 so the newest code gets ten reps inside the owner's 6-hour window: of the first
+   three, 33b met the goal and 33a, 33c did not. Seen in them: agents saw every dropped pickaxe and recovered three
+   (33a), but in 33c only 1 of 16 walks back to a drop recovered anything, 10 of them at night, and 2 deaths followed;
+   33c made no iron pickaxe at all (the only iron died in lava), and nobody slept on night 3, 32 refusals between
+   them for one spider outside, whose distance the refusal gave from the agent, not the bed. A zombie inside the
+   home at night killed la in 33a, and three deaths were at its doorway; how it got in is not yet known.
+   **Set F (13 November, tluna34a-j on 4fabf64, branch `nested-doors`):** set E's code plus three fixes. A new
+   home's site is claimed on the team board when building starts, so a teammate arriving meanwhile joins it
+   (tluna32f; live, two builders 8 s apart: old 2 homes in 2 of 2, new 1 in 2 of 2). `pick_up` asked for one item
+   fails, not succeeds, when it got only others, and steps onto an item beside it (a guard: tluna33a's pickaxe 2
+   blocks off on open grass was "could not reach" five times, but the old code collected 6 of 6 corner drops live,
+   so the cause is unknown). The sleep refusal gives the monster's distance from the bed. Four lanes (a fourth on
+   25720; set E's three as they free up), all ten, 80-minute cap. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
