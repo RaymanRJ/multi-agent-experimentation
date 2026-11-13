@@ -82,20 +82,6 @@ export function Home({ section }: { section?: string }) {
         </p>
       </section>
 
-      <section className="task">
-        <h2 className="section-title">The task</h2>
-        <p>
-          Three agents share one goal over three simulated days: build a base that houses all of them, give each a
-          place to sleep in it, equip each one with a tool that has to be found, refined and made, and leave a stock
-          of food. Nobody tells them who does what, or how. They plan, split the work, talk to each other, and recover
-          when things go wrong: a teammate lost, supplies gone, the plan blocked.
-        </p>
-        <p className="muted">
-          The proving ground is Minecraft: a shared world where every step an agent takes can be watched, measured and
-          replayed. The game isn’t the point. It is a demanding, observable stand-in for real multi-step work, and the
-          models already know it, so nothing here is trained or coached.
-        </p>
-      </section>
 
       <section>
         <h2 className="section-title">What this means for your company</h2>
@@ -129,6 +115,21 @@ export function Home({ section }: { section?: string }) {
         <p className="muted">
           The same loop that took these agents from under 1 in 3 to 8 in 10 applies to support desks, operations,
           internal tools, or any work you want agents to carry on their own.
+        </p>
+      </section>
+
+      <section className="task">
+        <h2 className="section-title">The task</h2>
+        <p>
+          Three agents share one goal over three simulated days: build a base that houses all of them, give each a
+          place to sleep in it, equip each one with a tool that has to be found, refined and made, and leave a stock
+          of food. Nobody tells them who does what, or how. They plan, split the work, talk to each other, and recover
+          when things go wrong: a teammate lost, supplies gone, the plan blocked.
+        </p>
+        <p className="muted">
+          The proving ground is Minecraft: a shared world where every step an agent takes can be watched, measured and
+          replayed. The game isn’t the point. It is a demanding, observable stand-in for real multi-step work, and the
+          models already know it, so nothing here is trained or coached.
         </p>
       </section>
 
