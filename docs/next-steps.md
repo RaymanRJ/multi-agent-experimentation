@@ -331,7 +331,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    ten run whatever the losses (no early stop). Losses triaged as they come; fixes wait in a worktree. Then, by result:
    a confirmation set, or set E on fixes, or stop and report. Morning: site headline, milestones, team case and
    write-up 07 updated; reports published; logs archived (`scripts/archive-runs.sh`); bill checked against the
-   corrected estimate. US$5 OpenAI top-up. A three-Haiku 5.5 comparison on the same code is for another night. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   corrected estimate. US$5 OpenAI top-up. A three-Haiku 5.5 comparison on the same code is for another night.
+   **Set D (12-13 November, tluna32a-j on 651817b, all ten run): 6 of 10** (32c 19:17 and 32d 18:43 of game time, both
+   on day 1; 32e, g, h, j). About US$1.33 at the corrected pricing. No lag; ran unattended from 23:40 (session limit)
+   to 01:38, every rep within its cap. Losses: 32a, a spider on the home's roof blocked one agent's sleep for three
+   days while about 60 hunts for it were refused at the door (our code; fixed after the set, 15062df: only door-level
+   mobs keep the door shut, and a hunt draws a target down from a roof; live 0 of 3 to 3 of 5); 32b and 32i, iron
+   lost with agents who died carrying it (32i: 15 raw iron on day 1); 32f, 2 of 3 pickaxes and 4 of 10 meat, with
+   shear unable to leave the home ("No path", 10 times) and 23 pick_ups of a pickaxe no longer on the ground, not yet
+   looked into. On the final code across sets B, C and D: 21 of 30. The site's headline (8 in 10, set C) is still
+   true of set C; whether to restate it as 21 of 30 is the owner's call. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
