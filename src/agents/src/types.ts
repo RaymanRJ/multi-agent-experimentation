@@ -103,8 +103,6 @@ export interface Observation {
   oreSeen?: string[];
   /** Chests the agent or a teammate has opened, each with what it held when last opened, by whom and when. Omitted when none. */
   chestsSeen?: string[];
-  /** What the agent or a teammate dropped on dying, where and when, while it can still be on the ground. Omitted when none. */
-  dropsSeen?: string[];
   /**
    * Other players the bot can see. `doing` is their current skill, read from their
    * narration — only within sight (SIGHT_RADIUS), since it is something you see, not

@@ -51,7 +51,7 @@ export const pickUp: Skill = {
   description:
     `Collect items lying on the ground within ${PICKUP_RADIUS} blocks (listed in itemsOnGround), such as ones another ` +
     "agent tossed to you or that fell out of reach. Args: `item` (optional: collect only this item; default everything); " +
-    "`x`, `y` and `z` (optional: a spot further off, such as one in dropsSeen; it walks there first, as go_to does, then " +
+    "`x`, `y` and `z` (optional: a spot further off, such as where you died; it walks there first, as go_to does, then " +
     `collects within ${PICKUP_RADIUS} blocks of it). ` +
     "Walks over each one. Fails if there is nothing there to collect, or none of it could be reached.",
   args: { item: "string?", x: "number?", y: "number?", z: "number?" },

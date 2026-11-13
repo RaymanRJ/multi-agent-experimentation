@@ -23,7 +23,6 @@ import { newDayBegan } from "./daytime.js";
 import { GOAL_CHECKS, GOAL_GAPS, HERDS, SCENARIOS, SEED, TEAM_GOALS, applyScenario, restockHerds, serverCommand, unlockRecipes, goalTask, NightWatch, presetName, resolveGoal } from "./scenario.js";
 import { TeamBoard, chestChanges, combine, describeChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
 import { AnimalMemory, OreMemory, describeOreSightings, describeSightings } from "./sightings.js";
-import { DROP_SCATTER, DropLog, dropLines } from "./drops.js";
 import { ownFloods } from "./skills/underground.js";
 import { Vec3 } from "vec3";
 import { SKILLS, findSkill } from "./skills/index.js";
@@ -294,23 +293,10 @@ async function main(): Promise<void> {
     for (let waited = 0; (respawning || bot.health <= 0) && waited < RESPAWN_WAIT_MS; waited += 100) await new Promise((r) => setTimeout(r, 100));
     if (bot.health > 0) await bot.waitForTicks(2); // health and position arrive just after the respawn
   };
-  // What it carried, kept from just before each death: by the death event the game has already emptied the inventory
-  // (live, 4 of 4), and a one-blow death sends no health update first. The last non-empty look, every half second.
-  const drops = new DropLog();
-  let lastHeld: Record<string, number> = {};
-  let heldTicks = 0;
-  bot.on("physicsTick", () => {
-    if (++heldTicks % 10 || bot.health <= 0) return;
-    const held = countInventory(bot);
-    if (Object.keys(held).length) lastHeld = held;
-  });
   bot.on("death", () => {
     respawning = true;
     // Where, so it can go back: a player sees where they fell. Dropped items vanish after 5 minutes.
     const { x, y, z } = bot.entity.position.floored();
-    const held = countInventory(bot);
-    drops.died({ by: agentName, x, y, z, items: Object.keys(held).length ? held : lastHeld, at: bot.time.age });
-    lastHeld = {};
     const death = { x, y, z, cause: null as string | null, ticks: bot.time.age - startAge, timeOfDay: bot.time.timeOfDay };
     stepDeaths.push(death);
     recentEvents.push(deathEvent(death));
@@ -407,27 +393,10 @@ async function main(): Promise<void> {
     describeSightings(bot.entity.position, [...animalMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.sightings ?? [])], agentName);
   const oreSeen = () =>
     describeOreSightings(bot.entity.position, [...oreMemory.list(), ...Object.values(board?.read() ?? {}).flatMap((m) => m?.oreSightings ?? [])], agentName);
-  // What anyone on the team dropped when they died, while it can still be lying there. Seen from near the spot with
-  // nothing on the ground, it is gone; so is anything that timed out.
-  const lyingAt = (d: { x: number; y: number; z: number }) => {
-    const lying: Record<string, number> = {};
-    for (const e of Object.values(bot.entities)) {
-      if (e?.name !== "item" || Math.hypot(e.position.x - d.x, e.position.y - d.y, e.position.z - d.z) > DROP_SCATTER) continue;
-      const item = e.getDroppedItem?.();
-      if (item) lying[item.name] = (lying[item.name] ?? 0) + item.count;
-    }
-    return lying;
-  };
-  const dropsSeen = () => {
-    const members = Object.values(board?.read() ?? {});
-    const all = [...drops.mine(bot.time.age), ...members.flatMap((m) => m?.drops ?? [])];
-    const live = drops.current(all, members.map((m) => m?.dropLooks ?? {}), bot.time.age, bot.entity.position, lyingAt);
-    return dropLines(live, bot.entity.position, bot.time.age, agentName);
-  };
   // And the chests the team knows, each as last seen by anyone: a teammate's look replaces an older one.
   const teamChests = () => latestChests([chestViews, ...Object.values(board?.read() ?? {}).map((m) => m?.chests ?? {})]);
   const knownChests = new Map<string, string>();
-  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list(), floods: ownFloods(bot), drops: drops.mine(bot.time.age), dropLooks: drops.seen(bot.time.age) });
+  const ownState = () => ({ inventory: countInventory(bot), shelterBuilt, nightSurvivedSinceShelter: night.survived, shelterStoreys, chests: chestViews, sleptInBed, shelters, sleptIn: [...sleptIn], sightings: animalMemory.list(), oreSightings: oreMemory.list(), floods: ownFloods(bot) });
   /** What the goal check sees: this agent, or for a team goal, the whole team added together. */
   const goalState = (skill: string, status: string) => {
     const own = ownState();
@@ -625,7 +594,6 @@ async function main(): Promise<void> {
       animalsSeen: animalsSeen(),
       oreSeen: oreSeen(),
       chestsSeen: describeChests(bot.entity.position, teamChests(), agentName),
-      dropsSeen: dropsSeen(),
       clock: { elapsed: elapsedTicks(), budget: maxTicks },
       ...(buffer ? { messages: buffer.snapshot(), requests: asked.requests } : {}),
       ...(memory !== "none" && lastPlan ? { plan: lastPlan } : {}),
