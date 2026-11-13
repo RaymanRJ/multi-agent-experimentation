@@ -416,7 +416,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    didn't turn it into pickaxes (J losses: 2 made a rep from 22 raw). H, I, J together 13 of 26, about 50%: H's
    7 of 10 was the lucky end of ten-rep noise. Also seen (38c): a skeleton camped 3 blocks from the home's bed for
    the rest of the run, stopping every trip for wood and 13 tries at sleep; no agent fought it (their call: it
-   shoots). 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   shoots).
+   **Set J ended 4 of 10** (38a, d, g, h). Today's measured sets on the original world: E 2/6, F 2/6, H 7/10, I 4/10,
+   J 4/10; H-J together 15 of 30, 50%, against 21 of 30 for B-D on the earlier nights. The fixes each removed a real
+   failure, checked live, but the rate did not move: what decides runs is how often agents die (0-3 a rep in wins,
+   5-7 in losses) and how they handle the iron pickaxes (passed back and forth, carried into danger, ending on the
+   wrong agent). Next, if the owner wants it: the agents' handling of monsters camped at the home (a skeleton or
+   spider by the door for whole nights); or a stronger model, or chests for spare pickaxes (owner's calls: they
+   change what is measured). Reported cost today about US$6.35 plus set G's partial reps; the bill runs 25-35% over
+   the estimate, so the credit is close to spent. Nothing pushed; `nightly-3` holds all of it. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
