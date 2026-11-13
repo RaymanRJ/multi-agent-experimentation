@@ -1,7 +1,7 @@
 import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { ANIMAL_TYPES, isDying } from "./skills/creatures.js";
-import { isExposed } from "./skills/util.js";
+import { findExposed, isExposed } from "./skills/util.js";
 import { unmineable } from "./skills/mineOre.js";
 
 /**
@@ -116,7 +116,7 @@ export class OreMemory {
     const here = bot.entity.position;
     const ids = Object.values(bot.registry.blocksByName).filter((b) => b.name.endsWith("_ore")).map((b) => b.id);
     const seen = new Map<string, Array<{ p: Vec3; wet: boolean }>>();
-    for (const point of bot.findBlocks({ matching: ids, maxDistance: SIGHT_RANGE, count: 128 })) {
+    for (const point of findExposed(bot, ids, SIGHT_RANGE, 128)) {
       const block = bot.blockAt(point);
       if (!block || !isExposed(bot, point)) continue;
       // The rule mine_ore itself uses, so a sighting never sends an agent to ore it will refuse (tluna20-23: 4 of 7

@@ -4,7 +4,7 @@ import type { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, getOutOfWater, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
+import { asNumber, findExposed, getOutOfWater, headInWater, homeBlock, isExposed, liquidBeside, nearestUncrowded, oreHazard, threatened, withTimeout } from "./util.js";
 import { descend, fillWater, plugBlock, standable } from "./underground.js";
 
 const { goals } = pathfinderPkg;
@@ -252,7 +252,7 @@ export const mineOre: Skill = {
       const noPlug = new Set<string>();
       const leftAlone = new Set<string>();
       for (const radius of SEARCH_RADII) {
-        const points = nearestUncrowded(bot, bot.findBlocks({ matching: oreIds, maxDistance: radius, count: 64 }));
+        const points = nearestUncrowded(bot, findExposed(bot, oreIds, radius, 64));
         for (const point of points) {
           if (skipped.has(key(point))) continue;
           if (!isExposed(bot, point)) continue;

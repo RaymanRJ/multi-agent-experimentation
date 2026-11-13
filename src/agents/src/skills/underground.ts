@@ -3,7 +3,7 @@ import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { countInventory } from "../observe.js";
-import { asNumber, getOutOfWater, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
+import { asNumber, findExposed, getOutOfWater, groundAbove, headInWater, homeBlock, isExposed, liquidBeside, opensOnClick, plainError, threatened, withTimeout } from "./util.js";
 export { plainError };
 import { half, insideSpot, spotKey } from "./buildShelter.js";
 import { torchTrail } from "./light.js";
@@ -636,9 +636,9 @@ async function outOfWater(bot: Bot): Promise<string | null> {
 export function oreInSight(bot: Bot, radius = 16): Record<string, number> {
   const ids = Object.values(bot.registry.blocksByName).filter((b) => b.name.endsWith("_ore")).map((b) => b.id);
   const seen: Record<string, number> = {};
-  for (const point of bot.findBlocks({ matching: ids, maxDistance: radius, count: 128 })) {
+  for (const point of findExposed(bot, ids, radius, 128)) {
     const block = bot.blockAt(point);
-    if (block && isExposed(bot, point)) seen[block.name] = (seen[block.name] ?? 0) + 1;
+    if (block) seen[block.name] = (seen[block.name] ?? 0) + 1;
   }
   return seen;
 }

@@ -2,7 +2,7 @@ import type { Bot } from "mineflayer";
 import { toolUses } from "./toolWear.js";
 import type { Message, Observation, Request, ScenarioName } from "./types.js";
 import { craftableNow } from "./skills/craft.js";
-import { groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
+import { findExposed, groundAbove, isExposed, UNDERGROUND_MIN } from "./skills/util.js";
 import { isNight, ticksUntilNight } from "./daytime.js";
 import { ANIMAL_TYPES, isDying } from "./skills/creatures.js";
 import { droppedNearby } from "./skills/pickUp.js";
@@ -121,7 +121,7 @@ export function observe(
   const oreIds = Object.values(bot.registry.blocksByName)
     .filter((block) => block.name.endsWith("_ore"))
     .map((block) => block.id);
-  for (const point of bot.findBlocks({ matching: oreIds, maxDistance: NEARBY_RADIUS, count: 128 })) {
+  for (const point of findExposed(bot, oreIds, NEARBY_RADIUS, 128)) {
     const block = bot.blockAt(point);
     if (block && isExposed(bot, point)) nearbyBlocks[block.name] = (nearbyBlocks[block.name] ?? 0) + 1;
   }

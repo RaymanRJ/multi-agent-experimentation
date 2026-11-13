@@ -427,6 +427,15 @@ export function isExposed(bot: Bot, point: { offset(dx: number, dy: number, dz: 
   return FACES.some(([dx, dy, dz]) => bot.blockAt(point.offset(dx, dy, dz))?.boundingBox === "empty");
 }
 
+/**
+ * Exposed blocks of these kinds, tested inside the search so the cap counts only ore a player could see: underground
+ * there are often over a thousand iron ore blocks within 48, nearly all buried, and the first 64 found held none that
+ * were exposed. mine_ore then said "no iron ore in reach within 48 blocks" with 37 exposed in range (tluna33e, 33c).
+ */
+export function findExposed(bot: Bot, ids: number[], maxDistance: number, count: number): Vec3[] {
+  return bot.findBlocks({ matching: ids, maxDistance, count, useExtraInfo: (block: { position: Vec3 }) => isExposed(bot, block.position) });
+}
+
 /** Fewer solid blocks overhead than this is a roof (a shelter's is one layer, two storeys two), not ground. */
 export const UNDERGROUND_MIN = 3;
 /** The overworld's build limit (1.21). */
