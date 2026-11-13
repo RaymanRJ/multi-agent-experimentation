@@ -403,7 +403,12 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    new stopped at y=45 with 47 uses); **7d113eb**, every dig puts away an iron or better pickaxe at its last 3 uses
    and digs by hand (climb_out spared a worn one, then took it up again for a slow block until it broke; live from
    5 uses, old used it up, new kept 2). **Set J (tluna38a-j on 7d113eb, main checkout)** queued behind set I's
-   lanes. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   lanes.
+   **Set I ended 4 of 10** (37e 25:15, 37g 30:31, 37i 19:17, 37j 30:02); five of the six losses had everything but
+   the iron pickaxes, 37h also short on sleep and meat. Against set H (7 of 10, same code but the fight): deaths
+   3.9 a rep against 4.3, deaths in flee 19 against 29; the fight was taken 15 times, won outright 4. The two sets
+   differ by about what chance gives at ten reps (Fisher p ~0.37): about 55% together. The bottleneck is ending
+   with three iron pickaxes. Set J from 15:56. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
