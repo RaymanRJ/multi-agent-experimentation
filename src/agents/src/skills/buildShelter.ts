@@ -4,6 +4,7 @@ import type { Bot } from "mineflayer";
 import type { Entity } from "prismarine-entity";
 import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { lightHome } from "./light.js";
+import { isNight } from "../daytime.js";
 import { claimBed } from "./sleep.js";
 import { countInventory, shownHealth } from "../observe.js";
 import { asNumber, doorwayLanes, gotoWatched, homeBlock, liquidBeside, opensOnClick, plainError, protectCells, threatened, withTimeout } from "./util.js";
@@ -266,6 +267,17 @@ export const FOLLOW_RANGE = 6;
 /** How far above or below the door's floor a mob can be and still walk in behind the agent. */
 const FOLLOW_HEIGHT = 2;
 
+/**
+ * A spider in daylight under open sky leaves a player alone unless hit, so it won't come in behind one: counting it
+ * kept a home's door shut all day in tluna33f, where every hunt for the spider camped by the home was refused and it
+ * then kept two agents from sleeping for two nights (37 refusals). A cave spider, or a spider in the dark, still counts.
+ */
+function calmSpider(bot: Bot, e: Entity): boolean {
+  if (e.name !== "spider" || isNight(bot.time.timeOfDay)) return false;
+  const block = bot.blockAt(e.position.floored());
+  return !!block && (block as unknown as { skyLight?: number }).skyLight !== undefined && (block as unknown as { skyLight: number }).skyLight >= 12;
+}
+
 /** Monsters outside the home close enough to the door, or to the agent, to get in while it is open. */
 export function followers(bot: Bot, spot: ShelterSpot): string[] {
   const { door } = doorwayCells(spot);
@@ -275,6 +287,7 @@ export function followers(bot: Bot, spot: ShelterSpot): string[] {
     // Only a mob about level with the door can come in behind the agent. A spider on the roof, 4 blocks up, can't,
     // and counting it kept the door shut for three days in tluna32a: about 60 hunts for it refused, one agent never slept.
     .filter((e) => Math.abs(e.position.y - door.y) <= FOLLOW_HEIGHT)
+    .filter((e) => !calmSpider(bot, e))
     .filter((e) => Math.min(e.position.distanceTo(at), e.position.distanceTo(bot.entity.position)) <= FOLLOW_RANGE)
     .map((e) => (e.name ?? "hostile mob").replace(/_/g, " "));
 }
