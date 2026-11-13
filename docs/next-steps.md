@@ -362,7 +362,20 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    fails, not succeeds, when it got only others, and steps onto an item beside it (a guard: tluna33a's pickaxe 2
    blocks off on open grass was "could not reach" five times, but the old code collected 6 of 6 corner drops live,
    so the cause is unknown). The sleep refusal gives the monster's distance from the bed. Four lanes (a fourth on
-   25720; set E's three as they free up), all ten, 80-minute cap. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   25720; set E's three as they free up), all ten, 80-minute cap.
+   **Set E ended 2 of 6** (33b, 33d met the goal; 33a, c, e, f did not). Every loss was beds or iron pickaxes or
+   both: 33e had everything but iron (0 of 3; one agent's one pickaxe wore out climbing on day 3), 33f one bed all
+   run with a spider camped by the home. Two of our-code causes found and fixed on `nightly-3`, each checked live:
+   **d1a87cd**, a spider in daylight under open sky no longer keeps the door shut (it won't follow a player in), so
+   a hunt for one goes out to it (33f: every daytime hunt refused, then 37 sleep refusals over two nights; live old
+   0 of 3 out, new 3 of 3 killed; at night still shut); **173a9da**, ore searches test exposure inside the search, so
+   the cap of 64 counts ore a player could see (underground 1441 iron ore within 48, the first 64 all buried:
+   mine_ore said "no iron ore in reach" with 37 exposed in range, in 33e and 33c; live at both spots old failed at
+   once, new mined 2 raw iron in 49 s and 35 s). Set F stopped at 6 reps (34a-f) at 11:39 for **set G (tluna35a-j
+   on 173a9da, main checkout)**, four lanes as set F's free up, all ten, 80-minute cap. Money is close: about
+   US$1.70 left for set G's ten (US$0.17 a rep on average); the owner offered US$5 more. Seen but rare: a zombie got
+   into a home once in 42 episodes (an agent opened the door at night to fetch a drop and died in the doorway, door
+   open). The drop facts drew agents out at night (33c: 10 of 16 trips at night, 2 deaths after): their choice, kept. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
