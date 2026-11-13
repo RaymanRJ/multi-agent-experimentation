@@ -408,7 +408,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    the iron pickaxes, 37h also short on sleep and meat. Against set H (7 of 10, same code but the fight): deaths
    3.9 a rep against 4.3, deaths in flee 19 against 29; the fight was taken 15 times, won outright 4. The two sets
    differ by about what chance gives at ten reps (Fisher p ~0.37): about 55% together. The bottleneck is ending
-   with three iron pickaxes. Set J from 15:56. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   with three iron pickaxes. Set J from 15:56.
+   **Set J, first six: 2 of 6** (38a 50:23, 38d 21:20; 38b, c, e, f all short of iron pickaxes, 38f also meat 8).
+   Not the new fixes: set J mined the most iron of any set (24 raw a rep against 17.5 in H; the descend reserve
+   stopped a descent 1.3 times a rep). What parts wins from losses in every set is deaths: won reps 3.3 (H), 0.0
+   (I), 2.0 (J) a rep; lost reps 6.7, 6.5, 5.0. Losing teams often mined more iron than winners and lost it, or
+   didn't turn it into pickaxes (J losses: 2 made a rep from 22 raw). H, I, J together 13 of 26, about 50%: H's
+   7 of 10 was the lucky end of ten-rep noise. Also seen (38c): a skeleton camped 3 blocks from the home's bed for
+   the rest of the run, stopping every trip for wood and 13 tries at sleep; no agent fought it (their call: it
+   shoots). 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
