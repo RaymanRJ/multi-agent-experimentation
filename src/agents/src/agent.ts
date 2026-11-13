@@ -534,6 +534,10 @@ async function main(): Promise<void> {
     },
     shouldStop: () => stopping || interruptReason !== null,
     shelters: knownShelters,
+    claimShelter: (spot) => {
+      if (!shelters.some((s) => spotKey(s) === spotKey(spot))) shelters.push(spot);
+      publish();
+    },
     floods: () => Object.values(board?.read() ?? {}).flatMap((m) => m?.floods ?? []),
     rcon: (command) => serverCommand(command, { host: env("MC_HOST", "localhost"), port: Number(env("RCON_PORT", "25575")), password: env("RCON_PASSWORD", "devpassword") }),
   };

@@ -27,6 +27,25 @@ export function droppedNearby(bot: Bot, radius = PICKUP_RADIUS): Array<{ entity:
   return found.sort((a, b) => a.distance - b.distance);
 }
 
+/**
+ * The pathfinder stops in the block next to an item, which can leave one lying in the far corner of its block just out
+ * of a player's reach: in tluna33a an iron pickaxe on open grass 2 blocks off was "could not reach" five times running
+ * until it vanished. Walk straight at it for a second, as a player would.
+ */
+async function stepOnto(bot: Bot, item: Entity): Promise<void> {
+  try {
+    for (let tick = 0; tick < 20 && bot.entities[item.id]; tick++) {
+      const at = item.position;
+      if (Math.hypot(at.x - bot.entity.position.x, at.z - bot.entity.position.z) < 0.3 || Math.abs(at.y - bot.entity.position.y) > 1.5) break;
+      await bot.lookAt(at.offset(0, 0.2, 0), true);
+      bot.setControlState("forward", true);
+      await bot.waitForTicks(1);
+    }
+  } finally {
+    bot.setControlState("forward", false);
+  }
+}
+
 export const pickUp: Skill = {
   name: "pick_up",
   description:
@@ -61,6 +80,7 @@ export const pickUp: Skill = {
         const { x, y, z } = target.entity.position;
         await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 1)), LEG_TIMEOUT_MS, "walking to the item");
         await bot.waitForTicks(10);
+        if (bot.entities[target.entity.id]) await stepOnto(bot, target.entity);
       } catch {
         bot.pathfinder.setGoal(null);
       }
@@ -68,6 +88,10 @@ export const pickUp: Skill = {
     const after = countInventory(bot);
     const gained: Record<string, number> = {};
     for (const [name, n] of Object.entries(after)) if (n > (before[name] ?? 0)) gained[name] = n - (before[name] ?? 0);
+    if (only && !gained[only]) {
+      const got = Object.entries(gained).map(([name, n]) => `${n} ${name}`).join(", ");
+      return { status: "failed", reason: `could not reach the dropped ${only}${got ? `; picked up ${got} on the way` : ""}; it may be up or down a drop`, ...(got ? { detail: { picked: gained } } : {}) };
+    }
     if (Object.keys(gained).length === 0) {
       return { status: "failed", reason: `could not reach the dropped ${only || "items"}; they may be up or down a drop` };
     }

@@ -173,7 +173,17 @@ export interface ShelterSpot {
   x: number; y: number; z: number; storeys: number; size?: ShelterSize; by?: string; complete?: boolean;
   /** When an agent first saw it finished (ms since epoch): which base came first, the same for every teammate. */
   finishedAt?: number;
+  /** When building it began (ms since epoch): a site claimed before any wall stands (CLAIM_MS). */
+  startedAt?: number;
 }
+
+/**
+ * A new home's site counts as known from the moment building starts, for this long, walls or not: a home reached the
+ * team only when build_shelter returned, so in tluna32f two agents arriving at nightfall built two large homes 2 blocks
+ * apart, each wall through the other's room, and one agent never got out again (50 "could not walk out of it").
+ */
+export const CLAIM_MS = 180_000;
+const claimed = (spot: ShelterSpot) => spot.complete === false && spot.startedAt !== undefined && Date.now() - spot.startedAt < CLAIM_MS;
 
 export const spotKey = (spot: { x: number; y: number; z: number }) => `${spot.x},${spot.y},${spot.z}`;
 
@@ -770,7 +780,7 @@ export const buildShelter: Skill = {
     // A large shelter is one tall room; a second storey is for huts only.
     const storeys = size === 5 ? 1 : asNumber(args["storeys"], 1) >= 2 ? 2 : 1;
     const fits = (spot: ShelterSpot) => (spot.size ?? 3) >= size && spot.storeys >= storeys;
-    const known = (ctx.shelters?.() ?? []).filter((spot) => fits(spot) && standing(bot, spot));
+    const known = (ctx.shelters?.() ?? []).filter((spot) => fits(spot) && (standing(bot, spot) || claimed(spot)));
 
     // Already inside one, or one close by: go in and close it up, rather than build another.
     const here = bot.entity.position;
@@ -789,6 +799,7 @@ export const buildShelter: Skill = {
       built = entered;
     } else {
       // A large one is built a part at a time; a small one, needing a dozen logs, all at once as before.
+      ctx.claimShelter?.({ x: centre.x, y: centre.y, z: centre.z, ...use, size: use.size as ShelterSize, by: bot.username, complete: false, startedAt: Date.now() });
       const made = await construct(ctx, { centre, ...use, clear: true, partial: use.size === 5 });
       if (!made.done) return made.result;
       built = made;
