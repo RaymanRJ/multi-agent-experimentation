@@ -22,6 +22,9 @@ export const ANIMAL_TYPES = new Set(["animal", "water_creature"]);
 const REACH = 3;
 /** A creeper's fuse builds while a player is within 7 blocks of it; the hunt backs off past this after each blow. */
 const BLAST_CLEAR = 8;
+/** A target more than this far above the agent is out of reach overhead: the hunt backs off LURE_DISTANCE to draw it down. */
+const LURE_HEIGHT = 2;
+const LURE_DISTANCE = 6;
 const CHASE_MS = 30_000;
 const MAX_SKILL_MS = 2 * 60_000;
 /** Hunting stops at this health or below: a fight the agent is losing is the model's to rethink. */
@@ -61,10 +64,22 @@ function prey0(bot: Bot, target: string): Entity | null {
 
 /** Walks up to the entity, following it as it moves. Resolves true once within reach. */
 async function closeIn(bot: Bot, entity: Entity, reach: number, ms: number): Promise<boolean> {
-  bot.pathfinder.setGoal(new goals.GoalFollow(entity, reach - 1), true);
   const until = Date.now() + ms;
+  let luring = false;
   while (Date.now() < until && bot.entities[entity.id]) {
     if (entity.position.distanceTo(bot.entity.position) <= reach) return true;
+    // Out of reach overhead (a spider on a roof): standing under it never gets a blow in. Back off into the open and
+    // wait for it to come down, as a player would; follow again once it is level. Live, a spider on a home's roof
+    // stayed there through 2 of 3 hunts that stood beneath it.
+    const above = entity.position.y - bot.entity.position.y > LURE_HEIGHT;
+    if (above && !luring) {
+      const away = retreatPoint(bot, [entity], LURE_DISTANCE);
+      if (away) bot.pathfinder.setGoal(new goals.GoalNear(away.x, away.y, away.z, 1));
+      luring = true;
+    } else if (!above && (luring || !bot.pathfinder.goal)) {
+      bot.pathfinder.setGoal(new goals.GoalFollow(entity, reach - 1), true);
+      luring = false;
+    }
     await bot.waitForTicks(2);
   }
   return false;

@@ -155,6 +155,10 @@ test("followers - a monster within 6 blocks of the door or of the agent would fo
   assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [mob("zombie", 0.5, 0.5)] }).bot, spot), [], "already inside");
   const chased = fakeBot({ blocks: hut(), position: { x: 10.5, y: 64, z: 3.5 }, entities: [mob("zombie", 14.5, 3.5)] }).bot;
   assert.deepEqual(followers(chased, spot), ["zombie"], "on the agent's heels, far from the door");
+  // A spider up on the roof over the door can't come in behind the agent (tluna32a: the door stayed shut for three days).
+  const roof = (name: string, y: number) => ({ name, type: "hostile", position: { x: 0.5, y, z: 2.5 } });
+  assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [roof("spider", 68)] }).bot, spot), [], "on the roof, 4 blocks up");
+  assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [roof("zombie", 65)] }).bot, spot), ["zombie"], "a step up is still level with the door");
   const inside = fakeBot({ blocks: hut(), position: { x: 0.5, y: 64, z: 0.5 }, entities: [mob("zombie", 1.5, 0.5), mob("zombie", 0.5, 9.5)] }).bot;
   assert.deepEqual(intrudersIn(inside, spot).map((e) => e.position.x), [1.5]);
 });

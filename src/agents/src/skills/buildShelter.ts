@@ -253,6 +253,8 @@ export const DOOR_RANGE = 3;
  * where it killed three. Checked again at the door itself, going in or out, since a chaser arrives with the agent.
  */
 export const FOLLOW_RANGE = 6;
+/** How far above or below the door's floor a mob can be and still walk in behind the agent. */
+const FOLLOW_HEIGHT = 2;
 
 /** Monsters outside the home close enough to the door, or to the agent, to get in while it is open. */
 export function followers(bot: Bot, spot: ShelterSpot): string[] {
@@ -260,6 +262,9 @@ export function followers(bot: Bot, spot: ShelterSpot): string[] {
   const at = door.offset(0.5, 0, 0.5);
   return Object.values(bot.entities)
     .filter((e) => e?.type === "hostile" && !pointInside(e.position, spot))
+    // Only a mob about level with the door can come in behind the agent. A spider on the roof, 4 blocks up, can't,
+    // and counting it kept the door shut for three days in tluna32a: about 60 hunts for it refused, one agent never slept.
+    .filter((e) => Math.abs(e.position.y - door.y) <= FOLLOW_HEIGHT)
     .filter((e) => Math.min(e.position.distanceTo(at), e.position.distanceTo(bot.entity.position)) <= FOLLOW_RANGE)
     .map((e) => (e.name ?? "hostile mob").replace(/_/g, " "));
 }
