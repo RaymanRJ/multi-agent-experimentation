@@ -18,6 +18,8 @@ export function deepSection(route: Route): DeepSection | null {
   switch (route.page) {
     case 'deep':
       return 'start';
+    case 'lessons':
+      return 'lessons';
     case 'how':
     case 'findings':
     case 'results':

@@ -82,12 +82,12 @@ export function DeepDive() {
       ))}
 
       <section>
-        <h2 className="section-title">Six lessons at a glance</h2>
+        <h2 className="section-title">Seven lessons at a glance</h2>
         <ul className="lesson-list">
           {lessons.map((l) => (
-            <li key={l.part}>
-              <span className="eyebrow">{l.part}</span>
-              <a href={HASH.doc('lessons', l.anchor)}>{l.title}</a>
+            <li key={l.id}>
+              <span className="eyebrow">{l.theme}</span>
+              <a href={HASH.lessons}>{l.title}</a>
             </li>
           ))}
         </ul>

@@ -7,6 +7,10 @@ import { useEffect, useState } from 'react';
 export type Route =
   | { page: 'home'; section?: string }
   | { page: 'deep' }
+  | { page: 'lessons' }
+  | { page: 'cases' }
+  | { page: 'case'; id: string }
+  | { page: 'method' }
   | { page: 'findings' }
   | { page: 'how' }
   | { page: 'results' }
@@ -18,7 +22,12 @@ export const HASH = {
   home: '#/',
   contact: '#/contact',
   deep: '#/deep-dive',
-  lessons: '#/docs/lessons',
+  lessons: '#/lessons',
+  /** The full lessons notebook (docs/lessons.md), linked from the Lessons page as an appendix. */
+  notebook: '#/docs/lessons',
+  cases: '#/case-studies',
+  caseStudy: (id: string) => `#/case-studies/${id}`,
+  method: '#/method',
   findings: '#/findings',
   how: '#/how-it-works',
   results: '#/results',
@@ -33,6 +42,10 @@ export function parse(hash: string): Route {
   // A section of the landing page, scrolled to once it has rendered (Home).
   if (path === 'contact') return { page: 'home', section: 'contact' };
   if (path === 'deep-dive') return { page: 'deep' };
+  if (path === 'lessons') return { page: 'lessons' };
+  if (path === 'case-studies') return { page: 'cases' };
+  if (path.startsWith('case-studies/')) return { page: 'case', id: path.slice('case-studies/'.length) };
+  if (path === 'method') return { page: 'method' };
   if (path === 'findings') return { page: 'findings' };
   if (path === 'how-it-works') return { page: 'how' };
   if (path === 'results') return { page: 'results' };

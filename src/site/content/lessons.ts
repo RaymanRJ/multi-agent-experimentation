@@ -1,92 +1,95 @@
 /**
- * The front page's lessons, one per part of an agent system, hand-written from docs/lessons.md. Every
- * number here comes from that file and the write-ups it cites; update them together.
+ * The Lessons page: seven principles distilled from docs/lessons.md (the full notebook, linked as an appendix).
+ * Each: one sentence, why it matters, one piece of evidence with its source, what to do in practice, and the case
+ * studies (content/cases.ts ids) that show it. Every figure traces to the write-up named in `source`.
  */
 export interface Lesson {
-  /** The part of the system. */
-  part: string;
+  id: string;
+  theme: string;
   title: string;
-  body: string;
-  /** One line of evidence from a logged run. */
+  why: string;
   evidence: string;
-  anchor: string;
+  source: { label: string; doc: string; anchor?: string };
+  practice: string;
+  cases: string[];
 }
 
 export const lessons: Lesson[] = [
   {
-    part: 'Tools',
-    title: 'A tool’s result has to be true',
-    body:
-      'The agent plans on what its tools report. A refusal that wasn’t real, a success that wasn’t, a side effect it ' +
-      'wasn’t told of: each one sends every later decision the wrong way, however good the model.',
-    evidence: 'Mining refused reachable ore as “out of reach” 44 times in one team run and starved the goal.',
-    anchor: 'tools',
+    id: 'true-tools',
+    theme: 'Tools',
+    title: 'A tool’s report has to be true',
+    why: 'A tool is the agent’s only account of what happened. It plans on that account, so a report that is wrong sends every decision after it the wrong way, however good the model.',
+    evidence:
+      'A hunting tool that never got out of the agents’ home reported “the sheep got away”: 208 times in 223 over two nights. The agents planned around animals that were never the problem. Fixed, with three smaller tool fixes, the team went from 2 in 6 to 7 and 8 in 10.',
+    source: { label: 'Write-up 07', doc: 'results/write-ups/07-luna-majority', anchor: 'the-second-night-80-on-one-commit' },
+    practice: 'Test what each tool reports against what really happened, not just whether it ran.',
+    cases: ['team'],
   },
   {
-    part: 'Observations',
-    title: 'Agents trust the summary over the evidence',
-    body:
-      'A computed status beats the raw signal beside it, even when they contradict each other. Check what you ' +
-      'compute, never round away the edge case, and don’t let a fixed cap cut off the item that matters.',
-    evidence: 'An agent waited beside a zombie because its home was reported “closed”.',
-    anchor: 'observations-and-context',
+    id: 'fix-tools-first',
+    theme: 'Tools',
+    title: 'Fix the tools before reaching for a bigger model',
+    why: 'Most early failures were in the structure around the model: tools that refused possible actions, misreported, or were missing. Fixing those moved results further than any model change.',
+    evidence:
+      'The same small local model went from 3 of 9 runs to 8 of 9 on tool fixes alone; four paid models went from 4 of 12 to 12 of 12.',
+    source: { label: 'Write-ups 01 and 04', doc: 'results/write-ups/04-p6-outpost-after-fixes' },
+    practice: 'When an agent fails, look at what its tools did and what it was told before changing the model or the prompt.',
+    cases: ['tools', 'local'],
   },
   {
-    part: 'Shared state',
-    title: 'What agents share is distributed state',
-    body:
-      'One rule for everyone, published on a clock, or they disagree and act twice. And they answer requests, ' +
-      'not needs: a need nobody turns into a request goes unmet.',
-    evidence: '31 of 35 hand-overs between teammates followed a request.',
-    anchor: 'shared-state-between-agents',
+    id: 'summary-over-evidence',
+    theme: 'Context',
+    title: 'Agents believe the summary over the evidence',
+    why: 'A computed status (“safe”, “done”, “0”) wins over the raw signal beside it, even when the two contradict each other in the same view.',
+    evidence:
+      'An agent waited beside a zombie because its home was reported “closed”; another reasoned for 26 decisions from a health of “0” that was really 0.4.',
+    source: { label: 'Write-up 06', doc: 'results/write-ups/06-team-base', anchor: '3-meeting-the-unexpected' },
+    practice: 'Check every status you compute against the signals it summarises, and never round away the edge case.',
+    cases: ['team'],
   },
   {
-    part: 'Control loop',
-    title: 'Keep the model out of the fast loop',
-    body:
-      'The model chooses a goal; code carries it out, retries and reports. Replan on events, filter the ones ' +
-      'that don’t matter, and put what can’t wait in a reflex.',
-    evidence: 'Deaths while the model was still deciding fell from 9 a run to 1 once the body stepped back, took cover and swam out on its own.',
-    anchor: 'the-control-loop',
+    id: 'requests-not-needs',
+    theme: 'Teams of agents',
+    title: 'Between agents, needs must become requests',
+    why: 'Agents organise themselves quickly and help when asked, but almost never act on a need they can see. Orders from a peer are treated as suggestions.',
+    evidence:
+      '31 of 35 hand-overs between teammates followed a request. Questions between agents were answered 220 times in 308; instructions were acted on at once 36 times in 201.',
+    source: { label: 'Write-ups 06 and 07', doc: 'results/write-ups/06-team-base', anchor: 'the-clearest-finding-they-answer-requests-not-needs' },
+    practice: 'Route work between agents, or between agents and people, as explicit requests with an owner, as tickets do.',
+    cases: ['team'],
   },
   {
-    part: 'Evaluation',
-    title: 'Keep a baseline, and read the logs',
-    body:
-      'A scripted agent with no model tells you whether a failure is the harness or the model. Seed runs, log every ' +
-      'decision, and check your own checker before believing a result.',
-    evidence: 'One “success” was a bug in our goal check; 45 of 49 drowning alarms were probably a library bug.',
-    anchor: 'evaluation',
+    id: 'fast-loop',
+    theme: 'Control loop',
+    title: 'Keep the model out of the fast loop, and audit what stands in for it',
+    why: 'The world moves on while the model thinks. Code carries out each decision and covers the seconds a decision takes, but code acting without the model also acts without its judgement.',
+    evidence:
+      '9 of 17 deaths in one run came while the model was still deciding; a reflex that steps back while it decides kept health at 20. Another reflex quietly dug out the home’s door about 4,500 times in two weeks before anyone noticed.',
+    source: { label: 'Write-ups 06 and 07', doc: 'results/write-ups/07-luna-majority' },
+    practice: 'Let the model choose goals and deterministic code execute them; count how often every automatic action fires against what it guards.',
+    cases: ['team'],
   },
   {
-    part: 'Improvement',
-    title: 'Fix the tools, not the prompt',
-    body:
-      'Read where agents got stuck, sort it into tool, information or judgement, and change only the first two. ' +
-      'Coach judgement away in the prompt and you measure the coaching.',
-    evidence: 'The same small model went from 3 of 9 runs to 8 of 9 on tool fixes alone.',
-    anchor: 'the-improvement-loop',
+    id: 'frozen-code',
+    theme: 'Measurement',
+    title: 'Measure the rate on frozen code',
+    why: 'Fixing after every run finds the next failure, not how often the system succeeds. Only a set of runs on unchanged code gives a rate, and even ten runs is a wide estimate.',
+    evidence:
+      'Nine runs with a fix after each met the whole goal once, in the last. Five on one unchanged version met it 4 times; two sets of ten on a later version, 7 and 8.',
+    source: { label: 'Write-up 07', doc: 'results/write-ups/07-luna-majority' },
+    practice: 'Freeze the code, run a set, and report the success rate with its sample size before calling anything done.',
+    cases: ['team', 'local'],
   },
-];
-
-/**
- * Parts of the four-part team goal met, per rep of the mixed team (Claude Opus 5.5, Claude Sonnet 5.5
- * and GPT-6 Luna), in the order the reps ran, as our tools and information were fixed between them.
- * From docs/results/write-ups/06-team-base.md.
- */
-export const reps: Array<{ label: string; met: number; note: string }> = [
-  { label: 'tbase1 · 1', met: 2, note: 'before the fixes' },
-  { label: 'tbase1 · 2', met: 2, note: 'before the fixes' },
-  { label: 'tbase1 · 3', met: 1, note: 'before the fixes' },
-  { label: 'tbase2', met: 1, note: 'mining, chests, health fixed' },
-  { label: 'tbase3', met: 2, note: 'plus treetops' },
-  { label: 'tbase4', met: 3, note: 'plus beds, chest views, sleep' },
-  { label: 'tbase5 · 1', met: 4, note: 'plus reflexes, shared sightings, bed fixes' },
-  { label: 'tbase5 · 2', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
-  { label: 'tbase5 · 3', met: 2, note: 'iron out of reach; Opus hit its cost cap' },
-  { label: 'tbase6 · 1', met: 4, note: 'plus digging past rock, ore memory, digging in, shared chest' },
-  { label: 'tbase6 · 2', met: 3, note: 'one iron pickaxe still in the bag' },
-  { label: 'tbase6 · 3', met: 1, note: 'no sheep, no beds: a spawn trap' },
-  { label: 'tbase7 · 1', met: 4, note: 'plus the respawn wait; progress list on' },
-  { label: 'tbase7 · 2', met: 2, note: 'food lost in deaths; a pickaxe handed on, not added' },
+  {
+    id: 'cost-per-success',
+    theme: 'Measurement',
+    title: 'Count cost per success, not per call',
+    why: 'A cheap model that fails often can cost more per result than an expensive one, and a better harness raises a cheap model’s ceiling. Compare after fixing the tools.',
+    evidence:
+      'Three of the cheapest model met the team goal at about 15¢ per success, failed runs included; the mixed team’s wins earlier cost $1.36 to $1.43 each.',
+    source: { label: 'Write-up 07', doc: 'results/write-ups/07-luna-majority', anchor: 'the-second-night-80-on-one-commit' },
+    practice: 'Track cost per successful outcome at the provider’s billed rates, and check the estimate against the bill.',
+    cases: ['team', 'tools'],
+  },
 ];
