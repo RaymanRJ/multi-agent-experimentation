@@ -392,7 +392,18 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    monsters near, 8 carrying iron. 29 during hunts, 22 of them in the dark (the agents' choice, left alone).
    **Fixed (00697eb):** under the ground, healthy (12+), one or two melee monsters and no archer or creeper near,
    flee fights first; live in a closed stone cave with a stone sword, old died 2 of 2, new lived 6 of 6 at health 20.
-   **Set I (tluna37a-j on 00697eb, flee-fight worktree)** from 14:00, four lanes as set H's freed up. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   **Set I (tluna37a-j on 00697eb, flee-fight worktree)** from 14:00, four lanes as set H's freed up.
+   Its first five: 1 of 5 (37e met the goal in 25:15). All four losses had everything but the iron pickaxes (0, 1,
+   1, 1 of 3), with few deaths (4-7 a rep) and flee's fight taken and won where it came up. Where the pickaxes went:
+   handed back and forth between agents and lost in deaths after; descend digging until the only pickaxe broke,
+   leaving an agent at y=24 among lava (37a, 25 decisions to get home, its 9 raw iron unsmelted); and climb_out
+   wearing iron pickaxes out (37b, 37c). Two of our-code causes fixed on `nightly-3`, each live:
+   **e7bf756**, descend stops while the pickaxes still have uses enough to dig back up the ground overhead, plus 10
+   (a digging skill wore out the last pickaxe 31 times in sets D-I; at 37a's spot old reached y=29 with none left,
+   new stopped at y=45 with 47 uses); **7d113eb**, every dig puts away an iron or better pickaxe at its last 3 uses
+   and digs by hand (climb_out spared a worn one, then took it up again for a slow block until it broke; live from
+   5 uses, old used it up, new kept 2). **Set J (tluna38a-j on 7d113eb, main checkout)** queued behind set I's
+   lanes. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
