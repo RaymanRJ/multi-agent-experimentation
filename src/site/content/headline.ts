@@ -14,7 +14,7 @@ import { HASH } from '../lib/route';
 export const HEADLINE = {
   successRate: '8 in 10',
   costPerSuccess: '15¢',
-  asOf: '12 November 2026',
+  asOf: 'November 2026',
 };
 
 const SOURCE = HASH.doc('results/write-ups/07-luna-majority', 'the-second-night-80-on-one-commit');
