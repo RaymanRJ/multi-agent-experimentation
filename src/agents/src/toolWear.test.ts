@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import type { Bot } from "mineflayer";
 import { observe } from "./observe.js";
 import { fakeBot } from "./testing/fakeBot.js";
-import { toolUses, toolWear, watchBreaks, wearSpent } from "./toolWear.js";
+import { spareLastUse, toolUses, toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 
 const base = { step: 1, scenario: "survival" as const, goal: "", recentEvents: [] as string[] };
 
@@ -58,4 +58,22 @@ test("watchBreaks - a spent tool moved to another slot, a fresh tool leaving, or
   inventory.emit("updateSlot", 14, tool("iron_pickaxe", 250, 249), null);
   await settle();
   assert.deepEqual(broke, []);
+});
+
+test("spareLastUse - puts away an iron pickaxe on its last use before any dig, and nothing else", async () => {
+  const calls: string[] = [];
+  const bot = {
+    heldItem: { name: "iron_pickaxe", maxDurability: 250, durabilityUsed: 247 } as { name: string; maxDurability: number; durabilityUsed: number } | null,
+    dig: async () => { calls.push("dig"); },
+    unequip: async () => { calls.push("unequip"); bot.heldItem = null; },
+  };
+  spareLastUse(bot as never);
+  await (bot.dig as () => Promise<void>)();
+  assert.deepEqual(calls, ["unequip", "dig"], "3 uses left: dug by hand");
+  calls.length = 0;
+  bot.heldItem = { name: "iron_pickaxe", maxDurability: 250, durabilityUsed: 200 };
+  await (bot.dig as () => Promise<void>)();
+  bot.heldItem = { name: "stone_pickaxe", maxDurability: 131, durabilityUsed: 130 };
+  await (bot.dig as () => Promise<void>)();
+  assert.deepEqual(calls, ["dig", "dig"], "uses to spare, or a stone one: dug with it");
 });

@@ -16,7 +16,7 @@ import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
-import { toolWear, watchBreaks, wearSpent } from "./toolWear.js";
+import { spareLastUse, toolWear, watchBreaks, wearSpent } from "./toolWear.js";
 import { looksStuck, surroundings, type Surroundings } from "./surroundings.js";
 import { watchAttacks } from "./attacks.js";
 import { newDayBegan } from "./daytime.js";
@@ -430,6 +430,7 @@ async function main(): Promise<void> {
   // Leaving never digs the home open (protectHomes); a door left open is shut once nobody is in it (keepDoorsShut).
   protectHomes(bot, knownShelters);
   walkThroughDoors(bot, knownShelters);
+  spareLastUse(bot);
   // A walk that stopped short of where it was going says so, instead of passing as arrived.
   honestWalks(bot);
   // Digs face the block at once and start with both feet down, as a player digs.

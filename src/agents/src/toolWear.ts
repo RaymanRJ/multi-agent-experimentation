@@ -78,3 +78,23 @@ export function watchBreaks(bot: Bot, onBreak: (name: string) => void, settleMs 
     }, settleMs);
   });
 }
+
+/** The last few uses of these are never spent: an iron pickaxe is part of the team goal, and one at 1 use still counts. */
+const KEPT = /^(iron|diamond|netherite)_pickaxe$/;
+const SPARE_USES = 3;
+
+/**
+ * Every dig, by any skill or by the pathfinder while walking, first puts away an iron (or better) pickaxe down to its
+ * last few uses, and digs by hand instead. In set I, climb_out wore out two iron pickaxes the team needed (37b, 37c): it
+ * spared the iron one by digging by hand, then took it up again for a slow block and kept it until it broke.
+ */
+export function spareLastUse(bot: Bot): void {
+  const dig = bot.dig.bind(bot);
+  bot.dig = (async (...args: Parameters<Bot["dig"]>) => {
+    const held = bot.heldItem;
+    // A few uses kept, not one: the game reports the damage a moment after each dig, so a quick next dig still saw
+    // 2 uses left and broke the pickaxe (live).
+    if (held && KEPT.test(held.name) && (usesLeft(held) ?? Infinity) <= SPARE_USES) await bot.unequip("hand").catch(() => {});
+    return dig(...args);
+  }) as Bot["dig"];
+}
