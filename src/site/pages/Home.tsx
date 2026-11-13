@@ -81,7 +81,7 @@ export function Home({ section }: { section?: string }) {
           ))}
         </div>
         <p className="fineprint">
-        Model costs only, at the provider’s billed rates. One demanding goal, measured over many runs: twenty runs on one
+        Figures as of {HEADLINE.asOf}. Model costs only, at the provider’s billed rates. One demanding goal, measured over many runs: twenty runs on one
         version of the code, 15 of them successful.
         </p>
       </section>
