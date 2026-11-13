@@ -9,6 +9,7 @@ import { BatchSummary, reportBody } from './BatchSummary';
 function crumbs(path: string): Array<{ label: string; href: string }> {
   const trail = [{ label: 'Deep dive', href: HASH.deep }];
   if (path === 'lessons') trail.push({ label: 'Lessons', href: HASH.lessons });
+  else if (path === 'limitations' || path === 'experiments') trail.push({ label: 'Method and limits', href: HASH.method });
   else if (path.startsWith('results/write-ups/')) trail.push({ label: 'Case studies', href: HASH.cases });
   else if (path.startsWith('results/')) trail.push({ label: 'Results', href: HASH.results });
   return trail;

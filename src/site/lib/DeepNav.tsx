@@ -3,11 +3,11 @@ import { HASH, type Route } from './route';
 /** The deep dive's sections: one bar under the header on every technical page, so a reader can always move between them. */
 export const DEEP_SECTIONS = [
   { key: 'start', label: 'Start here', href: HASH.deep },
-  { key: 'how', label: 'Architecture', href: HASH.how },
-  { key: 'lessons', label: 'Lessons', href: HASH.lessons },
-  { key: 'cases', label: 'Case studies', href: HASH.cases },
+  { key: 'how', label: 'How it works', href: HASH.how },
   { key: 'results', label: 'Results', href: HASH.results },
-  { key: 'limitations', label: 'Limitations', href: HASH.doc('limitations') },
+  { key: 'cases', label: 'Case studies', href: HASH.cases },
+  { key: 'lessons', label: 'Lessons', href: HASH.lessons },
+  { key: 'method', label: 'Method and limits', href: HASH.method },
 ] as const;
 
 export type DeepSection = (typeof DEEP_SECTIONS)[number]['key'];
@@ -25,9 +25,11 @@ export function deepSection(route: Route): DeepSection | null {
     case 'cases':
     case 'case':
       return 'cases';
+    case 'method':
+      return 'method';
     case 'doc':
       if (route.path === 'lessons') return 'lessons';
-      if (route.path === 'limitations') return 'limitations';
+      if (route.path === 'limitations' || route.path === 'experiments') return 'method';
       if (route.path.startsWith('results/write-ups/')) return 'cases';
       if (route.path.startsWith('results/')) return 'results';
       return 'start';

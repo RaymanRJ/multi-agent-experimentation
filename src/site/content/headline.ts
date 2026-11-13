@@ -46,6 +46,6 @@ export const FIGURES: Array<{ value: string; label: string; detail: string; href
     label: 'human interventions during a run',
     detail:
       'Once a run starts, no one steps in: no hints, no corrections, no hand-picked restarts. When the agents got stuck, the fix went into their tools for the next run, never into the run itself.',
-    href: HASH.doc('lessons', 'the-improvement-loop'),
+    href: HASH.method,
   },
 ];

@@ -78,9 +78,9 @@ better than before": keep improving it):
 - **The frame:**
   - `docs/results/write-ups/`: a new topic gets the next number and a row in
     `docs/results/README.md`; a new batch on an old topic gets a section in that topic's write-up.
-  - The site's Results page tells every batch as a story (`src/site/content/story.ts`): add the batch
-    to its chapter (or a new chapter with its question and lesson) with one line on what it showed and,
-    once fixes follow, one line on what was changed after it. Until then it shows as "Not yet written up".
+  - The site's Results page lists every published report automatically; a batch that moves the shared goal's
+    headline gets a row in `src/site/content/milestones.ts` (success, cost per success at billed rates, a note and
+    its source).
   - In italics: batch, dates, models and conditions, **the commit it ran on**, total cost, and
     whether it is comparable with earlier batches.
 - **Every claim is checked against the logs before committing.** Numbers come from the reports and
@@ -98,11 +98,12 @@ better than before": keep improving it):
   | Page | Comes from | Updated by |
   |---|---|---|
   | Overview (home), for an employer or client | `src/site/content/headline.ts`: the four headline figures, each with a plain explanation and its source; the hero line; and the figures repeated in `pages/Home.tsx` prose ("2 in 6 to 8 in 10", "under 1 in 3 to 8 in 10") | Hand: **whenever a write-up changes the headline result** (a frozen set's success rate, the cost per success at billed rates, the goal), in the same commit; a figure must trace to a logged run, and the claim stays no stronger than the evidence |
-  | Deep dive | `src/site/content/lessons.ts`: six lesson cards with their evidence, and the chart | Hand: change a card's evidence or the chart when the batch adds to or overturns it |
-  | Lessons | `docs/lessons.md` | Hand: a new lesson, or new evidence for one (above) |
-  | Case studies | `docs/results/write-ups/` | Hand: the write-up (above) |
-  | Results | `src/site/content/story.ts` and the published reports | Hand for the story (above); `publish-reports.sh` for the reports |
-  | Stats | The published reports, and `docs/results/token-usage.json` for prompt caching | Automatic for the reports; run `cd src/agents && npx tsx scripts/token-usage.ts` and commit the file |
+  | Deep dive: Start here | `src/site/pages/DeepDive.tsx` (reading path, groups) and the lesson titles from `content/lessons.ts` | Hand, rarely: when a page is added or renamed |
+  | How it works | `src/site/pages/HowItWorks.tsx` and the README's control-loop diagram | Hand: when the architecture or what an agent is given changes |
+  | Results | `src/site/content/milestones.ts` (the shared goal over time) and the published reports (every batch, totals, by model; `docs/results/token-usage.json` for caching) | Hand for a milestone (above); automatic for the reports; run `cd src/agents && npx tsx scripts/token-usage.ts` and commit the file |
+  | Case studies | `src/site/content/cases.ts`: three curated cases in one form, each linking its write-up and batches; every write-up is listed as the record automatically | Hand: when a write-up changes a case's result, or a new case earns a place |
+  | Lessons | `src/site/content/lessons.ts`: seven principles, each with one piece of evidence; `docs/lessons.md` is the full notebook behind them | Hand: new evidence in the notebook first, then in a principle when it is stronger or newer than the one shown |
+  | Method and limits | `src/site/pages/Method.tsx` (terms, rules, loop, measures, the key caveats); `docs/limitations.md` is the full record | Hand: when a caveat is added, removed or overturned |
 
   Then `npm run build` in `src/site` must pass. Say in the hand-off which pages changed and which didn't
   need to.

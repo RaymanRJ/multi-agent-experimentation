@@ -5,8 +5,8 @@ import { HASH } from '../lib/route';
 /** A reading order for someone new to the project: how it works, what it teaches, then one case in full. */
 const PATH = [
   {
-    title: 'How it’s built',
-    body: 'The world, the agents, the skill library, the model backends and the control loop that keeps the model out of the fast path.',
+    title: 'How it works',
+    body: 'The control loop that keeps the model out of the fast path, the three layers, and what an agent is given.',
     href: HASH.how,
   },
   {
@@ -16,8 +16,8 @@ const PATH = [
   },
   {
     title: 'One case in full',
-    body: 'The latest write-up: three agents on one shared goal, from under 1 in 3 to 8 in 10, and what changed along the way.',
-    href: HASH.doc('results/write-ups/07-luna-majority'),
+    body: 'Three agents on one shared goal, from under 1 in 3 to 8 in 10, and what changed along the way.',
+    href: HASH.caseStudy('team'),
   },
 ];
 
@@ -25,14 +25,14 @@ const GROUPS = [
   {
     title: 'Evidence',
     items: [
-      { title: 'Case studies', body: 'Every set of runs written up: how the agents organised, coped and helped or hindered each other.', href: HASH.cases },
       { title: 'Results', body: 'The shared goal over time, every batch with its report, and costs by model.', href: HASH.results },
+      { title: 'Case studies', body: 'Three cases in one short form, and every full write-up as the record.', href: HASH.cases },
     ],
   },
   {
-    title: 'Caveats and source',
+    title: 'Method and source',
     items: [
-      { title: 'Limitations', body: 'What the agents can’t do, what the numbers can’t show, and which results compare.', href: HASH.doc('limitations') },
+      { title: 'Method and limits', body: 'How runs are done, measured and judged, and how far to trust the numbers.', href: HASH.method },
       { title: 'Source and data', body: 'The code, the docs and every published report, on GitHub.', href: REPO, external: true },
     ],
   },

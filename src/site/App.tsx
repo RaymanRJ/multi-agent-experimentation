@@ -4,6 +4,7 @@ import { DocPage } from './pages/DocPage';
 import { CaseStudy, Cases } from './pages/Cases';
 import { Home } from './pages/Home';
 import { Lessons } from './pages/Lessons';
+import { Method } from './pages/Method';
 import { HowItWorks } from './pages/HowItWorks';
 import { Results } from './pages/Results';
 import { CONTACT } from './lib/contact';
@@ -22,9 +23,10 @@ const TITLES: Partial<Record<Route['page'], string>> = {
   home: SITE,
   deep: `Deep dive · ${SITE}`,
   lessons: `Lessons · ${SITE}`,
+  method: `Method and limits · ${SITE}`,
   cases: `Case studies · ${SITE}`,
   case: `Case study · ${SITE}`,
-  how: `How it’s built · ${SITE}`,
+  how: `How it works · ${SITE}`,
   results: `Results · ${SITE}`,
 };
 
@@ -65,6 +67,7 @@ export default function App() {
       {route.page === 'home' && <Home section={route.section} />}
       {route.page === 'deep' && <DeepDive />}
       {route.page === 'lessons' && <Lessons />}
+      {route.page === 'method' && <Method />}
       {route.page === 'cases' && <Cases />}
       {route.page === 'case' && <CaseStudy id={route.id} />}
       {route.page === 'how' && <HowItWorks />}
