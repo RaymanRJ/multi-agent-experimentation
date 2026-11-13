@@ -7,6 +7,7 @@ import type { Skill, SkillContext, SkillResult } from "../types.js";
 import { asNumber, gotoWatched, groundAbove, homeBlock, opensOnClick, UNDERGROUND_MIN, withTimeout } from "./util.js";
 import { describeShelter, doorOf, enterShelter, half, hostilesAtDoorway, hostilesInside, insideClosedShelter, insideSpot, isBuildingBlock, spotKey, standing, whyOpen, type ShelterSpot } from "./buildShelter.js";
 import { ARCHERS, archersWithSight, coverPoint, CREEPER_KEEP, retreatPoint } from "../reflexes.js";
+import { cooldownMs, WEAPONS } from "./creatures.js";
 
 const { goals } = pathfinderPkg;
 
@@ -317,6 +318,59 @@ export function homeAbove(bot: Bot, shelters: ShelterSpot[]): ShelterSpot | null
   }) ?? null;
 }
 
+/** A fight worth taking: healthy enough, and no more than this many melee monsters near. */
+const FIGHT_HEALTH = 12;
+const FIGHT_MAX_FOES = 2;
+/** The fight stops here and flee carries on as before. */
+const FIGHT_STOP_HEALTH = 6;
+const FIGHT_REACH = 3;
+const FIGHT_MS = 20_000;
+
+/**
+ * Under the ground, cornered by one or two monsters that strike up close and nothing else near, a healthy player fights
+ * rather than turning its back to dig. In sets D-H, 81 of 131 deaths came during flee, which never fought: 19 of them
+ * healthy (12+) with at most two melee monsters near, 8 carrying iron; digging in with a zombie beside it failed
+ * ("reached you before the hole was deep enough"), and running on with it hitting from behind killed the agent.
+ * Returns how many it killed, or null when the fight isn't one to take.
+ */
+async function fightOff(ctx: SkillContext): Promise<{ killed: number; left: number } | null> {
+  const bot = ctx.bot;
+  const melee = () => hostilesNear(ctx, WALL_FIRST_RADIUS).filter((e) => !ARCHERS.has(e.name ?? "") && e.name !== "creeper");
+  const others = () => hostilesNear(ctx, THREAT_RADIUS).filter((e) => ARCHERS.has(e.name ?? "") || e.name === "creeper");
+  const foes = melee();
+  if (bot.health < FIGHT_HEALTH || foes.length === 0 || foes.length > FIGHT_MAX_FOES || others().length > 0) return null;
+  const weapon = WEAPONS.find((name) => bot.inventory.items().some((item) => item.name === name));
+  const held = weapon ? bot.inventory.items().find((item) => item.name === weapon) : undefined;
+  if (held && bot.heldItem?.name !== held.name) await bot.equip(held, "hand").catch(() => {});
+  bot.pathfinder.setGoal(null);
+  const dead = new Set<number>();
+  const onDead = (e: Entity) => { dead.add(e.id); };
+  bot.on("entityDead", onDead);
+  let lastHit = 0;
+  const ends = Date.now() + FIGHT_MS;
+  try {
+    while (Date.now() < ends && !ctx.shouldStop() && bot.health > FIGHT_STOP_HEALTH && others().length === 0) {
+      const here = bot.entity.position;
+      const foe = melee().filter((e) => !dead.has(e.id)).sort((a, b) => a.position.distanceTo(here) - b.position.distanceTo(here))[0];
+      if (!foe) break;
+      if (foe.position.distanceTo(here) > FIGHT_REACH) {
+        await bot.lookAt(foe.position.offset(0, foe.height * 0.8, 0), true).catch(() => {});
+        await bot.waitForTicks(2); // it comes to the agent
+        continue;
+      }
+      const wait = lastHit + cooldownMs(weapon) - Date.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      if (!bot.entities[foe.id] || dead.has(foe.id)) continue;
+      await bot.lookAt(foe.position.offset(0, foe.height * 0.8, 0), true).catch(() => {});
+      bot.attack(foe);
+      lastHit = Date.now();
+    }
+  } finally {
+    bot.removeListener("entityDead", onDead);
+  }
+  return { killed: dead.size, left: melee().filter((e) => !dead.has(e.id)).length };
+}
+
 function hostilesNear(ctx: SkillContext, radius: number): Entity[] {
   return Object.values(ctx.bot.entities).filter(
     (e): e is Entity => !!e && e.type === "hostile" && e.position.distanceTo(ctx.bot.entity.position) <= radius,
@@ -434,6 +488,16 @@ export const flee: Skill = {
 
     // Under the ground with a monster close: into the rock, or walled in where it stands, before any running.
     if (closeUnderground) {
+      const fought = await fightOff(ctx);
+      if (fought && fought.left === 0) {
+        const here = ctx.bot.entity.position;
+        return {
+          status: "success",
+          reason: `cornered under the ground by ${fought.killed === 1 ? "a monster" : `${fought.killed} monsters`}, you fought and killed ${fought.killed === 1 ? "it" : "them"} (health ${Math.round(ctx.bot.health)}). They stay in caves, day or night: climb_out digs you up to the surface from here; build_shelter takes you home if one is near`,
+          detail: { position: { x: Math.round(here.x), y: Math.round(here.y), z: Math.round(here.z) }, fought: fought.killed },
+        };
+      }
+      if (fought) ctx.log(`fought ${fought.killed ? `and killed ${fought.killed}, ` : ""}but ${fought.left} still near at health ${Math.round(ctx.bot.health)}`);
       // Straight down first: it needs no wall in reach, and in an open cave there often is none. burrow checks for
       // lava, water and a cave under the hole before digging.
       const dug = await burrow(ctx.bot).catch((error: Error) => error.message);

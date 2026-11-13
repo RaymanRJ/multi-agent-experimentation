@@ -81,7 +81,8 @@ function rock(from: number, to: number): Record<string, string> {
 
 test("flee - underground, runs along a tunnel at its own height; boxed in, digs in or walls in where it stands and points up", async () => {
   const zombie = () => ({ name: "zombie", type: "hostile", position: { x: -2.5, y: 64, z: 0.5 } });
-  const open = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 14), entities: [zombie()], inventory: { cobblestone: 16 } });
+  // Wounded (under 12), so it runs rather than fights.
+  const open = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 14), entities: [zombie()], inventory: { cobblestone: 16 }, health: 10 });
   const legs: Array<{ x: number; y: number; z: number }> = [];
   open.bot.pathfinder.goto = (async (goal: { x: number; y: number; z: number }) => {
     legs.push(goal);
@@ -94,7 +95,8 @@ test("flee - underground, runs along a tunnel at its own height; boxed in, digs 
 
   // A dead end: no floor along or up within reach. Shut in where it stands (dug in, since 8 November: in live caves
   // walling in out in the open failed 3 of 3 and digging in saved 3 of 3), told the monsters stay and the way up.
-  const shut = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie()], inventory: { cobblestone: 16 } });
+  // Wounded, so not a fight to take (fightOff needs health 12).
+  const shut = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie()], inventory: { cobblestone: 16 }, health: 10 });
   shut.bot.placeBlock = (async (reference: { position: Vec3 }, face: Vec3) => {
     shut.world.set(`${reference.position.x + face.x},${reference.position.y + face.y},${reference.position.z + face.z}`, "cobblestone");
   }) as never;
@@ -102,6 +104,29 @@ test("flee - underground, runs along a tunnel at its own height; boxed in, digs 
   assert.equal(walled.status, "success");
   assert.match(walled.reason ?? "", /(dug in|walled yourself in).*climb_out digs you up to the surface/);
   assert.ok(!shut.calls.includes("goto"), "never ran into the rock");
+});
+
+test("flee - underground and healthy, one or two melee monsters and nothing else near: fights them off first", async () => {
+  const zombie = (x: number) => ({ name: "zombie", type: "hostile", position: { x, y: 64, z: 0.5 } });
+  const one = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities: [zombie(-1.5)], inventory: { cobblestone: 16, stone_sword: 1 } });
+  const hits: string[] = [];
+  one.bot.attack = ((foe: { id: number; name: string }) => { hits.push(foe.name); one.emit("entityDead", foe); }) as never;
+  const fought = await flee.run(context(one.bot), { distance: 10 });
+  assert.equal(fought.status, "success");
+  assert.match(fought.reason ?? "", /fought and killed it/);
+  assert.deepEqual(hits, ["zombie"]);
+
+  // Three of them, or a creeper close: not a fight to take; it shuts itself in as before.
+  for (const entities of [[zombie(-1.5), zombie(-2.5), zombie(-3.5)], [zombie(-1.5), { name: "creeper", type: "hostile", position: { x: -3.5, y: 64, z: 0.5 } }]]) {
+    const many = fakeBot({ position: { x: 0.5, y: 64, z: 0.5 }, blocks: rock(-4, 1), entities, inventory: { cobblestone: 16 } });
+    let struck = 0;
+    many.bot.attack = (() => { struck++; }) as never;
+    many.bot.placeBlock = (async (reference: { position: Vec3 }, face: Vec3) => {
+      many.world.set(`${reference.position.x + face.x},${reference.position.y + face.y},${reference.position.z + face.z}`, "cobblestone");
+    }) as never;
+    await flee.run(context(many.bot), { distance: 10 });
+    assert.equal(struck, 0, `no fight with ${entities.map((e) => e.name).join(", ")}`);
+  }
 });
 
 test("flee - under a known home, tries its doorway and never walls in; says climb_out is the way up", async () => {
