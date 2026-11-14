@@ -436,7 +436,21 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    tick. **Next (the owner's plan): a review, then a Sol trial** (five runs, three gpt-6.1-sol agents, same code,
    world and goal), write-up only once 80% holds. Sol priced from H-J's real usage (2.1M input a run, 78% cached,
    126k output): US$2.59 a run on average (0.47-4.84), US$1.93 the most any agent would have spent; Luna decides in
-   4.6 s median (p90 8.4 s), so a slower model would get fewer decisions in the same game time. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   4.6 s median (p90 8.4 s), so a slower model would get fewer decisions in the same game time.
+   **The Sol trial (13-14 November, the owner's plan: one run at a time until the door-hunt fix has worked a few
+   times, then more; US$22.28 credit, the last for the project).** Test call: gpt-6.1-sol answered as asked, cached
+   5,388 of 5,634 input tokens on the second call, no hidden reasoning, 2.0-2.6 s a decision. tsol1 was stopped by
+   the owner 10 minutes in: an agent that could not step in by the door was sent "another way" by the pathfinder,
+   which dug the doorstep and tunnelled under the door and floor, and nobody could reach the door after
+   (**be44268**: the ground round a home is now kept from digging, a band two wide round the walls and five by five
+   in front of the door, with the layer under; live, the pathfinder dug the doorstep before and nothing now).
+   **tsol2 met the whole goal in 14:20 of game time for US$0.38** (520k input, 7.8k output: Sol is about a sixth of
+   the estimate). Its home was built on a tree's canopy with no door: the game hangs no door on leaves, so the door
+   was made, not hung, and the doorway filled with planks (**077e0f4**: a leaf under a doorway is swapped for a block
+   first, and a new home is built on the ground; live, old built on the leaves, new got down and built on grass with
+   a door). No door hunt has come up yet. The owner's overnight mandate (14 November): full rein, as little guidance
+   to the agents as possible, commit as I go, no merge to `main` until reviewed, no push; a simple, clear report at
+   7 AM. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
