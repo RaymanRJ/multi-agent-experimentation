@@ -517,7 +517,9 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      refused), but 8 deaths cost the wool, the meat and an iron pickaxe: 1 of 4 parts. lb's agent
      crashed (cause unknown); crashes now write their stack to the run's log and the scripts keep the
      console. Write-up 06.
-   - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
+   - **Done:** the prompt-caching article is published on rrjamal.ca (dated October 17). The run-logs article is
+     still a draft there, its numbers as of November 7; the article ideas drawn from this project (`articles/IDEAS.md`
+     #2, #37, #38) were brought up to the finished results on November 14.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
 
