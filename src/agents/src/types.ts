@@ -329,6 +329,8 @@ export interface RunConfig {
   ticks?: number;
   budgetUSD?: number;
   maxSteps?: number;
+  /** World age (ticks) the time budget counts from: the agent's spawn, or for a team the earliest member's. */
+  startAge?: number;
   /** The server commands that set up the world for this run's scenario. Absent in older logs. */
   world?: string[];
   /** Every agent launched as one team (`--team`), this one included. Absent for an agent alone. */

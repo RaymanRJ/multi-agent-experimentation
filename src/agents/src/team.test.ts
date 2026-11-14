@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TeamBoard, chestChanges, combine, describeChests, inChests, latestChests, mergeShelters, stillWorking, type ChestViews } from "./team.js";
+import { TeamBoard, chestChanges, combine, describeChests, inChests, latestChests, mergeShelters, stillWorking, teamStartAge, type ChestViews } from "./team.js";
 
 test("describeChests - each chest as last seen by anyone, nearest first, with who and when (bpoc10)", () => {
   const now = 1_000_000_000;
@@ -77,4 +77,13 @@ test("chests - the team sees each chest as whoever opened it last, and can add t
   assert.deepEqual(team.chests?.["1,64,1"]?.holds, { cooked_beef: 5 }, "b took 7 after a stored 12");
   assert.deepEqual(inChests(team.chests), { cooked_beef: 8, cobblestone: 40 });
   assert.deepEqual(inChests(undefined), {});
+});
+
+test("teamStartAge - a team runs on the earliest member's clock; alone, or first in, on its own", () => {
+  const member = (startAge?: number) => ({ inventory: {}, shelterBuilt: false, nightSurvivedSinceShelter: false, shelterStoreys: 0, goalMet: false, at: "", ...(startAge === undefined ? {} : { startAge }) });
+  assert.equal(teamStartAge(5000, {}), 5000, "alone");
+  assert.equal(teamStartAge(5000, { la: undefined }), 5000, "first in: nobody has published yet");
+  assert.equal(teamStartAge(5000, { la: member() }), 5000, "a board written before clocks were shared");
+  assert.equal(teamStartAge(5400, { la: member(5000), lb: member(5200) }), 5000, "the last to join takes the first's");
+  assert.equal(teamStartAge(5000, { lb: member(5200) }), 5000, "never later than its own");
 });

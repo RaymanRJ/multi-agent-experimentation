@@ -33,9 +33,21 @@ export interface MemberState {
   oreSightings?: OreSighting[];
   /** Where this member was driven out by water digging down (descend). */
   floods?: Array<{ x: number; z: number; at: number }>;
+  /** World age (ticks) at which this member's time budget started; a team runs on the earliest (teamStartAge). */
+  startAge?: number;
   /** The member's own goal is met (for a team goal: the team's). */
   goalMet: boolean;
   at: string;
+}
+
+/**
+ * The world age a team's clock starts at: the earliest any member has published, or this agent's own. Agents join one
+ * at a time, 10-20 s apart, so on their own clocks the first one's run ended before the last one's: in tluna36b the
+ * last request to even out the pickaxes went to an agent whose run was already over, and the team ended holding three
+ * pickaxes split 1, 2 and 0. On one clock every member's run ends at the same world age.
+ */
+export function teamStartAge(own: number, others: Record<string, MemberState | undefined>): number {
+  return Math.min(own, ...Object.values(others).map((m) => m?.startAge ?? Infinity));
 }
 
 /** Only these characters reach the file system, so an episode name can't point outside the board. */
