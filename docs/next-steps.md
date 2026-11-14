@@ -450,7 +450,15 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    first, and a new home is built on the ground; live, old built on the leaves, new got down and built on grass with
    a door). No door hunt has come up yet. The owner's overnight mandate (14 November): full rein, as little guidance
    to the agents as possible, commit as I go, no merge to `main` until reviewed, no push; a simple, clear report at
-   7 AM. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   7 AM.
+   **On 077e0f4, one run at a time: tsol3 met the goal (30:07, US$1.45), tsol4 (35:38, US$1.45), tsol5 (29:06,
+   US$0.89).** The door hunt came up four times: out and killed a zombie at night twice (tsol3, tsol4), refused with
+   two zombies near once (as meant), and once out after a zombie that got away by day; nobody died after one. The
+   tree fix fired in tsol4 ("got down out of the tree ... to build on the ground"). Doorway entries failing ("No path
+   to the goal!", then in another way) run at 2.3 a rep, as before the protected ground (2.0-4.8 in sets H-J): an old,
+   recoverable hiccup. A third bed was refused in tsol3 ("no room left") with good reason: a chest inside the doorway,
+   two furnaces and a bed through the middle had used the room; smarter placement (along the walls) is a later fix.
+   Spent US$4.39 of 22.28 by 01:24. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
