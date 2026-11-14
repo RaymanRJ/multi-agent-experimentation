@@ -38,7 +38,7 @@ export function HowItWorks() {
           carries it out, retries, gives up cleanly and reports back. The model is asked again only when that goal
           succeeds, fails, or something important happens.
         </p>
-        <Mermaid chart={CONTROL_LOOP} label="Sequence: the environment's state reaches the agent's body, which compresses it to a short briefing and asks the model what to do next. The model answers with a goal, such as gather_wood(10). The body then acts on the environment in a deterministic loop with no model involved, until the goal completes or fails, and consults the model again only on completion, failure or a significant event." />
+        <Mermaid chart={CONTROL_LOOP} title="The control loop" label="Sequence: the environment's state reaches the agent's body, which compresses it to a short briefing and asks the model what to do next. The model answers with a goal, such as gather_wood(10). The body then acts on the environment in a deterministic loop with no model involved, until the goal completes or fails, and consults the model again only on completion, failure or a significant event." />
         <p>
           Keep the model in the loop and the agent is slow, expensive and overtaken by events. Keep it out, and a team
           works through three simulated days on fewer than a hundred decisions each. A new ability is a new tool, not more
