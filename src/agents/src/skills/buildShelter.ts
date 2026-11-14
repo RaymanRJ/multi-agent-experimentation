@@ -308,6 +308,44 @@ function calmSpider(bot: Bot, e: Entity): boolean {
  */
 export const goingOutFor = new WeakMap<Bot, number>();
 
+const LEAVES = /_leaves$/;
+const TREE = /_(leaves|log|wood)$/;
+
+/** Standing on a tree (its leaves or logs), not the ground. */
+export function onTree(bot: Bot, at: Vec3): boolean {
+  const below = bot.blockAt(at.offset(0, -1, 0));
+  return !!below && TREE.test(below.name);
+}
+
+/**
+ * The nearest place within 12 blocks across to stand on the ground, not on a tree: open feet and head, and under them
+ * a solid block that is no leaf, log or liquid. Nearest across first, then nearest in height.
+ */
+export function groundNear(bot: Bot, from: Vec3, radius = 12): Vec3 | null {
+  let best: Vec3 | null = null;
+  let bestCost = Infinity;
+  const empty = (c: Vec3) => {
+    const block = bot.blockAt(c);
+    return !!block && block.boundingBox === "empty" && !/water|lava/.test(block.name);
+  };
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dz = -radius; dz <= radius; dz++) {
+      // Down the column through the air and the tree to the first ground.
+      for (let y = from.y + 2; y >= from.y - 24; y--) {
+        const cell = new Vec3(from.x + dx, y, from.z + dz);
+        const below = bot.blockAt(cell.offset(0, -1, 0));
+        if (!below) break;
+        if (below.boundingBox !== "block" || TREE.test(below.name)) continue;
+        if (/water|lava/.test(below.name) || !empty(cell) || !empty(cell.offset(0, 1, 0))) break;
+        const cost = Math.hypot(dx, dz) * 2 + Math.abs(from.y - y);
+        if (cost < bestCost) { bestCost = cost; best = cell; }
+        break;
+      }
+    }
+  }
+  return best;
+}
+
 /** Monsters outside the home close enough to the door, or to the agent, to get in while it is open. */
 export function followers(bot: Bot, spot: ShelterSpot): string[] {
   const { door } = doorwayCells(spot);
@@ -448,7 +486,15 @@ async function hangDoor(ctx: SkillContext, lower: Vec3, inside: Vec3): Promise<b
       }
     }
   }
-  const floor = bot.blockAt(lower.offset(0, -1, 0));
+  let floor = bot.blockAt(lower.offset(0, -1, 0));
+  // The game puts no door on leaves (live: refused on oak and dark oak leaves, placed on planks and grass), though
+  // they count as solid: in tsol2 a home built on a tree had its door made and never hung, and its doorway was
+  // filled with planks instead. The leaf goes, and a block from the inventory takes its place.
+  if (floor && LEAVES.test(floor.name)) {
+    if (!(await swapForBlock(bot, floor.position))) return false;
+    door = bot.inventory.items().find((item) => isDoor(item.name)) ?? door;
+    floor = bot.blockAt(lower.offset(0, -1, 0));
+  }
   if (!floor || floor.boundingBox !== "block") return false;
   try {
     await bot.equip(door, "hand");
@@ -461,6 +507,31 @@ async function hangDoor(ctx: SkillContext, lower: Vec3, inside: Vec3): Promise<b
   for (let tick = 0; tick < 20 && !isDoor(bot.blockAt(lower.offset(0, 1, 0))?.name); tick += 2) await bot.waitForTicks(2);
   const hung = bot.blockAt(lower);
   return !!hung && isDoor(hung.name) && (await shutDoor(bot, hung));
+}
+
+/** Digs out the block at `cell` and puts a building block (planks or dirt first) in its place. True once one is there. */
+async function swapForBlock(bot: Bot, cell: Vec3): Promise<boolean> {
+  const there = bot.blockAt(cell);
+  if (there && there.boundingBox === "block" && !LEAVES.test(there.name)) return true;
+  const blocks = bot.inventory.items().filter((item) => isBuildingBlock(item.name) && !LEAVES.test(item.name));
+  const stack = blocks.find((item) => item.name.endsWith("_planks") || item.name === "dirt") ?? blocks[0];
+  if (!stack) return false;
+  if (there && there.boundingBox === "block") {
+    await withTimeout(bot.dig(there), 10_000, `clearing the ${there.name}`).catch(() => {});
+  }
+  for (const direction of FACES) {
+    const reference = bot.blockAt(cell.plus(direction));
+    if (!reference || reference.boundingBox !== "block" || opensOnClick(reference.name)) continue;
+    try {
+      await bot.equip(stack, "hand");
+      await withTimeout(bot.placeBlock(reference, direction.scaled(-1)), PLACE_TIMEOUT_MS, "putting a block under the doorway");
+    } catch {
+      await bot.waitForTicks(4); // the block update can arrive after mineflayer gave up waiting
+    }
+    const now = bot.blockAt(cell);
+    if (now && now.boundingBox === "block" && !LEAVES.test(now.name)) return true;
+  }
+  return false;
 }
 
 /**
@@ -833,7 +904,25 @@ export const buildShelter: Skill = {
       ?? byDistance.find(({ d }) => d <= REUSE_RANGE)?.s
       ?? (size === 5 ? byDistance.find(({ s, d }) => (s.size ?? 3) === 5 && (d <= TEAM_HOME_RANGE || (d <= HOME_RANGE && s.by === bot.username)))?.s : undefined);
 
-    const centre = spot ? new Vec3(spot.x, spot.y, spot.z) : bot.entity.position.floored();
+    let centre = spot ? new Vec3(spot.x, spot.y, spot.z) : bot.entity.position.floored();
+    // A new home goes on the ground, not on a tree: in tsol2 one was built on a tree's leaves, 10 blocks up, where the
+    // game would hang no door, and leaves rot away once the tree's logs are cut. Down to the nearest ground first.
+    if (!spot && onTree(bot, centre)) {
+      const ground = groundNear(bot, centre);
+      if (!ground) {
+        return { status: "failed", reason: "you are up in a tree, standing on leaves or logs, with no ground in reach to build on: a home here would stand on leaves, which take no door and rot away once the tree is cut; get down to the ground first" };
+      }
+      try {
+        await gotoWatched(bot, new goals.GoalBlock(ground.x, ground.y, ground.z), 30_000, "down out of the tree");
+      } catch {
+        bot.pathfinder.setGoal(null);
+      }
+      centre = bot.entity.position.floored();
+      if (onTree(bot, centre)) {
+        return { status: "failed", reason: `you are up in a tree, standing on leaves or logs, and could not get down to the ground at ${ground.x},${ground.y},${ground.z} to build: a home here would stand on leaves, which take no door and rot away once the tree is cut` };
+      }
+      ctx.log(`got down out of the tree to ${centre.x},${centre.y},${centre.z} to build on the ground`);
+    }
     const use = spot ? { size: spot.size ?? 3, storeys: spot.storeys } : { size, storeys };
     let built: { placed: number; closed: boolean; gaps: number };
     if (spot) {

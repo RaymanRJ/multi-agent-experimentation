@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, followers, hostilesAtDoorway, hostilesInside, intrudersIn, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, protectHomes, whyOpen } from "./buildShelter.js";
+import { floorCells, followers, groundNear, hostilesAtDoorway, hostilesInside, intrudersIn, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, onTree, protectHomes, whyOpen } from "./buildShelter.js";
 import { homeBlock } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
@@ -174,4 +174,19 @@ test("protectHomes - the ground round a home and under it is kept from digging; 
   assert.ok(at(0, 73, 44) && at(10, 72, 39) && at(9, 73, 49), "a band two wide all round the walls");
   assert.ok(at(5, 72, 47) && at(5, 72, 46) && at(8, 72, 41), "the layer under the floor and the walls (tsol1: tunnelled)");
   assert.ok(!at(5, 73, 53) && !at(11, 73, 44) && !at(1, 73, 52) && !at(5, 71, 46), "further out, or deeper: ordinary ground");
+});
+
+test("onTree / groundNear - an agent on a tree's leaves is on a tree; the nearest ground is beside the trunk, not the canopy", () => {
+  const blocks: Record<string, string> = {};
+  for (let x = -6; x <= 10; x++) for (let z = -6; z <= 10; z++) blocks[`${x},71,${z}`] = "grass_block";
+  for (let y = 72; y <= 80; y++) blocks[`2,${y},2`] = "dark_oak_log";
+  for (let x = 0; x <= 4; x++) for (let z = 0; z <= 4; z++) blocks[`${x},81,${z}`] = "dark_oak_leaves";
+  const { bot } = fakeBot({ blocks, position: { x: 2.5, y: 82, z: 2.5 } });
+  assert.ok(onTree(bot, new Vec3(2, 82, 2)), "standing on the canopy");
+  assert.ok(!onTree(bot, new Vec3(6, 72, 6)), "standing on the grass");
+  const ground = groundNear(bot, new Vec3(2, 82, 2));
+  assert.ok(ground, "ground found");
+  assert.equal(ground!.y, 72, "on the grass, not the leaves");
+  assert.ok(!(ground!.x === 2 && ground!.z === 2), "not inside the trunk");
+  assert.ok(Math.hypot(ground!.x - 2, ground!.z - 2) <= 1.5, "right beside the trunk, the nearest ground");
 });
