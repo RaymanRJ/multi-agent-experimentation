@@ -465,7 +465,16 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    at 72% or more with 95% confidence (Wilson), against 15 of 30 for Luna on nearly the same code. The door hunt came
    up 10 times: out and killed it 5, refused with two monsters near 1, target got away 1, cut short by a creeper 2
    (as meant), and hunted from outside 1; nobody died after one. **Next, the owner's principle of as little guidance
-   as possible:** Sol with the progress list off (PROGRESS=off, tsolnp1-6, same code), from 03:01. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   as possible:** Sol with the progress list off (PROGRESS=off, tsolnp1-6, same code), from 03:01.
+   **Sol with the progress list off (tsolnp1-10, same frozen code): 10 of 10 met the whole goal** (game time 10:44
+   to 49:54, median 30 min; US$10.02). Per run against the list on: deaths 3.7 (3.2), decisions 185 (203), asks and
+   tells 14 (9); Luna on sets H-J, for comparison: 4.4 deaths, 303 decisions, 37 asks and tells, 15 of 30 met. So
+   with Sol the goal is met without being told what is still missing; the list isn't needed. Credit: about US$21.46
+   of 22.28 spent by 05:07 (estimate; tonight's estimates matched the bill), the project's last. Nothing merged to
+   `main`, nothing pushed: `nightly-3` waits for the owner's review. **Open, for the owner:** merge `nightly-3`; the
+   write-up of the Luna sets and the Sol trial (the owner holds write-ups until 80% holds: it now does, with Sol);
+   the site's headline (still Luna's 8 in 10 from set C); smarter placement of beds and furniture (a third bed
+   refused in tsol3 for want of room); archiving the logs to S3. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
