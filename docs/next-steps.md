@@ -513,7 +513,6 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    - The prompt-caching article (rrjamal.ca, draft): four TODOs before publishing.
    - The tbase3 `give` timeout to a teammate inside the closed home (cause unknown).
    - The second drowning gap: a skill started after a failed escape from water (`docs/limitations.md`).
-   - The merged branch `worktree-goals-section` on GitHub can be deleted.
 
 Costs to plan with: a 3-rep mixed team run is about $8 (tbase6: $7.80); a Luna team run about
 $0.25-0.40. Ask before any paid run, and no Claude run without the owner's OK. The cap is $3 per agent
