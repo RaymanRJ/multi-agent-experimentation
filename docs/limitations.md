@@ -99,9 +99,12 @@ building on it.
   inside, ran out its chase clock in place and reported "got away" (208 of 223 such hunts on 11-12 November, against
   16 of 120 begun outside). Wool, beds and meat in every team run before then are understated by our code, not only by
   the agents' choices; tluna27 (4 of 5) was measured with this bug in place.
-- **A monster waiting at the home's door still keeps the agents in.** The door won't open with one within 6 blocks, and
-  a hunt for it from inside is refused at the door. Letting the door open for the fight was tried and dropped: live,
-  the agent went out and lost (1 death and health 5-6 in 3 tries, no kills). Agents wait such a monster out.
+- **A monster waiting at the home's door keeps the agents in unless one of them is fit to fight it.** The door won't
+  open with a monster within 6 blocks that could follow an agent in. Since 13 November (1b50012) a hunt for it goes out
+  when the agent is healthy (12 or more), holds a sword or axe, and that monster is the only one within 16 blocks
+  (live: a zombie 6 of 6 and a skeleton 5 of 5 killed, none got in; in the 20 Sol runs it came up 12 times, 7 kills,
+  no death after). With two or more monsters, or a weak or unarmed agent, the door stays shut and agents wait it out. A
+  spider by day no longer counts (d1a87cd): it won't follow a player in.
 - **The herds are restocked each morning (since 28 October, after tbase7).** The game barely brings
   animals back in that dark forest, so killed ones stayed gone and food and wool ran out mid-run
   (tbase6 rep 3: no sheep, no beds; tbase7 rep 2: no cows by day 2). Now at each dawn one agent per
@@ -169,12 +172,14 @@ building on it.
 
 ## What the measurements can and can't show
 
-- **Small samples.** Most conditions have 3 runs, so a 3/3 is consistent with a true success
-  rate as low as 44%. Pooled batches are firmer, but only batches run on the same code are
-  comparable.
+- **Small samples.** Most early conditions have 3 runs, so a 3/3 is consistent with a true success
+  rate as low as 44%. The team goal's later sets have ten runs each on frozen code: 8 of 10 is consistent
+  with anything from about 49% to 94%, and the stronger model's 20 of 20 with 84% or more. Pooled batches
+  are firmer, but only batches run on the same code are comparable.
 - **Few models, and one local one.** The local-model findings are about one 4B model (Qwen3 4B
   Instruct); bigger local models may behave differently, especially with plan memory. The paid
-  models have three runs each on one goal.
+  models have three runs each on one goal alone; on the team goal, GPT-6 Luna has many sets and GPT-6.1 Sol
+  two sets of ten, run only on the final code.
 - **The code changed between batches.** Each batch was run on one version of the code, but fixes
   went in between batches. Compare batches only where the write-ups say they are comparable.
 - **Start points vary within a 20-block area,** which puts some agents beside oak and others beside

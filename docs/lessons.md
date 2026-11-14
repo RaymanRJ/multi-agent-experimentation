@@ -101,6 +101,14 @@ word is paid for on every call, and true, because the agent believes it.
   within 24 blocks of the agent and the home's line said nothing of them; of 38 entries where an
   agent was hit, 7 got in. Now the home's line names the mobs at its doorway, and the tool for going in
   stops short of them and says why. ([limitations](limitations.md); not yet seen in a team run)
+- **A true, neutral fact can still pull agents off the goal.** What an agent is shown, it acts on: a
+  fact about a side issue becomes a side quest. When you add one, measure how behaviour changes (trips,
+  deaths, time), not only the success rate.
+  *Evidence:* a standing line telling agents where they and their teammates had dropped things on dying,
+  true and worded as plain fact, sent them back for those things about ten times as often at night (1.3 to
+  15 trips a run); about 9 in 10 of those trips failed, deaths rose from 2.7 to 5–9 a run, and the team's
+  success fell from 21 of 30 to 4 of 12. It came out.
+  ([08](results/write-ups/08-reaching-80.md#a-true-fact-that-made-them-worse))
 - **Tell the agent who it is.** Without its own name, an agent addresses itself.
   *Evidence:* agents tried to hand things to themselves and ask themselves questions until the prompt
   named them. ([next steps](next-steps.md), team run trio3)
@@ -270,11 +278,26 @@ What an agent did is only worth knowing if it can be repeated and trusted.
   outside will burn in sunlight shortly", 9 times; "Endermen leave you alone unless you look at
   them"). Goals that state only the outcome work partly because of that. In a private domain, the
   tool descriptions and observations have to carry what the model can't already know.
-- **A cheaper model's ceiling rises with the harness; compare prices after fixing the tools.**
+- **A cheaper model's ceiling rises with the harness, up to a point; compare prices after fixing the tools.**
   *Evidence:* teams of three GPT-6 Luna agents never met the whole shared-home goal in any earlier run
   while our tools were failing them; after those fixes one of three reps met it all for US$0.15, against
   US$1.36-1.43 for the mixed team's wins. One win in three is a hint, not a rate.
-  ([06](results/write-ups/06-team-base.md))
+  ([06](results/write-ups/06-team-base.md)) Later fixes took the same team to about half, and no further
+  (below).
+- **When fixes stop moving the rate, test the model.** Once the tools are true, what is left of a team's
+  failures is its own judgement, which the harness should report, not coach. A short trial of a stronger
+  model on the same harness then says more than another round of fixes.
+  *Evidence:* six fixes in a day, each checked against the old code in the real game and each removing a
+  real failure, left three of the cheapest model at 15 of 30 (sets of 7, 4 and 4); 25 of its 27 losses since
+  the last good set ended short of iron pickaxes it had made and then lost in deaths or passed around. Three
+  of a stronger model on the same harness met the goal 20 of 20, at about $1 a success against 28¢. It died as
+  often; it got the team's pickaxes back after a death (11 of 15 times, against 6 of 27), sized its iron to the team,
+  and never haggled. ([08](results/write-ups/08-reaching-80.md#why-we-moved-from-luna-to-sol))
+- **Then test taking guidance away.** What a weaker model needs, a stronger one may not: each piece of
+  help is a condition to test, not a default to keep.
+  *Evidence:* with the list of what the goal still lacked switched off, the stronger team still met it 10
+  of 10, as fast as with it (median 30 minutes of game time against 33).
+  ([08](results/write-ups/08-reaching-80.md#less-guidance))
 - **Measure cost per outcome, not per call.** The same one-day task cost about 1 cent a run on one
   model and 13–22 cents on others; prompt caching cut 81–86% of input on the models that support it,
   and one model's prompt was below its caching minimum and never cached. ([04](results/write-ups/04-p6-outpost-after-fixes.md), [05](results/write-ups/05-team-homestead.md))

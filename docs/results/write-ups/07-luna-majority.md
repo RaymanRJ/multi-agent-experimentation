@@ -226,4 +226,5 @@ from home) and to the game's monsters, not to our code as far as the logs show. 
 | "Bed is not a known item", 5 times | An error that names no valid alternative | The error lists real names with the word in them | "Invalid parameter" with no hint of the valid values |
 
 **Tried and dropped:** letting the door open so a hunt can fight a monster waiting outside it. Live, the agent went out
-and lost (1 death, health 5-6 in the other tries, no kills); the refusal protects it, so it stays.
+and lost (1 death, health 5-6 in the other tries, no kills); the refusal protects it, so it stays. (Revisited on 13 November: opened only for a healthy, armed agent and a lone monster, it went out and won, live and in
+real runs; see [write-up 08](08-reaching-80.md#a-stronger-model-on-the-same-harness).)
