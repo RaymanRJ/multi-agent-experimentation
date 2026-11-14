@@ -118,6 +118,29 @@ export function floorCells(size: ShelterSize = 3): Vec3[] {
   return floor;
 }
 
+/**
+ * The ground round a home, kept from digging like the home itself: a band two wide all round its walls, five wide and
+ * five deep in front of its door, at the ground's level and the layer under it, and the layer under the floor and the
+ * walls. Walking over it and putting blocks down on it are as before. In the first Sol run (tsol1) an agent that could
+ * not step in by the door was sent "another way" by the pathfinder, which dug the doorstep and tunnelled under the
+ * door and the floor (the floor was protected, the ground round it was not); from then on nobody could reach the door
+ * ("no way there was found", three agents, every try).
+ */
+export function groundCells(size: ShelterSize = 3): Vec3[] {
+  const h = half(size), r = h + 1;
+  const cells = new Map<string, Vec3>();
+  const add = (dx: number, dy: number, dz: number) => cells.set(`${dx},${dy},${dz}`, new Vec3(dx, dy, dz));
+  for (const dy of [-1, -2]) {
+    // The band round the walls.
+    for (let dx = -r - 2; dx <= r + 2; dx++) for (let dz = -r - 2; dz <= r + 2; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) > r) add(dx, dy, dz);
+    // The way to the door: five wide, five deep.
+    for (let dx = -2; dx <= 2; dx++) for (let dz = r + 1; dz <= r + 5; dz++) add(dx, dy, dz);
+  }
+  // Under the floor and the walls.
+  for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) add(dx, -2, dz);
+  return [...cells.values()];
+}
+
 /** The interior's width: 3 (a hut for one) or 5 (room for a team's beds, a chest, a furnace). */
 export type ShelterSize = 3 | 5;
 /** How far the interior reaches from its centre. */
@@ -878,7 +901,7 @@ export function protectHomes(bot: Bot, homes: () => ShelterSpot[]): void {
     for (const spot of homes()) {
       const size = spot.size ?? 3;
       const { walls, roof } = layout(spot.storeys, size);
-      for (const offset of [...floorCells(size), ...walls, ...roof]) cells.add(`${spot.x + offset.x},${spot.y + offset.y},${spot.z + offset.z}`);
+      for (const offset of [...floorCells(size), ...walls, ...roof, ...groundCells(size)]) cells.add(`${spot.x + offset.x},${spot.y + offset.y},${spot.z + offset.z}`);
     }
     cache = { at: Date.now(), cells };
     return cells;

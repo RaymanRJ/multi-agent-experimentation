@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Vec3 } from "vec3";
-import { floorCells, followers, hostilesAtDoorway, hostilesInside, intrudersIn, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, whyOpen } from "./buildShelter.js";
+import { floorCells, followers, hostilesAtDoorway, hostilesInside, intrudersIn, insideClosedShelter, layout, mobsAtDoorwayNote, mobsInsideNote, protectHomes, whyOpen } from "./buildShelter.js";
+import { homeBlock } from "./util.js";
 import { context, fakeBot, floor } from "../testing/fakeBot.js";
 import { observe } from "../observe.js";
 
@@ -161,4 +162,16 @@ test("followers - a monster within 6 blocks of the door or of the agent would fo
   assert.deepEqual(followers(fakeBot({ blocks: hut(), position: atDoor, entities: [roof("zombie", 65)] }).bot, spot), ["zombie"], "a step up is still level with the door");
   const inside = fakeBot({ blocks: hut(), position: { x: 0.5, y: 64, z: 0.5 }, entities: [mob("zombie", 1.5, 0.5), mob("zombie", 0.5, 9.5)] }).bot;
   assert.deepEqual(intrudersIn(inside, spot).map((e) => e.position.x), [1.5]);
+});
+
+test("protectHomes - the ground round a home and under it is kept from digging; further out it is not", () => {
+  const { bot } = fakeBot({ position: { x: 0.5, y: 74, z: 10.5 } });
+  protectHomes(bot, () => [{ x: 5, y: 74, z: 44, size: 5, storeys: 1, complete: true }]);
+  const at = (x: number, y: number, z: number) => homeBlock(bot, { x, y, z });
+  // A large home centred at 5,74,44: walls at x 2 and 8, z 41 and 47; the door at 5,74-75,47.
+  assert.ok(at(5, 73, 47), "the block under the door, as before");
+  assert.ok(at(5, 73, 48) && at(3, 73, 52) && at(7, 72, 52), "five wide and five deep in front of the door, and the layer under (tsol1: dug)");
+  assert.ok(at(0, 73, 44) && at(10, 72, 39) && at(9, 73, 49), "a band two wide all round the walls");
+  assert.ok(at(5, 72, 47) && at(5, 72, 46) && at(8, 72, 41), "the layer under the floor and the walls (tsol1: tunnelled)");
+  assert.ok(!at(5, 73, 53) && !at(11, 73, 44) && !at(1, 73, 52) && !at(5, 71, 46), "further out, or deeper: ordinary ground");
 });
