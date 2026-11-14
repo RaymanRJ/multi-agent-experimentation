@@ -835,6 +835,39 @@ html:has(.enlarge-dialog[open]) {
   margin-bottom: 12px;
 }
 
+/* Many collapsed rows in one card, such as the skills in docs/skills.md: one line each until opened. */
+.prose .details-list {
+  margin: 0 0 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.prose .details-list details {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.prose .details-list details:last-child {
+  border-bottom: 0;
+}
+
+.prose .details-list summary {
+  font-weight: 400;
+}
+
+.prose .details-list summary code {
+  font-weight: 600;
+}
+
+.prose .details-list details p {
+  font-size: 16px;
+}
+
 /* Results */
 
 .stats {

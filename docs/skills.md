@@ -61,35 +61,252 @@ comparable.
 
 ## The skills
 
-| Skill | What the model asks for | What the code does | Typical failure it reports |
-|---|---|---|---|
-| `gather_wood(count)` | Hold this many logs **in total**, all kinds added together | Any kind of tree: every kind of log makes the same planks, sticks, tools and shelters, and `craft` uses whichever wood is held, so there is no type to choose. Finds the nearest tree it can actually reach: on the ground, not buried, and not one it already failed on. It looks out to 32, then 64, then 128 blocks. It walks there, cuts the trunk from the bottom up, picks up the logs, and repeats. If it already holds enough logs, it fails and says that `count` is a total. Trees beside another agent come last. | "no reachable trees within 128 blocks — explore to find some" |
-| `explore(distance)` | Walk 16–96 blocks somewhere new | Remembers where this agent has been and picks the heading that leads farthest from all of it. On arrival it reports what's nearby (logs, ores, water…). | "the way was blocked repeatedly (water, cliffs or walls)" |
-| `craft(item, count)` | Make this many of an item | Works out the recipe and makes the in-between items (logs to planks to sticks). Asking for `oak_planks` while holding other wood makes that wood's planks instead, and says so. It finds, walks to, places or crafts a crafting table if one is needed, then checks that the item really arrived. | "need 3 more cobblestone to craft 1 stone_pickaxe" |
-| `mine_stone(count)` | Gain this many cobblestone | Uses the cheapest pickaxe it holds, keeping an iron one for ore. It mines the nearest stone open to the air (never stone touching water or lava, and skipping stone more than 6 blocks below where the call started, down in caves), or digs straight down to the stone underground if none is exposed. It stops before water or lava. Stone beside another agent comes last, so two agents don't dig one pit. | "need a wooden_pickaxe — craft one first" |
-| `build_shelter(storeys, size)` | Get into a shelter, building one if none is near | If a shelter the agent or a teammate built stands within 32 blocks, walks into it, fills the gaps it can and closes the doorway. Asked for a large one, it goes to a teammate's large shelter up to 80 blocks away, or one it built itself up to 128, rather than build another (since 31 October: a second large home went up in 4 of 8 reps). Otherwise it clears a space and builds walls, a roof and a doorway from planks, stone or dirt, then closes the doorway behind it: with a wooden door when the agent carries one or 6 planks of one wood (since 29 October), otherwise with two blocks. Agents go in and out through a door, opened and shut by our code on every walk; a door left open is shut by the body once nobody stands in it, and the pathfinder never digs a known home's walls, floor or roof. With a door, a monster counts as at the doorway within 3 blocks, not 8. Small (default): a 3×3 interior, about 45 blocks one storey, 89 two. `size: "large"`: one room, 5×5 and 3 high, about 105 blocks, with room for beds, a chest and a furnace and headroom to step over a bed (since 30 October; before, 2 high and usually two storeys, see `docs/ideas.md`); with too few blocks it places what it has and says what is left, and the next `build_shelter` near it, by anyone, carries on. Turns held logs into planks, and won't clear a space with lava or water in or beside it. | "placed 64 blocks of the large shelter at 110,120,110; it still needs 103 building blocks" |
-| `mine_ore(ore, count)` | Gain this many drops of an ore (coal, iron, diamond…) | Finds ore **a player could see**, on a cave wall or a tunnel side, within 48 blocks. It walks there, mines it with a good enough pickaxe and picks up the drop (`raw_iron`, `diamond`…). Water touching the ore is plugged first with a block carried (cobblestone, dirt, stone), and the ore is mined from a dry place in reach: open ground, or a pocket dug in the rock beside it (since 7 November; in tluna13 all the iron near the home was under water and refused 23 times). Without a block, or with only water to stand in, ore with water above it or under water is skipped; ore beside lava always is. When nothing in sight can be mined it says why for each (since 10 November), and ore it failed to get is left alone for about 10 minutes in later calls too; a skill stopped by an interrupt no longer counts the ore it was walking to as failed. Ore sightings shared between agents use the same rule. | "no iron ore in sight within 48 blocks — explore, descend or dig a tunnel" |
-| `smelt(item, count)` | Make ingots, stone, glass or cooked food | Takes the product (`iron_ingot`) or the raw item (`raw_iron`). Uses a furnace within 32 blocks that it can really reach, or places one it holds, or crafts one from 8 cobblestone, mining the cobblestone it lacks. Burns the best fuel it carries (coal, then planks, logs, sticks) and waits about 10 seconds per item. Cut short, it takes back what it didn't smelt and the fuel not yet burning; a teammate's message or dusk doesn't cut it short (since 30 October: raw iron had been left in furnaces). | "not enough fuel to smelt 3 raw_iron" |
-| `descend(y)` | Dig down to height `y` | Started inside a home, first walks out through its door to open ground in front of it (since 30 October; agents had been refused 32 times in a row from inside). Digs a staircase, which can be walked back up. It checks every block before breaking it and turns away from lava and drops into caves; water in the step or under it is filled with a block carried (since 10 November; on the first world it had stopped at "water below" 11 times in tluna23 alone). If water keeps coming back (6 s with the head under, or under twice in one call) it stops, says so, and refuses to dig down within 6 blocks of there for 10 minutes, after agents in tluna24 went back down a flooded stair 39 times. Water behind a block it digs is plugged with a block it carries, and water running down the stair behind it is filled (since 30 October; water behind the stone had stopped 43 of 54 digs in tluna4). It stops if every way down is unsafe, and reports the ore now in sight. It lights the stair as it goes: a torch every 8 steps, on a side wall at head height (on the floor where the way opens into a cave), from torches carried or made on the spot from coal or charcoal; without any it says so (since 8 November; live: 2 descents and a 24-block tunnel lit, 2 of 113 path cells left dark). | "stopped at y=12: every way down is unsafe (north: lava behind the stone; …)" |
-| `tunnel(length, direction)` | Dig a 2-high tunnel up to 32 long | Started inside a home, walks out first, as descend does. Strip-mining: the walls uncover ore hidden in rock, which `mine_ore` can then see. It keeps the same heading between calls and stops before lava, open water or a drop; water behind a block is plugged, as in descend; lit as it goes, as descend is. | "cannot tunnel north: water — try another direction" |
-| `climb_out()` | Get back up to open sky | Digs a staircase up, with the same checks as `descend`; it won't dig out from under gravel or sand, which would fall on its head, and steps aside from it first. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks it carries (dirt or cobblestone first, logs last). If the agent is in water under rock, it first swims to the nearest air within 16 blocks (added after thaiku2, where an agent drowned three times digging up); then it swims up, digging out anything over its head, and climbs onto the nearest bank within 10 blocks (added after thaiku1); failing that it walks to dry ground nearby. Where the water fills a space up to its roof there is no surface to climb out from, and it says so. When the agent is under the ground, its observation says how deep as `underground` (blocks of solid ground overhead, shown from 3, so a shelter roof doesn't count). | "stopped at y=49, under 13 blocks of ground: every way up is unsafe (…; straight up: nothing to stand on …)" |
-| `hunt(target, count)` | Kill a creature or a player | `target` is a kind of animal or mob (cow, sheep, zombie…) or another agent's name; `count` up to 5. Chases the nearest within 64 blocks (32 until 8 November) with the best sword or axe held (bare hands otherwise), hitting as fast as the weapon recovers, then picks up the drops (meat, wool (1 per sheep killed), string). It isn't stopped by being hit, by mobs close by or (since 9 November) by teammates' messages, which wait for the next decision, unlike other skills, but it stops at health 6 or when the target gets away for 30 seconds. | "no cow within 64 blocks — explore to find one" |
-| `shear(count)` | Wool from sheep, without hurting them | Needs shears (2 iron ingots). Walks to the nearest unsheared adult sheep, shears it (1–3 wool each) and picks the wool up. Observations list animals nearby as `animals`. | "every sheep within 64 blocks is already sheared or a lamb — wool grows back after a sheep eats grass" |
-| `eat()` | Eat | Eats the best safe food it holds. | "no food in inventory" |
-| `light(count)` | Put torches up so monsters can't spawn nearby | Monsters spawn only in darkness; a torch stops them for about 12 blocks. Inside a home it lights the home: torches on its side walls at head height (one in a small home, two in a large) and one outside beside the door, all on walls so nothing is in the way of walking, beds or the door. Elsewhere it puts `count` torches (default 2, up to 6) on the ground or walls round the agent, spread apart. Makes torches from coal or charcoal and sticks. `build_shelter` lights the home it finishes or enters the same way when the agent carries torches, coal or charcoal (since 7 November; checked live: a sealed dark room went from 121 of 121 cells dark to 0 with one torch). | "no torches, and nothing to make them from: a torch is 1 coal or charcoal and 1 stick …" |
-| `flee(distance)` | Get away from mobs | Inside a closed shelter with nothing in it, stays put and says so. Otherwise runs into a finished shelter it knows within 64 blocks, on the side away from the mobs (any side, if a skeleton or witch can see it), with no mob at its doorway, and closes it. Failing that, runs away from them, turning aside rather than into or across water or off a drop, and ends behind cover if a skeleton or witch can still see it (a skeleton shoots up to 16 blocks, a witch throws up to 13, only with a clear line of sight). Safe means no melee mob within 12 blocks and no skeleton or witch in range and sight. At night it stops running once no melee mob is within 5 blocks; then, if a melee mob is still within 32 (at night), the agent is still in danger, or there is no way out, it digs in: three blocks down and a block over the head, which needs nothing carried and on dirt no tool (not on rock without a pickaxe, nor beside water or lava). Failing that, it walls the agent in with dirt, cobblestone or planks it carries. A dig-in is reported only when the agent is really in the hole, closed round, with no monster in it, and a dig stops if a monster comes within 2. Under the ground, with a monster that strikes up close within 10 blocks, it shuts the agent in before any running: dug in where it stands, into the rock beside it, or walled in (since 8 November: in carved caves with monsters 7 blocks off, the old run-first flee died 3 of 3, this survived 3 of 3 at full health). Dug in or walled in counts as sheltered, and flee and the reflexes leave it there; any later move digs back out. | "it is night and monsters are still after you, so you dug in and covered the hole over your head"; "could not find a path away …, could not dig in (…), and could not wall yourself in" |
-| `sleep()` | Sleep through the night | Finds a bed within 32 blocks, or places one it holds, then walks to it and sleeps. Beds work only from about tick 12,541 to 23,459, as in the game. A bed takes 3 wool (from `shear` or `hunt`) and 3 planks. If another agent is in the nearest bed it uses a free one, or puts down its own. Inside a shelter it puts its bed down inside; outside, with a shelter near, it goes into the shelter (closing it) and puts it down there, so a team's beds end up together. If the night does not pass, it says how many the game counted asleep and who it can see awake. | "too early to sleep: beds can be used from about 12541 (18 seconds from now) until 23459" |
-| `place_bed()` | Put a bed down without sleeping | Puts one bed it carries down inside the shelter it is in, or, outside with a shelter within 32 blocks, goes into the largest such one and puts it there; otherwise next to itself. Says how many beds are then down nearby. Passes over spots where anyone stands (the game refuses a bed there), and if the game still refuses, says so rather than calling the room full. A bed goes only where every open cell of the room can still be walked to from the doorway: under a second floor a bed can't be stood on, and in tluna5h three beds laid out from the centre walled off the room's back corners and shut an agent in. Added after tbase3, where an agent meant to "place beds" for the team and could only do it by sleeping. | "you carry no bed — a bed is crafted from 3 wool and 3 planks…" |
-| `wait(seconds)` | Do nothing for 1–60 s | Stands still, but stops early if interrupted. Three waits in a row in daylight with no mob in sight are reported as a loop. | (none) |
-| `give(to, item, count)` | Hand items to another agent | Says in chat that it is coming (which pauses them), walks up beside them, drops the items at its feet and steps back. If it can't get beside them but is within 3.5 blocks, it throws the items across; if it picks its own toss back up, it throws again, a block past their feet. Succeeds when they pick the items up; otherwise tells them the items are on the ground. | "qwen is not in sight; ask where they are, or go to them first" |
-| `pick_up(item)` | Collect dropped items within 8 blocks | Walks over each one (all, or only `item`). Dropped items near an agent are listed in its observation as `itemsOnGround`. | "there is no dropped stone_sword within 8 blocks" |
-| `store(item, count)` | Put items in a chest | Items in a chest stay there whatever happens to the agent, even if it dies (its description says so). Uses the nearest chest within 32 blocks, or puts one down (crafting it from 8 planks). Without `item`, stores everything but tools, weapons and food. Moves whole stacks, one shift-click per server reply, and reports what the chest now holds. | "the chest at 20,70,39 is full (…)" |
-| `take(item, count)` | Take items from a chest | Looks in the nearest chests within 32 blocks for `item`, takes as many as `count` asks for (whole stacks by shift-click, the rest of a stack one click at a time), and reports what each chest it opened holds. | "no diamond in the chest nearby: the chest at 20,70,39 holds 40 cobblestone, …" |
-| `look_in_chest()` | See inside the chests nearby | Opens up to 4 chests within 32 blocks, nearest first, and reports what each holds, moving nothing. Added after tbase2, where an agent took meat out of the team's store to find out what was in it. | "no chest within 32 blocks" |
-| `go_to(to)` or `go_to(x, z)`, optionally with `y` | Walk to an agent in sight, or to coordinates | Walks in legs of 32 blocks, up to 512, following an agent that moves. With `y` it also climbs or descends to that height (up a hill, say); without it, height doesn't count. It only walks: from under the ground, `climb_out` is the way up. | "qwen is not in sight; ask them where they are, then go_to with x and z" |
-| `tell_agent(to, skill, args)` | Ask another agent to run one of its skills | Checks the agent exists, the skill exists and every arg it needs is given, then sends the request in chat. Doesn't wait: whether they do it is up to them, and the log records whether they did. Not offered with comms off. | "give needs item, count in args (it takes {…})" |
-| `respawn()` | Die on purpose and come back at the respawn point | Kills the agent through the server and waits for it to come back: at the bed it last slept in if that bed is still there, otherwise at the world's spawn. Everything it carried drops where it was and vanishes after 5 minutes; what it built stays. The description says so plainly and doesn't say when to use it. Logged as a death with the cause "chose to respawn", and counted apart from deaths in every report. Added after thaiku1, where an agent spent 116 of its 127 decisions in a flooded cave no other skill could leave. | "you died at -11,58,-20 and came back to life at 4,82,40; everything you carried (3 white_wool, …) lies at -11,58,-20 and vanishes in 5 minutes" |
-| `ask_agent(to, question)` | Ask another agent a question | Sends it by name and waits up to 30 seconds for their answer addressed to it, which it returns. Not offered with comms off. | "qwen did not answer within 30 s; an answer may still come later in messages" |
+Open a skill to see what the code does and a failure it typically reports.
+
+<div class="details-list">
+
+<details>
+<summary><code>gather_wood(count)</code>: hold this many logs <strong>in total</strong>, all kinds added together</summary>
+
+Any kind of tree: every kind of log makes the same planks, sticks, tools and shelters, and `craft` uses whichever wood is held, so there is no type to choose. Finds the nearest tree it can actually reach: on the ground, not buried, and not one it already failed on. It looks out to 32, then 64, then 128 blocks. It walks there, cuts the trunk from the bottom up, picks up the logs, and repeats. If it already holds enough logs, it fails and says that `count` is a total. Trees beside another agent come last.
+
+Typical failure it reports: "no reachable trees within 128 blocks — explore to find some"
+
+</details>
+
+<details>
+<summary><code>explore(distance)</code>: walk 16–96 blocks somewhere new</summary>
+
+Remembers where this agent has been and picks the heading that leads farthest from all of it. On arrival it reports what's nearby (logs, ores, water…).
+
+Typical failure it reports: "the way was blocked repeatedly (water, cliffs or walls)"
+
+</details>
+
+<details>
+<summary><code>craft(item, count)</code>: make this many of an item</summary>
+
+Works out the recipe and makes the in-between items (logs to planks to sticks). Asking for `oak_planks` while holding other wood makes that wood's planks instead, and says so. It finds, walks to, places or crafts a crafting table if one is needed, then checks that the item really arrived.
+
+Typical failure it reports: "need 3 more cobblestone to craft 1 stone_pickaxe"
+
+</details>
+
+<details>
+<summary><code>mine_stone(count)</code>: gain this many cobblestone</summary>
+
+Uses the cheapest pickaxe it holds, keeping an iron one for ore. It mines the nearest stone open to the air (never stone touching water or lava, and skipping stone more than 6 blocks below where the call started, down in caves), or digs straight down to the stone underground if none is exposed. It stops before water or lava. Stone beside another agent comes last, so two agents don't dig one pit.
+
+Typical failure it reports: "need a wooden_pickaxe — craft one first"
+
+</details>
+
+<details>
+<summary><code>build_shelter(storeys, size)</code>: get into a shelter, building one if none is near</summary>
+
+If a shelter the agent or a teammate built stands within 32 blocks, walks into it, fills the gaps it can and closes the doorway. Asked for a large one, it goes to a teammate's large shelter up to 80 blocks away, or one it built itself up to 128, rather than build another (since 31 October: a second large home went up in 4 of 8 reps). Otherwise it clears a space and builds walls, a roof and a doorway from planks, stone or dirt, then closes the doorway behind it: with a wooden door when the agent carries one or 6 planks of one wood (since 29 October), otherwise with two blocks. Agents go in and out through a door, opened and shut by our code on every walk; a door left open is shut by the body once nobody stands in it, and the pathfinder never digs a known home's walls, floor or roof. With a door, a monster counts as at the doorway within 3 blocks, not 8. Small (default): a 3×3 interior, about 45 blocks one storey, 89 two. `size: "large"`: one room, 5×5 and 3 high, about 105 blocks, with room for beds, a chest and a furnace and headroom to step over a bed (since 30 October; before, 2 high and usually two storeys, see `docs/ideas.md`); with too few blocks it places what it has and says what is left, and the next `build_shelter` near it, by anyone, carries on. Turns held logs into planks, and won't clear a space with lava or water in or beside it.
+
+Typical failure it reports: "placed 64 blocks of the large shelter at 110,120,110; it still needs 103 building blocks"
+
+</details>
+
+<details>
+<summary><code>mine_ore(ore, count)</code>: gain this many drops of an ore (coal, iron, diamond…)</summary>
+
+Finds ore **a player could see**, on a cave wall or a tunnel side, within 48 blocks. It walks there, mines it with a good enough pickaxe and picks up the drop (`raw_iron`, `diamond`…). Water touching the ore is plugged first with a block carried (cobblestone, dirt, stone), and the ore is mined from a dry place in reach: open ground, or a pocket dug in the rock beside it (since 7 November; in tluna13 all the iron near the home was under water and refused 23 times). Without a block, or with only water to stand in, ore with water above it or under water is skipped; ore beside lava always is. When nothing in sight can be mined it says why for each (since 10 November), and ore it failed to get is left alone for about 10 minutes in later calls too; a skill stopped by an interrupt no longer counts the ore it was walking to as failed. Ore sightings shared between agents use the same rule.
+
+Typical failure it reports: "no iron ore in sight within 48 blocks — explore, descend or dig a tunnel"
+
+</details>
+
+<details>
+<summary><code>smelt(item, count)</code>: make ingots, stone, glass or cooked food</summary>
+
+Takes the product (`iron_ingot`) or the raw item (`raw_iron`). Uses a furnace within 32 blocks that it can really reach, or places one it holds, or crafts one from 8 cobblestone, mining the cobblestone it lacks. Burns the best fuel it carries (coal, then planks, logs, sticks) and waits about 10 seconds per item. Cut short, it takes back what it didn't smelt and the fuel not yet burning; a teammate's message or dusk doesn't cut it short (since 30 October: raw iron had been left in furnaces).
+
+Typical failure it reports: "not enough fuel to smelt 3 raw_iron"
+
+</details>
+
+<details>
+<summary><code>descend(y)</code>: dig down to height <code>y</code></summary>
+
+Started inside a home, first walks out through its door to open ground in front of it (since 30 October; agents had been refused 32 times in a row from inside). Digs a staircase, which can be walked back up. It checks every block before breaking it and turns away from lava and drops into caves; water in the step or under it is filled with a block carried (since 10 November; on the first world it had stopped at "water below" 11 times in tluna23 alone). If water keeps coming back (6 s with the head under, or under twice in one call) it stops, says so, and refuses to dig down within 6 blocks of there for 10 minutes, after agents in tluna24 went back down a flooded stair 39 times. Water behind a block it digs is plugged with a block it carries, and water running down the stair behind it is filled (since 30 October; water behind the stone had stopped 43 of 54 digs in tluna4). It stops if every way down is unsafe, and reports the ore now in sight. It lights the stair as it goes: a torch every 8 steps, on a side wall at head height (on the floor where the way opens into a cave), from torches carried or made on the spot from coal or charcoal; without any it says so (since 8 November; live: 2 descents and a 24-block tunnel lit, 2 of 113 path cells left dark).
+
+Typical failure it reports: "stopped at y=12: every way down is unsafe (north: lava behind the stone; …)"
+
+</details>
+
+<details>
+<summary><code>tunnel(length, direction)</code>: dig a 2-high tunnel up to 32 long</summary>
+
+Started inside a home, walks out first, as descend does. Strip-mining: the walls uncover ore hidden in rock, which `mine_ore` can then see. It keeps the same heading between calls and stops before lava, open water or a drop; water behind a block is plugged, as in descend; lit as it goes, as descend is.
+
+Typical failure it reports: "cannot tunnel north: water — try another direction"
+
+</details>
+
+<details>
+<summary><code>climb_out()</code>: get back up to open sky</summary>
+
+Digs a staircase up, with the same checks as `descend`; it won't dig out from under gravel or sand, which would fall on its head, and steps aside from it first. Where there is no rock to cut steps into, as in an open cave, it builds up instead, standing on blocks it carries (dirt or cobblestone first, logs last). If the agent is in water under rock, it first swims to the nearest air within 16 blocks (added after thaiku2, where an agent drowned three times digging up); then it swims up, digging out anything over its head, and climbs onto the nearest bank within 10 blocks (added after thaiku1); failing that it walks to dry ground nearby. Where the water fills a space up to its roof there is no surface to climb out from, and it says so. When the agent is under the ground, its observation says how deep as `underground` (blocks of solid ground overhead, shown from 3, so a shelter roof doesn't count).
+
+Typical failure it reports: "stopped at y=49, under 13 blocks of ground: every way up is unsafe (…; straight up: nothing to stand on …)"
+
+</details>
+
+<details>
+<summary><code>hunt(target, count)</code>: kill a creature or a player</summary>
+
+`target` is a kind of animal or mob (cow, sheep, zombie…) or another agent's name; `count` up to 5. Chases the nearest within 64 blocks (32 until 8 November) with the best sword or axe held (bare hands otherwise), hitting as fast as the weapon recovers, then picks up the drops (meat, wool (1 per sheep killed), string). It isn't stopped by being hit, by mobs close by or (since 9 November) by teammates' messages, which wait for the next decision, unlike other skills, but it stops at health 6 or when the target gets away for 30 seconds.
+
+Typical failure it reports: "no cow within 64 blocks — explore to find one"
+
+</details>
+
+<details>
+<summary><code>shear(count)</code>: wool from sheep, without hurting them</summary>
+
+Needs shears (2 iron ingots). Walks to the nearest unsheared adult sheep, shears it (1–3 wool each) and picks the wool up. Observations list animals nearby as `animals`.
+
+Typical failure it reports: "every sheep within 64 blocks is already sheared or a lamb — wool grows back after a sheep eats grass"
+
+</details>
+
+<details>
+<summary><code>eat()</code>: eat</summary>
+
+Eats the best safe food it holds.
+
+Typical failure it reports: "no food in inventory"
+
+</details>
+
+<details>
+<summary><code>light(count)</code>: put torches up so monsters can't spawn nearby</summary>
+
+Monsters spawn only in darkness; a torch stops them for about 12 blocks. Inside a home it lights the home: torches on its side walls at head height (one in a small home, two in a large) and one outside beside the door, all on walls so nothing is in the way of walking, beds or the door. Elsewhere it puts `count` torches (default 2, up to 6) on the ground or walls round the agent, spread apart. Makes torches from coal or charcoal and sticks. `build_shelter` lights the home it finishes or enters the same way when the agent carries torches, coal or charcoal (since 7 November; checked live: a sealed dark room went from 121 of 121 cells dark to 0 with one torch).
+
+Typical failure it reports: "no torches, and nothing to make them from: a torch is 1 coal or charcoal and 1 stick …"
+
+</details>
+
+<details>
+<summary><code>flee(distance)</code>: get away from mobs</summary>
+
+Inside a closed shelter with nothing in it, stays put and says so. Otherwise runs into a finished shelter it knows within 64 blocks, on the side away from the mobs (any side, if a skeleton or witch can see it), with no mob at its doorway, and closes it. Failing that, runs away from them, turning aside rather than into or across water or off a drop, and ends behind cover if a skeleton or witch can still see it (a skeleton shoots up to 16 blocks, a witch throws up to 13, only with a clear line of sight). Safe means no melee mob within 12 blocks and no skeleton or witch in range and sight. At night it stops running once no melee mob is within 5 blocks; then, if a melee mob is still within 32 (at night), the agent is still in danger, or there is no way out, it digs in: three blocks down and a block over the head, which needs nothing carried and on dirt no tool (not on rock without a pickaxe, nor beside water or lava). Failing that, it walls the agent in with dirt, cobblestone or planks it carries. A dig-in is reported only when the agent is really in the hole, closed round, with no monster in it, and a dig stops if a monster comes within 2. Under the ground, with a monster that strikes up close within 10 blocks, it shuts the agent in before any running: dug in where it stands, into the rock beside it, or walled in (since 8 November: in carved caves with monsters 7 blocks off, the old run-first flee died 3 of 3, this survived 3 of 3 at full health). Dug in or walled in counts as sheltered, and flee and the reflexes leave it there; any later move digs back out.
+
+Typical failure it reports: "it is night and monsters are still after you, so you dug in and covered the hole over your head"; "could not find a path away …, could not dig in (…), and could not wall yourself in"
+
+</details>
+
+<details>
+<summary><code>sleep()</code>: sleep through the night</summary>
+
+Finds a bed within 32 blocks, or places one it holds, then walks to it and sleeps. Beds work only from about tick 12,541 to 23,459, as in the game. A bed takes 3 wool (from `shear` or `hunt`) and 3 planks. If another agent is in the nearest bed it uses a free one, or puts down its own. Inside a shelter it puts its bed down inside; outside, with a shelter near, it goes into the shelter (closing it) and puts it down there, so a team's beds end up together. If the night does not pass, it says how many the game counted asleep and who it can see awake.
+
+Typical failure it reports: "too early to sleep: beds can be used from about 12541 (18 seconds from now) until 23459"
+
+</details>
+
+<details>
+<summary><code>place_bed()</code>: put a bed down without sleeping</summary>
+
+Puts one bed it carries down inside the shelter it is in, or, outside with a shelter within 32 blocks, goes into the largest such one and puts it there; otherwise next to itself. Says how many beds are then down nearby. Passes over spots where anyone stands (the game refuses a bed there), and if the game still refuses, says so rather than calling the room full. A bed goes only where every open cell of the room can still be walked to from the doorway: under a second floor a bed can't be stood on, and in tluna5h three beds laid out from the centre walled off the room's back corners and shut an agent in. Added after tbase3, where an agent meant to "place beds" for the team and could only do it by sleeping.
+
+Typical failure it reports: "you carry no bed — a bed is crafted from 3 wool and 3 planks…"
+
+</details>
+
+<details>
+<summary><code>wait(seconds)</code>: do nothing for 1–60 s</summary>
+
+Stands still, but stops early if interrupted. Three waits in a row in daylight with no mob in sight are reported as a loop.
+
+</details>
+
+<details>
+<summary><code>give(to, item, count)</code>: hand items to another agent</summary>
+
+Says in chat that it is coming (which pauses them), walks up beside them, drops the items at its feet and steps back. If it can't get beside them but is within 3.5 blocks, it throws the items across; if it picks its own toss back up, it throws again, a block past their feet. Succeeds when they pick the items up; otherwise tells them the items are on the ground.
+
+Typical failure it reports: "qwen is not in sight; ask where they are, or go to them first"
+
+</details>
+
+<details>
+<summary><code>pick_up(item)</code>: collect dropped items within 8 blocks</summary>
+
+Walks over each one (all, or only `item`). Dropped items near an agent are listed in its observation as `itemsOnGround`.
+
+Typical failure it reports: "there is no dropped stone_sword within 8 blocks"
+
+</details>
+
+<details>
+<summary><code>store(item, count)</code>: put items in a chest</summary>
+
+Items in a chest stay there whatever happens to the agent, even if it dies (its description says so). Uses the nearest chest within 32 blocks, or puts one down (crafting it from 8 planks). Without `item`, stores everything but tools, weapons and food. Moves whole stacks, one shift-click per server reply, and reports what the chest now holds.
+
+Typical failure it reports: "the chest at 20,70,39 is full (…)"
+
+</details>
+
+<details>
+<summary><code>take(item, count)</code>: take items from a chest</summary>
+
+Looks in the nearest chests within 32 blocks for `item`, takes as many as `count` asks for (whole stacks by shift-click, the rest of a stack one click at a time), and reports what each chest it opened holds.
+
+Typical failure it reports: "no diamond in the chest nearby: the chest at 20,70,39 holds 40 cobblestone, …"
+
+</details>
+
+<details>
+<summary><code>look_in_chest()</code>: see inside the chests nearby</summary>
+
+Opens up to 4 chests within 32 blocks, nearest first, and reports what each holds, moving nothing. Added after tbase2, where an agent took meat out of the team's store to find out what was in it.
+
+Typical failure it reports: "no chest within 32 blocks"
+
+</details>
+
+<details>
+<summary><code>go_to(to)</code> or <code>go_to(x, z)</code>, optionally with <code>y</code>: walk to an agent in sight, or to coordinates</summary>
+
+Walks in legs of 32 blocks, up to 512, following an agent that moves. With `y` it also climbs or descends to that height (up a hill, say); without it, height doesn't count. It only walks: from under the ground, `climb_out` is the way up.
+
+Typical failure it reports: "qwen is not in sight; ask them where they are, then go_to with x and z"
+
+</details>
+
+<details>
+<summary><code>tell_agent(to, skill, args)</code>: ask another agent to run one of its skills</summary>
+
+Checks the agent exists, the skill exists and every arg it needs is given, then sends the request in chat. Doesn't wait: whether they do it is up to them, and the log records whether they did. Not offered with comms off.
+
+Typical failure it reports: "give needs item, count in args (it takes {…})"
+
+</details>
+
+<details>
+<summary><code>respawn()</code>: die on purpose and come back at the respawn point</summary>
+
+Kills the agent through the server and waits for it to come back: at the bed it last slept in if that bed is still there, otherwise at the world's spawn. Everything it carried drops where it was and vanishes after 5 minutes; what it built stays. The description says so plainly and doesn't say when to use it. Logged as a death with the cause "chose to respawn", and counted apart from deaths in every report. Added after thaiku1, where an agent spent 116 of its 127 decisions in a flooded cave no other skill could leave.
+
+Typical failure it reports: "you died at -11,58,-20 and came back to life at 4,82,40; everything you carried (3 white_wool, …) lies at -11,58,-20 and vanishes in 5 minutes"
+
+</details>
+
+<details>
+<summary><code>ask_agent(to, question)</code>: ask another agent a question</summary>
+
+Sends it by name and waits up to 30 seconds for their answer addressed to it, which it returns. Not offered with comms off.
+
+Typical failure it reports: "qwen did not answer within 30 s; an answer may still come later in messages"
+
+</details>
+
+</div>
 
 **Talking isn't a skill.** Any decision can include a chat message to another agent or to everyone,
 and it's sent alongside the skill at no extra cost. Comms can be switched off per run (`--comms off`).
