@@ -458,7 +458,14 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    to the goal!", then in another way) run at 2.3 a rep, as before the protected ground (2.0-4.8 in sets H-J): an old,
    recoverable hiccup. A third bed was refused in tsol3 ("no room left") with good reason: a chest inside the doorway,
    two furnaces and a bed through the middle had used the room; smarter placement (along the walls) is a later fix.
-   Spent US$4.39 of 22.28 by 01:24. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   Spent US$4.39 of 22.28 by 01:24.
+   **The Sol set on frozen 077e0f4 (tsol3-12): 10 of 10 met the whole goal** (game time 23:29 to 43:14, every one on
+   day 2 of 3; US$10.83, US$1.08 a run; one run at a time to tsol6, then two and three lanes, no provider errors,
+   3.2-3.3 s a decision). With tsol2 (be44268), Sol met the goal in all 11 runs it completed; 10 of 10 puts the rate
+   at 72% or more with 95% confidence (Wilson), against 15 of 30 for Luna on nearly the same code. The door hunt came
+   up 10 times: out and killed it 5, refused with two monsters near 1, target got away 1, cut short by a creeper 2
+   (as meant), and hunted from outside 1; nobody died after one. **Next, the owner's principle of as little guidance
+   as possible:** Sol with the progress list off (PROGRESS=off, tsolnp1-6, same code), from 03:01. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
