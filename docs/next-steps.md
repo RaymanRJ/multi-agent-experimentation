@@ -424,7 +424,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    wrong agent). Next, if the owner wants it: the agents' handling of monsters camped at the home (a skeleton or
    spider by the door for whole nights); or a stronger model, or chests for spare pickaxes (owner's calls: they
    change what is measured). Reported cost today about US$6.35 plus set G's partial reps; the bill runs 25-35% over
-   the estimate, so the credit is close to spent. Nothing pushed; `nightly-3` holds all of it. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   the estimate, so the credit is close to spent. Nothing pushed; `nightly-3` holds all of it.
+   **After set J (owner's ask: "try it first"), 1b50012:** hunt goes out through the door to a monster camped by the
+   home when the agent is healthy (12+), armed, and that monster is the only one within 16 blocks. Agents had tried:
+   91 hunts for a monster by the home were refused at the door that day (77 of them 33f's spider, 40 by day, since
+   fixed by d1a87cd; 12 a zombie in 38j; 1 the skeleton in 38c, after which they waited). Live at night: old refused
+   2 of 2; new killed a zombie 6 of 6 and a skeleton 5 of 5, from 3 blocks off and from against the door, health 20
+   throughout, none got in; two zombies still keep it shut (2 of 2). Not yet measured in a set. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
