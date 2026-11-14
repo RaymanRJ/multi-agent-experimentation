@@ -494,12 +494,6 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    flee, often with a skeleton in view or right after a respawn. Credit after these: Anthropic about
    US$1.70; OpenAI about US$0.75 after tluna3 (an estimate: the balance couldn't be read).
 5. **Small, any time:**
-   - **Waiting on the owner (14 November): screenshots for the site, not the landing page.** Five candidates are
-     staged locally in `src/site/staging/` (kept out of git by `.git/info/exclude`; the dev server shows them at
-     `/staging/`). Three are of the minds panel on a real run (tsol4, agent la): one model call, the timeline where it
-     sized its iron to the team, and the run at a glance. Two are of the world, from a free scripted run taken by a
-     spectator camera, since in this forest the agents' own views show only treetops. Once picked: WebP into the site
-     with captions and click-to-enlarge, on How it works, Method and the model case study; then delete the folder.
    - **Done (28 October, the owner's call): herds restocked each morning.** Failed reps were the ones
      with deaths on day 1 (every success had at most one), and lost food and wool couldn't be replaced:
      the game barely brings animals back in the dark forest. Now at each dawn the herds are put back to
@@ -678,3 +672,4 @@ The write-up named on each line has the detail.
 **14 November**
 - Every run is watched by default (its 3D view from :3007, the minds panel started if it isn't up), and the original world is the default seed.
 - The site's control-loop diagram opens full size (an Expand button, or a click on it): it was shrunk to a third on a phone.
+- Screenshots on the site (the owner chose all five; none on the landing page): the minds panel on run tsol4 (a model call on How it works, a run at a glance on Method, the iron-sizing timeline on the model case study) and the world from a free scripted run, taken by a spectator camera (How it works). Each opens full size.

@@ -4,6 +4,7 @@ import { lessons } from '../content/lessons';
 import type { Batch } from '../lib/batches';
 import { writeUps } from '../lib/docs';
 import { HASH } from '../lib/route';
+import { Screenshots } from '../lib/Screenshot';
 
 /** The list: three curated cases, then every full write-up as the research record. */
 export function Cases() {
@@ -98,6 +99,7 @@ export function CaseStudy({ id }: { id: string }) {
             <li key={h}>{h}</li>
           ))}
         </ul>
+        {c.figure && <Screenshots figure={c.figure} />}
       </section>
 
       <section>

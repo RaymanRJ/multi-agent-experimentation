@@ -29,6 +29,10 @@ automatically: `lib/batches.ts` reads each report written by `src/agents/scripts
 `vite.config.ts` serves the summaries as `virtual:batches`; opening a report shows the same summary above its full
 text.
 
+Screenshots are WebP files in `assets/screenshots/`, each sized, described, captioned and traced to its run in
+`content/screenshots.ts`, and on deep-dive pages only, never the overview. `lib/Screenshot.tsx` shows them; like the
+control-loop diagram, each opens full size when clicked (`lib/Enlarge.tsx`).
+
 The front page's lesson cards and chart are in `content/lessons.ts`, hand-written from
 `docs/lessons.md` and the write-ups it cites: update them together. Each write-up opens with a
 "What this teaches about building agents" section; its first sentence (`lessonOf` in

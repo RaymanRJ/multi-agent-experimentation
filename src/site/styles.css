@@ -608,7 +608,7 @@ h3 {
   height: auto;
 }
 
-/* A diagram opens full size: the column shrinks a wide one past reading, on a phone to a third of its size. */
+/* Figures open full size (lib/Enlarge.tsx): the column shrinks a wide one past reading, on a phone to a third of its size. */
 .diagram-wrap {
   position: relative;
   margin: 0 0 16px;
@@ -620,8 +620,13 @@ h3 {
   cursor: zoom-in;
 }
 
-.diagram-expand,
-.diagram-close {
+.diagram-expand {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.enlarge-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -634,25 +639,18 @@ h3 {
   cursor: pointer;
 }
 
-.diagram-expand {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
-
-.diagram-expand:hover,
-.diagram-close:hover {
+button.enlarge-button:hover,
+.shot-open:hover .enlarge-button {
   background: var(--accent-soft);
 }
 
-.diagram-expand:focus-visible,
-.diagram-close:focus-visible {
+button.enlarge-button:focus-visible,
+.shot-open:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.diagram-expand svg,
-.diagram-close svg {
+.enlarge-button svg {
   width: 15px;
   height: 15px;
   fill: none;
@@ -662,7 +660,7 @@ h3 {
   stroke-linejoin: round;
 }
 
-.diagram-dialog {
+.enlarge-dialog {
   max-width: calc(100vw - 32px);
   max-height: calc(100dvh - 32px);
   padding: 0;
@@ -674,21 +672,21 @@ h3 {
   box-shadow: 0 24px 64px rgb(0 0 0 / 0.35);
 }
 
-.diagram-dialog[open] {
+.enlarge-dialog[open] {
   display: flex;
   flex-direction: column;
 }
 
-.diagram-dialog::backdrop {
+.enlarge-dialog::backdrop {
   background: rgb(10 12 14 / 0.62);
 }
 
-html:has(.diagram-dialog[open]) {
+html:has(.enlarge-dialog[open]) {
   overflow: hidden;
   scrollbar-gutter: stable;
 }
 
-.diagram-bar {
+.enlarge-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -697,11 +695,11 @@ html:has(.diagram-dialog[open]) {
   border-bottom: 1px solid var(--border);
 }
 
-.diagram-bar strong {
+.enlarge-bar strong {
   font: 600 16px var(--sans);
 }
 
-.diagram-full {
+.enlarge-content {
   flex: 1 1 auto;
   min-height: 0;
   padding: 16px;
@@ -709,16 +707,68 @@ html:has(.diagram-dialog[open]) {
   overscroll-behavior: contain;
 }
 
-/* As large as the screen allows, up to twice the drawn size, and never smaller than drawn: on a phone, scroll it. */
-.diagram-full svg {
+/*
+ * As large as the screen allows, between the widths the figure sets (openSize): a diagram or a screenshot of text
+ * never smaller than it reads (on a phone, scroll it), a picture never larger than it was taken.
+ */
+.enlarge-content > svg,
+.enlarge-content > img {
   display: block;
   margin: 0 auto;
-  width: max(
-    calc(var(--w) * 1px),
-    min(calc(var(--w) * 2px), calc(100vw - 72px), calc((100dvh - 132px) * var(--w) / var(--h)))
-  );
+  width: max(var(--min-w), min(var(--max-w), calc(100vw - 72px), calc((100dvh - 132px) * var(--ratio))));
   max-width: none !important; /* mermaid sets it inline, to the drawn size */
   height: auto;
+}
+
+/* Screenshots (lib/Screenshot.tsx): each opens full size; two sit side by side, one above the other on a phone. */
+.shots {
+  margin: 8px 0 28px;
+}
+
+.shots-row {
+  display: grid;
+  gap: 12px;
+}
+
+.shots.pair .shots-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shot-open {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: zoom-in;
+}
+
+.shot-open img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.shot-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+
+.shots figcaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .shots.pair .shots-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .mermaid-source {

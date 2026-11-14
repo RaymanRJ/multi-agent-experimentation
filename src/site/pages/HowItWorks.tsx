@@ -1,6 +1,8 @@
 import readme from '../../../README.md?raw';
+import { FIGURES } from '../content/screenshots';
 import { Mermaid, mermaidBlock } from '../lib/Mermaid';
 import { HASH } from '../lib/route';
+import { Screenshots } from '../lib/Screenshot';
 
 // The control loop diagram is the README's own, read when the site is built, so the two can't drift.
 const CONTROL_LOOP = mermaidBlock(readme, 'sequenceDiagram');
@@ -44,6 +46,7 @@ export function HowItWorks() {
           works through three simulated days on fewer than a hundred decisions each. A new ability is a new tool, not more
           consulting of the model.
         </p>
+        <Screenshots figure={FIGURES.decision} />
 
         <h2>Three layers</h2>
         <dl className="layers">
@@ -54,6 +57,7 @@ export function HowItWorks() {
             </div>
           ))}
         </dl>
+        <Screenshots figure={FIGURES.world} />
 
         <h2>What an agent is given</h2>
         <dl className="layers">

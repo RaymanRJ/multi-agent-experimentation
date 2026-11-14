@@ -1,20 +1,20 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { Enlarged, ExpandIcon, openSize } from './Enlarge';
 
 const dark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-/** The size a diagram was drawn at, from its viewBox, for the stylesheet to open it at a readable size. */
+/** The size a diagram opens at: never smaller than drawn (its viewBox), at most twice that. */
 function drawnSize(svg: string): CSSProperties {
-  const box = /viewBox="([^"]+)"/.exec(svg)?.[1]?.trim().split(/[\s,]+/).map(Number);
-  return box?.length === 4 ? ({ '--w': box[2], '--h': box[3] } as CSSProperties) : {};
+  const [, , w = 0, h = 0] = /viewBox="([^"]+)"/.exec(svg)?.[1]?.trim().split(/[\s,]+/).map(Number) ?? [];
+  return w > 0 && h > 0 ? openSize(w, 2 * w, w / h) : {};
 }
 
 /**
  * A mermaid diagram, drawn in the browser. Mermaid is large, so it is loaded only when a diagram is on
  * the page, and redrawn when the system switches between light and dark.
  *
- * The page's column shrinks a wide diagram (on a phone, to a third of its size), so it also opens full size in a
- * dialog. That copy is drawn a second time under its own id, as mermaid names each drawing's styles and arrowheads
- * by its id.
+ * It also opens full size in a dialog. That copy is drawn a second time under its own id, as mermaid names each
+ * drawing's styles and arrowheads by its id.
  */
 export function Mermaid({ chart, label, title }: { chart: string; label: string; title: string }) {
   const id = `mermaid-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -54,30 +54,13 @@ export function Mermaid({ chart, label, title }: { chart: string; label: string;
   return (
     <div className="diagram-wrap">
       <figure className="diagram" role="img" aria-label={label} onClick={expand} dangerouslySetInnerHTML={{ __html: svg.inline }} />
-      <button type="button" className="diagram-expand" aria-haspopup="dialog" onClick={expand}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-        </svg>
+      <button type="button" className="enlarge-button diagram-expand" aria-haspopup="dialog" onClick={expand}>
+        <ExpandIcon />
         Expand
       </button>
-      {/* Its content fills it, so a click that lands on the dialog itself is a click on the backdrop. */}
-      <dialog
-        ref={dialog}
-        className="diagram-dialog"
-        aria-labelledby={`${id}-title`}
-        onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-      >
-        <div className="diagram-bar">
-          <strong id={`${id}-title`}>{title}</strong>
-          <button type="button" className="diagram-close" onClick={() => dialog.current?.close()}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-            Close
-          </button>
-        </div>
-        <div className="diagram-full" role="img" aria-label={label} style={drawnSize(svg.full)} dangerouslySetInnerHTML={{ __html: svg.full }} />
-      </dialog>
+      <Enlarged id={id} title={title} dialog={dialog}>
+        <div className="enlarge-content" role="img" aria-label={label} style={drawnSize(svg.full)} dangerouslySetInnerHTML={{ __html: svg.full }} />
+      </Enlarged>
     </div>
   );
 }

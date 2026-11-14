@@ -1,3 +1,6 @@
+import type { Figure } from '../lib/Screenshot';
+import { FIGURES } from './screenshots';
+
 /**
  * The curated case studies (the Case studies pages): four cases, each in the same short form, linking to its full
  * write-up in docs/results/write-ups/ and its batch reports. Every figure traces to the write-up named in `writeUp`.
@@ -10,6 +13,8 @@ export interface Case {
   setup: string;
   result: { value: string; label: string };
   happened: string[];
+  /** Screenshots shown under what happened. */
+  figure?: Figure;
   changed: string[];
   leftAlone?: string;
   lessons: string[];
@@ -32,6 +37,7 @@ export const cases: Case[] = [
       'A true fact made it worse: told where they had dropped things on dying, agents went back for them ten times as often at night, and the team fell from 21 of 30 to 4 of 12.',
       'The stronger model on the same tools met the goal every time. It died as often; what it did differently was get the team’s pickaxes back after a death (11 of 15 times, against 6 of 27), size its iron to the team, and never haggle. Without the list of what was missing, it met the goal every time again.',
     ],
+    figure: FIGURES.sizingIron,
     changed: [
       'Six fixes to the tools, each found in a loss and checked live: ore searches that saw only buried ore, a pickaxe used up where it stranded its holder, monsters camped at the door, and more.',
       'The drop fact, taken out once the measurements showed the harm.',

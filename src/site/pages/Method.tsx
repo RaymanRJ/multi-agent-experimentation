@@ -1,4 +1,6 @@
+import { FIGURES } from '../content/screenshots';
 import { HASH } from '../lib/route';
+import { Screenshots } from '../lib/Screenshot';
 
 // How runs are done, measured and judged, and what the numbers can't show. The long-form record is docs/limitations.md
 // and docs/experiments.md, linked at the end.
@@ -120,6 +122,7 @@ export function Method() {
             </div>
           ))}
         </dl>
+        <Screenshots figure={FIGURES.run} />
       </section>
 
       <section>
