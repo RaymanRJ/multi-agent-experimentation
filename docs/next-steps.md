@@ -23,6 +23,9 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
      learn its cost.
    - A bigger team: a fourth or fifth agent, to see whether coordination holds as the team grows.
      Memory allows it (about 0.25GB a bot).
+   - **Done in part (14 November):** a new model on the same goal: three GPT-6.1 Sol agents met it 20 of 20 on
+     frozen code, 10 of them without the list of what the goal still lacked (write-up 08). Still open: the other
+     providers, and a bigger team.
 3. **Then: a harder goal**, run with the team that does best on team-base. Options:
    - **Longer:** five days, with a farm for food that renews, so the store has to be kept, not just
      filled once.
@@ -35,6 +38,10 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    US$0.35 an agent to learn the cost (estimated US$0.30 a rep), then two more if it holds. Then one
    strong model with two cheap ones, to find the least that has to be paid. Credit on 28 October:
    Anthropic US$3.30, OpenAI US$2.55.
+   **Answered in part (14 November):** three of the cheapest model, GPT-6 Luna, met the goal 8 of 10 once (set C),
+   then settled near half on later code (15 of 30 in sets H-J), at about 28¢ a success; three GPT-6.1 Sol agents met
+   it 20 of 20 at about US$1.04 a success (write-ups 07 and 08). Still open: a Haiku team, and one strong model with
+   two cheap ones.
    **thaiku1** (US$0.20): 0 of 4 parts, no deaths; the agents mostly waited and talked status, built a
    one-storey "large" home, and one was stuck all run in the flooded cave, which led to the `respawn`
    skill and to `climb_out` swimming up onto a bank. **thaiku2** (reps 2-3, US$0.46): 2 of 4 parts in
@@ -531,9 +538,10 @@ per rep (Opus costs up to about $2.70 over three days).
 - **Results so far** (`docs/results/`):
   - One agent, one day (`outpost`): after the fixes every paid model met it 12 of 12 (p6); the free 4B
     local model met it 0 of 9, looping on what it already had (write-ups 02 and 04).
-  - Teams of three, three days (`team-homestead`, then `team-base`, write-ups 05 and 06): the mixed
+  - Teams of three, three days (`team-homestead`, then `team-base`, write-ups 05 to 08): the mixed
     team (Opus, Sonnet, Luna) met the whole goal in rep 1 of tbase5 and of tbase6; teams of three
-    Lunas never have, though bpoc6, bpoc9 and bpoc10 met three of four parts (bpoc11 two).
+    Lunas, after many fixes to the tools, met it 8 of 10 once (set C) and settled near half (15 of 30 in
+    sets H-J); three GPT-6.1 Sol agents met it 20 of 20 on the same code (write-up 08).
   - What the agents do: split the work at once and keep to it; answer requests, not needs; trust what
     they were last told over what changed; run from monsters (a sound choice: most are unarmed).
   - What the tools learned (`docs/lessons.md`, and 06's "How this testbed gets better"): reflexes for
