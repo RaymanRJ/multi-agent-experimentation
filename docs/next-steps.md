@@ -430,7 +430,13 @@ never did, and what stops teams now is mostly their own behaviour, not our bugs.
    91 hunts for a monster by the home were refused at the door that day (77 of them 33f's spider, 40 by day, since
    fixed by d1a87cd; 12 a zombie in 38j; 1 the skeleton in 38c, after which they waited). Live at night: old refused
    2 of 2; new killed a zombie 6 of 6 and a skeleton 5 of 5, from 3 blocks off and from against the door, health 20
-   throughout, none got in; two zombies still keep it shut (2 of 2). Not yet measured in a set. 28b 2 of 4 parts: nobody slept all run. Wool came only on
+   throughout, none got in; two zombies still keep it shut (2 of 2). Not yet measured in a set.
+   **1233ea9:** a team runs on one clock (each budget counts from the first member's spawn, shared on the board), so
+   every run in a team ends at the same world age; live, two agents joined 9 s apart had budgets expire at the same
+   tick. **Next (the owner's plan): a review, then a Sol trial** (five runs, three gpt-6.1-sol agents, same code,
+   world and goal), write-up only once 80% holds. Sol priced from H-J's real usage (2.1M input a run, 78% cached,
+   126k output): US$2.59 a run on average (0.47-4.84), US$1.93 the most any agent would have spent; Luna decides in
+   4.6 s median (p90 8.4 s), so a slower model would get fewer decisions in the same game time. 28b 2 of 4 parts: nobody slept all run. Wool came only on
    day 3 (21 hunts "the sheep got away"), and then `place_bed` refused all 3 beds 50 times, "no room left for a bed":
    a block (most likely the team's second crafting table) stood on the cell inside the doorway, and the room check
    needed that cell open before it tried anything. **Fixed (merged after tluna28 as 522516e):** a
