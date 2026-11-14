@@ -59,9 +59,9 @@ piece built against it simultaneously. This has already bitten this project's pl
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
   `batch.sh` and `team.sh` give every run a freshly regenerated world; `src/agents/scripts/reset-world.sh` regenerates
   the main one (`mae-mc`). The itzg image reads `SEED`, not `LEVEL_SEED` — the world was unseeded until that was fixed.
-  One `SEED` setting picks the world for the server and the agents: `testbed` by default, but `SEED=multiagent` (the
-  first world) has been the target since 9 November and every result since used it, so export it for batches and
-  team runs. Each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`); each run records its seed in
+  One `SEED` setting picks the world for the server and the agents: `multiagent`, the first world, by default (the
+  target since 9 November, and every result since was measured on it); `SEED=testbed` picks the other surveyed
+  world. Each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`); each run records its seed in
   `runs/<log>.start.json`.
 - **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
   says done, or the in-game time budget runs out (`--ticks`, default one day; a team's budget counts from its first
@@ -108,6 +108,10 @@ piece built against it simultaneously. This has already bitten this project's pl
   pathfinder, also runs under standing guards a new digging skill inherits: a home's walls, roof, floor and the ground
   round it (a band two wide, five by five in front of the door, and the layer under) are never dug (`protectHomes`),
   and an iron pickaxe's last three uses are kept (`spareLastUse` in `toolWear.ts`).
+- **Every run is watchable by default.** Each agent serves its 3D view in a browser, from :3007, taking the next free
+  port so runs side by side never collide, and starts the minds panel at :3010 if it isn't up; the panel then stays up
+  for the next runs (`watch.ts`). `--view off` (or `VIEW=off` for the scripts) and `MINDS=off` skip them; the Docker
+  agents leave the panel to its own service.
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.
 
@@ -132,12 +136,12 @@ npm install
 npm run agent -- --scenario sandbox --brain scripted  # no model in the loop
 npm run agent -- --scenario survival --brain ollama   # free local brain
 ./start.sh --check                                    # check Docker / Ollama / model setup, start nothing
-npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
+npm run agent -- --brain ollama                       # watched by default: its 3D view at :3007 (next free port if taken), the minds panel at :3010
 npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore | outpost | iron | diamond; teams: team-camp | team-homestead | team-base
 npm run agent -- --brain ollama --goal tools-guided   # same task with the steps spelled out (shelter-guided too)
 npm run agent -- --brain ollama --goal outpost --scenario survival --ticks 27000  # long goal: 4 stone tools + shelter, survive the night
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
-npm run agent -- --brain claude --view 3008           # one port per agent to watch several
+npm run agent -- --brain claude --view 3008           # ask for a viewer port (the next free one if taken); --view off for none
 npm run agent -- --brain gemini                       # also grok, groq, openrouter: key + model in .env, price in pricing.ts
 npm run agent -- --brain ollama --memory full --comms off  # memory: none | plan | full; comms: on | off
 npm run agent -- --brain ollama --stance competitive  # stance: neutral (default) | collaborative | competitive
@@ -149,9 +153,9 @@ npm run summary -- --batch b5                         # rebuild each run's behav
 npm run compare -- --team trio3                       # one readable report across runs: by goal, model, and who did what (written at run end)
 npm run skills -- --batch p6 --team thome1             # which skills runs chose, how often they worked (docs/results/skill-usage.md)
 
-scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env; VIEW=on to watch at :3007)
+scripts/batch.sh b6 3 12000 sandbox                    # single-agent comparison batch (CONDITIONS, GOALS env; watched at :3007, VIEW=off to skip)
 STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in one fresh world
-STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; watch at :3007, :3008
+STANCE=collaborative GOAL=team-camp scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; each agent's view from :3007, ports printed as they join
 
 scripts/reset-world.sh                                # regenerate the main world from its seed
 scripts/publish-reports.sh NAME                       # write a batch's or team run's report to docs/results/batch-reports/
@@ -218,8 +222,6 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
 - **Never commit secrets.** This repository is intended to be public. `.env` is ignored;
   `src/agents/.env.example` carries empty placeholders. API keys come from the environment or the git-ignored
   `src/agents/.env` — never from a committed file, never from a default argument.
-- **The slide deck is not in this repo.** Business material lives outside this repository,
-  deliberately outside version control. Do not move it in, and do not reference it from committed files.
 - **32GB machine.** Apple M1 Pro, 32GB unified memory; Docker Desktop's VM has about 8GB, so at most four game
   servers run at once (about 1.5GB each, measured). Budget per run: ~2GB Paper, ~0.7GB for three bots, ~3GB for
   a 4B local model. Do not run the Minecraft Java client and a large local model at the same time

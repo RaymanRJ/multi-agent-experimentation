@@ -10,7 +10,8 @@
 #   CONDITIONS="ollama:none ollama:none+noprogress" scripts/batch.sh b6   # progress (told what the goal still lacks) is on; +noprogress turns it off
 #   BUDGET_USD=15 CONDITIONS="claude:full@claude-sonnet-5-5 claude:full@claude-opus-5-5" scripts/batch.sh p1
 #     a condition is brain[:memory][+progress|+noprogress][@model]; BUDGET_USD caps each paid run (default 1.00)
-#   VIEW=on scripts/batch.sh b7    # watch each run in a browser at :3007 (VIEW_PORT to change); one run at a time, so one port
+#   VIEW=off scripts/batch.sh b7   # each run is watchable in a browser at :3007 by default (VIEW_PORT to change; the next free
+#                                  # port if taken), and the minds panel at :3010 is started if it isn't up (MINDS=off to skip)
 #
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/batch-NAME.txt
 set -euo pipefail
@@ -25,10 +26,10 @@ goals="${GOALS:-shelter tools}"
 budget="${BUDGET_USD:-1.00}"   # per-run spending cap for paid models; raise it for long goals
 stance="${STANCE:-neutral}"   # one agent per world, so this only changes the prompt text
 port="${BATCH_PORT:-25590}"
-view="${VIEW:-off}"          # on: serve each run's 3D view in a browser; it only watches, nothing joins the world
+view="${VIEW:-on}"           # on: serve each run's 3D view in a browser; it only watches, nothing joins the world
 viewport="${VIEW_PORT:-3007}"
 viewargs=()
-if [ "$view" = on ]; then viewargs=(--view "$viewport"); fi
+if [ "$view" = on ]; then viewargs=(--view "$viewport"); else viewargs=(--view off); fi
 list="runs/batch-$name.txt"
 mkdir -p runs
 : > "$list"
@@ -65,7 +66,7 @@ for rep in $(seq 1 "$reps"); do
       short="${goal/-guided/g}"   # tools-guided -> toolsg, to fit the name limit
       agent="$(printf '%s_%s_%s' "$tag" "$short" "$rep" | cut -c1-16)"
       echo "==> [$n/$total] $agent ($scenario, $ticks ticks)"
-      [ "$view" = on ] && echo "    watch at http://localhost:$viewport"
+      [ "$view" = on ] && echo "    watch at http://localhost:$viewport (or the next free port; the run log says)"
       scripts/test-server.sh reset "batch-$name" "$port" >/dev/null
       var="$(model_var "$brain")"
       out="$( [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"

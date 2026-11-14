@@ -260,9 +260,9 @@ is public.
 
 ```bash
 npm run agent -- --brain scripted                              # no model: the fixed-rules baseline
-npm run agent -- --brain ollama --goal shelter --view          # one agent, watched at :3007
-npm run agent -- --brain claude --goal tools --view 3008       # one port per agent to watch several
-STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t1 "haiku=claude@claude-haiku-4-5 qwen=ollama"
+npm run agent -- --brain ollama --goal shelter                 # one agent, watched by default at :3007 (next free port if taken)
+npm run agent -- --brain claude --goal tools --view off        # no 3D view (MINDS=off also skips starting the minds panel)
+STANCE=collaborative GOAL=team-camp scripts/team.sh t1 "haiku=claude@claude-haiku-4-5 qwen=ollama"
 ```
 
 These need the environment running: `./start.sh` starts it, or `docker compose up -d` on its own
@@ -446,8 +446,8 @@ The two differ only in the environment's settings and the goal text, so runs sta
 #### What is held fixed, and what is not
 
 - **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `src/agents/compose.yaml`, read by the
-  server and the agents alike; `testbed` by default, and `SEED=multiagent`, the first world, for the team-base results
-  since 9 November), and `src/agents/scripts/batch.sh` and `team.sh` give every run a freshly regenerated copy, so no
+  server and the agents alike: `multiagent`, the first world, by default, on which every result since 9 November was
+  measured; `SEED=testbed` picks the other surveyed world), and `src/agents/scripts/batch.sh` and `team.sh` give every run a freshly regenerated copy, so no
   run inherits another's felled trees, holes or inventory. Each run records its seed in `runs/<log>.start.json`.
 - **The start point varies a little.** New players appear at a random spot within
   `spawnRadius` (Minecraft's default, 10) of the world spawn. Across batches b1–b5 (78 runs, on the first world)

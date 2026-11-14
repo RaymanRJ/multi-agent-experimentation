@@ -11,7 +11,8 @@
 #   STANCE=collaborative COMMS=on GOAL=shelter scripts/team.sh t2 "opus=claude:full@claude-opus-5-5 sol=gpt@gpt-6.1-sol"
 #
 # STANCE (neutral), COMMS (on), PROGRESS (on; off is its own condition), BUDGET_USD (1.00 per agent) and GOAL (tools) apply to every agent.
-# VIEW=on serves each agent's view in a browser, the first at localhost:3007, the next at 3008, and so on. @model sets the brain's
+# Each agent serves its view in a browser (VIEW=off to skip), from localhost:3007 on, the next free port each (team runs side
+# by side get their own), and the minds panel at :3010 is started if it isn't up (MINDS=off to skip). @model sets the brain's
 # model variable for that agent only, so two models from one provider can play together.
 # Uses its own throwaway server (never the main world). Logs: runs/; the list: runs/team-NAME.txt
 set -euo pipefail
@@ -27,7 +28,7 @@ comms="${COMMS:-on}"
 progress="${PROGRESS:-on}"
 budget="${BUDGET_USD:-1.00}"
 goal="${GOAL:-tools}"
-view="${VIEW:-off}"
+view="${VIEW:-on}"
 port="${TEAM_PORT:-25600}"
 list="runs/team-$name.txt"
 mkdir -p runs
@@ -61,7 +62,7 @@ for rep in $(seq 1 "$reps"); do
     outs+=("$out")
     var="$(model_var "$brain")"
     viewargs=()
-    if [ "$view" = on ]; then viewargs=(--view "$viewport"); echo "    $agent: watch at http://localhost:$viewport"; viewport=$((viewport + 1)); [ "$viewport" = 3010 ] && viewport=3011; fi   # 3010 is the minds panel
+    if [ "$view" = on ]; then viewargs=(--view "$viewport"); viewport=$((viewport + 1)); [ "$viewport" = 3010 ] && viewport=3011; else viewargs=(--view off); fi   # 3010 is the minds panel
     (
       [ -n "$model" ] && [ -n "$var" ] && export "$var=$model"
       MC_PORT="$port" RCON_PORT=$((port + 10)) npx tsx src/agent.ts \
@@ -74,6 +75,9 @@ for rep in $(seq 1 "$reps"); do
     # one to be in the world (or to have failed), then a little more.
     for _ in $(seq 1 60); do grep -qE 'spawned at|lost the connection|kicked' "$out" 2>/dev/null && break; sleep 1; done
     sleep 5
+    # Where to watch it: the agent takes the next free port if the one it was given is busy, and says which.
+    watching="$(grep -oE 'viewer at http://localhost:[0-9]+' "$out" 2>/dev/null | head -1 || true)"
+    [ -n "$watching" ] && echo "    $agent: watch at ${watching#viewer at }"
   done
   for pid in "${pids[@]}"; do wait "$pid" || true; done
   # The server is regenerated for the next rep, so keep its log.

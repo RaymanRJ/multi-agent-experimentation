@@ -59,8 +59,9 @@ BUDGET_USD=15 CONDITIONS="claude:plan@claude-haiku-4-5 claude:plan@claude-sonnet
 
 The list of runs goes to `runs/batch-b10.txt`. Each run's server log is saved next to its run log.
 
-To watch, add `VIEW=on`: each run serves its 3D view at http://localhost:3007 (or `VIEW_PORT`). The
-runs go one at a time, so the same address shows whichever run is going. The viewer only watches;
+Every run is watchable by default: it serves its 3D view at http://localhost:3007 (or `VIEW_PORT`; the next free port
+if that one is taken), and the minds panel at http://localhost:3010 is started if it isn't up. `VIEW=off` and `MINDS=off`
+skip them. The runs go one at a time, so the same address shows whichever run is going. The viewer only watches;
 nothing extra joins the world, so watching doesn't change the experiment.
 
 ## Several agents together: `team.sh`
@@ -68,7 +69,7 @@ nothing extra joins the world, so watching doesn't change the experiment.
 ```bash
 STANCE=competitive scripts/team.sh t2 "qa=ollama:full qb=ollama:full" 3 12000
 STANCE=collaborative GOAL=shelter scripts/team.sh t3 "opus=claude:full@claude-opus-5-5 qwen=ollama:full"
-STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t4 "haiku=claude@claude-haiku-4-5 qwen=ollama"
+STANCE=collaborative GOAL=team-camp scripts/team.sh t4 "haiku=claude@claude-haiku-4-5 qwen=ollama"
 ```
 
 Each agent is `name=brain:memory@model`, where the memory and the model are optional. All agents in
@@ -85,7 +86,8 @@ sword and shovel, with every member carrying at least one, and one of them must 
 shelter (`build_shelter` with `storeys` 2: about 87 blocks, or 22 logs). It doesn't matter who builds,
 so it pays to split the work. Every agent's run ends as soon as the team has it all. Agents learn what teammates
 hold only by looking and asking; the shared tally behind the check (`runs/.teams/`) is never shown
-to them. `VIEW=on` serves each agent's view in a browser, from localhost:3007 up.
+to them. Each agent serves its view in a browser by default, from localhost:3007 up, the next free port each (team runs
+side by side get their own); `team.sh` prints each one's address as it joins. `VIEW=off` skips them.
 
 ## Reading the results
 

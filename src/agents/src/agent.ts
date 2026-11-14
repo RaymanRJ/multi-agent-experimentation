@@ -14,6 +14,7 @@ import { describeShelter, doorwayState, HOME_RANGE, TEAM_HOME_RANGE, hostilesIns
 import { readFileSync, writeFileSync } from "node:fs";
 import { RunLog } from "./log.js";
 import { brainLabel, liveFileFor, parseSteps, startFileFor, type LiveStep, type RunStart } from "./minds.js";
+import { ensureMindsPanel, freePort, inUse, MINDS_PORT, VIEW_FROM } from "./watch.js";
 import { writeSummary } from "./summary.js";
 import { fixOwnAir } from "./breathFix.js";
 import { spareLastUse, toolWear, watchBreaks, wearSpent } from "./toolWear.js";
@@ -105,8 +106,13 @@ const config: RunConfig = {
 const skills = comms ? SKILLS : SKILLS.filter((skill) => !COMMS_SKILLS.has(skill.name));
 const team = String(argv["team"] ?? "").split(",").map((name) => name.trim()).filter(Boolean);
 if (team.length > 0) config.team = team;
-const viewPort = argv["view"] === undefined || argv["view"] === false ? null : argv["view"] === true ? 3007 : Number(argv["view"]);
-if (viewPort !== null) config.view = viewPort;
+// The 3D viewer is on by default, from :3007 or the port asked for (`--view 3008`), moving to the next free port when
+// that one is taken, so runs side by side never collide; `--view off` (or `--no-view`) turns it off (watch.ts).
+const viewArg = argv["view"];
+const requestedView =
+  viewArg === false || viewArg === "off" || viewArg === "false" ? null
+  : viewArg === undefined || viewArg === true || viewArg === "on" ? VIEW_FROM
+  : Number(viewArg);
 
 const agentName = String(argv["name"] || `agent_${argv["brain"]}`);
 /** The reason a skill gets when the agent dies during it; recentEvents says where and how. */
@@ -180,6 +186,14 @@ async function main(): Promise<void> {
       process.exit(3);
     }
   }
+  // Every run is watchable: the minds panel is started if it isn't up (MINDS=off skips it, as the Docker agents do,
+  // whose panel runs as its own service), and the viewer's port is chosen now so the start file can name it.
+  if (process.env["MINDS"] !== "off") {
+    const minds = await ensureMindsPanel().catch((error: Error) => `not started (${error.message})`);
+    console.log(`[${agentName}] minds panel at http://localhost:${MINDS_PORT} (${minds === "started" ? "started for this run; it stays up" : minds === "running" ? "already running" : minds})`);
+  }
+  let viewPort = requestedView === null ? null : await freePort(requestedView);
+  if (viewPort !== null) config.view = viewPort;
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const runLog = new RunLog(runId, agentName);
   // Lets the minds panel list this agent now, not only once its first decision is logged.
@@ -490,10 +504,15 @@ async function main(): Promise<void> {
       }, 2000)
     : null;
 
-  // `--view` serves this bot's view of the world in a browser. Pass a port
-  // (`--view 3008`) to watch several agents at once. It observes only — no
-  // extra player joins the world.
+  // The bot's view of the world in a browser, on by default (`--view off` to skip). It observes only: no extra player
+  // joins the world. Another run may have taken the port since it was chosen at start; if so, the next free one, and
+  // the start file says which.
   if (viewPort !== null) {
+    if (await inUse(viewPort)) {
+      viewPort = await freePort(viewPort + 1);
+      config.view = viewPort;
+      writeFileSync(startFileFor(runLog.file), JSON.stringify({ ...start, view: viewPort }));
+    }
     startViewer(bot, { port: viewPort, firstPerson: false, viewDistance: 6 });
     console.log(`[${agentName}] viewer at http://localhost:${viewPort}`);
   }

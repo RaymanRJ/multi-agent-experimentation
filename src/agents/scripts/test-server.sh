@@ -23,7 +23,7 @@ up() {
     -p "$port:25565" -p "$((port + 10)):25575" \
     -e EULA=TRUE -e TYPE=PAPER -e VERSION=1.21.1 -e PAPER_BUILD=133 -e MEMORY=1G \
     -e ONLINE_MODE=FALSE -e MODE=survival -e DIFFICULTY=peaceful \
-    -e SEED="${SEED:-testbed}" -e VIEW_DISTANCE=6 -e SIMULATION_DISTANCE=4 \
+    -e SEED="${SEED:-multiagent}" -e VIEW_DISTANCE=6 -e SIMULATION_DISTANCE=4 \
     -e SPAWN_PROTECTION=0 -e MAX_PLAYERS=10 -e PVP=false \
     -e ENABLE_RCON=TRUE -e RCON_PASSWORD=devpassword -e OVERRIDE_SERVER_PROPERTIES=TRUE \
     -v "$data:/data" itzg/minecraft-server@sha256:d3415f085e10f522969d3a580247ff23b4ccd8d5b152ca08280fb13395dd15bc >/dev/null

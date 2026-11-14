@@ -40,7 +40,8 @@ echo $!          # keep this PID
 ```
 
 The run order is fixed (every condition's run 1, then run 2…), not shuffled. Each run gets a fresh
-world from the seed. `VIEW=on` lets the owner watch at http://localhost:3007; the minds panel is
+world from the seed. Every run is watchable by default (the next free port from http://localhost:3007; `VIEW=off`
+skips it), and each agent starts the minds panel if it isn't up; the minds panel is
 :3010.
 
 If the permission classifier blocks the start, don't work around it: give the owner the command to

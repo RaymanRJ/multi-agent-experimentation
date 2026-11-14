@@ -216,11 +216,11 @@ test("team-base - one large shelter that every member slept inside, iron pickaxe
   assert.match(GOALS["team-base"]!, /one large shelter/);
 });
 
-test("herds - each surveyed seed has the same four herds; SEED picks them, testbed by default", () => {
+test("herds - each surveyed seed has the same four herds; SEED picks them, multiagent by default", () => {
   for (const herds of Object.values(HERDS_BY_SEED)) {
     assert.deepEqual(herds.map((h) => `${h.count} ${h.animal}`), ["12 sheep", "4 cow", "4 pig", "4 chicken"]);
   }
   assert.deepEqual(Object.keys(HERDS_BY_SEED).sort(), ["multiagent", "testbed"]);
-  if (!process.env["SEED"]) assert.equal(SEED, "testbed");
+  if (!process.env["SEED"]) assert.equal(SEED, "multiagent");
   assert.deepEqual(HERDS, HERDS_BY_SEED[SEED]);
 });

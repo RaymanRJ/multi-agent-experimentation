@@ -16,10 +16,12 @@ export interface Scenario {
 
 /**
  * The world's seed, one setting for the server and the agents: SEED, as compose.yaml and scripts/test-server.sh pass
- * it to the server (itzg reads SEED). `testbed` since 7 November; `multiagent` before, whose iron lay under lakes
- * and flooded caves. A run records it in its start file, so results on the two worlds are never mixed up.
+ * it to the server (itzg reads SEED). `multiagent`, the first world, whose iron lies under lakes and flooded caves:
+ * the default again since 14 November, and every result since 9 November was measured on it. `testbed` was the
+ * default from 7 to 14 November. A run records its seed in its start file, so results on the two worlds are never
+ * mixed up.
  */
-export const SEED = process.env["SEED"] || "testbed";
+export const SEED = process.env["SEED"] || "multiagent";
 
 type Herd = { animal: string; count: number; x: number; z: number };
 

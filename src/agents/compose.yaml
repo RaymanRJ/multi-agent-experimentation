@@ -23,7 +23,7 @@ services:
 
       MODE: survival
       DIFFICULTY: peaceful          # scenario runner overrides this at runtime
-      SEED: "${SEED:-testbed}"      # fixed seed so runs are comparable (itzg reads SEED, not LEVEL_SEED); "multiagent" until 7 November; agents read the same SEED
+      SEED: "${SEED:-multiagent}"   # fixed seed so runs are comparable (itzg reads SEED, not LEVEL_SEED); the first world, the default again since 14 November ("testbed" 7-14 November); agents read the same SEED
       VIEW_DISTANCE: "8"            # keep RAM down on a 16GB machine
       SIMULATION_DISTANCE: "6"
       SPAWN_PROTECTION: "0"
@@ -75,6 +75,7 @@ services:
         required: false
     environment:
       MC_HOST: mc
+      MINDS: "off"   # the minds panel runs as its own service here
       OLLAMA_URL: http://host.docker.internal:11434/v1   # Ollama runs natively on the host
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-instruct}
       OLLAMA_CONTEXT: ${OLLAMA_CONTEXT:-8192}
@@ -102,6 +103,7 @@ services:
         required: false
     environment:
       MC_HOST: mc
+      MINDS: "off"   # the minds panel runs as its own service here
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ./runs:/app/runs
@@ -125,6 +127,7 @@ services:
         required: false
     environment:
       MC_HOST: mc
+      MINDS: "off"   # the minds panel runs as its own service here
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./runs:/app/runs
