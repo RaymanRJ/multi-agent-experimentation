@@ -34,7 +34,7 @@ runs without spending anything again.
 | `--memory` | `none`, `plan`, `full` | What the model remembers between decisions: nothing, a short plan it wrote itself, or the whole conversation. |
 | `--stance` | `neutral`, `collaborative`, `competitive` | How the agent is told to regard other agents. See [communication](communication.md). |
 | `--comms` | `on`, `off` | Whether agents can read and send chat. |
-| `--progress` | `off` (default), `on` | Whether each observation lists what a preset goal still lacks, e.g. "no shelter has been built yet". Facts, not steps: it measures how much a model needs to be reminded. |
+| `--progress` | `on` (default since 8 November), `off` | Whether each observation lists what a preset goal still lacks, e.g. "no shelter has been built yet". Facts, not steps: `off` is its own condition, measuring how much a model needs to be reminded (GPT-6.1 Sol met the team-base goal 10 of 10 without it). |
 | `--budget-usd` | e.g. `1.00` (the default) | Stops a paid run before it spends more than this. |
 
 ## One agent, many conditions: `batch.sh`

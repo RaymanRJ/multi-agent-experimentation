@@ -41,7 +41,7 @@ Options:
                       collaborative  teammates; the team wins only if everyone reaches the goal
                       competitive    opponents; only the first to reach the goal wins
   --progress on|off Whether model agents are told what a preset goal still lacks each step,
-                    e.g. "no shelter has been built yet" (default off)
+                    e.g. "no shelter has been built yet" (default on)
   -h, --help        Show this help
 
 Each launch gets one episode ID shared by all agents, so their logs merge into one run.

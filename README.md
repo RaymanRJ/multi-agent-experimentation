@@ -78,9 +78,11 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 What it is *not* given: advice. The harness adds facts, never suggestions: it says when the agent
 has made the same decision several times running, refuses a premature "done" and says what is still
 missing (a false claim of success is itself a result worth counting), lets it give up with a reason
-and flags that it did, and, as its own experimental condition, can list what the goal still lacks. A few reflexes are code, not the model's choice: in the
-seconds while the model decides, the agent steps back from a monster within reach, takes cover from a skeleton that can see it,
-and swims out if its head is under water; each is reported in its next observation.
+and flags that it did, and lists what the goal still lacks (on by default; `--progress off` is its own
+condition). A few reflexes are code, not the model's choice: in the seconds while the model decides, the agent
+steps back from a monster within reach, backs away from a creeper, takes cover from a skeleton or witch that can
+see it, strikes a monster that got inside its home, digs out a block fallen on its head, and swims out of water or
+lava; each is reported in its next observation.
 
 ## What gets measured
 
@@ -109,8 +111,9 @@ One loop, run after every batch:
 4. **Fix** only the first two, checked in the game. Judgement is reported, never coached.
 5. **Run again,** and see whether they get further.
 
-Every fix so far, beside the same problem in real systems that use AI agents, is in
-[the development loop](docs/results/write-ups/06-team-base.md#how-this-testbed-gets-better-from-where-the-agents-get-stuck).
+Every fix, beside the same problem in real systems that use AI agents, is in a "How this testbed gets better"
+table: up to 29 October in [write-up 06](docs/results/write-ups/06-team-base.md#how-this-testbed-gets-better-from-where-the-agents-get-stuck),
+later ones in [07](docs/results/write-ups/07-luna-majority.md) and [08](docs/results/write-ups/08-reaching-80.md).
 
 ## Why this matters beyond the game
 
@@ -126,11 +129,11 @@ environment is a game; the questions are the same ones a company faces.
 
 | What we saw | What it could mean for you |
 |---|---|
-| **The tools came first; then the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts, at first: it took a team of the cheapest model from under 1 in 3 to about half. Six more tool fixes, each checked, then didn't move it; what was left was the model's own judgement (losing the team's tools in deaths and not getting them back, haggling over them). A stronger model on the same tools met the goal 20 times in 20. | Invest in the systems and integrations the agent works through first: a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. Then measure: when fixes stop moving your success rate, the limit is the model, and a short trial of a stronger one is cheaper than more tuning. The tooling still pays: the stronger model used it unchanged. |
+| **The tools came first; then the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts, at first: it took a team of the cheapest paid model from under 1 in 3 to about half (one set of ten scored 8, another 7, the next four 6, 7, 4 and 4). Six more tool fixes, each checked, then didn't move it; what was left was the model's own judgement (losing the team's tools in deaths and not getting them back, haggling over them). A stronger model on nearly the same tools met the goal 20 times in 20. | Invest in the systems and integrations the agent works through first: a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. Then measure: when fixes stop moving your success rate, the limit is the model, and a short trial of a stronger one is cheaper than more tuning. The tooling still pays: the stronger model used it unchanged. |
 | **Keeping the model out of the step-by-step work.** The model chooses *what* to do; ordinary code does it. This is the design the project is built on rather than a measured result: a model takes seconds to answer while the world keeps moving, so letting it steer every step was never workable. | Let the AI make the judgement calls and leave execution to proven software. An agent that improvises every click and keystroke is slow, expensive and fragile. |
 | **Agents claim success they haven't reached.** Small models regularly said "done" when the goal wasn't met. | Never take an agent's word that a job is finished. Check the outcome independently (was the refund actually issued?) before anyone relies on it. |
 | **Cheaper models loop.** The small model repeated the same failing action dozens of times, even when told exactly what was wrong. The larger models changed course about half the time or more. | Budget and monitor for repetition. Set limits on time and spend per task, watch for an agent doing the same thing over and over, and match the model to how much judgement the work needs. |
-| **Cost varies enormously, and isn't the same as quality.** A single decision cost from nothing (a model on our own machine) to up to about $0.02 (Claude Sonnet); GPT-6 Luna's cost about $0.0005, ten or more times less. In one team run that cheapest paid model built the shelter, and its whole run cost under half a cent. | Price per decision tells you little on its own. Measure cost per *completed task* on your own work: a cheap model that finishes can beat an expensive one, and a free local model keeps data in-house. |
+| **Cost varies enormously, and isn't the same as quality.** A single decision cost from nothing (a model on our own machine) to up to about $0.02 (Claude Opus); GPT-6 Luna's cost about $0.0004, ten or more times less, and GPT-6.1 Sol's about $0.005. In one team run that cheapest paid model built the shelter, and its whole run cost under half a cent. | Price per decision tells you little on its own. Measure cost per *completed task* on your own work: a cheap model that finishes can beat an expensive one, and a free local model keeps data in-house. |
 | **Teams of agents can split the work, but need ground rules.** In one run, four agents on four different models met a shared goal: one made every tool and handed them out, another built the shelter. Along the way, agents didn't know their own names until told, and interrupted each other so often that work kept getting cancelled. | Multi-agent setups are workable, but the coordination has to be designed: who each agent is, how work is handed over, and when one may interrupt another. Those rules belong in the system, not left to the agents to work out. |
 | **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. Later, letting the body step back, take cover and swim out by itself while the model decides cut deaths during a decision from 9 a run to 1. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
 | **Every decision is recorded.** Each choice is logged with exactly what the agent saw and why it chose, so any run can be replayed and audited, and its cost traced to the cent. | Insist on the same from any agent you deploy. When something goes wrong, you need to see what it knew and why it acted, not just the end result. |
@@ -142,8 +145,8 @@ completed task: here the cheapest model cost about 28¢ a success at half the su
 about $1 a success at 20 of 20. Building and measuring that structure is the part of the work this project
 is about, and it carries over to any business system.
 
-**A caveat:** these are results from one environment, a game, over a few hundred logged runs (twenty
-for the latest result, on one goal and one world). They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
+**A caveat:** these are results from one environment, a game, over more than 700 logged agent runs
+(twenty for the latest result, on one goal and one world). They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
 says what has and hasn't been tested.
 
 ## Getting started
@@ -154,7 +157,7 @@ API key are needed: the free local model runs on its own.
 ### 1. Install the prerequisites
 
 You need **Docker** (it runs the environment), **[Ollama](https://ollama.com/)** (it runs the free
-local model on your machine) and **Node.js 25 or newer** (it runs the agents). Developed on an
+local model on your machine) and **Node.js 22 or newer** (it runs the agents). Developed on an
 Apple Silicon Mac; other platforms are expected to work but are less tested.
 
 | | Docker | Ollama (local model) | Notes |
@@ -185,7 +188,7 @@ layout:
 | `src/agents/` | The experiment: the agents and skill library (`src/`), the run scripts (`scripts/`), the game server's Docker setup, and, kept out of git, the run logs (`runs/`) and the world (`world/`) |
 | `docs/` | How it works, and the results: write-ups and batch reports |
 | `src/site/` | The project site: the lessons, case studies, results and every doc, built from `docs/`; see its README |
-| `src/terraform/` | AWS hosting for the project site (S3, CloudFront, a certificate, DNS), deployed by `.github/workflows/site.yaml`; see its README |
+| `src/terraform/` | AWS hosting for the project site (S3, CloudFront, a certificate, DNS) and a private bucket for the run logs, applied by hand; `.github/workflows/site.yaml` deploys the built site on a push to `main`; see its README |
 
 ### 3. Check your setup
 
@@ -208,13 +211,13 @@ it yet.
 available model, gives each its goal, and steps back. A run ends by itself when the goal is met,
 when the model says it is done or gives up, or when its time runs out. The game server accepts any player name
 without an account check (the bots need that), so keep it on your own machine or network and never
-expose port 25565 to the internet. To set the conditions:
+expose ports 25565 (the game) or 25575 (its remote console) to the internet. To set the conditions:
 
 ```bash
 ./start.sh --scenario survival --goal outpost --ticks 27000   # threats at night, a long goal
 ./start.sh --goal "Mine 10 stone"                             # any goal, in quotes
 ./start.sh --memory full --comms off --stance collaborative   # what the agents remember and how they regard each other
-./start.sh --help                                             # every option and preset goal
+./start.sh --help                                             # every option and the single-agent preset goals
 ```
 
 ### 5. Watch it work
@@ -281,43 +284,46 @@ To walk around the environment yourself, you need Minecraft Java Edition 1.21.1 
 ## Status
 
 **Working, and being measured.** Agents run hands-off on preset goals checked by code (tools,
-shelter, an outpost that has to last the night, iron, diamond, and a team goal), alone or several
+shelter, an outpost that has to last the night, iron, diamond (checked skill by skill only), and three team
+goals), alone or several
 to a shared environment, with memory, stance and communication settings, comparison batches on
 fresh worlds, reports with confidence intervals, and a panel showing every decision.
 
-The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5, Sonnet 5.5 and Opus
-5.5, GPT-6 Luna and GPT-6.1 Sol. A scripted agent with fixed rules and no model is the baseline: without it
-there would be no way to tell whether a model adds anything. The local model has been through the
-most comparison batches (b1–b16); the paid models through two (p5, p6: three runs each) and the
-team runs. A three-day team game costs about $1.40-3.30 a rep with Opus, Sonnet and GPT-6 Luna
+The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5 and 5.5, Sonnet 5.5 and
+Opus 5.5, GPT-6 Luna and GPT-6.1 Sol. A scripted agent with fixed rules and no model is the baseline: without it
+there would be no way to tell whether a model adds anything. The local model has the most single-agent
+batches (b1–b16) and the paid models two (p5, p6: three runs each); GPT-6 Luna has played by far the most
+runs, nearly all in teams. A three-day team game costs about $1.40-3.30 a rep with Opus, Sonnet and GPT-6 Luna
 together (less when the team finishes early), about $0.14 with three GPT-6 Luna agents, or about $1.04 with
 three GPT-6.1 Sol agents.
 
 **What we've found so far** (details in [docs/results/](docs/results/)):
-- **The team goal, every time, with a stronger model on the same harness.** Three GPT-6.1 Sol agents met
+- **The team goal, 20 runs in 20, with a stronger model on nearly the same harness.** Three GPT-6.1 Sol agents met
   the whole three-day `team-base` goal in 20 of 20 runs on one unchanged commit, 10 of them without the
   list of what the goal still lacked, at about $1.04 a success. Three GPT-6 Luna agents on nearly the same
   harness met it in 15 of 30 (about 28¢ a success), after six more fixes to the tools had stopped moving
   their rate ([write-up 08](docs/results/write-ups/08-reaching-80.md)).
-- **Fixing the tools mattered more than anything about the model.** The biggest improvements came
-  from making skills find better targets, fail more clearly and avoid hazards.
-- **Memory helps a small model, a self-written plan can hurt it.** Full conversation memory worked
-  best for the local model; a plan it wrote itself led it to follow that stale plan into loops.
+- **Fixing the tools mattered most, until it stopped paying.** The biggest improvements came from
+  making skills find better targets, fail more clearly and avoid hazards; past that point, the model.
+- **A self-written plan hurt a small model.** The local model met its goal in 12 of 12 runs with no
+  memory, 21 of 24 with its full conversation, and 13 of 24 with a plan it wrote itself, which it
+  followed, stale, into loops.
 - **Small models claim success they haven't reached.** The harness now refuses a premature "done"
   and says what is missing.
 - **Small models loop.** The local model repeats a failing decision dozens of times, even when told
   exactly what is wrong: in the team runs it changed course after about one failure in ten, the
   Claude models after about half or more.
 - **Long goals are hard for a small model.** On the outpost goal (tools, shelter, survive the night)
-  the local model met it in 3 of 18 runs in its latest batch; it usually makes the tools, then
-  fails to build the shelter or loses its tools to threats.
+  the local model met it in 3 of 18 runs in b12, then 0 of 9 in b15–b16; it usually makes the tools,
+  then fails to build the shelter or loses its tools to threats.
 - **Hands-off teams can work.** In one run (one run, not yet a comparison), four agents on four
   models met a shared goal in under five minutes of game time for $0.28: one made every tool and
   handed them out, another built the shelter.
 - **A team can finish a long shared goal.** After fixes to tools, information and reflexes, a team of
   Claude Opus, Claude Sonnet and GPT-6 Luna met the whole three-day `team-base` goal (one home, a bed
-  each, an iron pickaxe each, food stored) in one of three reps, with no deaths, for $1.36: each agent
-  took one part and finished it. In the other two the home and food were done, and iron wasn't.
+  each, an iron pickaxe each, food stored) in 3 of 8 reps by 28 October; in its first win each agent
+  took one part and finished it, with no deaths, for $1.36. Where they fell short, the home and food
+  were done and iron wasn't.
 
 What isn't done or isn't tested is listed in [docs/limitations.md](docs/limitations.md).
 
@@ -368,7 +374,7 @@ flowchart TB
     end
 
     subgraph ACTION["HOW AN AGENT ACTS — two distinct layers"]
-        SKILLS["<b>Skill Library</b> — our code<br/>gather_wood(10) · build_shelter() · flee_from(mob)<br/>goal-level · fallible · returns a structured result"]
+        SKILLS["<b>Skill Library</b> — our code<br/>gather_wood(10) · build_shelter() · flee(16)<br/>goal-level · fallible · returns a structured result"]
         MF["<b>mineflayer</b> + <b>mineflayer-pathfinder</b> — third-party<br/>bot.dig() · bot.placeBlock() · bot.craft() · goto(x,y,z)<br/>single mechanical operations"]
         SKILLS -->|"composed from"| MF
     end
@@ -439,11 +445,12 @@ The two differ only in the environment's settings and the goal text, so runs sta
 
 #### What is held fixed, and what is not
 
-- **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `src/agents/compose.yaml`), and
-  `src/agents/scripts/batch.sh` gives every run a freshly regenerated copy, so no run inherits another's
-  felled trees, holes or inventory.
+- **Terrain is fixed.** The world is generated from a fixed seed (`SEED` in `src/agents/compose.yaml`, read by the
+  server and the agents alike; `testbed` by default, and `SEED=multiagent`, the first world, for the team-base results
+  since 9 November), and `src/agents/scripts/batch.sh` and `team.sh` give every run a freshly regenerated copy, so no
+  run inherits another's felled trees, holes or inventory. Each run records its seed in `runs/<log>.start.json`.
 - **The start point varies a little.** New players appear at a random spot within
-  `spawnRadius` (Minecraft's default, 10) of the world spawn. Across batches b1–b5 (78 runs)
+  `spawnRadius` (Minecraft's default, 10) of the world spawn. Across batches b1–b5 (78 runs, on the first world)
   every agent started inside one 20 × 21 block area (x −8…11, z 23…43). That is close enough to
   share the same surroundings, but not identical: some starts are next to oak trees and others
   next to dark oak. Treat small differences between conditions with that in mind.
@@ -467,7 +474,7 @@ replaced without touching them.
 | [itzg/minecraft-server](https://github.com/itzg/docker-minecraft-server) | Container image — EULA, version pinning, RCON, config via env | free |
 | [PaperMC](https://papermc.io/) 1.21.x | The Minecraft server itself. Chosen over vanilla for chunk/entity performance — every bot is a chunk-loading epicentre | free |
 | Java 21 | Runs Paper — **inside the container only** | free |
-| [Node.js](https://nodejs.org/) 25 + TypeScript | The agent processes | free |
+| [Node.js](https://nodejs.org/) 22+ + TypeScript | The agent processes | free |
 | [mineflayer](https://github.com/PrismarineJS/mineflayer) | Independent implementation of the Minecraft protocol. Not Minecraft — no client, no licence needed | free |
 | [mineflayer-pathfinder](https://github.com/PrismarineJS/mineflayer-pathfinder) | Navigation, so the model never steers | free |
 | [prismarine-viewer](https://github.com/PrismarineJS/prismarine-viewer) | Renders a bot's world model in a browser tab | free |

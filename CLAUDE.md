@@ -51,17 +51,21 @@ piece built against it simultaneously. This has already bitten this project's pl
 
 - **Keep observations small.** Dumping raw world state will blow up prompts and cost. Send
   nearby blocks of interest, inventory, health, time of day, and recent events — not a block dump.
-- **Replan on events, not on a timer.** Block broken, mob spotted, goal failed, nightfall. A bot
+- **Replan on events, not on a timer.** A skill ending, damage, a hostile or creeper close, air running out,
+  dusk and night, a teammate's message, death, the team goal met (`interrupts.ts`). A bot
   that replans every two seconds will outrun a local model and fall behind the game.
 - **Log every decision.** Persist each `(observation → goal)` pair. This gives episode replay
   without re-burning API calls, and it is the source of the cost numbers.
 - **Seed runs.** Scenarios must be reproducible for comparisons between models to mean anything.
-  Reset the world (`src/agents/scripts/reset-world.sh`) before comparison runs. The itzg image reads `SEED`,
-  not `LEVEL_SEED` — the world was unseeded until that was fixed. One `SEED` setting picks the world for the
-  server and the agents (`testbed` by default; `SEED=multiagent` for the first world, used until 7 November);
-  each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`), and each run records its seed.
+  `batch.sh` and `team.sh` give every run a freshly regenerated world; `src/agents/scripts/reset-world.sh` regenerates
+  the main one (`mae-mc`). The itzg image reads `SEED`, not `LEVEL_SEED` — the world was unseeded until that was fixed.
+  One `SEED` setting picks the world for the server and the agents: `testbed` by default, but `SEED=multiagent` (the
+  first world) has been the target since 9 November and every result since used it, so export it for batches and
+  team runs. Each seed's herd spots are in `HERDS_BY_SEED` (`scenario.ts`); each run records its seed in
+  `runs/<log>.start.json`.
 - **Runs end on a budget, not a step count.** A run stops when its preset goal is met, the model
-  says done, or the in-game time budget runs out (`--ticks`, default one day); `--budget-usd` caps
+  says done, or the in-game time budget runs out (`--ticks`, default one day; a team's budget counts from its first
+  member's spawn, so every run in a team ends at the same world age); `--budget-usd` caps
   paid models; `--steps` is only a safety cap. Tokens and wall-clock are recorded, never limits —
   tokenizers differ between providers and wall-clock measures the hardware. With a preset goal, a
   "done" before the goal is met is refused once and told so; a second "done" in a row ends the run.
@@ -94,26 +98,33 @@ piece built against it simultaneously. This has already bitten this project's pl
   Otherwise teammates learn about each other by looking (`otherAgents`) and by chat; agents
   act on each other through `give`, `pick_up` and `go_to`. They can ask things of each other with
   `tell_agent` (run this skill) and `ask_agent` (answer this); the recipient decides, and the log
-  records whether its next decision complied (`responses`).
+  records whether its next decision complied (`responses`). The board also carries the team's clock and a new
+  home's site from the moment building starts (`claimShelter`), so two agents never build one home through another.
 - **Reflexes cover only the seconds the model can't act** (`src/agents/src/reflexes.ts`; swimming out in
-  `agent.ts`). While the model decides, the body swims out, steps back from melee, backs away from
-  creepers, takes cover from archers and hits a monster that got inside its home; it never chooses a goal, does nothing else inside a closed shelter, and the next observation says
-  what it did. A new reflex follows the same rules; anything that picks between goals is a skill.
+  `agent.ts`). While the model decides, the body swims out of water or lava, steps back from melee, backs away from
+  creepers, takes cover from archers, hits a monster that got inside its home and digs out a block fallen on its head;
+  it never chooses a goal, does nothing else inside a closed shelter, and the next observation says what it did. A new
+  reflex follows the same rules; anything that picks between goals is a skill. Every dig, by any skill or the
+  pathfinder, also runs under standing guards a new digging skill inherits: a home's walls, roof, floor and the ground
+  round it (a band two wide, five by five in front of the door, and the layer under) are never dug (`protectHomes`),
+  and an iron pickaxe's last three uses are kept (`spareLastUse` in `toolWear.ts`).
 - `ScriptedPolicy` is not throwaway scaffolding. It is the control baseline — without it there is
   no way to tell whether a model is adding value. Keep it working.
 
 ## Commands
 
 The experiment lives in `src/agents/` (moved there on 21 October; the repository root holds the
-docs, README and repo plumbing). Every command below runs from `src/agents/`, and paths in the
-rest of this file are relative to it unless they start `src/agents/` or `docs/`.
+docs, README, site and repo plumbing). Every command below runs from `src/agents/`. Paths in the rest of this file
+that start `src/`, `docs/` or `.claude/` are from the repository root; others are from `src/agents/`, and bare file
+names (`policy/llm.ts`, `interrupts.ts`) are under `src/agents/src/`.
 
 ```bash
 cd src/agents
-./start.sh [--scenario survival --ticks 12000]  # everything: mc + minds :3010 + agents (ollama stays on host)
+./start.sh [--scenario survival --ticks 12000]  # everything: mc + minds :3010 + an Ollama agent, plus Claude and GPT agents if their keys are set (paid, $1.00 cap each)
 ./stop.sh [--all]               # stop agents + minds; --all also stops mc
 
-docker compose up -d            # Paper server on :25565
+docker compose up -d mc         # Paper server on :25565 (without `mc`, the minds panel starts too)
+npm run minds                   # the minds panel on :3010: every agent's decisions, live
 docker compose logs -f mc       # server console
 docker compose exec mc rcon-cli difficulty peaceful   # live scenario toggle
 
@@ -122,7 +133,7 @@ npm run agent -- --scenario sandbox --brain scripted  # no model in the loop
 npm run agent -- --scenario survival --brain ollama   # free local brain
 ./start.sh --check                                    # check Docker / Ollama / model setup, start nothing
 npm run agent -- --brain ollama --view                # watch in a browser at localhost:3007
-npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore
+npm run agent -- --brain ollama --goal shelter        # preset goal: shelter | tools | gather | explore | outpost | iron | diamond; teams: team-camp | team-homestead | team-base
 npm run agent -- --brain ollama --goal tools-guided   # same task with the steps spelled out (shelter-guided too)
 npm run agent -- --brain ollama --goal outpost --scenario survival --ticks 27000  # long goal: 4 stone tools + shelter, survive the night
 npm run agent -- --brain ollama --goal "Mine 10 stone" # or any goal in quotes
@@ -143,6 +154,8 @@ STANCE=competitive scripts/team.sh t1 "qa=ollama qb=ollama"  # several agents in
 STANCE=collaborative GOAL=team-camp VIEW=on scripts/team.sh t2 "haiku=claude@claude-haiku-4-5 qwen=ollama"  # a team goal; watch at :3007, :3008
 
 scripts/reset-world.sh                                # regenerate the main world from its seed
+scripts/publish-reports.sh NAME                       # write a batch's or team run's report to docs/results/batch-reports/
+npx tsx scripts/token-usage.ts                        # rebuild docs/results/token-usage.json (the site's model table)
 LOGS_BUCKET=<bucket> scripts/archive-runs.sh         # copy runs/ to the private logs bucket (--dryrun to preview)
 scripts/test-server.sh up NAME PORT                   # throwaway server for dev work (RCON on PORT+10)
 MC_PORT=PORT RCON_PORT=PORT+10 npm run agent -- ...   # run against it
@@ -203,12 +216,12 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
 ## Hard constraints
 
 - **Never commit secrets.** This repository is intended to be public. `.env` is ignored;
-  `src/agents/.env.example` carries empty placeholders. API keys come from the environment only — never from
-  a config file, never from a default argument.
-- **The slide deck is not in this repo.** Business material lives one level up in
-  `ai-experiments/`, deliberately outside version control. Do not move it in, and do not
-  reference it from committed files.
-- **16GB machine.** M4, 16GB unified memory. Budget: ~2GB Paper, ~0.7GB for three bots, ~3GB for
+  `src/agents/.env.example` carries empty placeholders. API keys come from the environment or the git-ignored
+  `src/agents/.env` — never from a committed file, never from a default argument.
+- **The slide deck is not in this repo.** Business material lives outside this repository,
+  deliberately outside version control. Do not move it in, and do not reference it from committed files.
+- **32GB machine.** Apple M1 Pro, 32GB unified memory; Docker Desktop's VM has about 8GB, so at most four game
+  servers run at once (about 1.5GB each, measured). Budget per run: ~2GB Paper, ~0.7GB for three bots, ~3GB for
   a 4B local model. Do not run the Minecraft Java client and a large local model at the same time
   — use `prismarine-viewer` instead. Prefer a 4B model over 8B unless there is a measured reason.
 - **Ollama runs on the host, never in Docker.** Containers on macOS cannot reach Metal, so a
@@ -218,10 +231,10 @@ earlier sessions; this section and `docs/next-steps.md` carry what it held.
 ## Environment gotchas
 
 - `ONLINE_MODE=FALSE` is required or bots cannot join — the server would otherwise ask Mojang to
-  verify each player owns the game. Consequence: **never expose this server to the internet.**
-  LAN only.
-- Java on the host is irrelevant — Paper runs Java 21 inside the container. The host has Java 17
-  via jenv; leave it alone.
+  verify each player owns the game. Consequence: **never expose this server to the internet**
+  (the game on 25565, its console on 25575). LAN only.
+- Java on the host is irrelevant — Paper runs Java 21 inside the container. The host has OpenJDK 27
+  (Homebrew); leave it alone.
 - Only **Minecraft Java Edition** can connect. The Microsoft Store / Xbox build is Bedrock and
   will not work without a bridge.
 - Client and server versions must match the pinned `VERSION` in `src/agents/compose.yaml`.

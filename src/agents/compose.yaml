@@ -56,7 +56,7 @@ services:
       - ./runs:/app/runs
     restart: unless-stopped
 
-  # Agents are opt-in: plain `docker compose up -d` still starts only mc.
+  # Agents are opt-in: plain `docker compose up -d` starts mc and the minds panel, no agents.
   #   docker compose --profile agents up -d agent-ollama
   # They run one episode and stop (restart: "no").
   # Keys come from .env / the shell only. Never put them in this file.
@@ -68,7 +68,7 @@ services:
     command: ["npm", "run", "agent", "--", "--brain", "ollama", "--name", "agent_ollama",
               "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-200}", "--ticks", "${TICKS:-24000}",
               "--budget-usd", "${BUDGET_USD:-1.00}", "--goal", "${GOAL:-}",
-              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-off}", "--episode", "${EPISODE:-}", "--view", "3007"]
+              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-on}", "--episode", "${EPISODE:-}", "--view", "3007"]
     ports: ["3007:3007"]
     env_file:
       - path: .env
@@ -95,7 +95,7 @@ services:
     command: ["npm", "run", "agent", "--", "--brain", "claude", "--name", "agent_claude",
               "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-200}", "--ticks", "${TICKS:-24000}",
               "--budget-usd", "${BUDGET_USD:-1.00}", "--goal", "${GOAL:-}",
-              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-off}", "--episode", "${EPISODE:-}", "--view", "3008"]
+              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-on}", "--episode", "${EPISODE:-}", "--view", "3008"]
     ports: ["3008:3008"]
     env_file:
       - path: .env
@@ -118,7 +118,7 @@ services:
     command: ["npm", "run", "agent", "--", "--brain", "gpt", "--name", "agent_gpt",
               "--scenario", "${SCENARIO:-sandbox}", "--steps", "${STEPS:-200}", "--ticks", "${TICKS:-24000}",
               "--budget-usd", "${BUDGET_USD:-1.00}", "--goal", "${GOAL:-}",
-              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-off}", "--episode", "${EPISODE:-}", "--view", "3009"]
+              "--memory", "${AGENT_MEMORY:-plan}", "--comms", "${AGENT_COMMS:-on}", "--stance", "${AGENT_STANCE:-neutral}", "--progress", "${AGENT_PROGRESS:-on}", "--episode", "${EPISODE:-}", "--view", "3009"]
     ports: ["3009:3009"]
     env_file:
       - path: .env

@@ -3,7 +3,7 @@
 Read this at the start of a session; update it when something finishes or a new ask comes in. The
 plan comes first; what's done is a dated list at the end, one line each, with the write-ups holding
 the detail.
-*Last updated 5 November 2026.*
+*Last updated 14 November 2026.*
 
 ## The road ahead (agreed with the owner, 28 October)
 
@@ -545,7 +545,7 @@ per rep (Opus costs up to about $2.70 over three days).
 
 ## Setting up a new machine
 
-1. Docker, [Ollama](https://ollama.com/) and Node 25+, then `cd src/agents && npm install` (its
+1. Docker, [Ollama](https://ollama.com/) and Node 22+, then `cd src/agents && npm install` (its
    postinstall patches the browser viewer so beds and chests are drawn).
 2. `cp .env.example .env` and add `ANTHROPIC_API_KEY` (and any other keys). Never commit it.
 3. `./start.sh --check` says what's missing. It pulls the local model (`qwen3:4b-instruct`); the
