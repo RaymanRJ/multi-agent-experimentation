@@ -8,7 +8,7 @@ export function Lessons() {
       <header className="page-head">
         <h1>Lessons</h1>
         <p className="lede">
-          Seven principles for building agents that work on their own, each drawn from logged runs. They apply to any
+          Eight principles for building agents that work on their own, each drawn from logged runs. They apply to any
           agent: in a codebase, a ticket queue or a business tool.
         </p>
         <nav className="toc" aria-label="Lessons on this page">
@@ -51,7 +51,7 @@ export function Lessons() {
 
       <aside className="appendix">
         <strong>The full notebook</strong>
-        <p>All 49 lessons, grouped by theme, each with its evidence line: the research record these seven are drawn from.</p>
+        <p>All 52 lessons, grouped by theme, each with its evidence line: the research record these eight are drawn from.</p>
         <a href={HASH.notebook}>Read the full notebook →</a>
       </aside>
     </main>

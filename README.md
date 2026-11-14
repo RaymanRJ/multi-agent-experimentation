@@ -67,7 +67,7 @@ ability, the answer is a new tool (deterministic code), not more consulting of t
 - **A goal, stated as an outcome:** "Make a stone pickaxe, axe, sword and shovel, build a shelter,
   then survive the night." Never the steps. (Step-by-step `-guided` versions exist only to measure
   how much a model needs that help.)
-- **Tools, and only tools.** A fixed list of 26 skills, each with a plain description of what it
+- **Tools, and only tools.** A fixed list of 27 skills, each with a plain description of what it
   does and how it fails. Nothing happens outside that list. See [docs/skills.md](docs/skills.md).
 - **Observations:** a short summary of its situation (what it holds, what is nearby, its health,
   the time, who else is around), not a dump of the environment.
@@ -126,7 +126,7 @@ environment is a game; the questions are the same ones a company faces.
 
 | What we saw | What it could mean for you |
 |---|---|
-| **The tools mattered more than the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts. | Before paying for a bigger model, invest in the systems and integrations the agent works through. An agent is only as reliable as the tools you give it, and a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. |
+| **The tools came first; then the model.** Improving the actions an agent can take (finding the right target, failing with a clear message, avoiding hazards) did more than changing models or prompts, at first: it took a team of the cheapest model from under 1 in 3 to about half. Six more tool fixes, each checked, then didn't move it; what was left was the model's own judgement (losing the team's tools in deaths and not getting them back, haggling over them). A stronger model on the same tools met the goal 20 times in 20. | Invest in the systems and integrations the agent works through first: a clear error message ("invoice not found: check the supplier ID") is worth more than a cleverer model guessing. Then measure: when fixes stop moving your success rate, the limit is the model, and a short trial of a stronger one is cheaper than more tuning. The tooling still pays: the stronger model used it unchanged. |
 | **Keeping the model out of the step-by-step work.** The model chooses *what* to do; ordinary code does it. This is the design the project is built on rather than a measured result: a model takes seconds to answer while the world keeps moving, so letting it steer every step was never workable. | Let the AI make the judgement calls and leave execution to proven software. An agent that improvises every click and keystroke is slow, expensive and fragile. |
 | **Agents claim success they haven't reached.** Small models regularly said "done" when the goal wasn't met. | Never take an agent's word that a job is finished. Check the outcome independently (was the refund actually issued?) before anyone relies on it. |
 | **Cheaper models loop.** The small model repeated the same failing action dozens of times, even when told exactly what was wrong. The larger models changed course about half the time or more. | Budget and monitor for repetition. Set limits on time and spend per task, watch for an agent doing the same thing over and over, and match the model to how much judgement the work needs. |
@@ -135,13 +135,15 @@ environment is a game; the questions are the same ones a company faces.
 | **Safety belongs in code, not in the model's judgement.** Agents drowned: a tool led them under water, and the escape waited until the model had decided what to do next. Once the code kept them out of the water and pulled them out before asking the model anything, no agent drowned in the two team runs that followed. Later, letting the body step back, take cover and swim out by itself while the model decides cut deaths during a decision from 9 a run to 1. | Anything that must never go wrong (spending limits, data deletion, access to customer records) should be enforced by the system itself, not left to the agent to remember. |
 | **Every decision is recorded.** Each choice is logged with exactly what the agent saw and why it chose, so any run can be replayed and audited, and its cost traced to the cent. | Insist on the same from any agent you deploy. When something goes wrong, you need to see what it knew and why it acted, not just the end result. |
 
-**In short:** autonomous agents can do useful work unattended, but how reliable they are depends far
-more on the systems around them (good tools, independent checks of the outcome, firm limits,
-complete records) than on which model sits in the middle. That is the part of the work this project
+**In short:** autonomous agents can do useful work unattended. How reliable they are depends first on the
+systems around them (good tools, independent checks of the outcome, firm limits, complete records); once
+those are right, the model's judgement is what's left, and the model is chosen by measured cost per
+completed task: here the cheapest model cost about 28¢ a success at half the success rate, a stronger one
+about $1 a success at 20 of 20. Building and measuring that structure is the part of the work this project
 is about, and it carries over to any business system.
 
-**A caveat:** these are early results from a small number of runs, mostly with one local model, in
-a game. They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
+**A caveat:** these are results from one environment, a game, over a few hundred logged runs (twenty
+for the latest result, on one goal and one world). They point to where to look; they are not yet proof. [docs/limitations.md](docs/limitations.md)
 says what has and hasn't been tested.
 
 ## Getting started
@@ -284,13 +286,19 @@ to a shared environment, with memory, stance and communication settings, compari
 fresh worlds, reports with confidence intervals, and a panel showing every decision.
 
 The models that have run: a free local model (Qwen3 4B), Claude Haiku 4.5, Sonnet 5.5 and Opus
-5.5, and GPT-6 Luna. A scripted agent with fixed rules and no model is the baseline: without it
+5.5, GPT-6 Luna and GPT-6.1 Sol. A scripted agent with fixed rules and no model is the baseline: without it
 there would be no way to tell whether a model adds anything. The local model has been through the
 most comparison batches (b1–b16); the paid models through two (p5, p6: three runs each) and the
 team runs. A three-day team game costs about $1.40-3.30 a rep with Opus, Sonnet and GPT-6 Luna
-together (less when the team finishes early), or about $0.30 with three GPT-6 Luna agents.
+together (less when the team finishes early), about $0.14 with three GPT-6 Luna agents, or about $1.04 with
+three GPT-6.1 Sol agents.
 
 **What we've found so far** (details in [docs/results/](docs/results/)):
+- **The team goal, every time, with a stronger model on the same harness.** Three GPT-6.1 Sol agents met
+  the whole three-day `team-base` goal in 20 of 20 runs on one unchanged commit, 10 of them without the
+  list of what the goal still lacked, at about $1.04 a success. Three GPT-6 Luna agents on nearly the same
+  harness met it in 15 of 30 (about 28¢ a success), after six more fixes to the tools had stopped moving
+  their rate ([write-up 08](docs/results/write-ups/08-reaching-80.md)).
 - **Fixing the tools mattered more than anything about the model.** The biggest improvements came
   from making skills find better targets, fail more clearly and avoid hazards.
 - **Memory helps a small model, a self-written plan can hurt it.** Full conversation memory worked

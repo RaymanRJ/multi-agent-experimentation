@@ -1,5 +1,5 @@
 /**
- * The Lessons page: seven principles distilled from docs/lessons.md (the full notebook, linked as an appendix).
+ * The Lessons page: eight principles distilled from docs/lessons.md (the full notebook, linked as an appendix).
  * Each: one sentence, why it matters, one piece of evidence with its source, what to do in practice, and the case
  * studies (content/cases.ts ids) that show it. Every figure traces to the write-up named in `source`.
  */
@@ -29,13 +29,13 @@ export const lessons: Lesson[] = [
   {
     id: 'fix-tools-first',
     theme: 'Tools',
-    title: 'Fix the tools before reaching for a bigger model',
-    why: 'Most early failures were in the structure around the model: tools that refused possible actions, misreported, or were missing. Fixing those moved results further than any model change.',
+    title: 'Fix the tools first; when fixes stop moving the rate, change the model',
+    why: 'Most early failures were in the structure around the model: tools that refused possible actions, misreported, or were missing. Fixing those moved results further than any model change, until they stopped: past that point, what was left was the model’s own judgement.',
     evidence:
-      'The same small local model went from 3 of 9 runs to 8 of 9 on tool fixes alone; four paid models went from 4 of 12 to 12 of 12.',
-    source: { label: 'Write-ups 01 and 04', doc: 'results/write-ups/04-p6-outpost-after-fixes' },
-    practice: 'When an agent fails, look at what its tools did and what it was told before changing the model or the prompt.',
-    cases: ['tools', 'local'],
+      'The same small local model went from 3 of 9 runs to 8 of 9 on tool fixes alone; four paid models from 4 of 12 to 12 of 12. Then six more fixes left three of the cheapest model at 15 of 30, and a stronger model on the same tools met the goal 20 of 20.',
+    source: { label: 'Write-ups 01, 04 and 08', doc: 'results/write-ups/08-reaching-80', anchor: 'why-we-moved-from-luna-to-sol' },
+    practice: 'When an agent fails, look at what its tools did and what it was told first; when fixes stop moving the rate, run a short trial of a stronger model before tuning further.',
+    cases: ['model', 'tools', 'local'],
   },
   {
     id: 'summary-over-evidence',
@@ -47,6 +47,17 @@ export const lessons: Lesson[] = [
     source: { label: 'Write-up 06', doc: 'results/write-ups/06-team-base', anchor: '3-meeting-the-unexpected' },
     practice: 'Check every status you compute against the signals it summarises, and never round away the edge case.',
     cases: ['team'],
+  },
+  {
+    id: 'neutral-fact',
+    theme: 'Context',
+    title: 'A true, neutral fact can still steer agents off the goal',
+    why: 'What an agent is shown, it acts on. A fact about a side issue becomes a side quest, however neutrally it is worded.',
+    evidence:
+      'Told where they had dropped things on dying, agents went back for them ten times as often at night (1.3 to 15 trips a run); most trips failed, deaths rose, and the team’s success fell from 21 of 30 to 4 of 12.',
+    source: { label: 'Write-up 08', doc: 'results/write-ups/08-reaching-80', anchor: 'a-true-fact-that-made-them-worse' },
+    practice: 'When you add something to what an agent sees, measure how its behaviour changes, not only whether it succeeds.',
+    cases: ['model'],
   },
   {
     id: 'requests-not-needs',
@@ -76,20 +87,20 @@ export const lessons: Lesson[] = [
     title: 'Measure the rate on frozen code',
     why: 'Fixing after every run finds the next failure, not how often the system succeeds. Only a set of runs on unchanged code gives a rate, and even ten runs is a wide estimate.',
     evidence:
-      'Nine runs with a fix after each met the whole goal once, in the last. Five on one unchanged version met it 4 times; two sets of ten on a later version, 7 and 8.',
-    source: { label: 'Write-up 07', doc: 'results/write-ups/07-luna-majority' },
+      'Nine runs with a fix after each met the whole goal once, in the last. Five on one unchanged version met it 4 times; sets of ten on later versions scored 7, 8, 6, 7, 4 and 4.',
+    source: { label: 'Write-ups 07 and 08', doc: 'results/write-ups/08-reaching-80', anchor: 'the-cheapest-model-stops-improving' },
     practice: 'Freeze the code, run a set, and report the success rate with its sample size before calling anything done.',
-    cases: ['team', 'local'],
+    cases: ['team', 'local', 'model'],
   },
   {
     id: 'cost-per-success',
     theme: 'Measurement',
     title: 'Count cost per success, not per call',
-    why: 'A cheap model that fails often can cost more per result than an expensive one, and a better harness raises a cheap model’s ceiling. Compare after fixing the tools.',
+    why: 'A cheap model that fails often can cost more per result than an expensive one, and a better harness raises a cheap model’s ceiling, up to a point. Compare cost per success and the success rate together, after fixing the tools.',
     evidence:
-      'Three of the cheapest model met the team goal at about 15¢ per success, failed runs included; the mixed team’s wins earlier cost $1.36 to $1.43 each.',
-    source: { label: 'Write-up 07', doc: 'results/write-ups/07-luna-majority', anchor: 'the-second-night-80-on-one-commit' },
+      'Three of the cheapest model met the team goal at about 28¢ a success, half the time; three of a stronger one at about $1 a success, every time. The mixed team’s early wins cost $1.36 to $1.43 each.',
+    source: { label: 'Write-up 08', doc: 'results/write-ups/08-reaching-80' },
     practice: 'Track cost per successful outcome at the provider’s billed rates, and check the estimate against the bill.',
-    cases: ['team', 'tools'],
+    cases: ['model', 'team', 'tools'],
   },
 ];

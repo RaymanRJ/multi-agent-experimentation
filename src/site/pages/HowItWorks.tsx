@@ -13,7 +13,7 @@ const LAYERS = [
 
 const GIVEN = [
   { what: 'A goal, stated as an outcome', text: 'What to achieve, never the steps.' },
-  { what: 'Tools, and only tools', text: 'A fixed list of 26 skills, each described with what it does and how it fails.' },
+  { what: 'Tools, and only tools', text: 'A fixed list of 27 skills, each described with what it does and how it fails.' },
   { what: 'A short account of its situation', text: 'What it holds, what is nearby, its health, the time, who else is around.' },
   { what: 'Feedback in plain words', text: 'Every tool reports success or failure in words the model can replan against.' },
   { what: 'Teammates, when there are any', text: 'It can see them, talk, ask questions, ask for help and hand them items.' },
@@ -41,7 +41,7 @@ export function HowItWorks() {
         <Mermaid chart={CONTROL_LOOP} label="Sequence: the environment's state reaches the agent's body, which compresses it to a short briefing and asks the model what to do next. The model answers with a goal, such as gather_wood(10). The body then acts on the environment in a deterministic loop with no model involved, until the goal completes or fails, and consults the model again only on completion, failure or a significant event." />
         <p>
           Keep the model in the loop and the agent is slow, expensive and overtaken by events. Keep it out, and a team
-          works through three simulated days on about a hundred decisions each. A new ability is a new tool, not more
+          works through three simulated days on fewer than a hundred decisions each. A new ability is a new tool, not more
           consulting of the model.
         </p>
 

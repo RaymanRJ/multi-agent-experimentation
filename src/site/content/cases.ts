@@ -1,5 +1,5 @@
 /**
- * The curated case studies (the Case studies pages): three cases, each in the same short form, linking to its full
+ * The curated case studies (the Case studies pages): four cases, each in the same short form, linking to its full
  * write-up in docs/results/write-ups/ and its batch reports. Every figure traces to the write-up named in `writeUp`.
  */
 export interface Case {
@@ -18,6 +18,30 @@ export interface Case {
 }
 
 export const cases: Case[] = [
+  {
+    id: 'model',
+    title: 'When fixing the tools stops working',
+    short: 'From 15 of 30 to 20 of 20',
+    question: 'When more fixes to an agent team’s tools stop moving its success rate, what is left: the tools, or the model?',
+    setup:
+      'The same shared three-day goal on the same world. Three GPT-6 Luna agents through six rounds of fixes, then three GPT-6.1 Sol agents on the final code, twice: with and without the list of what the goal still lacked.',
+    result: { value: '20 of 20', label: 'runs met the whole goal with the stronger model, against 15 of 30 for the cheapest on nearly the same tools: about $1 a success against 28¢' },
+    happened: [
+      'Each fix removed a real failure, checked in the real game against the old code; the cheapest team’s rate stayed near half (sets of 7, 4 and 4).',
+      '25 of its 27 losses ended short of iron pickaxes it had made: lost in deaths, passed around, or left on the wrong agent.',
+      'A true fact made it worse: told where they had dropped things on dying, agents went back for them ten times as often at night, and the team fell from 21 of 30 to 4 of 12.',
+      'The stronger model on the same tools met the goal every time. It died as often; what it did differently was get the team’s pickaxes back after a death (11 of 15 times, against 6 of 27), size its iron to the team, and never haggle. Without the list of what was missing, it met the goal every time again.',
+    ],
+    changed: [
+      'Six fixes to the tools, each found in a loss and checked live: ore searches that saw only buried ore, a pickaxe used up where it stranded its holder, monsters camped at the door, and more.',
+      'The drop fact, taken out once the measurements showed the harm.',
+      'Then the model, from GPT-6 Luna to GPT-6.1 Sol, with nothing else changed but four last fixes found in its first runs.',
+    ],
+    leftAlone: 'Not claimed: an exact comparison. The stronger model ran only on the final code, on one goal and one world.',
+    lessons: ['fix-tools-first', 'neutral-fact', 'frozen-code', 'cost-per-success'],
+    writeUp: { title: 'Write-up 08: reaching 80%, the harness then the model', doc: 'results/write-ups/08-reaching-80' },
+    batches: ['tluna36a', 'tsol3', 'tsolnp1'],
+  },
   {
     id: 'team',
     title: 'Three cheap agents, one shared goal',

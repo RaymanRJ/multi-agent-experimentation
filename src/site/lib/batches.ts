@@ -125,7 +125,7 @@ export function modelName(brain: string): string {
   for (const part of parts) {
     const last = words.length - 1;
     if (/^\d+$/.test(part) && last >= 0 && /\d$/.test(words[last]!) && !/^GPT/.test(words[last]!)) words[last] += `.${part}`;
-    else if (/^\d+$/.test(part) && last >= 0 && words[last] === 'GPT') words[last] += `-${part}`;
+    else if (/^\d+(\.\d+)?$/.test(part) && last >= 0 && words[last] === 'GPT') words[last] += `-${part}`;
     else if (/^\d+b$/i.test(part)) words.push(part.toUpperCase());
     else if (part === 'gpt') words.push('GPT');
     else words.push(part.charAt(0).toUpperCase() + part.slice(1));

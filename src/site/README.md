@@ -22,8 +22,8 @@ npm run preview   # serve dist/ at http://localhost:4174
 
 The deep dive has six sections, one menu on every technical page (`lib/DeepNav.tsx`): Start here, How it works,
 Results, Case studies, Lessons, and Method and limits. Their text is short and purpose-built in `content/` and
-`pages/`, not the long docs: `content/milestones.ts` (the shared goal over time), `content/cases.ts` (three curated
-cases), `content/lessons.ts` (seven principles). The full research record in `docs/` (write-ups, the lessons
+`pages/`, not the long docs: `content/milestones.ts` (the shared goal over time), `content/cases.ts` (four curated
+cases), `content/lessons.ts` (eight principles). The full research record in `docs/` (write-ups, the lessons
 notebook, limitations, batch reports) is still rendered and linked for depth. Results lists every report
 automatically: `lib/batches.ts` reads each report written by `src/agents/scripts/publish-reports.sh`, and
 `vite.config.ts` serves the summaries as `virtual:batches`; opening a report shows the same summary above its full

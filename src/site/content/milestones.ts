@@ -5,7 +5,8 @@
  *
  * Costs: the mixed team's is the estimate of the time (mostly Claude, priced with its cache rates); the latest is at
  * billed rates (12 November pricing fix). Luna costs from before 10 November priced cached input in full, about 2.7
- * times the bill, so they are left out rather than shown wrong.
+ * times the bill, so they are left out rather than shown wrong. Costs from 13-14 November (write-up 08) are the
+ * reports' estimates, which matched the bill those days.
  */
 export interface Milestone {
   when: string;
@@ -59,5 +60,32 @@ export const milestones: Milestone[] = [
     costPerSuccess: '≈ 15¢',
     note: 'Two sets of ten (7 and 8), after a hunting tool was found never leaving the home.',
     source: { doc: 'results/write-ups/07-luna-majority', anchor: 'the-second-night-80-on-one-commit' },
+  },
+  {
+    when: 'Nov 13',
+    team: 'Three GPT-6 Luna, after six more fixes',
+    met: 15,
+    runs: 30,
+    costPerSuccess: '≈ 28¢',
+    note: 'Three sets of ten on the latest tools (7, 4 and 4): each fix removed a real failure, and the rate stopped moving.',
+    source: { doc: 'results/write-ups/08-reaching-80', anchor: 'the-cheapest-model-stops-improving' },
+  },
+  {
+    when: 'Nov 14',
+    team: 'Three GPT-6.1 Sol, code frozen',
+    met: 10,
+    runs: 10,
+    costPerSuccess: '≈ $1.08',
+    note: 'A stronger model on the same tools: every run met the whole goal.',
+    source: { doc: 'results/write-ups/08-reaching-80', anchor: 'a-stronger-model-on-the-same-harness' },
+  },
+  {
+    when: 'Nov 14',
+    team: 'Three GPT-6.1 Sol, not told what was missing',
+    met: 10,
+    runs: 10,
+    costPerSuccess: '≈ $1.00',
+    note: 'With the list of what the goal still lacked switched off: every run met it anyway.',
+    source: { doc: 'results/write-ups/08-reaching-80', anchor: 'less-guidance' },
   },
 ];

@@ -12,7 +12,7 @@ export function Cases() {
       <header className="page-head">
         <h1>Case studies</h1>
         <p className="lede">
-          Three cases, each in the same short form: the question, what happened, what changed, and the lessons it shows.
+          Four cases, each in the same short form: the question, what happened, what changed, and the lessons it shows.
           Each links to its full write-up and the reports behind it.
         </p>
       </header>

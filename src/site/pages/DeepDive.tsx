@@ -16,7 +16,7 @@ const PATH = [
   },
   {
     title: 'One case in full',
-    body: 'Three agents on one shared goal, from under 1 in 3 to 8 in 10, and what changed along the way.',
+    body: 'Three agents on one shared goal, from under 1 in 3 to 20 in 20, and what changed along the way.',
     href: HASH.caseStudy('team'),
   },
 ];
@@ -26,7 +26,7 @@ const GROUPS = [
     title: 'Evidence',
     items: [
       { title: 'Results', body: 'The shared goal over time, every batch with its report, and costs by model.', href: HASH.results },
-      { title: 'Case studies', body: 'Three cases in one short form, and every full write-up as the record.', href: HASH.cases },
+      { title: 'Case studies', body: 'Four cases in one short form, and every full write-up as the record.', href: HASH.cases },
     ],
   },
   {
@@ -81,7 +81,7 @@ export function DeepDive() {
       ))}
 
       <section>
-        <h2 className="section-title">Seven lessons at a glance</h2>
+        <h2 className="section-title">Eight lessons at a glance</h2>
         <ul className="lesson-list">
           {lessons.map((l) => (
             <li key={l.id}>

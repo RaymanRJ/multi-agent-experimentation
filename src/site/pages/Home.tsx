@@ -12,13 +12,13 @@ const LESSONS = [
     you: 'Audit what your agent’s tools report, not just what the agent decides. A misleading status costs more than a weak model.',
   },
   {
-    title: 'A small, cheap model is enough when the structure is right',
-    body: 'These results use the smallest, cheapest model in its family. Reliability came from the tools, information and guardrails around it, not from a bigger model.',
-    you: 'Spend on the structure first. A larger model often hides problems a better tool would fix for a fraction of the cost.',
+    title: 'Fix the structure first, then choose the model',
+    body: 'Fixing the tools took a team of the smallest, cheapest model from under 1 in 3 to about half. Six more fixes, each checked, didn’t move it: what was left was its own judgement. A stronger model on the same structure succeeded 20 times in 20, at about $1 a success.',
+    you: 'Spend on the structure first, and measure. When fixes stop moving the success rate, a short trial of a stronger model is cheaper than more tuning, and the structure you built still pays off.',
   },
   {
     title: 'Measure before you believe a number',
-    body: 'Two identical sets of ten runs scored 7 and 8. A streak of five straight successes came inside the set that scored 7. Every claim here is checked against the logged runs.',
+    body: 'Six sets of ten runs of the cheapest model, on nearly the same code, scored between 4 and 8. A streak of five straight successes came inside a set that scored 7. Every claim here is checked against the logged runs.',
     you: 'Know your real success rate on frozen code before you ship, and keep cost per success visible.',
   },
   {
@@ -47,7 +47,7 @@ export function Home({ section }: { section?: string }) {
       <section className="hero">
         <p className="eyebrow">AI agents that deliver</p>
         <h1>Give three AI agents a goal, not instructions.</h1>
-        <p className="lede strong">They plan, divide the work and finish it {HEADLINE.successRate} times, at {HEADLINE.costPerSuccess} a success.</p>
+        <p className="lede strong">They plan, divide the work and finish the job: {HEADLINE.successRate} runs, at about {HEADLINE.costPerSuccess} a success.</p>
         <p className="lede">
           I build the structure around AI models: the tools they use, what they are told and how they are measured.
           That structure is what turns a model into an agent a business can rely on.
@@ -82,7 +82,7 @@ export function Home({ section }: { section?: string }) {
         </div>
         <p className="fineprint">
         Figures as of {HEADLINE.asOf}. Model costs only, at the provider’s billed rates. One demanding goal, measured over many runs: twenty runs on one
-        version of the code, 15 of them successful.
+        version of the code, all twenty successful.
         </p>
       </section>
 
@@ -117,7 +117,7 @@ export function Home({ section }: { section?: string }) {
           ))}
         </ol>
         <p className="muted">
-          The same loop that took these agents from under 1 in 3 to 8 in 10 applies to support desks, operations,
+          The same loop that took these agents from under 1 in 3 to 20 in 20 applies to support desks, operations,
           internal tools, or any work you want agents to carry on their own.
         </p>
       </section>

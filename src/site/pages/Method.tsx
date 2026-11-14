@@ -40,19 +40,23 @@ const CAVEATS = [
   },
   {
     title: 'Small samples',
-    text: 'Ten runs is a wide estimate: 8 of 10 is consistent with a true rate anywhere from about 49% to 94%. Two sets of ten on the same code scored 7 and 8.',
+    text: 'Ten runs is a wide estimate: 8 of 10 is consistent with a true rate anywhere from about 49% to 94%. Six sets of ten of the cheapest model, on code that changed a little between sets, scored between 4 and 8. The stronger model’s 20 of 20 puts its rate at 84% or more, on this one goal and world.',
   },
   {
     title: 'The setup changed between milestones',
-    text: 'Models, the home design and the code all changed over time. Figures are compared within one setup, not across them.',
+    text: 'Models, the home design and the code all changed over time. Figures are compared within one setup, not across them. The stronger model ran only on the final code, after four fixes the cheaper one never ran with, so the comparison between them is close, not exact.',
   },
   {
     title: 'Our own bugs shaped earlier results',
-    text: 'For two weeks a reflex dug out the home’s door, and until 12 November a hunt started at home never left it. Results from those periods understate what the agents could do.',
+    text: 'For two weeks a reflex dug out the home’s door, and until 12 November a hunt started at home never left it. Until 13 November ore searches missed visible ore among buried ore, and a spider by day kept the home’s door shut; until 14 November nothing stopped a stuck agent tunnelling under its own doorstep. Results from those periods understate what the agents could do.',
   },
   {
     title: 'Costs before 12 November are estimates',
-    text: 'They ran about 9% under the bill, and Luna costs before 10 November priced cached input in full. Current figures are calibrated to the actual bill.',
+    text: 'They ran about 9% under the bill, and Luna costs before 10 November priced cached input in full. Since then the estimates have matched the bill.',
+  },
+  {
+    title: 'Runs set aside',
+    text: 'Three times runs were stopped and not counted, all still in the logs: the stronger model’s first run, ten minutes in, for a bug in our code (an agent dug under its own doorway); one set of the cheaper model part way, for a change already shown to do harm; and two of its sets at six runs instead of ten, to make room for newer code.',
   },
   {
     title: 'The models already know the game',
