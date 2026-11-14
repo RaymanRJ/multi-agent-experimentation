@@ -10,6 +10,7 @@ import { Results } from './pages/Results';
 import { CONTACT } from './lib/contact';
 import { DeepNav, deepSection } from './lib/DeepNav';
 import { REPO, SITE } from './lib/docs';
+import { PageNav } from './lib/PageNav';
 import { HASH, useRoute, type Route } from './lib/route';
 
 // Two readers: the overview is for someone deciding in a few minutes; everything technical sits under the deep dive.
@@ -81,6 +82,8 @@ export default function App() {
           </p>
         </main>
       )}
+
+      <PageNav key={JSON.stringify(route)} />
 
       <footer className="site-footer">
         <span>

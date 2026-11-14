@@ -29,6 +29,10 @@ automatically: `lib/batches.ts` reads each report written by `src/agents/scripts
 `vite.config.ts` serves the summaries as `virtual:batches`; opening a report shows the same summary above its full
 text.
 
+Every page has an "On this page" guide (`lib/PageNav.tsx`): its sections (the h2s, and a doc's h3s), the one being
+read, and how far down the reader is. It sits beside the text where the screen leaves room, otherwise it is a button in
+the corner that opens the list.
+
 Screenshots are WebP files in `assets/screenshots/`, each sized, described, captioned and traced to its run in
 `content/screenshots.ts`, and on deep-dive pages only, never the overview. `lib/Screenshot.tsx` shows them; like the
 control-loop diagram, each opens full size when clicked (`lib/Enlarge.tsx`).

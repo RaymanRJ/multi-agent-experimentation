@@ -771,6 +771,154 @@ html:has(.enlarge-dialog[open]) {
   }
 }
 
+/* On this page (lib/PageNav.tsx): beside the text where there is room, otherwise a button in the corner. */
+main h2,
+main h3 {
+  scroll-margin-top: 24px;
+}
+
+.page-nav {
+  z-index: 20;
+  font: 14px/1.4 var(--sans);
+}
+
+.page-nav.beside {
+  position: fixed;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.page-nav-head {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A line down the side of the list, filled as far as the reader has scrolled. */
+.page-nav-body {
+  position: relative;
+  padding-left: 16px;
+}
+
+.page-nav-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.page-nav-fill {
+  width: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.page-nav ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-nav li.sub {
+  padding-left: 12px;
+}
+
+.page-nav ol button {
+  display: block;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.page-nav li.sub button {
+  font-size: 13px;
+}
+
+.page-nav ol button:hover {
+  color: var(--text);
+}
+
+.page-nav ol button[aria-current] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.page-nav button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.page-nav.corner {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.page-nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(70vw, 320px);
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: 600 14px var(--sans);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.16);
+  cursor: pointer;
+}
+
+.page-nav-now {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* How far down the page, as a ring. */
+.page-nav-ring {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(var(--panel) 50%, transparent 52%),
+    conic-gradient(var(--accent) calc(var(--done) * 1turn), var(--border) 0);
+}
+
+.page-nav-panel {
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.2);
+}
+
+@media print {
+  .page-nav {
+    display: none;
+  }
+}
+
 .mermaid-source {
   font: 13px var(--mono);
   color: var(--muted);

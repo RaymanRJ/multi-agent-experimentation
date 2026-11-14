@@ -673,3 +673,5 @@ The write-up named on each line has the detail.
 - Every run is watched by default (its 3D view from :3007, the minds panel started if it isn't up), and the original world is the default seed.
 - The site's control-loop diagram opens full size (an Expand button, or a click on it): it was shrunk to a third on a phone.
 - Screenshots on the site (the owner chose all five; none on the landing page): the minds panel on run tsol4 (a model call on How it works, a run at a glance on Method, the iron-sizing timeline on the model case study) and the world from a free scripted run, taken by a spectator camera (How it works). Each opens full size.
+- The skills page shows each skill as one line that opens to its detail (the page went from 20,553 to 4,233 pixels tall on a desktop).
+- Every page has an "On this page" guide: its sections, the one being read and how far down; beside the text where there is room, a button in the corner where there isn't.
