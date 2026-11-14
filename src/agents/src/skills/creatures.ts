@@ -7,6 +7,7 @@ import { pickUp } from "./pickUp.js";
 import { asNumber, withTimeout } from "./util.js";
 import { retreatPoint } from "../reflexes.js";
 import { leaveHome } from "./underground.js";
+import { goingOutFor } from "./buildShelter.js";
 
 const { goals } = pathfinderPkg;
 
@@ -29,6 +30,8 @@ const CHASE_MS = 30_000;
 const MAX_SKILL_MS = 2 * 60_000;
 /** Hunting stops at this health or below: a fight the agent is losing is the model's to rethink. */
 const RETREAT_HEALTH = 6;
+/** Healthy enough to go out through the door to a monster camped by the home. */
+const GO_OUT_HEALTH = 12;
 /** Best first. A sword hits harder and recovers faster than an axe; bare hands last. */
 export const WEAPONS = [
   "netherite_sword", "diamond_sword", "iron_sword", "stone_sword", "golden_sword", "wooden_sword",
@@ -143,7 +146,17 @@ export const hunt: Skill = {
     // Out of the home by its door first: following an animal from inside a closed home never got out, and the chase ran
     // out its clock in place. Of 223 hunts for animals begun in a home on 11-12 November, 208 ended "got away" (135 without
     // moving); of 120 begun outside, 16.
-    const out = prey0(bot, target) ? await leaveHome(ctx, "hunt") : null;
+    const first = prey0(bot, target);
+    // A monster camped by the home is met outside when the agent is fit to: healthy, armed, and that monster the only
+    // one near. Otherwise the door stays shut against it as before.
+    const others = first?.type === "hostile" ? Object.values(bot.entities).filter((e) => e?.type === "hostile" && e.id !== first.id && e.position.distanceTo(bot.entity.position) <= 16) : [];
+    if (first?.type === "hostile" && held && bot.health >= GO_OUT_HEALTH && others.length === 0) goingOutFor.set(bot, first.id);
+    let out: Awaited<ReturnType<typeof leaveHome>> = null;
+    try {
+      out = first ? await leaveHome(ctx, "hunt") : null;
+    } finally {
+      goingOutFor.delete(bot);
+    }
     if (out && "error" in out) return { status: "failed", reason: out.error };
     const walkedOut = out ? out.note : "";
 
