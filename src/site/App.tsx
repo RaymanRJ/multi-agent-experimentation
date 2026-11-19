@@ -8,6 +8,7 @@ import { Method } from './pages/Method';
 import { HowItWorks } from './pages/HowItWorks';
 import { Results } from './pages/Results';
 import { CONTACT } from './lib/contact';
+import { LinkedInIcon, MailIcon } from './lib/icons';
 import { DeepNav, deepSection } from './lib/DeepNav';
 import { REPO, SITE } from './lib/docs';
 import { PageNav } from './lib/PageNav';
@@ -87,8 +88,14 @@ export default function App() {
 
       <footer className="site-footer">
         <span>
-          {CONTACT.name} · <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> ·{' '}
-          <a href={CONTACT.linkedin} target="_blank" rel="noreferrer">LinkedIn</a> ·{' '}
+          {CONTACT.name} · <a href={`mailto:${CONTACT.email}`}>
+            <MailIcon />
+            {CONTACT.email}
+          </a> ·{' '}
+          <a href={CONTACT.linkedin} target="_blank" rel="noreferrer">
+            <LinkedInIcon />
+            LinkedIn
+          </a> ·{' '}
           <a href={CONTACT.website} target="_blank" rel="noreferrer">rrjamal.ca</a>
         </span>
         <span>

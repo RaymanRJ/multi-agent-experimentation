@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FIGURES, HEADLINE } from '../content/headline';
 import { CONTACT } from '../lib/contact';
+import { LinkedInIcon, MailIcon } from '../lib/icons';
 import { HASH } from '../lib/route';
 
 
@@ -145,9 +146,11 @@ export function Home({ section }: { section?: string }) {
         </p>
         <div className="contact-links">
           <a className="button primary" href={`mailto:${CONTACT.email}`}>
+            <MailIcon />
             {CONTACT.email}
           </a>
           <a className="button" href={CONTACT.linkedin} target="_blank" rel="noreferrer">
+            <LinkedInIcon />
             LinkedIn
           </a>
           <a className="button" href={CONTACT.website} target="_blank" rel="noreferrer">

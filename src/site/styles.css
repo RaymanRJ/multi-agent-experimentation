@@ -2463,3 +2463,21 @@ table.batches td:nth-child(4) {
   color: var(--muted);
   font-size: 15px;
 }
+
+/* Contact icons: sit inline before the email and LinkedIn links, sized to the text. */
+
+.icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.35em;
+  vertical-align: -0.125em;
+}
+
+.contact-links .button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.contact-links .button .icon {
+  margin-right: 0.45em;
+}
