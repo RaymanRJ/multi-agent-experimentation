@@ -6,6 +6,11 @@ variable "aliases" {
   type = list(string)
 }
 
+# The site's own domain: www.<domain> redirects to it (viewer-request.js.tftpl).
+variable "domain_name" {
+  type = string
+}
+
 variable "bucket_regional_domain_name" {
   type = string
 }
@@ -40,8 +45,17 @@ data "aws_cloudfront_response_headers_policy" "security_headers" {
   name = "Managed-SecurityHeadersPolicy"
 }
 
-# The app uses hash routes (#/info), so there's no SPA fallback: a missing file is a real 404,
-# shown with the site's own 404.html instead of S3's XML error.
+# Every page is pre-rendered to <path>/index.html; the viewer-request function serves /<path> from it and sends
+# www to the bare domain. There's no SPA fallback: a missing page is a real 404, shown with the site's own
+# 404.html instead of S3's XML error.
+resource "aws_cloudfront_function" "viewer_request" {
+  name    = "${var.name}-viewer-request"
+  runtime = "cloudfront-js-2.0"
+  comment = "www redirect, and /path to /path/index.html"
+  publish = true
+  code    = templatefile("${path.module}/viewer-request.js.tftpl", { domain = var.domain_name })
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   aliases             = var.aliases
@@ -65,6 +79,11 @@ resource "aws_cloudfront_distribution" "site" {
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.viewer_request.arn
+    }
   }
 
   custom_error_response {

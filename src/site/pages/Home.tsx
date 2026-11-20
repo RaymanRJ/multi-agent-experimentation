@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FIGURES, HEADLINE } from '../content/headline';
 import { CONTACT } from '../lib/contact';
 import { LinkedInIcon, MailIcon } from '../lib/icons';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 
 
 
@@ -54,10 +54,10 @@ export function Home({ section }: { section?: string }) {
           That structure is what turns a model into an agent a business can rely on.
         </p>
         <div className="actions">
-          <a className="button primary" href={HASH.contact}>
+          <a className="button primary" href={HREF.contact}>
             Get in touch
           </a>
-          <a className="button" href={HASH.deep}>
+          <a className="button" href={HREF.deep}>
             The technical detail
           </a>
         </div>
@@ -72,12 +72,11 @@ export function Home({ section }: { section?: string }) {
                 <span>{f.label}</span>
                 <span className="figure-more" aria-hidden="true">{open === i ? 'Less' : 'How we know'}</span>
               </button>
-              {open === i && (
-                <div className="figure-detail" id={`figure-${i}`}>
-                  <p>{f.detail}</p>
-                  <a href={f.href}>Full technical write-up →</a>
-                </div>
-              )}
+              {/* Always in the page, hidden until opened, so the reason for each figure is in the pre-rendered HTML. */}
+              <div className="figure-detail" id={`figure-${i}`} hidden={open !== i}>
+                <p>{f.detail}</p>
+                <a href={f.href}>Full technical write-up →</a>
+              </div>
             </div>
           ))}
         </div>
@@ -164,7 +163,7 @@ export function Home({ section }: { section?: string }) {
           <strong>Want the technical detail?</strong>
           <p>Architecture, every run and its logs, the failure analysis, and what didn’t work.</p>
         </div>
-        <a className="button" href={HASH.deep}>
+        <a className="button" href={HREF.deep}>
           The technical deep dive →
         </a>
       </section>

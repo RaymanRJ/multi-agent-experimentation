@@ -44,3 +44,4 @@ test-worlds/
 *.tfvars
 *.tfplan
 backend.hcl
+dist-ssr/

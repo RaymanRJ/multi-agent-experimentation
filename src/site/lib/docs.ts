@@ -1,6 +1,6 @@
 import { Marked } from 'marked';
 import { lessonOf } from './batches';
-import { HASH } from './route';
+import { HREF } from './route';
 
 /** The public repository; links from the docs to code open it on GitHub. */
 export const REPO = 'https://github.com/RaymanRJ/multi-agent-experimentation';
@@ -29,10 +29,23 @@ const byKey = new Map(Object.entries(loaders).map(([file, load]) => [docKey(file
 
 export const hasDoc = (path: string) => byKey.has(path);
 
+// Docs already loaded. The pre-render loads a doc before drawing its page, and the browser loads the one it opens on
+// before its first draw (main.tsx), so the page shows straight away instead of "Loading…" over the pre-rendered text.
+const loaded = new Map<string, string>();
+
+/** A doc's text, if it has been loaded. */
+export const loadedDoc = (path: string): string | null => loaded.get(path) ?? null;
+
 export async function loadDoc(path: string): Promise<string | null> {
   const load = byKey.get(path);
-  return load ? load() : null;
+  if (!load) return null;
+  const text = await load();
+  loaded.set(path, text);
+  return text;
 }
+
+/** Every doc's path, e.g. "results/write-ups/08-reaching-80": one page each. */
+export const docPaths = [...byKey.keys()].sort();
 
 export interface WriteUp {
   path: string;
@@ -93,13 +106,13 @@ function normalise(path: string): string {
  */
 export function resolveLink(docPath: string, href: string): { url: string; external: boolean } {
   if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return { url: href, external: true };
-  if (href.startsWith('#')) return { url: HASH.doc(docPath, href.slice(1)), external: false };
+  if (href.startsWith('#')) return { url: HREF.doc(docPath, href.slice(1)), external: false };
   const [target = '', anchor = ''] = href.split('#');
   const dir = `docs/${docPath}`.split('/').slice(0, -1).join('/');
   const repoPath = normalise(`${dir}/${target}`);
   if (repoPath.startsWith('docs/') && repoPath.endsWith('.md')) {
     const key = repoPath.slice(5, -3);
-    if (hasDoc(key)) return { url: HASH.doc(key, anchor), external: false };
+    if (hasDoc(key)) return { url: HREF.doc(key, anchor), external: false };
   }
   const kind = /\.[a-z0-9]+$/i.test(repoPath) ? 'blob' : 'tree';
   return { url: `${REPO}/${kind}/main/${repoPath}${anchor ? `#${anchor}` : ''}`, external: true };
@@ -116,7 +129,7 @@ export function renderDoc(markdown: string, docPath: string): string {
       heading({ tokens, depth }) {
         const inner = this.parser.parseInline(tokens);
         const id = slug(inner);
-        return `<h${depth} id="${id}"><a class="anchor" href="${escapeAttr(HASH.doc(docPath, id))}" aria-hidden="true">#</a>${inner}</h${depth}>\n`;
+        return `<h${depth} id="${id}"><a class="anchor" href="${escapeAttr(HREF.doc(docPath, id))}" aria-hidden="true">#</a>${inner}</h${depth}>\n`;
       },
       link({ href, title, tokens }) {
         const inner = this.parser.parseInline(tokens);

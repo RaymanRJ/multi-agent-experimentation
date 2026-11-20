@@ -43,6 +43,7 @@ module "cloudfront" {
   source = "./modules/cloudfront"
 
   name                        = var.project_name
+  domain_name                 = var.domain_name
   aliases                     = local.aliases
   bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   certificate_arn             = module.acm.certificate_arn

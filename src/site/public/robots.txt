@@ -1,0 +1,5 @@
+# Everyone, including AI search and answer engines, may crawl the whole site.
+User-agent: *
+Allow: /
+
+Sitemap: https://multi-agent-experiment.rrjamal.ca/sitemap.xml

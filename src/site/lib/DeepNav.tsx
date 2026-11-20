@@ -1,13 +1,13 @@
-import { HASH, type Route } from './route';
+import { HREF, type Route } from './route';
 
 /** The deep dive's sections: one bar under the header on every technical page, so a reader can always move between them. */
 export const DEEP_SECTIONS = [
-  { key: 'start', label: 'Start here', href: HASH.deep },
-  { key: 'how', label: 'How it works', href: HASH.how },
-  { key: 'results', label: 'Results', href: HASH.results },
-  { key: 'cases', label: 'Case studies', href: HASH.cases },
-  { key: 'lessons', label: 'Lessons', href: HASH.lessons },
-  { key: 'method', label: 'Method and limits', href: HASH.method },
+  { key: 'start', label: 'Start here', href: HREF.deep },
+  { key: 'how', label: 'How it works', href: HREF.how },
+  { key: 'results', label: 'Results', href: HREF.results },
+  { key: 'cases', label: 'Case studies', href: HREF.cases },
+  { key: 'lessons', label: 'Lessons', href: HREF.lessons },
+  { key: 'method', label: 'Method and limits', href: HREF.method },
 ] as const;
 
 export type DeepSection = (typeof DEEP_SECTIONS)[number]['key'];

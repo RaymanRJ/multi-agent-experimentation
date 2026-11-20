@@ -537,6 +537,13 @@ per rep (Opus costs up to about $2.70 over three days).
   at build time; the Results page and batch summaries come from `docs/results/batch-reports/`
   (`src/site/lib/batches.ts`), so `src/agents/scripts/publish-reports.sh <name>` puts a run on the site
   at the next push. Lesson cards and the Results story are hand-written (`src/site/content/`).
+- **Search and answer engines (19 November, branch `site-seo`, a pull request for the owner's review):** real paths
+  instead of hash routes, every page pre-rendered with its own title, description and JSON-LD, plus `sitemap.xml`,
+  `robots.txt`, `llms.txt`, a preview card and an IndexNow ping on deploy (`src/site/README.md` has the detail).
+  **Order matters:** `terraform apply` in `src/terraform/` first (a CloudFront function that serves `/lessons` from
+  `lessons/index.html` and sends `www.` to the bare domain), then merge; merged first, every page but `/` would 404
+  when opened directly. Then submit `https://multi-agent-experiment.rrjamal.ca/sitemap.xml` in Google Search Console
+  and Bing Webmaster Tools (a `rrjamal.ca` domain property already covers the subdomain).
 - **Results so far** (`docs/results/`):
   - One agent, one day (`outpost`): after the fixes every paid model met it 12 of 12 (p6); the free 4B
     local model met it 0 of 9, looping on what it already had (write-ups 02 and 04).

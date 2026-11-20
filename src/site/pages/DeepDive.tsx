@@ -1,23 +1,23 @@
 import { lessons } from '../content/lessons';
 import { REPO } from '../lib/docs';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 
 /** A reading order for someone new to the project: how it works, what it teaches, then one case in full. */
 const PATH = [
   {
     title: 'How it works',
     body: 'The control loop that keeps the model out of the fast path, the three layers, and what an agent is given.',
-    href: HASH.how,
+    href: HREF.how,
   },
   {
     title: 'What it teaches',
     body: 'Lessons on tools, context, shared state, the control loop and evaluation, each with the runs that showed it.',
-    href: HASH.lessons,
+    href: HREF.lessons,
   },
   {
     title: 'One case in full',
     body: 'Three agents on one shared goal, from under 1 in 3 to 20 in 20, and what changed along the way.',
-    href: HASH.caseStudy('team'),
+    href: HREF.caseStudy('team'),
   },
 ];
 
@@ -25,14 +25,14 @@ const GROUPS = [
   {
     title: 'Evidence',
     items: [
-      { title: 'Results', body: 'The shared goal over time, every batch with its report, and costs by model.', href: HASH.results },
-      { title: 'Case studies', body: 'Four cases in one short form, and every full write-up as the record.', href: HASH.cases },
+      { title: 'Results', body: 'The shared goal over time, every batch with its report, and costs by model.', href: HREF.results },
+      { title: 'Case studies', body: 'Four cases in one short form, and every full write-up as the record.', href: HREF.cases },
     ],
   },
   {
     title: 'Method and source',
     items: [
-      { title: 'Method and limits', body: 'How runs are done, measured and judged, and how far to trust the numbers.', href: HASH.method },
+      { title: 'Method and limits', body: 'How runs are done, measured and judged, and how far to trust the numbers.', href: HREF.method },
       { title: 'Source and data', body: 'The code, the docs and every published report, on GitHub.', href: REPO, external: true },
     ],
   },
@@ -86,7 +86,7 @@ export function DeepDive() {
           {lessons.map((l) => (
             <li key={l.id}>
               <span className="eyebrow">{l.theme}</span>
-              <a href={HASH.lessons}>{l.title}</a>
+              <a href={HREF.lessons}>{l.title}</a>
             </li>
           ))}
         </ul>

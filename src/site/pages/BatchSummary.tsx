@@ -1,6 +1,6 @@
 import { writeUpOf } from 'virtual:batches';
 import type { Batch } from '../lib/batches';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 import { ConditionTable, OutcomeBar, dollars, when } from './BatchParts';
 
 /** The report's own title, totals and "Success per condition" section: the summary shows them instead. */
@@ -43,8 +43,8 @@ export function BatchSummary({ batch, title }: { batch: Batch; title: string }) 
       <OutcomeBar batch={batch} />
       {writeUp && (
         <p>
-          The evidence, read from the logs: <a href={HASH.doc(writeUp.path)}>{writeUp.title}</a>. All the lessons:{' '}
-          <a href={HASH.lessons}>lessons for building agents</a>.
+          The evidence, read from the logs: <a href={HREF.doc(writeUp.path)}>{writeUp.title}</a>. All the lessons:{' '}
+          <a href={HREF.lessons}>lessons for building agents</a>.
         </p>
       )}
       {batch.conditions.length > 0 && (
