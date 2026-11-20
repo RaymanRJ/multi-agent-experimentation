@@ -17,11 +17,16 @@ paths. Links between docs stay on the site; links to code open on GitHub.
 **Search and answer engines.** `npm run build` pre-renders every page to static HTML, as rrjamal.ca does: a second
 Vite build of `entry-server.tsx` (into `dist-ssr/`, deleted afterwards), then `scripts/prerender.mjs` writes
 `dist/<path>/index.html` for each page with its own title, description, canonical URL, Open Graph tags and JSON-LD,
-plus `dist/sitemap.xml` and `dist/llms.txt`. All of it comes from `lib/seo.ts`, which lists every page: the overview,
+plus `dist/sitemap.xml`, `dist/llms.txt` (a summary with every page) and `dist/llms-full.txt` (the case studies,
+lessons notebook, write-ups and limitations in one Markdown file, links made absolute, for AI tools that read a whole
+site). The build fails, rather than ship a broken page, on a doc whose name has a dot (CloudFront would serve it as a
+file), two pages at one path, or a page with no description. All of it comes from `lib/seo.ts`, which lists every page: the overview,
 the deep dive's sections, each case study and every doc. A new doc is picked up by itself; **a new page needs an entry
 there**, or it is never pre-rendered and the live site serves it the 404 page. A doc's dates (sitemap `lastmod`,
-`datePublished`) are its first and last commit, so CI checks out the whole history. `llms.txt` is built from
-`content/headline.ts`, so it never needs editing by hand. The JSON-LD names the author by rrjamal.ca's `Person` id, so
+`datePublished`) are its first and last commit, so CI checks out the whole history. Both llms files are built
+from `content/headline.ts`, `content/cases.ts` and the docs, so they never need editing by hand. Each case study is
+marked up as its question and answer, and Case studies as a `FAQPage` of all four. The landing page's "How we know"
+explanations are in the page, hidden until opened, so the reason for each figure is in the HTML too. The JSON-LD names the author by rrjamal.ca's `Person` id, so
 engines tie the two sites together. React draws over the pre-rendered page rather than hydrating it; a doc is loaded
 before the first draw, so there is no "Loading…" flash. `public/robots.txt` allows every crawler, and each deploy
 pings IndexNow (Bing and others) with the sitemap's URLs; the key in `site.yaml` must match `public/<key>.txt`.

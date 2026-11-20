@@ -3,7 +3,7 @@ import { FIGURES, HEADLINE } from '../content/headline';
 import { lessons } from '../content/lessons';
 import { lessonOf, parseBatch } from './batches';
 import { CONTACT } from './contact';
-import { REPO, SITE, docPaths, loadDoc } from './docs';
+import { REPO, SITE, docPaths, loadDoc, loadedDoc, resolveLink, writeUps } from './docs';
 import { HREF, parse, type Route } from './route';
 import { docTitle, pageTitle } from './titles';
 
@@ -162,6 +162,18 @@ function graph(route: Route, path: string, name: string, description: string, pa
 
 const short = (title: string) => title.replace(` · ${SITE}`, '');
 
+/** A case study as the question it asks and what the runs answered, in its own words (content/cases.ts). */
+const question = (c: (typeof cases)[number]) => ({
+  '@type': 'Question',
+  name: c.question,
+  url: canonicalUrl(HREF.caseStudy(c.id)),
+  acceptedAnswer: {
+    '@type': 'Answer',
+    text: `${c.result.value} ${c.result.label}. ${c.happened.join(' ')}`,
+    url: canonicalUrl(HREF.caseStudy(c.id)),
+  },
+});
+
 // The deep dive's own pages, described in their own words (each page's opening paragraph).
 const SECTIONS: Array<{ path: string; description: string }> = [
   {
@@ -207,12 +219,17 @@ export async function sitePages(dates: DocDates = {}): Promise<PageMeta[]> {
   };
 
   add('/', HOME_DESCRIPTION, 'website', { '@type': 'WebPage', mainEntity: { '@id': sourceCode['@id'] }, author: { '@id': person['@id'] } });
-  for (const s of SECTIONS) add(s.path, s.description, 'website', { '@type': s.path === HREF.cases ? 'CollectionPage' : 'WebPage' });
+  for (const s of SECTIONS) {
+    // The case studies are each a question and its answer, so the list is marked up as one.
+    const extra = s.path === HREF.cases ? { '@type': ['CollectionPage', 'FAQPage'], mainEntity: cases.map(question) } : { '@type': 'WebPage' };
+    add(s.path, s.description, 'website', extra);
+  }
   for (const c of cases) {
     add(HREF.caseStudy(c.id), clip(`${c.question} ${c.result.value} ${c.result.label}.`, 240), 'article', {
       '@type': 'TechArticle',
       headline: c.title,
       author: { '@id': person['@id'] },
+      mainEntity: question(c),
       citation: canonicalUrl(HREF.doc(c.writeUp.doc)),
     });
   }
@@ -258,6 +275,8 @@ export function llmsTxt(pages: PageMeta[]): string {
 
 An open-source testbed by ${CONTACT.name} (${CONTACT.website}) for running AI agents hands-off. Claude, GPT and a free local model each drive an agent in one shared Minecraft world, chosen because agent behaviour there is observable and runs can be repeated; the game is the test environment, not the subject. The model chooses high-level goals; deterministic code (a skill library) carries them out. Every decision is logged, so every figure traces back to a run. Source code and data: ${REPO}
 
+The full text of the case studies, lessons, write-ups and limitations, in one Markdown file: ${SITE_URL}/llms-full.txt
+
 ## Headline results (${HEADLINE.asOf})
 
 ${FIGURES.map((f) => `- ${f.value} ${f.label}. ${f.detail}`).join('\n')}
@@ -286,4 +305,58 @@ ${pick((p) => p.path.startsWith('/docs/') && !p.path.startsWith('/docs/results/w
 
 - ${CONTACT.name}: ${CONTACT.email}, ${CONTACT.linkedin}, ${CONTACT.website}
 `;
+}
+
+/** A doc's markdown with its links made absolute, so they still work read out of context. */
+function absolute(docPath: string, markdown: string): string {
+  return markdown.replace(/(?<!!)\[([^\]]*)\]\(([^)\s]+)\)/g, (_, text: string, href: string) => {
+    const { url } = resolveLink(docPath, href);
+    return `[${text}](${url.startsWith('/') ? `${SITE_URL}${url}` : url})`;
+  });
+}
+
+function caseMarkdown(c: (typeof cases)[number]): string {
+  const titles = new Map(lessons.map((l) => [l.id, l.title]));
+  const list = (items: string[]) => items.map((x) => `- ${x}`).join('\n');
+  return [
+    `## Case study: ${c.title}`,
+    `Source: ${canonicalUrl(HREF.caseStudy(c.id))}`,
+    `**Question.** ${c.question}`,
+    `**Setup.** ${c.setup}`,
+    `**Result.** ${c.result.value} ${c.result.label}.`,
+    `**What happened.**\n\n${list(c.happened)}`,
+    `**What changed.**\n\n${list(c.changed)}`,
+    c.leftAlone ? `**Left alone.** ${c.leftAlone}` : '',
+    `**Lessons.** ${c.lessons.map((id) => titles.get(id) ?? id).join('; ')}.`,
+    `**Full write-up:** [${c.writeUp.title}](${canonicalUrl(HREF.doc(c.writeUp.doc, c.writeUp.anchor))})`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/**
+ * llms-full.txt: the site's substance in one Markdown file, for AI tools that read a whole site at once. The llms.txt
+ * summary, the case studies, the lessons notebook, every write-up (newest first) and the known limits. The batch
+ * reports are left out: they are long tables, each a page of its own and listed in the sitemap. Call after
+ * `sitePages`, which loads the docs.
+ */
+export function llmsFullTxt(pages: PageMeta[]): string {
+  const doc = (path: string) => {
+    const text = loadedDoc(path);
+    if (text === null) throw new Error(`llms-full.txt: ${path} isn't loaded`);
+    // Each doc's title becomes a level-2 heading under the file's own title, with its source beneath it.
+    const body = absolute(path, text).replace(/^(#+)/gm, '#$1');
+    return body.replace(/^(## .+)$/m, `$1\n\nSource: ${canonicalUrl(HREF.doc(path))}`);
+  };
+  return [
+    llmsTxt(pages).trimEnd(),
+    '# Case studies',
+    ...cases.map(caseMarkdown),
+    '# Lessons for building agents (the full notebook)',
+    doc('lessons'),
+    '# Write-ups',
+    ...writeUps.map((w) => doc(w.path)),
+    '# Known limits',
+    doc('limitations'),
+  ].join('\n\n') + '\n';
 }

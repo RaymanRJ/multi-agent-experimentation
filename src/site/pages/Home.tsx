@@ -72,12 +72,11 @@ export function Home({ section }: { section?: string }) {
                 <span>{f.label}</span>
                 <span className="figure-more" aria-hidden="true">{open === i ? 'Less' : 'How we know'}</span>
               </button>
-              {open === i && (
-                <div className="figure-detail" id={`figure-${i}`}>
-                  <p>{f.detail}</p>
-                  <a href={f.href}>Full technical write-up →</a>
-                </div>
-              )}
+              {/* Always in the page, hidden until opened, so the reason for each figure is in the pre-rendered HTML. */}
+              <div className="figure-detail" id={`figure-${i}`} hidden={open !== i}>
+                <p>{f.detail}</p>
+                <a href={f.href}>Full technical write-up →</a>
+              </div>
             </div>
           ))}
         </div>

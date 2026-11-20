@@ -2,7 +2,7 @@
 // see each page's content, title and description. Runs after both Vite builds (npm run build):
 //   dist/        client build; index.html is the template
 //   dist-ssr/    server build of entry-server.tsx (deleted when done)
-// Writes dist/index.html, dist/<path>/index.html, dist/sitemap.xml and dist/llms.txt. dist/404.html is public/404.html.
+// Writes dist/index.html, dist/<path>/index.html, dist/sitemap.xml, dist/llms.txt and dist/llms-full.txt. dist/404.html is public/404.html.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'dist');
 const ssrDir = join(root, 'dist-ssr');
-const { render, sitePages, canonicalUrl, llmsTxt, SITE_URL } = await import(pathToFileURL(join(ssrDir, 'entry-server.js')).href);
+const { render, sitePages, canonicalUrl, llmsTxt, llmsFullTxt, SITE_URL } = await import(pathToFileURL(join(ssrDir, 'entry-server.js')).href);
 
 /**
  * When each doc was first and last committed (YYYY-MM-DD), from one pass over git's history of docs/. CI checks out
@@ -85,6 +85,19 @@ async function pageHtml(page) {
 }
 
 const pages = await sitePages(docDates());
+
+// New docs arrive with every published batch, so check what would otherwise break quietly on the live site.
+const problems = [];
+const seen = new Set();
+for (const page of pages) {
+  // The CloudFront function serves a path whose last part has a dot as a file, not as <path>/index.html.
+  if (page.path.split('/').pop().includes('.')) problems.push(`${page.path}: a dot in the last part, so CloudFront would 404 it; rename the doc`);
+  if (seen.has(page.path)) problems.push(`${page.path}: two pages at one path`);
+  seen.add(page.path);
+  if (!page.description.trim()) problems.push(`${page.path}: no description (a doc needs a paragraph of prose under its title)`);
+}
+if (problems.length) throw new Error(`prerender:\n  ${problems.join('\n  ')}`);
+
 for (const page of pages) {
   const file = page.path === '/' ? join(out, 'index.html') : join(out, page.path, 'index.html');
   mkdirSync(dirname(file), { recursive: true });
@@ -101,6 +114,7 @@ ${pages.map((p) => `  <url><loc>${canonicalUrl(p.path)}</loc>${p.modified ? `<la
 `;
 writeFileSync(join(out, 'sitemap.xml'), sitemap);
 writeFileSync(join(out, 'llms.txt'), llmsTxt(pages));
-console.log('wrote sitemap.xml and llms.txt');
+writeFileSync(join(out, 'llms-full.txt'), llmsFullTxt(pages));
+console.log('wrote sitemap.xml, llms.txt and llms-full.txt');
 
 rmSync(ssrDir, { recursive: true, force: true });

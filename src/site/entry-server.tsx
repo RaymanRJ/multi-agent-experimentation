@@ -5,7 +5,7 @@ import App from './App';
 import { loadDoc } from './lib/docs';
 import type { Route } from './lib/route';
 
-export { SITE_URL, canonicalUrl, llmsTxt, notFoundPage, sitePages } from './lib/seo';
+export { SITE_URL, canonicalUrl, llmsFullTxt, llmsTxt, notFoundPage, sitePages } from './lib/seo';
 
 export async function render(route: Route): Promise<string> {
   // DocPage draws a doc that has already been loaded in one pass.
