@@ -12,38 +12,29 @@ import { LinkedInIcon, MailIcon } from './lib/icons';
 import { DeepNav, deepSection } from './lib/DeepNav';
 import { REPO, SITE } from './lib/docs';
 import { PageNav } from './lib/PageNav';
-import { HASH, useRoute, type Route } from './lib/route';
+import { HREF, useRoute, type Route } from './lib/route';
+import { pageTitle } from './lib/titles';
 
 // Two readers: the overview is for someone deciding in a few minutes; everything technical sits under the deep dive.
 const NAV: Array<{ label: string; href: string; active: (r: Route) => boolean }> = [
-  { label: 'Overview', href: HASH.home, active: (r) => r.page === 'home' && !r.section },
-  { label: 'Deep dive', href: HASH.deep, active: (r) => ['deep', 'lessons', 'cases', 'case', 'method', 'results', 'how', 'doc'].includes(r.page) },
-  { label: 'Contact', href: HASH.contact, active: (r) => r.page === 'home' && r.section === 'contact' },
+  { label: 'Overview', href: HREF.home, active: (r) => r.page === 'home' && !r.section },
+  { label: 'Deep dive', href: HREF.deep, active: (r) => ['deep', 'lessons', 'cases', 'case', 'method', 'results', 'how', 'doc'].includes(r.page) },
+  { label: 'Contact', href: HREF.contact, active: (r) => r.page === 'home' && r.section === 'contact' },
 ];
 
-const TITLES: Partial<Record<Route['page'], string>> = {
-  home: SITE,
-  deep: `Deep dive · ${SITE}`,
-  lessons: `Lessons · ${SITE}`,
-  method: `Method and limits · ${SITE}`,
-  cases: `Case studies · ${SITE}`,
-  case: `Case study · ${SITE}`,
-  how: `How it works · ${SITE}`,
-  results: `Results · ${SITE}`,
-};
-
-export default function App() {
-  const route = useRoute();
+/** The site. `initialRoute` is the page being pre-rendered (entry-server.tsx); in the browser it comes from the URL. */
+export default function App({ initialRoute }: { initialRoute?: Route }) {
+  const route = useRoute(initialRoute);
   const section = deepSection(route);
   useEffect(() => {
-    const title = TITLES[route.page];
+    const title = pageTitle(route);
     if (title) document.title = title;
-  }, [route.page]);
+  }, [route]);
 
   return (
     <div className="app">
       <header className="site-header">
-        <a className="brand" href={HASH.home}>
+        <a className="brand" href={HREF.home}>
           <svg viewBox="0 0 32 32" aria-hidden="true">
             <path d="M9 22 16 9l7 13Z" fill="none" stroke="currentColor" strokeWidth="2.4" />
             <circle cx="16" cy="9" r="4.5" />
@@ -79,7 +70,7 @@ export default function App() {
         <main className="narrow">
           <h1>No such page</h1>
           <p>
-            Start from the <a href={HASH.home}>overview</a>.
+            Start from the <a href={HREF.home}>overview</a>.
           </p>
         </main>
       )}

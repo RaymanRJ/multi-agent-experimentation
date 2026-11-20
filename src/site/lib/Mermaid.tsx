@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Enlarged, ExpandIcon, openSize } from './Enlarge';
 
-const dark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+// Light while pre-rendering, where there is no window; the diagram is drawn in the browser anyway.
+const dark = () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 /** The size a diagram opens at: never smaller than drawn (its viewBox), at most twice that. */
 function drawnSize(svg: string): CSSProperties {

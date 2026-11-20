@@ -1,7 +1,7 @@
 import readme from '../../../README.md?raw';
 import { FIGURES } from '../content/screenshots';
 import { Mermaid, mermaidBlock } from '../lib/Mermaid';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 import { Screenshots } from '../lib/Screenshot';
 
 // The control loop diagram is the README's own, read when the site is built, so the two can't drift.
@@ -88,14 +88,14 @@ export function HowItWorks() {
         <h2>Read further</h2>
         <ul>
           <li>
-            <a href={HASH.method}>Method and limits</a>: how runs are done, measured and judged, and what the numbers
+            <a href={HREF.method}>Method and limits</a>: how runs are done, measured and judged, and what the numbers
             can’t show.
           </li>
           <li>
-            <a href={HASH.doc('skills')}>The skills</a>: each one, what it does and how it fails.
+            <a href={HREF.doc('skills')}>The skills</a>: each one, what it does and how it fails.
           </li>
           <li>
-            <a href={HASH.doc('communication')}>How agents talk</a>: messages, requests and questions between teammates.
+            <a href={HREF.doc('communication')}>How agents talk</a>: messages, requests and questions between teammates.
           </li>
         </ul>
       </section>

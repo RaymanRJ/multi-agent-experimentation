@@ -9,14 +9,32 @@ doc in the repository's `docs/` (write-ups, batch reports, limitations…) rende
 built, so a new write-up appears on the next deploy without touching this code. `docs/next-steps.md`
 is left out: it's working notes.
 
-Vite, React and TypeScript, like music-viz. Pages use hash routes (`#/findings`,
-`#/docs/results/write-ups/06-team-base`), so the static S3 site needs no rewrite rules. Links
-between docs stay on the site; links to code open on GitHub.
+Vite, React and TypeScript, like music-viz. Pages have real paths (`/lessons`,
+`/docs/results/write-ups/06-team-base#heading`), and links between them change the page without a reload
+(`lib/route.ts`). Old hash addresses (`#/lessons`, `#/docs/x::heading`, used until 19 November) redirect to their
+paths. Links between docs stay on the site; links to code open on GitHub.
+
+**Search and answer engines.** `npm run build` pre-renders every page to static HTML, as rrjamal.ca does: a second
+Vite build of `entry-server.tsx` (into `dist-ssr/`, deleted afterwards), then `scripts/prerender.mjs` writes
+`dist/<path>/index.html` for each page with its own title, description, canonical URL, Open Graph tags and JSON-LD,
+plus `dist/sitemap.xml` and `dist/llms.txt`. All of it comes from `lib/seo.ts`, which lists every page: the overview,
+the deep dive's sections, each case study and every doc. A new doc is picked up by itself; **a new page needs an entry
+there**, or it is never pre-rendered and the live site serves it the 404 page. A doc's dates (sitemap `lastmod`,
+`datePublished`) are its first and last commit, so CI checks out the whole history. `llms.txt` is built from
+`content/headline.ts`, so it never needs editing by hand. The JSON-LD names the author by rrjamal.ca's `Person` id, so
+engines tie the two sites together. React draws over the pre-rendered page rather than hydrating it; a doc is loaded
+before the first draw, so there is no "Loading…" flash. `public/robots.txt` allows every crawler, and each deploy
+pings IndexNow (Bing and others) with the sitemap's URLs; the key in `site.yaml` must match `public/<key>.txt`.
+`public/og.png` is the link-preview card, rendered from `scripts/og-card.html` (the command is in its header): it
+repeats the headline figures, so re-render it when they change. CloudFront serves `/lessons` from
+`lessons/index.html` with a viewer-request function (`src/terraform/modules/cloudfront/`), which also sends `www.` to
+the bare domain. `npm run preview` doesn't map paths to their `index.html` the way CloudFront does, so request
+`/lessons/` there to see the pre-rendered page.
 
 ```sh
 npm install
 npm run dev       # http://localhost:5174, reloads on change
-npm run build     # type-check, then build to dist/
+npm run build     # type-check, build to dist/, pre-render every page, sitemap and llms.txt
 npm run preview   # serve dist/ at http://localhost:4174
 ```
 

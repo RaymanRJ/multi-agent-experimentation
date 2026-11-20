@@ -1,0 +1,82 @@
+<!doctype html>
+<!--
+  The link-preview card (public/og.png, 1200×630), in the site's colours. Its figures are the landing page's
+  (content/headline.ts): re-render it when the headline changes. From src/site:
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+    --window-size=1200,630 --screenshot="$PWD/public/og.png" "file://$PWD/scripts/og-card.html"
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        background: #f5f3ee;
+        color: #1b1d21;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .card {
+        box-sizing: border-box;
+        height: 100%;
+        padding: 72px 80px;
+        display: flex;
+        flex-direction: column;
+        border-top: 14px solid #0b7f6c;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .brand svg {
+        width: 52px;
+        height: 52px;
+        color: #0b7f6c;
+        fill: currentColor;
+      }
+      h1 {
+        margin: 56px 0 24px;
+        font-size: 66px;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        max-width: 980px;
+      }
+      p {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.35;
+        color: #3c414a;
+      }
+      strong {
+        color: #0b7f6c;
+        white-space: nowrap;
+      }
+      .url {
+        margin-top: auto;
+        font-size: 24px;
+        color: #5c626d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M9 22 16 9l7 13Z" fill="none" stroke="currentColor" stroke-width="2.4" />
+          <circle cx="16" cy="9" r="4.5" />
+          <circle cx="9" cy="22" r="4.5" />
+          <circle cx="23" cy="22" r="4.5" />
+        </svg>
+        Rayman Jamal · AI agents
+      </div>
+      <h1>Give three AI agents a goal, not instructions.</h1>
+      <p>They plan, divide the work and finish the job: <strong>20 of 20 runs</strong>, at about <strong>$1 a success</strong>.</p>
+      <div class="url">multi-agent-experiment.rrjamal.ca</div>
+    </div>
+  </body>
+</html>

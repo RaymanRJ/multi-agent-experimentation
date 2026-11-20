@@ -1,5 +1,5 @@
 import { FIGURES } from '../content/screenshots';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 import { Screenshots } from '../lib/Screenshot';
 
 // How runs are done, measured and judged, and what the numbers can't show. The long-form record is docs/limitations.md
@@ -140,7 +140,7 @@ export function Method() {
       <aside className="appendix">
         <strong>The full record</strong>
         <p>Every known limitation in detail, and how batches and conditions are set up for fair comparison.</p>
-        <a href={HASH.doc('limitations')}>All limitations →</a> · <a href={HASH.doc('experiments')}>Running experiments →</a>
+        <a href={HREF.doc('limitations')}>All limitations →</a> · <a href={HREF.doc('experiments')}>Running experiments →</a>
       </aside>
     </main>
   );

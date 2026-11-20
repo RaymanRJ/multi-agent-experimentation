@@ -42,10 +42,10 @@ function batches(): Plugin {
 
 // The site reads the repository's docs/ (two folders up) when it is built, so the dev server may
 // serve files from the whole repository, not just this folder.
-// Relative asset paths (base "./"): served from a domain's root by S3 + CloudFront, and still working
-// if the site is ever served under a path. Routes are hash-based, so nothing else changes.
+// Served from a domain's root by S3 + CloudFront. Asset paths are absolute (base "/"), as pages sit at every depth
+// (/docs/results/write-ups/08-reaching-80/index.html). The dev server and preview serve index.html for any path.
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react(), batches()],
   server: { port: 5174, strictPort: true, fs: { allow: ['../..'] } },
   preview: { port: 4174, strictPort: true },

@@ -1,4 +1,4 @@
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 
 /**
  * The landing page's headline figures: the claims a non-technical reader sees first. Hand-set, not computed, because
@@ -19,7 +19,7 @@ export const HEADLINE = {
   asOf: 'November 2026',
 };
 
-const SOURCE = HASH.doc('results/write-ups/08-reaching-80');
+const SOURCE = HREF.doc('results/write-ups/08-reaching-80');
 
 export const FIGURES: Array<{ value: string; label: string; detail: string; href: string }> = [
   {
@@ -41,13 +41,13 @@ export const FIGURES: Array<{ value: string; label: string; detail: string; href
     label: 'the success rate, from 15 of 30 runs to 20 of 20: a stronger model on the same tools',
     detail:
       'Fixing the agents’ tools took a team of the cheapest model from 4 in 14 to about half. Six more fixes, each checked, didn’t move it further: what was left was its own judgement. A stronger model on the same tools, with nothing else changed but four last fixes, met the goal every time.',
-    href: HASH.doc('results/write-ups/08-reaching-80', 'why-we-moved-from-luna-to-sol'),
+    href: HREF.doc('results/write-ups/08-reaching-80', 'why-we-moved-from-luna-to-sol'),
   },
   {
     value: '0',
     label: 'human interventions during a run',
     detail:
       'Once a run starts, no one steps in: no hints, no corrections, no hand-picked restarts. When the agents got stuck, the fix went into their tools for the next run, never into the run itself. Runs stopped for a bug in our own code are set aside and listed, never counted.',
-    href: HASH.method,
+    href: HREF.method,
   },
 ];

@@ -3,7 +3,7 @@ import { caseById, cases } from '../content/cases';
 import { lessons } from '../content/lessons';
 import type { Batch } from '../lib/batches';
 import { writeUps } from '../lib/docs';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 import { Screenshots } from '../lib/Screenshot';
 
 /** The list: three curated cases, then every full write-up as the research record. */
@@ -20,7 +20,7 @@ export function Cases() {
 
       <div className="case-cards">
         {cases.map((c) => (
-          <a className="case-card" key={c.id} href={HASH.caseStudy(c.id)}>
+          <a className="case-card" key={c.id} href={HREF.caseStudy(c.id)}>
             <strong className="case-figure">{c.result.value}</strong>
             <span className="case-title">{c.title}</span>
             <span className="case-question">{c.question}</span>
@@ -35,7 +35,7 @@ export function Cases() {
         <ul>
           {writeUps.map((w) => (
             <li key={w.path}>
-              <a href={HASH.doc(w.path)}>
+              <a href={HREF.doc(w.path)}>
                 <span className="number">{w.number}</span> {w.title}
               </a>
             </li>
@@ -57,7 +57,7 @@ export function CaseStudy({ id }: { id: string }) {
       <main className="narrow">
         <h1>No such case study</h1>
         <p>
-          See the <a href={HASH.cases}>case studies</a>.
+          See the <a href={HREF.cases}>case studies</a>.
         </p>
       </main>
     );
@@ -68,11 +68,11 @@ export function CaseStudy({ id }: { id: string }) {
       <nav className="crumbs" aria-label="Breadcrumb">
         <span className="trail">
           <span>
-            <a href={HASH.deep}>Deep dive</a>
+            <a href={HREF.deep}>Deep dive</a>
           </span>
           <span>
             <span className="sep" aria-hidden="true">›</span>
-            <a href={HASH.cases}>Case studies</a>
+            <a href={HREF.cases}>Case studies</a>
           </span>
         </span>
       </nav>
@@ -117,7 +117,7 @@ export function CaseStudy({ id }: { id: string }) {
         <ul className="case-lessons">
           {c.lessons.map((lid) => (
             <li key={lid}>
-              <a href={HASH.lessons}>{lessonOf(lid)?.title ?? lid}</a>
+              <a href={HREF.lessons}>{lessonOf(lid)?.title ?? lid}</a>
             </li>
           ))}
         </ul>
@@ -126,7 +126,7 @@ export function CaseStudy({ id }: { id: string }) {
       <section className="case-sources">
         <h2>Sources</h2>
         <p>
-          <a href={HASH.doc(c.writeUp.doc, c.writeUp.anchor)}>{c.writeUp.title} →</a>
+          <a href={HREF.doc(c.writeUp.doc, c.writeUp.anchor)}>{c.writeUp.title} →</a>
         </p>
         <p className="muted">
           Batch reports:{' '}
@@ -135,17 +135,17 @@ export function CaseStudy({ id }: { id: string }) {
             return (
               <span key={name}>
                 {i > 0 && ', '}
-                {b ? <a href={HASH.doc(b.path)}>{name}</a> : name}
+                {b ? <a href={HREF.doc(b.path)}>{name}</a> : name}
               </span>
             );
           })}
-          {' '}· <a href={HASH.results}>all results</a>
+          {' '}· <a href={HREF.results}>all results</a>
         </p>
       </section>
 
       <nav className="case-next" aria-label="Other case studies">
         {others.map((o) => (
-          <a key={o.id} href={HASH.caseStudy(o.id)}>
+          <a key={o.id} href={HREF.caseStudy(o.id)}>
             <span className="muted">Another case</span>
             <strong>{o.title}</strong>
           </a>

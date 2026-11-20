@@ -39,6 +39,9 @@ jobs:
         working-directory: src/site
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The whole history, so each doc's sitemap lastmod and article dates are its own commits.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -110,13 +113,33 @@ jobs:
           aws s3 sync dist "s3://$BUCKET" --delete --exclude "assets/*"
           --cache-control "no-cache"
 
+      # Every page is its own file now (<path>/index.html), so clear them all; "/*" counts as one path.
       - name: Invalidate CloudFront
         run: >
           aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID"
-          --paths "/" "/index.html"
+          --paths "/*"
 
       # Old assets stay until now so pages loaded mid-deploy keep working.
       - name: Remove old assets
         run: >
           aws s3 sync dist/assets "s3://$BUCKET/assets" --delete
           --cache-control "public, max-age=31536000, immutable"
+
+      # Tell IndexNow engines (Bing, Yandex, Naver, Seznam) the sitemap's pages changed.
+      # The key is public by design: it must match public/<key>.txt on the site.
+      # A failed ping never fails the deploy.
+      - name: Ping IndexNow
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: 1ee8c06e6866c84da631131af5ef7a7b
+          HOST: multi-agent-experiment.rrjamal.ca
+        run: |
+          urls=$(grep -o '<loc>[^<]*' dist/sitemap.xml | sed 's/<loc>//' | jq -R . | jq -s .)
+          jq -n --argjson urls "$urls" --arg key "$INDEXNOW_KEY" --arg host "$HOST" \
+            '{host: $host, key: $key, keyLocation: "https://\($host)/\($key).txt", urlList: $urls}' \
+            > indexnow.json
+          status=$(curl -s -o response.txt -w '%{http_code}' -X POST https://api.indexnow.org/indexnow \
+            -H 'Content-Type: application/json; charset=utf-8' --data @indexnow.json)
+          echo "IndexNow answered $status for $(jq '.urlList | length' indexnow.json) URLs"; cat response.txt
+          # 200 OK and 202 Accepted are both success.
+          [ "$status" = 200 ] || [ "$status" = 202 ]

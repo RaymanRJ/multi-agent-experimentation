@@ -1,6 +1,6 @@
 import { caseById } from '../content/cases';
 import { lessons } from '../content/lessons';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 
 export function Lessons() {
   return (
@@ -13,7 +13,7 @@ export function Lessons() {
         </p>
         <nav className="toc" aria-label="Lessons on this page">
           {lessons.map((l, i) => (
-            <a key={l.id} href={HASH.lessons} onClick={(e) => { e.preventDefault(); document.getElementById(l.id)?.scrollIntoView({ behavior: 'smooth' }); }}>
+            <a key={l.id} href={HREF.lessons} onClick={(e) => { e.preventDefault(); document.getElementById(l.id)?.scrollIntoView({ behavior: 'smooth' }); }}>
               <span>{i + 1}</span>
               {l.title}
             </a>
@@ -31,7 +31,7 @@ export function Lessons() {
           <div className="lesson-evidence">
             <span>Evidence</span>
             <p>{l.evidence}</p>
-            <a href={HASH.doc(l.source.doc, l.source.anchor)}>{l.source.label} →</a>
+            <a href={HREF.doc(l.source.doc, l.source.anchor)}>{l.source.label} →</a>
           </div>
           <p className="lesson-practice">
             <span>In practice</span>
@@ -42,7 +42,7 @@ export function Lessons() {
             {l.cases.map((id, j) => (
               <span key={id}>
                 {j > 0 && ', '}
-                <a href={HASH.caseStudy(id)}>{caseById(id)?.title ?? id}</a>
+                <a href={HREF.caseStudy(id)}>{caseById(id)?.title ?? id}</a>
               </span>
             ))}
           </p>
@@ -52,7 +52,7 @@ export function Lessons() {
       <aside className="appendix">
         <strong>The full notebook</strong>
         <p>All 52 lessons, grouped by theme, each with its evidence line: the research record these eight are drawn from.</p>
-        <a href={HASH.notebook}>Read the full notebook →</a>
+        <a href={HREF.notebook}>Read the full notebook →</a>
       </aside>
     </main>
   );

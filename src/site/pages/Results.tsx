@@ -3,7 +3,7 @@ import { batches } from 'virtual:batches';
 import { milestones } from '../content/milestones';
 import usage from '../../../docs/results/token-usage.json';
 import type { AgentRun, Batch } from '../lib/batches';
-import { HASH } from '../lib/route';
+import { HREF } from '../lib/route';
 import { dollars } from './BatchParts';
 
 // One page for "how well does it work, and is it getting better?": the shared goal's milestones, a few totals, every
@@ -75,7 +75,7 @@ export function Results() {
                 </span>
               </div>
               <p className="ms-note">
-                {m.note} <a href={HASH.doc(m.source.doc, m.source.anchor)}>Source →</a>
+                {m.note} <a href={HREF.doc(m.source.doc, m.source.anchor)}>Source →</a>
               </p>
             </li>
           ))}
@@ -121,7 +121,7 @@ export function Results() {
               {shown.map((b: Batch) => (
                 <tr key={b.path}>
                   <td>
-                    <a href={HASH.doc(b.path)}>{b.name}</a>
+                    <a href={HREF.doc(b.path)}>{b.name}</a>
                   </td>
                   <td>{day(b.started)}</td>
                   <td>{b.goals.join(', ')}</td>

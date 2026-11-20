@@ -1,0 +1,29 @@
+// CloudFront Function (viewer request) for ${domain}.
+// - www.${domain} redirects to ${domain}, so search engines see one site.
+// - Pages are pre-rendered to <path>/index.html (src/site/scripts/prerender.mjs); map /lessons and /lessons/
+//   to that file. A path whose last part has a dot (/assets/x.js, /sitemap.xml) is a file and passes through.
+//   Anything that doesn't exist gets /404.html with a 404.
+
+function handler(event) {
+  var request = event.request;
+  var host = request.headers.host ? request.headers.host.value : "";
+  var uri = request.uri;
+
+  if (host === "www.${domain}") {
+    var query = Object.keys(request.querystring).length
+      ? "?" + Object.keys(request.querystring).map(function (k) { return k + "=" + request.querystring[k].value; }).join("&")
+      : "";
+    return {
+      statusCode: 301,
+      statusDescription: "Moved Permanently",
+      headers: { location: { value: "https://${domain}" + uri + query } },
+    };
+  }
+
+  if (uri.endsWith("/")) {
+    request.uri = uri + "index.html";
+  } else if (uri.split("/").pop().indexOf(".") === -1) {
+    request.uri = uri + "/index.html";
+  }
+  return request;
+}
